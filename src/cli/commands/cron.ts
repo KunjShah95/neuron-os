@@ -1,5 +1,6 @@
 import type { Command } from "commander"
 import { theme } from "../theme"
+import { showBanner } from "../banner"
 import { addCronJob, removeCronJob, listActiveJobs, ensureHeartbeatFile, loadHeartbeatChecklist } from "../../cron"
 
 export function registerCron(program: Command) {
@@ -48,6 +49,28 @@ export function registerCron(program: Command) {
         console.log()
       }
     })
+
+  // Default: show status
+  cron.action(async () => {
+    showBanner()
+    const jobs = await listActiveJobs()
+    console.log()
+    if (jobs.length === 0) {
+      console.log(`  ${theme.warn("No cron jobs scheduled")}`)
+      console.log(`  ${theme.muted("  Use: aegis cron add <name> <schedule> <goal>")}`)
+    } else {
+      console.log(`  ${theme.heading(`Scheduled Jobs (${jobs.length})`)}`)
+      console.log()
+      for (const job of jobs) {
+        const typeInfo = job.agentType ? theme.dim(` [${job.agentType}]`) : ""
+        console.log(`  ${theme.accent(job.name.padEnd(20))} every ${theme.bold(job.schedule)}${typeInfo}`)
+        console.log(`  ${theme.dim(job.goal.slice(0, 100))}`)
+        console.log()
+      }
+    }
+    console.log(`  ${theme.muted("Subcommands: add, remove, list, heartbeat")}`)
+    console.log()
+  })
 
   cron
     .command("heartbeat")

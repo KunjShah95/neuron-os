@@ -1,0 +1,47 @@
+services:
+  aegis:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: neuron-os/aegis:latest
+    container_name: aegis-server
+    ports:
+      - "8080:8080"
+    volumes:
+      # Persist vault, config, and env files
+      - aegis-data:/home/aegis/.aegis
+      # Mount source for development (live reload)
+      - ./src:/app/src:ro
+      - ./index.ts:/app/index.ts:ro
+    environment:
+      - AEGIS_LOG_LEVEL=debug
+      - AEGIS_API_CORS_ORIGINS=http://localhost:5173,http://localhost:8080
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "bun", "-e", "fetch('http://localhost:8080/api/v1/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Development-only: hot-reload web dashboard
+  dashboard-dev:
+    image: oven/bun:1
+    container_name: aegis-dashboard-dev
+    working_dir: /app/dashboard
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./dashboard:/app/dashboard
+    command: ["bun", "run", "dev", "--host", "0.0.0.0"]
+    profiles:
+      - dev
+    depends_on:
+      - aegis
+
+volumes:
+  aegis-data:
+    driver: local

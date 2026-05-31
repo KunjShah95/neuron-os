@@ -697,6 +697,78 @@ Configuration is persisted to `~/.aegis/config.json` via the setup wizard.
 
 ---
 
+---
+
+## Docker
+
+A production-grade multi-stage Dockerfile is provided for containerized deployment.
+
+### Prerequisites
+
+- [Docker](https://docker.com) ≥ 24.0
+- API keys passed as environment variables
+
+### Build
+
+```bash
+# Build the production image
+docker build -t neuron-os/aegis:latest .
+```
+
+The multi-stage build:
+1. **Stage 1** — Builds the Vite + React dashboard (`dashboard/dist/`)
+2. **Stage 2** — Installs production `node_modules` (`bun install --production`)
+3. **Stage 3** — Slim runtime image (`oven/bun:1-slim`) with non-root user, only production deps + source + pre-built dashboard
+
+### Run
+
+```bash
+# Start the API server (default)
+docker run -p 8080:8080 \
+  -e ANTHROPIC_API_KEY=sk-... \
+  -e AEGIS_LOG_LEVEL=info \
+  neuron-os/aegis:latest
+
+# Run other commands
+docker run neuron-os/aegis:latest status --json
+docker run neuron-os/aegis:latest chat
+```
+
+### Compose (local development)
+
+```bash
+# Start API server
+docker compose up aegis
+
+# Start API server + hot-reload Vite dashboard
+docker compose --profile dev up
+```
+
+The compose file:
+- Mounts `src/` and `index.ts` read-only for live reload
+- Passes `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY` from your shell environment
+- Stores vault data in a named volume (`aegis-data`)
+- Dashboard dev server runs on `:5173` with HMR and proxies `/api` to the aegis container
+
+### Configuration
+
+| Variable | Purpose |
+|----------|---------|
+| `ANTHROPIC_API_KEY` | Anthropic provider |
+| `OPENAI_API_KEY` | OpenAI provider |
+| `DEEPSEEK_API_KEY` | DeepSeek provider |
+| `AEGIS_LOG_LEVEL` | Log level (default: info) |
+| `AEGIS_API_CORS_ORIGINS` | Allowed CORS origins for API |
+| `AEGIS_VAULT_KEY` | Encryption key for credential vault (auto-generated if absent) |
+
+### Security
+
+- **Non-root user** — container runs as `aegis` (UID 1001), not root
+- **Read-only source mounts** in development
+- **Health check** — pings `/api/v1/health` every 30s
+- **Encrypted vault** — credentials stored as AES-256-GCM inside the container
+- **VOLUME** — vault data persists on a Docker volume, not in the container layer
+
 ## Tech Stack
 
 | Technology | Purpose |

@@ -1,6 +1,10 @@
-import { readFile, writeFile, mkdir } from "node:fs/promises"
+import { readFile, writeFile, mkdir, unlink } from "node:fs/promises"
 import { resolve } from "node:path"
 import { existsSync } from "node:fs"
+import { ensureVaultKey, encrypt, decrypt } from "./crypto"
+import { createLogger } from "../cli/logger"
+
+const log = createLogger("vault")
 
 export interface VaultEntry {
   key: string
@@ -10,41 +14,86 @@ export interface VaultEntry {
   updatedAt: string
 }
 
-const VAULT_DIR = resolve(process.env.HOME || process.env.USERPROFILE || "~", ".aegis")
-const VAULT_FILE = resolve(VAULT_DIR, "vault.json")
-const ENV_FILE = resolve(VAULT_DIR, "agent.env")
+function vaultDir(): string {
+  return resolve(process.env.HOME || process.env.USERPROFILE || "~", ".aegis")
+}
 
+const VAULT_DIR = vaultDir()
+const VAULT_FILE_ENC = resolve(VAULT_DIR, "vault.enc")       // encrypted format
+const VAULT_FILE_OLD = resolve(VAULT_DIR, "vault.json")       // legacy plaintext
+const ENV_FILE = resolve(VAULT_DIR, "agent.env")
 const SCOPED_ENV_DIR = resolve(VAULT_DIR, "env")
 
 export class CredentialVault {
   private entries: VaultEntry[] = []
+  private _encrypted = false   // tracks whether persistence uses encryption
 
   async initialize(): Promise<void> {
     await mkdir(VAULT_DIR, { recursive: true })
     await mkdir(SCOPED_ENV_DIR, { recursive: true })
-    if (existsSync(VAULT_FILE)) {
+
+    // ── Migrate legacy plaintext vault ──────────────────────────────
+    if (existsSync(VAULT_FILE_OLD) && !existsSync(VAULT_FILE_ENC)) {
       try {
-        const raw = await readFile(VAULT_FILE, "utf-8")
-        this.entries = JSON.parse(raw)
-      } catch {
-        this.entries = []
+        const raw = await readFile(VAULT_FILE_OLD, "utf-8")
+        const plainEntries: VaultEntry[] = JSON.parse(raw)
+        if (Array.isArray(plainEntries)) {
+          this.entries = plainEntries
+          log.info("Migrating plaintext vault to encrypted format", { count: plainEntries.length })
+          await this.writeEncrypted()       // encrypt and write
+          await unlink(VAULT_FILE_OLD).catch(() => {})
+          log.info("Legacy vault.json removed after migration")
+          this._encrypted = true
+          await this.writeEnvFile()
+          return
+        }
+      } catch (err) {
+        log.warn("Failed to migrate legacy vault.json, starting fresh", { error: String(err) })
       }
-    } else {
-      await writeFile(VAULT_FILE, JSON.stringify([], null, 2), "utf-8")
+    }
+
+    // ── Clean up stale plaintext file if encrypted file exists ─────
+    if (existsSync(VAULT_FILE_OLD) && existsSync(VAULT_FILE_ENC)) {
+      log.warn("Both vault.enc and vault.json exist — removing stale vault.json")
+      await unlink(VAULT_FILE_OLD).catch(() => {})
+    }
+
+    // ── Read encrypted vault ───────────────────────────────────────
+    if (existsSync(VAULT_FILE_ENC)) {
+      try {
+        const key = await ensureVaultKey(VAULT_DIR)
+        const raw = await readFile(VAULT_FILE_ENC, "utf-8")
+        const json = decrypt(raw.trim(), key)
+        this.entries = JSON.parse(json)
+        this._encrypted = true
+      } catch (err) {
+        log.error("Failed to decrypt vault, starting empty", { error: String(err) })
+        this.entries = []
+        this._encrypted = false
+      }
     }
   }
 
-  private async persist(): Promise<void> {
-    await writeFile(VAULT_FILE, JSON.stringify(this.entries, null, 2), "utf-8")
-    await this.writeEnvFile()
+  // ── Private helpers ───────────────────────────────────────────────
+
+  /** Encrypt entries and write to vault.enc. Throws on failure. */
+  private async writeEncrypted(): Promise<void> {
+    const json = JSON.stringify(this.entries)
+    const key = await ensureVaultKey(VAULT_DIR)
+    const encrypted = encrypt(json, key)
+    await writeFile(VAULT_FILE_ENC, encrypted + "\n", "utf-8")
+    this._encrypted = true
   }
 
+  /** Write plaintext env files (for runtime consumption). */
   private async writeEnvFile(): Promise<void> {
     const lines = this.entries
       .filter((e) => e.scope === "global")
       .map((e) => `${e.key}=${e.value}`)
     await writeFile(ENV_FILE, lines.join("\n") + "\n", "utf-8")
   }
+
+  // ── Public API ─────────────────────────────────────────────────────
 
   async set(key: string, value: string, scope = "global"): Promise<void> {
     const existing = this.entries.findIndex((e) => e.key === key && e.scope === scope)
@@ -57,7 +106,8 @@ export class CredentialVault {
       this.entries.push({ key, value, scope, createdAt: now, updatedAt: now })
     }
 
-    await this.persist()
+    await this.writeEncrypted()
+    await this.writeEnvFile()
 
     // Also write scoped .env
     if (scope !== "global") {
@@ -77,7 +127,8 @@ export class CredentialVault {
     const before = this.entries.length
     this.entries = this.entries.filter((e) => !(e.key === key && e.scope === scope))
     if (this.entries.length !== before) {
-      await this.persist()
+      await this.writeEncrypted()
+      await this.writeEnvFile()
       return true
     }
     return false
@@ -86,6 +137,16 @@ export class CredentialVault {
   async list(scope?: string): Promise<VaultEntry[]> {
     if (scope) return this.entries.filter((e) => e.scope === scope)
     return [...this.entries]
+  }
+
+  /** Returns true if the vault is stored with AES-256-GCM encryption. */
+  isEncrypted(): boolean {
+    return this._encrypted
+  }
+
+  /** Returns the path to the vault file for user-facing messages. */
+  vaultFilePath(): string {
+    return this._encrypted ? VAULT_FILE_ENC : VAULT_FILE_OLD
   }
 
   getEnvVars(scope = "global"): Record<string, string> {

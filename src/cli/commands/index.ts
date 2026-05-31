@@ -12,6 +12,13 @@ import { registerServe } from "./serve"
 import { registerMCP } from "./mcp"
 import { registerMemory } from "./memory"
 import { registerAgentMemory } from "./agentmemory"
+import { registerTelegram } from "./telegram"
+import { registerAsk } from "./ask"
+import { registerPlan } from "./plan"
+import { registerSandbox } from "./sandbox"
+import { registerComputer } from "./computer"
+import { registerHarness } from "./harness"
+import { registerAgentRun } from "./agent-run"
 
 export function registerAllCommands(program: Command) {
   registerWakeup(program)
@@ -27,4 +34,11 @@ export function registerAllCommands(program: Command) {
   registerMCP(program)
   registerMemory(program)
   registerAgentMemory(program)
+  registerTelegram(program)
+  registerAsk(program)
+  registerPlan(program)
+  registerSandbox(program)
+  registerComputer(program)
+  registerHarness(program)
+  registerAgentRun(program)
 }

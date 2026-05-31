@@ -18,6 +18,13 @@ export type {
   AgentType,
   ToolPermission,
 } from "./agent-types"
+
+// Action tracking + approval system
+export { ActionTracker } from "./action-tracker"
+export type { ActionType, ActionStatus, ActionLog } from "./action-tracker"
+export { AgentToolExecutor } from "./agent-tools"
+export type { AgentToolConfig } from "./agent-tools"
+export { promptApproval, applyAndReport } from "./approval"
 export type {
   AgentStatus,
   AgentDef,

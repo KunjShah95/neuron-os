@@ -1,15 +1,15 @@
 import type { Command } from "commander"
-import { registerAllModes, runModeLauncher } from "../../modes"
 
 export function registerWakeup(program: Command) {
   program
     .command("wakeup")
     .alias("w")
-    .description("Show mode launcher (interactive TUI)")
+    .description("Show the banner and available commands")
     .action(handleWakeup)
 }
 
 async function handleWakeup() {
-  registerAllModes()
-  await runModeLauncher()
+  // Re-use the same wakeup logic that runs on no-args
+  const { runWakeup } = await import("../wakeup")
+  await runWakeup()
 }

@@ -1,5 +1,6 @@
 import type { Command } from "commander"
 import { theme } from "../theme"
+import { showBanner } from "../banner"
 import { memorySystem, vectorMemory } from "../../memory"
 
 export function registerMemory(program: Command) {
@@ -107,6 +108,25 @@ export function registerMemory(program: Command) {
         }
       }
     })
+
+  // Default: show status
+  mem.action(async () => {
+    showBanner()
+    const content = await memorySystem.loadMemory()
+    await vectorMemory.initialize()
+    const vecStats = await vectorMemory.getStats()
+    console.log()
+    if (!content.trim()) {
+      console.log(`  ${theme.warn("Memory is empty")}`)
+    } else {
+      const lines = content.split("\n").filter(Boolean)
+      console.log(`  ${theme.success(`● ${lines.length} lines in MEMORY.md`)}`)
+    }
+    console.log(`  ${theme.dim(`  Vector entries: ${vecStats.total}`)}`)
+    console.log()
+    console.log(`  ${theme.muted("Subcommands: show, add, search, facts, vector")}`)
+    console.log()
+  })
 
   mem
     .command("vector")

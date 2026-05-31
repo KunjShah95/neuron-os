@@ -1,0 +1,71 @@
+# ── Stage 1: Build the web dashboard ──────────────────────────────────
+FROM oven/bun:1 AS dashboard-builder
+
+WORKDIR /app/dashboard
+COPY dashboard/package.json dashboard/bun.lock ./
+RUN bun install --frozen-lockfile
+
+COPY dashboard/ ./
+RUN bun run build
+
+# ── Stage 2: Install production dependencies ──────────────────────────
+FROM oven/bun:1 AS deps
+
+WORKDIR /app
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
+
+# ── Stage 3: Production runtime ───────────────────────────────────────
+FROM oven/bun:1-slim AS production
+
+LABEL org.opencontainers.image.title="Neuron OS (Aegis)"
+LABEL org.opencontainers.image.description="The Operating System for Autonomous AI Agents"
+LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.licenses="MIT"
+
+# Create non-root user for security
+RUN addgroup --system --gid 1001 aegis \
+    && adduser --system --uid 1001 --ingroup aegis --home /home/aegis aegis
+
+WORKDIR /app
+
+# Copy production dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy application source
+COPY package.json tsconfig.json bun.lock ./
+COPY src/ ./src/
+COPY index.ts ./
+
+# Copy pre-built dashboard static files
+COPY --from=dashboard-builder /app/dashboard/dist/ ./dashboard/dist/
+
+# Create data directories with correct ownership
+RUN mkdir -p /home/aegis/.aegis /app/data \
+    && chown -R aegis:aegis /app /home/aegis/.aegis
+
+# Switch to non-root user
+USER aegis
+
+# Persistent volume for vault/config/env data
+VOLUME ["/home/aegis/.aegis"]
+
+# Default environment
+ENV AEGIS_LOG_LEVEL=info \
+    AEGIS_API_CORS_ORIGINS="http://localhost:5173" \
+    HOME=/home/aegis
+
+# Health check — pings the API server health endpoint
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD bun -e "fetch('http://localhost:8080/api/v1/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
+
+# Expose API server port (serves REST API + dashboard static files)
+EXPOSE 8080
+
+# Default: start the API server (serve mode)
+# Override CMD to run other commands, e.g.:
+#   docker run <image> chat
+#   docker run <image> status --json
+#   docker run <image> agent list
+ENTRYPOINT ["bun", "run", "index.ts"]
+CMD ["serve"]

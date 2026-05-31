@@ -1,0 +1,48 @@
+# Dependencies
+node_modules
+dashboard/node_modules
+
+# Build output
+dist
+out
+*.tgz
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Local data
+data/sessions/
+
+# Documentation
+docs/
+
+# IDE / editor
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# CI config
+.github
+
+# Logs
+logs
+*.log
+
+# Coverage
+coverage
+*.lcov
+
+# TypeScript cache
+*.tsbuildinfo

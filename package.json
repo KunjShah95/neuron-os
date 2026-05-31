@@ -32,6 +32,8 @@
     "commander": "^15.0.0",
     "figlet": "^1.11.0",
     "glob": "^13.0.6",
-    "picocolors": "^1.1.1"
+    "picocolors": "^1.1.1",
+    "telegraf": "^4.16.3",
+    "zod": "^4.4.3"
   }
 }

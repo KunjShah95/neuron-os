@@ -1,6 +1,7 @@
 import type { Command } from "commander"
 import { theme } from "../theme"
 import { credentialVault } from "../../vault"
+import { showBanner } from "../banner"
 
 export function registerConfig(program: Command) {
   const config = program
@@ -17,7 +18,7 @@ export function registerConfig(program: Command) {
       const scope = opts.scope ?? "global"
       await credentialVault.set(key, value, scope)
       console.log(theme.success(`  ✓ Stored ${theme.accent(key)} (scope: ${scope})`))
-      console.log(theme.dim("    Credential saved to ~/.aegis/vault.json"))
+      console.log(theme.dim(`    Credential saved (AES-256-GCM encrypted) to ${credentialVault.vaultFilePath()}`))
     })
 
   config
@@ -49,6 +50,31 @@ export function registerConfig(program: Command) {
         console.log(theme.error(`  ✗ Key "${key}" not found`))
       }
     })
+
+  // Default: show status
+  config.action(async () => {
+    showBanner()
+    await credentialVault.initialize()
+    const entries = await credentialVault.list()
+    console.log()
+    if (entries.length === 0) {
+      console.log(`  ${theme.warn("No credentials stored")}`)
+      console.log(`  ${theme.muted("  Use: aegis config set <key> <value>")}`)
+      console.log(`  ${theme.muted("  Vault encrypted with AES-256-GCM")}`)
+    } else {
+      console.log(`  ${theme.heading(`Credentials (${entries.length})`)}`)
+      console.log()
+      for (const e of entries) {
+        const masked = e.value.length > 8
+          ? e.value.slice(0, 4) + "…" + e.value.slice(-4)
+          : "…"
+        console.log(`  ${theme.accent(e.key.padEnd(30))} ${theme.dim(`[${e.scope}]`)} ${masked}`)
+      }
+    }
+    console.log()
+    console.log(`  ${theme.muted("Subcommands: set, get, delete, list")}`)
+    console.log()
+  })
 
   config
     .command("list")

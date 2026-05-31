@@ -1,5 +1,6 @@
 import type { Command } from "commander"
 import { theme } from "../theme"
+import { showBanner } from "../banner"
 
 export function registerMCP(program: Command) {
   const mcp = program
@@ -45,6 +46,28 @@ export function registerMCP(program: Command) {
       const count = await connectMCPClients()
       console.log(theme.success(`  ✓ Registered ${count} tools from MCP servers`))
     })
+
+  // Default: show status
+  mcp.action(async () => {
+    showBanner()
+    const { getMCPClients } = await import("../../mcp/client")
+    const clients = getMCPClients()
+    console.log()
+    if (clients.length === 0) {
+      console.log(`  ${theme.warn("No MCP servers configured")}`)
+      console.log(`  ${theme.muted("  Add config in aegis.config.json under 'mcp.servers'")}`)
+    } else {
+      console.log(`  ${theme.heading(`MCP Servers (${clients.length})`)}`)
+      console.log()
+      for (const c of clients) {
+        const status = c.enabled === false ? theme.muted("disabled") : theme.success("enabled")
+        console.log(`  ${theme.accent(c.name.padEnd(20))} ${c.url} ${status}`)
+      }
+    }
+    console.log()
+    console.log(`  ${theme.muted("Subcommands: serve, connect, list")}`)
+    console.log()
+  })
 
   mcp
     .command("list")
