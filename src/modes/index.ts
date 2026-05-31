@@ -8,6 +8,7 @@ import { agentMode } from "./agent"
 import { setupMode } from "./setup"
 import { serveMode } from "./serve"
 import { mcpMode } from "./mcp"
+import { agentMemoryMode } from "./agentmemory"
 import { dashboardMode, chatMode } from "./builtin"
 
 export function registerAllModes() {
@@ -22,6 +23,7 @@ export function registerAllModes() {
   registerMode(setupMode)
   registerMode(serveMode)
   registerMode(mcpMode)
+  registerMode(agentMemoryMode)
 }
 
 export { runModeLauncher } from "./launcher"

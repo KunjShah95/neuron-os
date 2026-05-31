@@ -11,6 +11,7 @@ import { registerCron } from "./cron"
 import { registerServe } from "./serve"
 import { registerMCP } from "./mcp"
 import { registerMemory } from "./memory"
+import { registerAgentMemory } from "./agentmemory"
 
 export function registerAllCommands(program: Command) {
   registerWakeup(program)
@@ -25,4 +26,5 @@ export function registerAllCommands(program: Command) {
   registerServe(program)
   registerMCP(program)
   registerMemory(program)
+  registerAgentMemory(program)
 }

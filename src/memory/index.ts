@@ -1,4 +1,6 @@
 export { memorySystem, MemorySystem } from "./system"
 export { vectorMemory, VectorMemory } from "./vector"
+export { agentMemory, AgentMemoryConnector } from "./agentmemory"
+export type { AgentMemoryConfig, SearchResult, SessionSummary, Health, Stats } from "./agentmemory"
 export type { MemoryEntry, MemoryContext, ExtractedFact, UserProfile } from "./types"
 export type { VectorEntry } from "./vector"

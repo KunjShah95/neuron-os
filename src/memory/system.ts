@@ -2,6 +2,8 @@ import { readFile, writeFile, mkdir, readdir, appendFile } from "node:fs/promise
 import { resolve, join } from "node:path"
 import { existsSync } from "node:fs"
 import type { MemoryEntry, MemoryContext, ExtractedFact, UserProfile } from "./types"
+import type { AgentMemoryConnector } from "./agentmemory"
+import { agentMemory } from "./agentmemory"
 
 export class MemorySystem {
   private memoryDir: string
@@ -10,14 +12,16 @@ export class MemorySystem {
   private dailyDir: string
   private autoMemoryDir: string
   private factsFile: string
+  private agentMemory?: AgentMemoryConnector
 
-  constructor(cwd: string = process.cwd()) {
+  constructor(cwd: string = process.cwd(), agentMemory?: AgentMemoryConnector) {
     this.memoryDir = resolve(cwd, ".aegis/memory")
     this.userFile = resolve(cwd, "user.md")
     this.memoryFile = resolve(cwd, "MEMORY.md")
     this.dailyDir = resolve(this.memoryDir, "daily")
     this.autoMemoryDir = resolve(this.memoryDir, "auto")
     this.factsFile = resolve(this.memoryDir, "facts.json")
+    this.agentMemory = agentMemory
   }
 
   async initialize(): Promise<void> {
@@ -103,6 +107,12 @@ export class MemorySystem {
       const timestamp = new Date().toISOString()
       const entry = `\n## ${timestamp}\n\n${content}\n`
       await writeFile(this.memoryFile, existing + entry, "utf-8")
+
+      if (this.agentMemory) {
+        try {
+          await this.agentMemory.remember(content, "memory")
+        } catch {}
+      }
     } catch (err) {
       console.error("Failed to append to MEMORY.md:", err)
     }
@@ -271,6 +281,15 @@ export class MemorySystem {
   async buildContext(ctx: MemoryContext): Promise<string> {
     const parts: string[] = []
 
+    if (this.agentMemory) {
+      try {
+        const amCtx = await this.agentMemory.getContext(ctx.agentId)
+        if (amCtx && amCtx.trim()) {
+          parts.push(`# Memory Context\n\n${amCtx}`)
+        }
+      } catch {}
+    }
+
     const userProfile = await this.loadUserProfile()
     if (userProfile.trim()) {
       parts.push(`# User Profile\n\n${userProfile}`)
@@ -310,7 +329,7 @@ export class MemorySystem {
     return parts.join("\n\n---\n\n")
   }
 
-  async search(query: string): Promise<MemoryEntry[]> {
+  async search(query: string, limit = 10): Promise<MemoryEntry[]> {
     const terms = query.toLowerCase().split(/\s+/).filter(Boolean)
     if (terms.length === 0) return []
 
@@ -318,9 +337,25 @@ export class MemorySystem {
       score: number
     }
 
+    // ── AgentMemory hybrid search (when available) ──────────────
+    const amResults: MemoryEntry[] = []
+    if (this.agentMemory) {
+      try {
+        const amHits = await this.agentMemory.search(query, limit)
+        for (const h of amHits) {
+          amResults.push({
+            content: h.content,
+            timestamp: h.timestamp || new Date().toISOString(),
+            source: "auto",
+            category: "agentmemory",
+          })
+        }
+      } catch {}
+    }
+
+    // ── Local search (always runs) ──────────────────────────────
     const scored: ScoredEntry[] = []
 
-    // Search MEMORY.md with term frequency scoring
     const memory = await this.loadMemory()
     if (memory.trim()) {
       const score = this.computeRelevance(memory, terms)
@@ -329,7 +364,6 @@ export class MemorySystem {
       }
     }
 
-    // Search user profile
     const userProfile = await this.loadUserProfile()
     if (userProfile.trim()) {
       const score = this.computeRelevance(userProfile, terms)
@@ -338,7 +372,6 @@ export class MemorySystem {
       }
     }
 
-    // Search daily logs (last 14 days) with recency decay
     for (let i = 0; i < 14; i++) {
       const date = new Date()
       date.setDate(date.getDate() - i)
@@ -351,7 +384,6 @@ export class MemorySystem {
       }
     }
 
-    // Search auto memories with scoring
     const autoMemories = await this.loadAutoMemories(50)
     for (const mem of autoMemories) {
       const score = this.computeRelevance(mem, terms)
@@ -360,7 +392,6 @@ export class MemorySystem {
       }
     }
 
-    // Search facts
     const facts = await this.loadFacts()
     const matchingFacts = facts.filter((f) => {
       const fScore = this.computeRelevance(f.fact, terms)
@@ -372,9 +403,21 @@ export class MemorySystem {
       scored.push({ content, timestamp: new Date().toISOString(), source: "auto", category: "facts", score: 0.5 })
     }
 
-    // Sort by score descending, take top results
+    // ── Fuse: agentmemory results first, then deduplicated local ─
+    const amContentSet = new Set(amResults.map((r) => r.content.slice(0, 200)))
+    const amIds = new Set(amResults.map((r) => r.content))
+
+    const fused: MemoryEntry[] = [...amResults]
+
     scored.sort((a, b) => b.score - a.score)
-    return scored.slice(0, 10).map(({ score: _, ...entry }) => entry)
+    for (const entry of scored) {
+      const key = entry.content.slice(0, 200)
+      if (!amContentSet.has(key) && !amIds.has(entry.content)) {
+        fused.push(entry)
+      }
+    }
+
+    return fused.slice(0, limit)
   }
 
   private computeRelevance(text: string, terms: string[]): number {
@@ -400,4 +443,4 @@ export class MemorySystem {
   }
 }
 
-export const memorySystem = new MemorySystem()
+export const memorySystem = new MemorySystem(process.cwd(), agentMemory)
