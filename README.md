@@ -7,7 +7,7 @@
    ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝╚══════╝
 ```
 
-**The Operating System for Autonomous AI Agents**
+*The Operating System for Autonomous AI Agents*
 
 [![Version](https://img.shields.io/badge/version-0.1.0-blue)]()
 [![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.3.14-black)]()
@@ -129,7 +129,7 @@ aegis agentmemory connect                  # Test connection to sidecar
 | `list` | List all agents |
 | `status` | Show system info |
 | `providers` | List configured AI providers |
-| `sessions` / `session delete\|rename\|export` | Manage saved chat sessions |
+| `sessions` / session `delete`, `rename`, `export` | Manage saved chat sessions |
 | `help` | Show available commands |
 
 ### Dashboard hotkeys
@@ -312,13 +312,15 @@ stateDiagram-v2
 
 JSON-line format over stdin/stdout:
 
-**Parent → Worker:**
+#### Parent → Worker
+
 - `{ type: "ping" }` — heartbeat check
 - `{ type: "echo", payload }` — connectivity test
 - `{ type: "run-task", payload: { command, args } }` — execute task
 - `{ type: "shutdown" }` — graceful stop
 
-**Worker → Parent:**
+#### Worker → Parent
+
 - `{ type: "result", payload }` — command result
 - `{ type: "log", payload: { level, text } }` — structured log
 - `{ type: "heartbeat", payload }` — periodic liveness signal
@@ -369,7 +371,7 @@ JSON-line format over stdin/stdout:
 | `OLLAMA_URL` | For Ollama | Base URL for local Ollama server |
 | `AEGIS_DEFAULT_PROVIDER` | Optional | Default provider name |
 | `AEGIS_LOG_LEVEL` | Optional | Log level: debug, info, warn, error |
-| `AGENTMEMORY_URL` | Optional | agentmemory sidecar URL (default: http://localhost:3111) |
+| `AGENTMEMORY_URL` | Optional | agentmemory sidecar URL (default: <http://localhost:3111>) |
 | `AGENTMEMORY_SECRET` | Optional | Bearer token for agentmemory auth |
 | `AGENTMEMORY_ENABLED` | Optional | Set to `false` to disable agentmemory integration |
 
@@ -525,7 +527,7 @@ neuron-os/
 | `kill` | `(id: string, timeoutMs?: number) => Promise<void>` | Graceful stop then SIGKILL |
 | `sendIpc` | `(id: string, msg: AgentIpcMessage) => void` | Send JSON-line IPC message |
 | `ping` | `(id: string) => void` | Send heartbeat ping |
-| `get` | `(id: string) => AgentInstance \| undefined` | Get agent by ID |
+| `get` | `(id: string) => AgentInstance | undefined` | Get agent by ID |
 | `list` | `(filter?) => AgentInstance[]` | List agents with optional filter |
 | `getLogs` | `(id: string, opts?) => AgentLogEntry[]` | Get agent log entries |
 | `onEvent` | `(cb: (event: AgentEvent) => void) => void` | Register event listener |
@@ -661,28 +663,36 @@ Configuration is persisted to `~/.aegis/config.json` via the setup wizard.
 
 ## Troubleshooting / FAQ
 
-**Dashboard won't render / "requires a TTY"**
+### Dashboard won't render / "requires a TTY"
+
 > Run in an interactive terminal with size ≥ 80x24. Use Windows Terminal, PowerShell, or WSL.
 
-**Chat streaming is slow or times out**
+#### Chat streaming is slow or times out
+
 > Check network and API keys. Verify `ANTHROPIC_API_KEY` (or other provider key) is valid.
 
-**Agent won't spawn or exits immediately**
+#### Agent won't spawn or exits immediately
+
 > Inspect logs with `agent logs <name>`. Verify the worker script path. Ensure `bun run typecheck` passes.
 
-**Agent "did not become ready within 10000ms"**
+#### Agent "did not become ready within 10000ms"
+
 > Worker script isn't sending the `ready` IPC message. Check for runtime errors in the worker process.
 
-**Heartbeat timeout**
+#### Heartbeat timeout
+
 > Agent process hung or unresponsive. Auto-recovery will attempt restart with exponential backoff.
 
-**Recovery exhausted**
+#### Recovery exhausted
+
 > Worker script has a crash loop. Check logs with `agent logs <name> --tail 50`.
 
-**Terminal left in weird state after crash**
+#### Terminal left in weird state after crash
+
 > Run `reset` (Linux/WSL) or close and reopen terminal (Windows). The system restores cursor on clean exit.
 
-**Web dashboard shows blank page or API errors**
+#### Web dashboard shows blank page or API errors
+
 > Ensure `aegis serve` is running on port 8080. The Vite dev server proxies `/api` to it. For production, serve `dashboard/dist/` with any static server.
 
 ---
@@ -711,20 +721,23 @@ Configuration is persisted to `~/.aegis/config.json` via the setup wizard.
 
 ## Roadmap
 
-**Current:** v0.1.0 — TUI Platform (12 modes, agent system, chat, tools, memory, MCP, web dashboard)
+#### Current: v0.1.0 — TUI Platform (12 modes, agent system, chat, tools, memory, MCP, web dashboard)
 
-**Near-term:**
+#### Near-term
+
 - Slash command enhancements (model picker polish, tool cards)
 - Skill hot-reload and gating
 - Checkpoints and rewind polish in chat
 
-**Mid-term:**
+#### Mid-term
+
 - Multi-channel gateway (WebSocket, Telegram, Discord, Slack)
 - Persistent agent storage and configurable lifecycles
 - Agent-to-agent communication and teams
 - Web dashboard real-time agent metrics via WebSocket
 
-**Long-term:**
+#### Long-term
+
 - Plugin marketplace for custom agent types
 - Remote agent orchestration
 - Learning loop (self-improvement from feedback)
