@@ -3,6 +3,7 @@
 import { Command, Help } from "commander"
 import { showBanner } from "./src/cli/banner"
 import { registerAllCommands } from "./src/cli/commands"
+import { registerAllModes } from "./src/modes"
 
 const program = new Command()
 
@@ -21,6 +22,16 @@ program
   })
 
 registerAllCommands(program)
+registerAllModes()
+
+// If no args, launch mode launcher instead of showing help
+const noArgs = process.argv.slice(2).length === 0
+if (noArgs) {
+  showBanner()
+  const { runModeLauncher } = await import("./src/modes")
+  await runModeLauncher()
+  process.exit(0)
+}
 
 // Compat alias for `Aegis-build wakeup`
 program
@@ -29,8 +40,9 @@ program
   .allowUnknownOption()
   .action(async (sub?: string) => {
     if (sub === "wakeup") {
-      const { handleWakeup } = await import("./src/cli/commands/wakeup")
-      await handleWakeup()
+      const { registerAllModes, runModeLauncher } = await import("./src/modes")
+      registerAllModes()
+      await runModeLauncher()
     } else {
       console.log("usage: aegis build wakeup")
     }
