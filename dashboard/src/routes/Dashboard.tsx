@@ -1,0 +1,145 @@
+import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
+import AnimatedPage from "../components/AnimatedPage"
+import { MetricCard, ActivityBadge } from "../components/UI"
+import { api } from "../api/client"
+import type { Agent } from "../api/types"
+
+function formatUptime(s: number) {
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  return h > 0 ? `${h}h ${m}m` : `${m}m`
+}
+
+function getGreeting() {
+  const h = new Date().getHours()
+  if (h < 12) return "Good morning"
+  if (h < 17) return "Good afternoon"
+  return "Good evening"
+}
+
+function getQuote() {
+  const quotes = [
+    "The best way to predict the future is to invent it.",
+    "Build something people want.",
+    "Simplicity is the ultimate sophistication.",
+    "First, solve the problem. Then, write the code.",
+    "The only way to go fast is to go well.",
+  ]
+  return quotes[Math.floor(Math.random() * quotes.length)]
+}
+
+export default function Dashboard() {
+  const [agents, setAgents] = useState<Agent[]>([])
+  const [health, setHealth] = useState<{ status: string; agents: number; uptime: number } | null>(null)
+
+  useEffect(() => {
+    api.health().then(setHealth)
+    api.listAgents().then(setAgents)
+    const id = setInterval(() => {
+      api.health().then(setHealth)
+      api.listAgents().then(setAgents)
+    }, 5000)
+    return () => clearInterval(id)
+  }, [])
+
+  const running = agents.filter((a) => a.status === "running" || a.status === "idle").length
+  const agentTypes = [...new Set(agents.filter((a) => a.type).map((a) => a.type!))]
+
+  return (
+    <AnimatedPage className="p-8">
+      {/* Briefing */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="mb-10"
+      >
+        <h1 className="font-display text-4xl text-surface-50 mb-2">
+          {getGreeting()}
+          <span className="text-amber-400">.</span>
+        </h1>
+        <p className="text-surface-400 text-sm max-w-xl leading-relaxed">
+          {health
+            ? `${running} agent${running !== 1 ? "s" : ""} running · System uptime ${formatUptime(health.uptime)}`
+            : "Connecting to Aegis..."}
+        </p>
+        <div className="mt-4 glass inline-block rounded-xl px-4 py-2 text-xs text-surface-400 italic">
+          "{getQuote()}"
+        </div>
+      </motion.div>
+
+      {/* Metrics */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="grid grid-cols-4 gap-4 mb-10"
+      >
+        <MetricCard label="Agents" value={agents.length} sub={running > 0 ? `${running} active` : "idle"} icon="⬡" />
+        <MetricCard label="Uptime" value={health ? formatUptime(health.uptime) : "—"} sub="since last restart" icon="◎" />
+        <MetricCard label="Types" value={agentTypes.length || "—"} sub={agentTypes.join(", ") || "none deployed"} icon="◇" />
+        <MetricCard label="Status" value={health?.status === "ok" ? "Online" : "—"} sub={health ? "all systems nominal" : "offline"} icon="✦" />
+      </motion.div>
+
+      {/* Story Feed — Activity Timeline */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <div className="flex items-center gap-3 mb-6">
+          <h2 className="font-display text-xl text-surface-50">Story Feed</h2>
+          <span className="text-[10px] uppercase tracking-widest text-surface-600">Live</span>
+        </div>
+
+        <div className="glass rounded-2xl p-6">
+          {agents.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-4xl mb-4 opacity-30">⬡</div>
+              <p className="text-surface-500 text-sm">No agents are running yet.</p>
+              <p className="text-surface-600 text-xs mt-1">
+                Navigate to <span className="text-amber-400">Agents</span> to spawn one.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {agents.map((agent, i) => (
+                <motion.div
+                  key={agent.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4 + i * 0.08 }}
+                  className="flex items-start gap-4 py-3 border-b border-surface-700/30 last:border-0"
+                >
+                  <div className="mt-1.5">
+                    <span className={`w-2 h-2 rounded-full block ${
+                      agent.status === "running" ? "bg-emerald-400" :
+                      agent.status === "idle" ? "bg-amber-400" :
+                      agent.status === "error" ? "bg-rose-500" : "bg-surface-500"
+                    }`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-body font-medium text-surface-50 text-sm">{agent.name}</span>
+                      <ActivityBadge type={agent.status === "error" ? "error" : agent.status === "idle" ? "warn" : "success"} />
+                      {agent.type && (
+                        <span className="text-[10px] text-surface-500 uppercase tracking-wider">{agent.type}</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-surface-500 mt-0.5">
+                      PID {agent.pid} · Up {formatUptime(agent.uptime)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] text-surface-600 uppercase tracking-wider">{agent.status}</div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </AnimatedPage>
+  )
+}

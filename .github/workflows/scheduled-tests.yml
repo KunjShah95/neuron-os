@@ -2,7 +2,7 @@ name: Scheduled Tests
 
 on:
   schedule:
-    - cron: '0 2 * * *' # daily at 02:00 UTC
+    - cron: '0 2 * * *'
   workflow_dispatch: {}
 
 jobs:
@@ -15,24 +15,21 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: '1'
+          bun-version: '1.x'
 
       - name: Cache bun deps
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.bun
-            .bun
-            node_modules
+          path: node_modules
           key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-bun-
 
       - name: Install dependencies
-        run: bun install --check-cache
+        run: bun install --frozen-lockfile
 
       - name: Typecheck
-        run: bun run --bun tsc --noEmit
+        run: bun run tsc --noEmit
 
       - name: Run tests
         run: bun run test

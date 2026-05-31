@@ -30,6 +30,7 @@
 - **Web tools** — built-in web fetch and web search tools for AI agents
 - **MCP integration** — Model Context Protocol client/server for tool interoperability
 - **Vector memory** — semantic search across conversations and facts
+- **AgentMemory sidecar** — optional hybrid BM25+Vector+Graph search engine with session capture/replay and knowledge graph (95.2% R@5 on LongMemEval-S)
 - **Skill integration** — extensible skill system with local registry and skills.sh API client
 - **Multi-platform** — Windows (cmd), macOS, and Linux support
 - **Tool-based security** — per-agent-type tool permissions with pattern-restricted bash access
@@ -93,6 +94,7 @@ Launch any mode directly, or run `aegis` with no arguments for the interactive m
 | Config | `config` | `cfg` | Credential vault viewer |
 | Cron | `cron` | | Scheduled jobs overview |
 | Memory | `memory` | | Memory, facts & vector search stats |
+| AgentMemory | `agentmemory` | `am` | AgentMemory sidecar status & search |
 | Agent | `agent` | `a` | Agent management overview |
 | Setup | `setup` | | Interactive setup wizard |
 | API Server | `serve` | | HTTP API server (start from CLI) |
@@ -106,6 +108,14 @@ aegis agent list [--status <status>]       # List running agents
 aegis agent spawn <name> [--type <type>]   # Spawn a new agent worker
 aegis agent kill <name> [--force]          # Stop an agent
 aegis agent logs <name> [--tail N]         # View agent logs
+```
+
+### AgentMemory subcommands
+
+```bash
+aegis agentmemory status                   # Show connection status and stats
+aegis agentmemory search <query>           # Hybrid semantic search
+aegis agentmemory connect                  # Test connection to sidecar
 ```
 
 ### Dashboard commands
@@ -150,6 +160,7 @@ graph TD
     ML --> CFG[config]
     ML --> CR[cron]
     ML --> MEM[memory]
+    ML --> AMEM[agentmemory]
     ML --> A[agent]
     ML --> S[setup]
     ML --> SV[serve]
@@ -203,7 +214,7 @@ User → aegis (no args) → Mode Launcher → Navigation (↑↓ Enter)
 | Wizard | `src/wizard/` | Interactive setup flows (provider selection, key entry) |
 | Tools | `src/tools/` | Tool registry and built-in tool implementations |
 | Skills | `src/skills/` | Skill loading, registry, and remote API client |
-| Memory | `src/memory/` | Session persistence, memory system, vector search |
+| Memory | `src/memory/` | Session persistence, memory system, vector search, agentmemory connector |
 
 ---
 
@@ -308,6 +319,9 @@ JSON-line format over stdin/stdout:
 | `OLLAMA_URL` | For Ollama | Base URL for local Ollama server |
 | `AEGIS_DEFAULT_PROVIDER` | Optional | Default provider name |
 | `AEGIS_LOG_LEVEL` | Optional | Log level: debug, info, warn, error |
+| `AGENTMEMORY_URL` | Optional | agentmemory sidecar URL (default: http://localhost:3111) |
+| `AGENTMEMORY_SECRET` | Optional | Bearer token for agentmemory auth |
+| `AGENTMEMORY_ENABLED` | Optional | Set to `false` to disable agentmemory integration |
 
 ### Setup Wizard
 
@@ -407,10 +421,12 @@ neuron-os/
 │   │   └── remote.ts         # skills.sh API client
 │   │
 │   ├── memory/
-│   │   ├── system.ts         # Memory system (TF-IDF, facts, user profile)
-│   │   ├── sessionStore.ts   # Session persistence (save, list, load, delete, rename, export)
-│   │   ├── vector.ts         # Vector memory (semantic search)
-│   │   └── types.ts          # Memory type definitions
+│   │   ├── system.ts           # Memory system (TF-IDF, facts, user profile)
+│   │   ├── sessionStore.ts     # Session persistence (save, list, load, delete, rename, export)
+│   │   ├── vector.ts           # Vector memory (semantic search)
+│   │   ├── agentmemory.ts      # AgentMemory sidecar connector (optional)
+│   │   ├── test-agentmemory.ts # AgentMemory connector tests (42)
+│   │   └── types.ts            # Memory type definitions
 │   │
 │   ├── mcp/
 │   │   ├── client.ts         # MCP client (tool discovery + execution)
@@ -492,6 +508,7 @@ bun run test               # bun run scripts/run-tests.ts
 bun run test:dashboard     # Dashboard TUI tests (54)
 bun run test:chat          # Chat TUI tests (150)
 bun run src/agent/test-manager.ts   # Agent manager tests (7)
+bun run src/memory/test-agentmemory.ts   # AgentMemory connector tests (42)
 
 # Run the CI suite
 bun run ci
