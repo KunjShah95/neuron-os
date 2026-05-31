@@ -31,10 +31,23 @@ export interface ChatState {
   ui: ChatUIState
   dirty: boolean
   agentType?: string
+  sessionId: string
   config: {
+    provider?: string
     model: string
     maxTokens: number
+    baseUrl?: string
+    apiKey?: string
   }
+}
+
+let sessionCounter = 0
+
+function generateSessionId(agentType?: string): string {
+  sessionCounter++
+  const datePart = new Date().toISOString().slice(0, 10)
+  const typePart = agentType || "chat"
+  return `${typePart}-${datePart}-${sessionCounter}`
 }
 
 export function createInitialChatState(agentType?: string): ChatState {
@@ -62,6 +75,7 @@ export function createInitialChatState(agentType?: string): ChatState {
     },
     dirty: true,
     agentType,
+    sessionId: generateSessionId(agentType),
     config: {
       model: "claude-sonnet-4-20250514",
       maxTokens: 8192,
@@ -116,31 +130,30 @@ export function finalizeStreamingMessage(state: ChatState) {
   }
   state.ui.isStreaming = false
   state.dirty = true
-  // Persist the session asynchronously (best-effort)
+  saveChatSession(state)
+}
+
+export function saveChatSession(state: ChatState) {
   try {
-    // dynamic import to avoid circulars at module init time
     const { saveSession } = require("../memory/sessionStore") as typeof import("../memory/sessionStore")
-    const id = `session-${Date.now()}`
     const envSnapshot: Record<string, string | undefined> = {
       AI_PROVIDER: process.env.AI_PROVIDER,
       AI_MODEL: process.env.AI_MODEL,
       AI_BASE_URL: process.env.AI_BASE_URL,
     }
     const record = {
-      id,
+      id: state.sessionId,
       createdAt: new Date().toISOString(),
       messages: state.messages.map((m) => ({ role: m.role, content: m.content, timestamp: m.timestamp, status: m.status })),
-      providerConfig: (state as any).config ? {
-        provider: (state as any).config.provider,
-        model: (state as any).config.model,
-        maxTokens: (state as any).config.maxTokens,
-        // do not persist api keys, only hint
-        apiKeyHint: undefined,
-      } : undefined,
+        providerConfig: state.config ? {
+          provider: state.config.provider,
+          model: state.config.model,
+          maxTokens: state.config.maxTokens,
+          apiKeyHint: undefined,
+        } : undefined,
       environment: envSnapshot,
       agentTraces: [] as { agentId?: string; event: string; data?: any; timestamp: string }[],
     }
-    // attempt to capture recent agent logs (best-effort)
     try {
       const { agentManager } = require("../agent/manager") as typeof import("../agent/manager")
       const traces: Array<{ agentId?: string; event: string; data?: any; timestamp: string }> = []
@@ -154,16 +167,39 @@ export function finalizeStreamingMessage(state: ChatState) {
     } catch {
       // ignore
     }
-    // fire and forget
-    ;(async () => {
-      try {
-        await saveSession(record)
-      } catch {
-        // ignore persistence errors
-      }
-    })()
+    saveSession(record)
   } catch {
-    // ignore if session store missing or fails
+    // ignore
+  }
+}
+
+export function loadChatStateFromSession(sessionId: string, record: import("../memory/sessionStore").SessionRecord, agentType?: string): ChatState {
+  const history = record.messages.filter((m) => m.role === "user").map((m) => m.content)
+  return {
+    messages: record.messages.map((m) => ({
+      role: m.role as MessageRole,
+      content: m.content,
+      timestamp: m.timestamp,
+      status: "complete",
+    })),
+    ui: {
+      input: "",
+      cursorCol: 0,
+      cursorRow: 0,
+      inputLines: 1,
+      scrollOffset: 0,
+      isStreaming: false,
+      scrolledUp: false,
+      history,
+      historyIndex: -1,
+    },
+    dirty: true,
+    agentType,
+    sessionId,
+    config: {
+      model: record.providerConfig?.model || "claude-sonnet-4-20250514",
+      maxTokens: record.providerConfig?.maxTokens || 8192,
+    },
   }
 }
 

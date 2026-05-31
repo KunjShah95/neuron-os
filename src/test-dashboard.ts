@@ -250,4 +250,4 @@ assert(storeTest.log.length <= 1000, "log capped at 1000 entries")
 
 console.log("")
 console.log(`Tests: ${passed} passed, ${failed} failed`)
-if (failed > 0) process.exit(1)
+process.exit(failed > 0 ? 1 : 0)
