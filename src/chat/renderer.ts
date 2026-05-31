@@ -1,7 +1,7 @@
 import ansiEscapes from "ansi-escapes"
 import { calculateChatLayout } from "./layout"
 import { renderChatHeader, renderMessages, renderInputArea, renderChatHint } from "./components"
-import { createInitialChatState, addUserMessage, addAssistantMessage, finalizeStreamingMessage } from "./store"
+import { createInitialChatState, loadChatStateFromSession, addUserMessage, addAssistantMessage, finalizeStreamingMessage, saveChatSession } from "./store"
 import type { ChatState } from "./store"
 import { parseChatKey, handleChatKey } from "./input"
 import { streamResponse, createEngine } from "./provider"
@@ -22,6 +22,9 @@ export async function startChat(agentType?: AgentTypeName) {
     process.exit(1)
   }
 
+  // Persist session start
+  saveChatSession(state)
+
   // Enter alternate screen
   process.stdout.write(ansiEscapes.enterAlternativeScreen)
 
@@ -37,7 +40,7 @@ export async function startChat(agentType?: AgentTypeName) {
   let abortController: AbortController | null = null
 
   // Handle incoming keystrokes
-  const onData = (raw: string) => {
+  const onData = async (raw: string) => {
     const key = parseChatKey(raw)
     const result = handleChatKey(state, key)
 
@@ -96,11 +99,9 @@ export async function startChat(agentType?: AgentTypeName) {
               if (m) model = m[1]
             }
             // update chat state config
-            // add to state.config provider & model (extend ChatState type elsewhere if needed)
-            // Use any cast to avoid TS strict issues here in workspace edits
-            ;(state as any).config = (state as any).config || {}
-            ;(state as any).config.provider = name
-            if (model) (state as any).config.model = model
+            state.config = state.config || { model: state.config?.model ?? "claude-sonnet-4-20250514", maxTokens: state.config?.maxTokens ?? 8192 }
+            state.config.provider = name
+            if (model) state.config.model = model
 
             const cfg = loadConfig()
             cfg.provider = name
@@ -119,15 +120,78 @@ export async function startChat(agentType?: AgentTypeName) {
           }
         }
 
+        if (text === "/clear") {
+          const oldSessionId = state.sessionId
+          const oldAgentType = state.agentType
+          Object.assign(state, createInitialChatState(oldAgentType))
+          state.sessionId = oldSessionId
+          state.dirty = true
+          break
+        }
+
+        if (text.startsWith("/sessions")) {
+          const parts = text.split(/\s+/)
+          if (parts[1] === "list") {
+            const { listSessions, loadSession } = await import("../memory/sessionStore")
+            const ids = await listSessions()
+            const summaries: string[] = []
+            for (const id of ids.slice(-10).reverse()) {
+              const rec = await loadSession(id)
+              if (rec) {
+                const msgCount = rec.messages.length
+                const lastMsg = rec.messages[msgCount - 1]?.content.slice(0, 60) || ""
+                summaries.push(`${id} (${msgCount} msgs) — "${lastMsg}"`)
+              }
+            }
+            addUserMessage(state, text)
+            addAssistantMessage(state)
+            const last = state.messages[state.messages.length - 1]
+            if (last) {
+              last.content = summaries.length
+                ? `Recent sessions:\n${summaries.join("\n")}\n\nUse /sessions load <id> to resume a session.`
+                : "No saved sessions found."
+              last.status = "complete"
+            }
+            state.dirty = true
+            break
+          }
+          if (parts[1] === "load") {
+            const id = parts[2]
+            if (!id) {
+              addUserMessage(state, text)
+              addAssistantMessage(state)
+              const last = state.messages[state.messages.length - 1]
+              if (last) { last.content = "Usage: /sessions load <session-id>"; last.status = "complete" }
+              state.dirty = true
+              break
+            }
+            const { loadSession } = await import("../memory/sessionStore")
+            const rec = await loadSession(id)
+            if (!rec) {
+              addUserMessage(state, text)
+              addAssistantMessage(state)
+              const last = state.messages[state.messages.length - 1]
+              if (last) { last.content = `Session "${id}" not found.`; last.status = "complete" }
+              state.dirty = true
+              break
+            }
+            const loaded = loadChatStateFromSession(id, rec, state.agentType)
+            loaded.ui.history = state.ui.history
+            Object.assign(state, loaded)
+            state.dirty = true
+            break
+          }
+        }
+
         addUserMessage(state, text)
         addAssistantMessage(state)
 
         // Build engine using latest runtime config stored in state
         try {
           const override: any = {}
-          if ((state as any).config?.provider) override.provider = (state as any).config.provider
-          if ((state as any).config?.model) override.model = (state as any).config.model
-          if ((state as any).config?.maxTokens) override.maxTokens = (state as any).config.maxTokens
+          if (state.config?.provider) override.provider = state.config.provider
+          if (state.config?.model) override.model = state.config.model
+          if (state.config?.maxTokens) override.maxTokens = state.config.maxTokens
           engine = createEngine(agentType, override)
         } catch (e) {
           // fall back to previously created engine
@@ -205,6 +269,7 @@ export async function startChat(agentType?: AgentTypeName) {
       process.stdin.setRawMode(wasRaw ?? false)
     } catch { /* ignore */ }
     process.stdin.pause()
+    saveChatSession(state)
     process.stdout.write(ansiEscapes.exitAlternativeScreen)
     process.stdout.write(ansiEscapes.cursorShow)
     process.exit(0)
