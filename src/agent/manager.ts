@@ -391,6 +391,80 @@ export class AgentManager {
     }
   }
 
+  // ── Agent-to-agent routing ─────────────────────────────────────────
+
+  /**
+   * Route an IPC message from one agent to another.
+   * This enables agent-to-agent delegation (e.g. planner → coder).
+   * The fromId agent sends a message, which is forwarded to the toId agent.
+   */
+  async routeIpc(fromId: string, toId: string, msg: AgentIpcMessage): Promise<unknown> {
+    const fromAgent = this.agents.get(fromId)
+    if (!fromAgent) throw new Error(`Source agent "${fromId}" not found`)
+
+    const toAgent = this.agents.get(toId)
+    if (!toAgent) throw new Error(`Target agent "${toId}" not found`)
+
+    // Tag the message with routing metadata
+    const routedMsg: AgentIpcMessage = {
+      ...msg,
+      id: msg.id || `route-${now()}`,
+      payload: {
+        ...(typeof msg.payload === "object" && msg.payload !== null ? (msg.payload as Record<string, unknown>) : {}),
+        _routedFrom: fromId,
+        _routedTo: toId,
+      },
+      timestamp: now(),
+    }
+
+    fromAgent.log.push(this.makeLog("info", `Routing IPC ${msg.type} → agent "${toAgent.def.name}" (${toId})`))
+    toAgent.log.push(this.makeLog("info", `Received routed IPC ${msg.type} from agent "${fromAgent.def.name}" (${fromId})`))
+
+    this.sendIpc(toId, routedMsg)
+
+    // Return a promise that resolves when we get a response
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.listeners.delete(handler)
+        reject(new Error(`Route IPC timed out (${msg.type} from ${fromId} to ${toId})`))
+      }, 60_000)
+
+      const handler = (event: AgentEvent) => {
+        if (event.type === "agent:result" && event.agentId === toId && event.data) {
+          const data = event.data as { id?: string }
+          if (data.id === routedMsg.id) {
+            clearTimeout(timeout)
+            this.listeners.delete(handler)
+            resolve(event.data)
+          }
+        }
+        if (event.type === "agent:error" && event.agentId === toId) {
+          clearTimeout(timeout)
+          this.listeners.delete(handler)
+          reject(event.data || new Error(`Agent "${toId}" error during route`))
+        }
+      }
+      this.listeners.add(handler)
+
+      // Also handle via the sent IPC response
+      const resultHandler = (event: AgentEvent) => {
+        if (event.type === "agent:result" && event.agentId === toId) {
+          // Already handled above
+        }
+      }
+    })
+  }
+
+  /** Find an agent by name or type for routing */
+  findAgentByName(name: string): AgentInstance | undefined {
+    return Array.from(this.agents.values()).find((a) => a.def.name === name)
+  }
+
+  /** Find an agent by type for routing */
+  findAgentByType(agentType: string): AgentInstance | undefined {
+    return Array.from(this.agents.values()).find((a) => a.def.agentType === agentType)
+  }
+
   // ── Send a ping to check aliveness ──────────────────────────────────
 
   ping(id: string): void {
@@ -535,6 +609,7 @@ export class AgentManager {
           instance.status = "running"
           this.emit("agent:ready", id)
         }
+        this.emit("agent:result", id, { ...msg, agentId: id })
         break
       }
       case "log": {

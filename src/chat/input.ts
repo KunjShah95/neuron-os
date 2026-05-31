@@ -19,7 +19,6 @@ export type ChatKeyEvent =
   | { type: "end" }
   | { type: "page_up" }
   | { type: "page_down" }
-  | { type: "toggle_picker" }
   | { type: "unknown"; raw: string }
 
 export function parseChatKey(raw: string): ChatKeyEvent {
@@ -40,7 +39,6 @@ export function parseChatKey(raw: string): ChatKeyEvent {
   if (raw === "\x10") return { type: "toggle_picker" }
   if (raw === "\x0c") return { type: "ctrl_l" }
   if (raw === "\x03") return { type: "ctrl_c" }
-  if (raw === "\x10") return { type: "toggle_picker" }
 
   // Alt+Enter (legacy escape sequence and modern CSI u format)
   if (raw === "\x1b\x0a" || raw === "\x1b\r" || raw === "\x1b[13;3u") return { type: "alt_enter" }
@@ -189,6 +187,9 @@ export function handleChatKey(state: ChatState, key: ChatKeyEvent): ChatActionRe
         deleteBeforeCursor(state)
         state.dirty = true
       }
+      return "continue"
+
+    case "toggle_picker":
       return "continue"
 
     case "char":

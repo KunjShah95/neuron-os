@@ -103,6 +103,7 @@ export type AgentEventType =
   | "agent:recovering"
   | "agent:recovered"
   | "agent:maxRetries"
+  | "agent:result"
 
 export interface AgentEvent {
   type: AgentEventType

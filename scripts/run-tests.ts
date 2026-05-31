@@ -58,6 +58,9 @@ async function main() {
   // ── 3. Agent Manager Unit Tests ───────────────────────────────────
   await run("Agent Manager Tests", ["bun", "run", "src/agent/test-manager.ts"])
 
+  // ── 3.5 Agent Runtime Prompt / Skill Tests ───────────────────────
+  await run("Agent Runtime Prompt Tests", ["bun", "run", "src/agent/test-runtime.ts"])
+
   // ── 3. TypeScript Typecheck ───────────────────────────────────────
   await run("TypeScript Typecheck", ["bun", "run", "--bun", "tsc", "--noEmit"])
 

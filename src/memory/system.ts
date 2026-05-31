@@ -1,30 +1,23 @@
-import { readFile, writeFile, mkdir } from "node:fs/promises"
+import { readFile, writeFile, mkdir, readdir, appendFile } from "node:fs/promises"
 import { resolve, join } from "node:path"
 import { existsSync } from "node:fs"
-
-export interface MemoryEntry {
-  content: string
-  timestamp: string
-  source: "memory" | "daily" | "auto"
-}
-
-export interface MemoryContext {
-  agentId: string
-  agentType?: string
-  cwd: string
-}
+import type { MemoryEntry, MemoryContext, ExtractedFact, UserProfile } from "./types"
 
 export class MemorySystem {
   private memoryDir: string
+  private userFile: string
   private memoryFile: string
   private dailyDir: string
   private autoMemoryDir: string
+  private factsFile: string
 
   constructor(cwd: string = process.cwd()) {
     this.memoryDir = resolve(cwd, ".aegis/memory")
+    this.userFile = resolve(cwd, "user.md")
     this.memoryFile = resolve(cwd, "MEMORY.md")
     this.dailyDir = resolve(this.memoryDir, "daily")
     this.autoMemoryDir = resolve(this.memoryDir, "auto")
+    this.factsFile = resolve(this.memoryDir, "facts.json")
   }
 
   async initialize(): Promise<void> {
@@ -32,7 +25,6 @@ export class MemorySystem {
     await mkdir(this.dailyDir, { recursive: true })
     await mkdir(this.autoMemoryDir, { recursive: true })
 
-    // Create MEMORY.md if it doesn't exist
     if (!existsSync(this.memoryFile)) {
       await writeFile(
         this.memoryFile,
@@ -40,6 +32,58 @@ export class MemorySystem {
         "utf-8"
       )
     }
+
+    if (!existsSync(this.userFile)) {
+      await writeFile(
+        this.userFile,
+        "# User Profile\n\nYour preferences, identity, and constraints.\n\n## About You\n\n(Describe yourself — your role, communication style, what matters to you)\n\n## Never Do\n\n- \n\n## Preferences\n\n- \n",
+        "utf-8"
+      )
+    }
+
+    if (!existsSync(this.factsFile)) {
+      await writeFile(this.factsFile, JSON.stringify([], null, 2), "utf-8")
+    }
+  }
+
+  async loadUserProfile(): Promise<string> {
+    try {
+      if (existsSync(this.userFile)) {
+        return await readFile(this.userFile, "utf-8")
+      }
+    } catch (err) {
+      console.error("Failed to load user.md:", err)
+    }
+    return ""
+  }
+
+  async appendToUserProfile(content: string): Promise<void> {
+    try {
+      const existing = await this.loadUserProfile()
+      const entry = `\n${content}\n`
+      await writeFile(this.userFile, existing + entry, "utf-8")
+    } catch (err) {
+      console.error("Failed to append to user.md:", err)
+    }
+  }
+
+  async updateUserProfile(updates: Partial<UserProfile>): Promise<void> {
+    const existing = await this.loadUserProfile()
+    let updated = existing
+
+    if (updates.preferences) {
+      const block = updates.preferences.map((p) => `- ${p}`).join("\n")
+      updated = updated.replace(/## Preferences\n\n[\s\S]*?(?=\n##|$)/, `## Preferences\n\n${block}\n`)
+    }
+    if (updates.neverDo) {
+      const block = updates.neverDo.map((p) => `- ${p}`).join("\n")
+      updated = updated.replace(/## Never Do\n\n[\s\S]*?(?=\n##|$)/, `## Never Do\n\n${block}\n`)
+    }
+    if (updates.name) {
+      updated = updated.replace(/## About You\n\n.*/, `## About You\n\n${updates.name}`)
+    }
+
+    await writeFile(this.userFile, updated, "utf-8")
   }
 
   async loadMemory(): Promise<string> {
@@ -123,7 +167,6 @@ export class MemorySystem {
   }
 
   private async listAutoMemoryFiles(): Promise<string[]> {
-    const { readdir } = await import("node:fs/promises")
     const files = await readdir(this.autoMemoryDir)
     return files
       .filter((f) => f.endsWith(".md"))
@@ -144,22 +187,105 @@ export class MemorySystem {
     }
   }
 
+  // ── Fact Extraction ────────────────────────────────────────────────
+
+  async extractAndStoreFacts(conversation: string): Promise<ExtractedFact[]> {
+    const facts: ExtractedFact[] = []
+    const now = new Date().toISOString()
+
+    const patterns: Array<{ regex: RegExp; category: ExtractedFact["category"]; confidence: number }> = [
+      { regex: /(?:I am|I'm|my name is|call me)\s+(\w+)/gi, category: "identity", confidence: 0.9 },
+      { regex: /(?:I prefer|I like|I love|I enjoy|my favorite)\s+(.+)/gi, category: "preference", confidence: 0.8 },
+      { regex: /(?:never|don't|do not|please don't|avoid)\s+(.+)/gi, category: "preference", confidence: 0.5 },
+      { regex: /(?:we are working on|the project is|this project)\s+(.+)/gi, category: "project", confidence: 0.7 },
+      { regex: /(?:always|please|make sure to|remember to)\s+(.+)/gi, category: "workflow", confidence: 0.6 },
+      { regex: /(?:we decided|the decision was|let's go with|agreed to)\s+(.+)/gi, category: "decision", confidence: 0.8 },
+      { regex: /(?:team member|reports to|works with|manages)\s+(.+)/gi, category: "relationship", confidence: 0.7 },
+    ]
+
+    for (const { regex, category, confidence } of patterns) {
+      let match: RegExpExecArray | null
+      while ((match = regex.exec(conversation)) !== null) {
+        if (match[1]) {
+          facts.push({
+            fact: match[1].trim(),
+            category,
+            confidence,
+            timestamp: now,
+          })
+        }
+      }
+    }
+
+    if (facts.length > 0) {
+      await this.storeFacts(facts)
+    }
+
+    return facts
+  }
+
+  private async storeFacts(facts: ExtractedFact[]): Promise<void> {
+    try {
+      const existing = await this.loadFacts()
+      const merged = this.deduplicateFacts([...existing, ...facts])
+      await writeFile(this.factsFile, JSON.stringify(merged, null, 2), "utf-8")
+    } catch (err) {
+      console.error("Failed to store facts:", err)
+    }
+  }
+
+  private async loadFacts(): Promise<ExtractedFact[]> {
+    try {
+      if (!existsSync(this.factsFile)) return []
+      const raw = await readFile(this.factsFile, "utf-8")
+      return JSON.parse(raw) as ExtractedFact[]
+    } catch {
+      return []
+    }
+  }
+
+  private deduplicateFacts(facts: ExtractedFact[]): ExtractedFact[] {
+    const seen = new Set<string>()
+    return facts
+      .filter((f) => {
+        const key = f.fact.toLowerCase().trim()
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      .sort((a, b) => b.confidence - a.confidence)
+  }
+
+  async getFactsByCategory(category: ExtractedFact["category"]): Promise<ExtractedFact[]> {
+    const facts = await this.loadFacts()
+    return facts
+      .filter((f) => f.category === category)
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, 20)
+  }
+
+  async getAllFacts(): Promise<ExtractedFact[]> {
+    return this.loadFacts()
+  }
+
   async buildContext(ctx: MemoryContext): Promise<string> {
     const parts: string[] = []
 
-    // Load MEMORY.md
+    const userProfile = await this.loadUserProfile()
+    if (userProfile.trim()) {
+      parts.push(`# User Profile\n\n${userProfile}`)
+    }
+
     const memory = await this.loadMemory()
     if (memory.trim()) {
       parts.push(`# Long-term Memory\n\n${memory}`)
     }
 
-    // Load today's daily log
     const todayLog = await this.loadDailyLog()
     if (todayLog.trim()) {
       parts.push(`# Today's Log\n\n${todayLog}`)
     }
 
-    // Load yesterday's daily log for continuity
     const yesterday = new Date()
     yesterday.setDate(yesterday.getDate() - 1)
     const yesterdayLog = await this.loadDailyLog(yesterday)
@@ -167,56 +293,110 @@ export class MemorySystem {
       parts.push(`# Yesterday's Log\n\n${yesterdayLog}`)
     }
 
-    // Load recent auto memories
     const autoMemories = await this.loadAutoMemories(5)
     if (autoMemories.length > 0) {
       parts.push(`# Recent Auto Memories\n\n${autoMemories.join("\n---\n")}`)
+    }
+
+    const facts = await this.loadFacts()
+    if (facts.length > 0) {
+      const highConfidence = facts.filter((f) => f.confidence >= 0.7).slice(0, 10)
+      if (highConfidence.length > 0) {
+        const factLines = highConfidence.map((f) => `- [${f.category}] ${f.fact}`).join("\n")
+        parts.push(`# Known Facts\n\n${factLines}`)
+      }
     }
 
     return parts.join("\n\n---\n\n")
   }
 
   async search(query: string): Promise<MemoryEntry[]> {
-    const results: MemoryEntry[] = []
-    const queryLower = query.toLowerCase()
+    const terms = query.toLowerCase().split(/\s+/).filter(Boolean)
+    if (terms.length === 0) return []
 
-    // Search MEMORY.md
-    const memory = await this.loadMemory()
-    if (memory.toLowerCase().includes(queryLower)) {
-      results.push({
-        content: memory,
-        timestamp: new Date().toISOString(),
-        source: "memory",
-      })
+    interface ScoredEntry extends MemoryEntry {
+      score: number
     }
 
-    // Search daily logs (last 7 days)
-    for (let i = 0; i < 7; i++) {
+    const scored: ScoredEntry[] = []
+
+    // Search MEMORY.md with term frequency scoring
+    const memory = await this.loadMemory()
+    if (memory.trim()) {
+      const score = this.computeRelevance(memory, terms)
+      if (score > 0) {
+        scored.push({ content: memory, timestamp: new Date().toISOString(), source: "memory", score })
+      }
+    }
+
+    // Search user profile
+    const userProfile = await this.loadUserProfile()
+    if (userProfile.trim()) {
+      const score = this.computeRelevance(userProfile, terms)
+      if (score > 0) {
+        scored.push({ content: userProfile, timestamp: new Date().toISOString(), source: "user", category: "user-profile", score })
+      }
+    }
+
+    // Search daily logs (last 14 days) with recency decay
+    for (let i = 0; i < 14; i++) {
       const date = new Date()
       date.setDate(date.getDate() - i)
       const log = await this.loadDailyLog(date)
-      if (log.toLowerCase().includes(queryLower)) {
-        results.push({
-          content: log,
-          timestamp: date.toISOString(),
-          source: "daily",
-        })
+      if (log.trim()) {
+        const score = this.computeRelevance(log, terms) * Math.max(0.1, 1 - i * 0.065)
+        if (score > 0) {
+          scored.push({ content: log, timestamp: date.toISOString(), source: "daily", score })
+        }
       }
     }
 
-    // Search auto memories
-    const autoMemories = await this.loadAutoMemories(20)
+    // Search auto memories with scoring
+    const autoMemories = await this.loadAutoMemories(50)
     for (const mem of autoMemories) {
-      if (mem.toLowerCase().includes(queryLower)) {
-        results.push({
-          content: mem,
-          timestamp: new Date().toISOString(),
-          source: "auto",
-        })
+      const score = this.computeRelevance(mem, terms)
+      if (score > 0) {
+        scored.push({ content: mem, timestamp: new Date().toISOString(), source: "auto", score })
       }
     }
 
-    return results
+    // Search facts
+    const facts = await this.loadFacts()
+    const matchingFacts = facts.filter((f) => {
+      const fScore = this.computeRelevance(f.fact, terms)
+      if (fScore > 0) return true
+      return f.fact.toLowerCase().includes(terms[0] ?? "")
+    })
+    if (matchingFacts.length > 0) {
+      const content = matchingFacts.map((f) => `- [${f.category}] ${f.fact}`).join("\n")
+      scored.push({ content, timestamp: new Date().toISOString(), source: "auto", category: "facts", score: 0.5 })
+    }
+
+    // Sort by score descending, take top results
+    scored.sort((a, b) => b.score - a.score)
+    return scored.slice(0, 10).map(({ score: _, ...entry }) => entry)
+  }
+
+  private computeRelevance(text: string, terms: string[]): number {
+    const lower = text.toLowerCase()
+    const docLen = lower.split(/\s+/).length
+    if (docLen === 0) return 0
+
+    let score = 0
+    for (const term of terms) {
+      const safeTerm = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+      const regex = new RegExp(safeTerm, "g")
+      const matches = lower.match(regex)
+      const tf = matches ? matches.length : 0
+      if (tf > 0) {
+        score += Math.log(1 + tf) / Math.log(1 + docLen)
+      }
+      if (new RegExp(`^#+\\s+.*${safeTerm}`, "im").test(lower)) {
+        score += 0.3
+      }
+    }
+
+    return score
   }
 }
 

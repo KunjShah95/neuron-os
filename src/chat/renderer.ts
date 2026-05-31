@@ -1,11 +1,7 @@
 import ansiEscapes from "ansi-escapes"
 import { calculateChatLayout } from "./layout"
 import { renderChatHeader, renderMessages, renderInputArea, renderChatHint, renderPicker } from "./components"
-<<<<<<< HEAD
-import { createInitialChatState, loadChatStateFromSession, addUserMessage, addAssistantMessage, finalizeStreamingMessage, saveChatSession } from "./store"
-=======
-import { createInitialChatState, addUserMessage, addAssistantMessage, finalizeStreamingMessage } from "./store"
->>>>>>> 908905d (feat: implement model picker functionality and UI rendering)
+import { createInitialChatState, loadChatStateFromSession, addUserMessage, addAssistantMessage, finalizeStreamingMessage, saveChatSession, createCheckpoint, rewindToCheckpoint } from "./store"
 import type { ChatState, PickerItem } from "./store"
 import { parseChatKey, handleChatKey } from "./input"
 import { streamResponse, createEngine } from "./provider"
@@ -45,19 +41,6 @@ export async function startChat(agentType?: AgentTypeName) {
   let frameTimer: ReturnType<typeof setTimeout> | null = null
   let abortController: AbortController | null = null
 
-<<<<<<< HEAD
-  function buildPickerItems() {
-    const providers = listProviders()
-    const { MODEL_REFERENCES } = require("../ai/models") as typeof import("../ai/models")
-    const items: PickerItem[] = []
-    const currentProvider = state.config.provider || providers[0]
-    for (const p of providers) {
-      const active = p === currentProvider
-      items.push({ kind: "provider", name: p, active })
-      const models = MODEL_REFERENCES[p as keyof typeof MODEL_REFERENCES] || []
-      for (const m of models) {
-        items.push({ kind: "model", provider: p, id: m.id, label: m.label })
-=======
   function buildPickerItems(): PickerItem[] {
     const items: PickerItem[] = []
     const currentProvider = state.config.provider || "anthropic"
@@ -70,14 +53,11 @@ export async function startChat(agentType?: AgentTypeName) {
         for (const m of models) {
           items.push({ kind: "model", provider: name, id: m.id, label: m.label })
         }
->>>>>>> 908905d (feat: implement model picker functionality and UI rendering)
       }
     }
     return items
   }
 
-<<<<<<< HEAD
-=======
   function findCurrentPickerIndex(items: PickerItem[]): number {
     const currentProvider = state.config.provider || "anthropic"
     const currentModel = state.config.model
@@ -114,7 +94,6 @@ export async function startChat(agentType?: AgentTypeName) {
     return state.config.provider || "anthropic"
   }
 
->>>>>>> 908905d (feat: implement model picker functionality and UI rendering)
   // Handle incoming keystrokes
   const onData = async (raw: string) => {
     // If picker is open, intercept navigation keys
@@ -156,49 +135,11 @@ export async function startChat(agentType?: AgentTypeName) {
 
     const key = parseChatKey(raw)
 
-<<<<<<< HEAD
-    // Handle toggle_picker when picker is closed (open it)
-    if (key.type === "toggle_picker") {
-      state.ui.showPicker = true
-      state.ui.pickerItems = buildPickerItems()
-      state.ui.pickerIndex = 0
-=======
-    // Picker-open key interceptor
-    if (state.ui.showPicker) {
-      switch (key.type) {
-        case "up":
-          if (state.ui.pickerIndex > 0) {
-            state.ui.pickerIndex--
-            state.dirty = true
-          }
-          return
-        case "down":
-          if (state.ui.pickerIndex < state.ui.pickerItems.length - 1) {
-            state.ui.pickerIndex++
-            state.dirty = true
-          }
-          return
-        case "enter": {
-          const item = state.ui.pickerItems[state.ui.pickerIndex]
-          if (item) selectPickerItem(item)
-          state.ui.showPicker = false
-          state.dirty = true
-          return
-        }
-        case "escape":
-        case "toggle_picker":
-          state.ui.showPicker = false
-          state.dirty = true
-          return
-      }
-    }
-
     // Toggle picker open
     if (key.type === "toggle_picker") {
       state.ui.pickerItems = buildPickerItems()
       state.ui.pickerIndex = findCurrentPickerIndex(state.ui.pickerItems)
       state.ui.showPicker = true
->>>>>>> 908905d (feat: implement model picker functionality and UI rendering)
       state.dirty = true
       return
     }
@@ -220,6 +161,29 @@ export async function startChat(agentType?: AgentTypeName) {
       case "send": {
         const text = state.ui.input.trim()
         if (!text) break
+
+        // Shell mode: execute command directly
+        if (state.ui.shellMode && !text.startsWith("/")) {
+          addUserMessage(state, `$ ${text}`)
+          addAssistantMessage(state)
+          try {
+            const proc = Bun.spawnSync(["cmd", "/c", text], { cwd: process.cwd(), timeout: 30000 })
+            const stdout = proc.stdout.toString()
+            const stderr = proc.stderr.toString()
+            const output = stdout + (stderr ? `\nSTDERR:\n${stderr}` : "")
+            const last = state.messages[state.messages.length - 1]
+            if (last) {
+              last.content = output || `(exit code: ${proc.exitCode})`
+              last.status = "complete"
+            }
+          } catch (e) {
+            const last = state.messages[state.messages.length - 1]
+            if (last) { last.content = `Error: ${e instanceof Error ? e.message : String(e)}`; last.status = "error" }
+          }
+          state.dirty = true
+          break
+        }
+
         // Special slash commands for runtime configuration
         if (text.startsWith("/provider")) {
           // Commands:
@@ -278,6 +242,70 @@ export async function startChat(agentType?: AgentTypeName) {
             state.dirty = true
             break
           }
+        }
+
+        if (text.startsWith("/checkpoint")) {
+          const parts = text.split(/\s+/)
+          if (parts[1] === "save") {
+            const label = parts.slice(2).join(" ") || undefined
+            createCheckpoint(state, label)
+            addUserMessage(state, text)
+            addAssistantMessage(state)
+            const last = state.messages[state.messages.length - 1]
+            if (last) { last.content = `Checkpoint saved (${state.checkpoints.length} total)${label ? `: "${label}"` : ""}`; last.status = "complete" }
+            state.dirty = true
+            break
+          }
+          if (parts[1] === "list") {
+            if (state.checkpoints.length === 0) {
+              addUserMessage(state, text)
+              addAssistantMessage(state)
+              const last = state.messages[state.messages.length - 1]
+              if (last) { last.content = "No checkpoints saved. Use /checkpoint save [label] to create one."; last.status = "complete" }
+              state.dirty = true
+              break
+            }
+            const lines = state.checkpoints.map((cp, i) => `${i}: ${cp.label} (${cp.messages.length} msgs)`)
+            addUserMessage(state, text)
+            addAssistantMessage(state)
+            const last = state.messages[state.messages.length - 1]
+            if (last) { last.content = `Checkpoints:\n${lines.join("\n")}\n\nUse /rewind <n> to restore.`; last.status = "complete" }
+            state.dirty = true
+            break
+          }
+        }
+
+        if (text.startsWith("/rewind")) {
+          const parts = text.split(/\s+/)
+          const n = parseInt(parts[1] || "", 10)
+          if (isNaN(n) || n < 0) {
+            addUserMessage(state, text)
+            addAssistantMessage(state)
+            const last = state.messages[state.messages.length - 1]
+            if (last) { last.content = "Usage: /rewind <checkpoint-number>. Use /checkpoint list to see available checkpoints."; last.status = "complete" }
+          } else if (rewindToCheckpoint(state, n)) {
+            addUserMessage(state, text)
+            addAssistantMessage(state)
+            const last = state.messages[state.messages.length - 1]
+            if (last) { last.content = `Rewound to checkpoint #${n}.`; last.status = "complete" }
+          } else {
+            addUserMessage(state, text)
+            addAssistantMessage(state)
+            const last = state.messages[state.messages.length - 1]
+            if (last) { last.content = `Checkpoint #${n} not found. Use /checkpoint list to see available checkpoints.`; last.status = "complete" }
+          }
+          state.dirty = true
+          break
+        }
+
+        if (text === "/shell") {
+          state.ui.shellMode = !state.ui.shellMode
+          addUserMessage(state, text)
+          addAssistantMessage(state)
+          const last = state.messages[state.messages.length - 1]
+          if (last) { last.content = state.ui.shellMode ? "Shell mode ON. Type commands to execute." : "Shell mode OFF."; last.status = "complete" }
+          state.dirty = true
+          break
         }
 
         if (text === "/clear") {
