@@ -497,6 +497,7 @@ const pItems: PickerItem[] = [
   { kind: "model", provider: "openai", id: "gpt-4o", label: "GPT-4o" },
 ]
 
+<<<<<<< HEAD
 const pRegion: ChatRegion = { x: 47, y: 1, width: 34, height: 10 }
 const pLines = renderPicker(pRegion, pItems, 0, "anthropic")
 assert(pLines.length === 10, "picker renders 10 lines")
@@ -537,6 +538,46 @@ const wp = layoutWithPicker.picker
 assert(wp !== undefined, "layout: picker region exists when open")
 assert(wp!.width === 34, "layout: picker width is 34")
 assert(layoutWithPicker.messages.width === 45, "layout: messages shrinks when picker open")
+=======
+const pReg: ChatRegion = { x: 47, y: 1, width: 34, height: 10 }
+const pLines = renderPicker(pReg, pItems, 0, "anthropic")
+assert(pLines.length === pReg.height, `picker renders ${pReg.height} lines`)
+const pHeader = stripAnsi(pLines[0] || "")
+assert(pHeader.includes("Models/Providers"), "picker header has title")
+
+const pL1 = stripAnsi(pLines[1] || "")
+assert(pL1.includes(">"), "selected provider shows > marker")
+
+const pL4 = stripAnsi(pLines[4] || "")
+assert(pL4.includes("openai"), "inactive provider name rendered")
+
+const pL5 = stripAnsi(pLines[5] || "")
+assert(pL5.includes("GPT-4o"), "model label visible")
+
+// Scroll: selecting index 4 shows GPT-4o at content row 5
+const pLines2 = renderPicker(pReg, pItems, 4, "anthropic")
+const pL5b = stripAnsi(pLines2[5] || "")
+assert(pL5b.includes("GPT-4o"), "selection at index 4 shows GPT-4o at row 5")
+
+// Empty items
+const emptyP = renderPicker(pReg, [], 0, "anthropic")
+assert(emptyP.length === pReg.height, "empty picker still renders correct lines")
+
+// Picker state initializes correctly
+const ps = createInitialChatState()
+assert(ps.ui.showPicker === false, "initial showPicker = false")
+assert(ps.ui.pickerIndex === 0, "initial pickerIndex = 0")
+assert(ps.ui.pickerItems.length === 0, "initial pickerItems empty")
+
+// Layout includes picker region when showPicker=true
+const lnp = calculateChatLayout(24, 80, 1)
+assert(lnp.picker === undefined, "layout: no picker region when closed")
+
+const lwp = calculateChatLayout(24, 80, 1, true)
+assert(lwp.picker !== undefined, "layout: picker region exists when open")
+assert(lwp.picker!.width === 34, "layout: picker width is 34")
+assert(lwp.messages.width === 45, "layout: messages shrinks when picker open")
+>>>>>>> 908905d (feat: implement model picker functionality and UI rendering)
 
 // ══════════════════════════════════════════════════════════════════════
 //  Summary

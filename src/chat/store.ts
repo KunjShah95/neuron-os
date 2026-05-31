@@ -7,6 +7,10 @@ export interface ChatMessage {
   status: "complete" | "streaming" | "error"
 }
 
+export type PickerItem =
+  | { kind: "provider"; name: string; active: boolean }
+  | { kind: "model"; provider: string; id: string; label: string }
+
 export interface ChatUIState {
   /** The current input buffer (supports multiline) */
   input: string
@@ -24,6 +28,10 @@ export interface ChatUIState {
   /** Input history (submitted messages) */
   history: string[]
   historyIndex: number
+<<<<<<< HEAD
+=======
+  /** Model picker overlay state */
+>>>>>>> 908905d (feat: implement model picker functionality and UI rendering)
   showPicker: boolean
   pickerItems: PickerItem[]
   pickerIndex: number
@@ -38,10 +46,16 @@ export interface ChatState {
   ui: ChatUIState
   dirty: boolean
   agentType?: string
+<<<<<<< HEAD
   sessionId: string
+=======
+  sessionId?: string
+>>>>>>> 908905d (feat: implement model picker functionality and UI rendering)
   config: {
     provider?: string
     model: string
+    baseUrl?: string
+    apiKey?: string
     maxTokens: number
     baseUrl?: string
     apiKey?: string

@@ -1,11 +1,17 @@
 import ansiEscapes from "ansi-escapes"
 import { calculateChatLayout } from "./layout"
 import { renderChatHeader, renderMessages, renderInputArea, renderChatHint, renderPicker } from "./components"
+<<<<<<< HEAD
 import { createInitialChatState, loadChatStateFromSession, addUserMessage, addAssistantMessage, finalizeStreamingMessage, saveChatSession } from "./store"
+=======
+import { createInitialChatState, addUserMessage, addAssistantMessage, finalizeStreamingMessage } from "./store"
+>>>>>>> 908905d (feat: implement model picker functionality and UI rendering)
 import type { ChatState, PickerItem } from "./store"
 import { parseChatKey, handleChatKey } from "./input"
 import { streamResponse, createEngine } from "./provider"
 import { listProviders } from "../ai/providers"
+import { MODEL_REFERENCES } from "../ai/models"
+import type { AIProviderType } from "../ai/models"
 import { saveConfig, loadConfig } from "../config"
 import type { AgentTypeName } from "../agent/agent-types"
 
@@ -39,6 +45,7 @@ export async function startChat(agentType?: AgentTypeName) {
   let frameTimer: ReturnType<typeof setTimeout> | null = null
   let abortController: AbortController | null = null
 
+<<<<<<< HEAD
   function buildPickerItems() {
     const providers = listProviders()
     const { MODEL_REFERENCES } = require("../ai/models") as typeof import("../ai/models")
@@ -50,11 +57,64 @@ export async function startChat(agentType?: AgentTypeName) {
       const models = MODEL_REFERENCES[p as keyof typeof MODEL_REFERENCES] || []
       for (const m of models) {
         items.push({ kind: "model", provider: p, id: m.id, label: m.label })
+=======
+  function buildPickerItems(): PickerItem[] {
+    const items: PickerItem[] = []
+    const currentProvider = state.config.provider || "anthropic"
+    const providerNames = listProviders()
+    for (const name of providerNames) {
+      const active = name === currentProvider
+      items.push({ kind: "provider", name, active })
+      const models = MODEL_REFERENCES[name as AIProviderType]
+      if (models) {
+        for (const m of models) {
+          items.push({ kind: "model", provider: name, id: m.id, label: m.label })
+        }
+>>>>>>> 908905d (feat: implement model picker functionality and UI rendering)
       }
     }
     return items
   }
 
+<<<<<<< HEAD
+=======
+  function findCurrentPickerIndex(items: PickerItem[]): number {
+    const currentProvider = state.config.provider || "anthropic"
+    const currentModel = state.config.model
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      if (item && item.kind === "provider" && item.name === currentProvider) {
+        return i
+      }
+      if (item && item.kind === "model" && item.id === currentModel) {
+        return i
+      }
+    }
+    return 0
+  }
+
+  function selectPickerItem(item: PickerItem) {
+    if (item.kind === "provider") {
+      state.config.provider = item.name
+      const models = MODEL_REFERENCES[item.name as AIProviderType]
+      if (models && models[0]) {
+        state.config.model = models[0].id
+      }
+    } else {
+      state.config.provider = item.provider
+      state.config.model = item.id
+    }
+    const cfg = loadConfig()
+    cfg.provider = state.config.provider
+    cfg.model = state.config.model
+    saveConfig(cfg)
+  }
+
+  function getActiveProvider(): string {
+    return state.config.provider || "anthropic"
+  }
+
+>>>>>>> 908905d (feat: implement model picker functionality and UI rendering)
   // Handle incoming keystrokes
   const onData = async (raw: string) => {
     // If picker is open, intercept navigation keys
@@ -96,11 +156,49 @@ export async function startChat(agentType?: AgentTypeName) {
 
     const key = parseChatKey(raw)
 
+<<<<<<< HEAD
     // Handle toggle_picker when picker is closed (open it)
     if (key.type === "toggle_picker") {
       state.ui.showPicker = true
       state.ui.pickerItems = buildPickerItems()
       state.ui.pickerIndex = 0
+=======
+    // Picker-open key interceptor
+    if (state.ui.showPicker) {
+      switch (key.type) {
+        case "up":
+          if (state.ui.pickerIndex > 0) {
+            state.ui.pickerIndex--
+            state.dirty = true
+          }
+          return
+        case "down":
+          if (state.ui.pickerIndex < state.ui.pickerItems.length - 1) {
+            state.ui.pickerIndex++
+            state.dirty = true
+          }
+          return
+        case "enter": {
+          const item = state.ui.pickerItems[state.ui.pickerIndex]
+          if (item) selectPickerItem(item)
+          state.ui.showPicker = false
+          state.dirty = true
+          return
+        }
+        case "escape":
+        case "toggle_picker":
+          state.ui.showPicker = false
+          state.dirty = true
+          return
+      }
+    }
+
+    // Toggle picker open
+    if (key.type === "toggle_picker") {
+      state.ui.pickerItems = buildPickerItems()
+      state.ui.pickerIndex = findCurrentPickerIndex(state.ui.pickerItems)
+      state.ui.showPicker = true
+>>>>>>> 908905d (feat: implement model picker functionality and UI rendering)
       state.dirty = true
       return
     }
