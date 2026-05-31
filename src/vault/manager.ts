@@ -1,0 +1,124 @@
+import { readFile, writeFile, mkdir } from "node:fs/promises"
+import { resolve } from "node:path"
+import { existsSync } from "node:fs"
+
+export interface VaultEntry {
+  key: string
+  value: string
+  scope: string
+  createdAt: string
+  updatedAt: string
+}
+
+const VAULT_DIR = resolve(process.env.HOME || process.env.USERPROFILE || "~", ".aegis")
+const VAULT_FILE = resolve(VAULT_DIR, "vault.json")
+const ENV_FILE = resolve(VAULT_DIR, "agent.env")
+
+const SCOPED_ENV_DIR = resolve(VAULT_DIR, "env")
+
+export class CredentialVault {
+  private entries: VaultEntry[] = []
+
+  async initialize(): Promise<void> {
+    await mkdir(VAULT_DIR, { recursive: true })
+    await mkdir(SCOPED_ENV_DIR, { recursive: true })
+    if (existsSync(VAULT_FILE)) {
+      try {
+        const raw = await readFile(VAULT_FILE, "utf-8")
+        this.entries = JSON.parse(raw)
+      } catch {
+        this.entries = []
+      }
+    } else {
+      await writeFile(VAULT_FILE, JSON.stringify([], null, 2), "utf-8")
+    }
+  }
+
+  private async persist(): Promise<void> {
+    await writeFile(VAULT_FILE, JSON.stringify(this.entries, null, 2), "utf-8")
+    await this.writeEnvFile()
+  }
+
+  private async writeEnvFile(): Promise<void> {
+    const lines = this.entries
+      .filter((e) => e.scope === "global")
+      .map((e) => `${e.key}=${e.value}`)
+    await writeFile(ENV_FILE, lines.join("\n") + "\n", "utf-8")
+  }
+
+  async set(key: string, value: string, scope = "global"): Promise<void> {
+    const existing = this.entries.findIndex((e) => e.key === key && e.scope === scope)
+    const now = new Date().toISOString()
+
+    if (existing >= 0) {
+      this.entries[existing]!.value = value
+      this.entries[existing]!.updatedAt = now
+    } else {
+      this.entries.push({ key, value, scope, createdAt: now, updatedAt: now })
+    }
+
+    await this.persist()
+
+    // Also write scoped .env
+    if (scope !== "global") {
+      const scopedFile = resolve(SCOPED_ENV_DIR, `${scope}.env`)
+      const scopeEntries = this.entries.filter((e) => e.scope === scope)
+      const lines = scopeEntries.map((e) => `${e.key}=${e.value}`)
+      await writeFile(scopedFile, lines.join("\n") + "\n", "utf-8")
+    }
+  }
+
+  async get(key: string, scope = "global"): Promise<string | null> {
+    const entry = this.entries.find((e) => e.key === key && e.scope === scope)
+    return entry?.value ?? null
+  }
+
+  async delete(key: string, scope = "global"): Promise<boolean> {
+    const before = this.entries.length
+    this.entries = this.entries.filter((e) => !(e.key === key && e.scope === scope))
+    if (this.entries.length !== before) {
+      await this.persist()
+      return true
+    }
+    return false
+  }
+
+  async list(scope?: string): Promise<VaultEntry[]> {
+    if (scope) return this.entries.filter((e) => e.scope === scope)
+    return [...this.entries]
+  }
+
+  getEnvVars(scope = "global"): Record<string, string> {
+    const result: Record<string, string> = {}
+    for (const entry of this.entries) {
+      if (entry.scope === scope || entry.scope === "global") {
+        result[entry.key] = entry.value
+      }
+    }
+    return result
+  }
+
+  async loadScopedEnv(scope: string): Promise<Record<string, string>> {
+    const scopedFile = resolve(SCOPED_ENV_DIR, `${scope}.env`)
+    const result: Record<string, string> = {}
+    if (!existsSync(scopedFile)) return result
+
+    try {
+      const raw = await readFile(scopedFile, "utf-8")
+      for (const line of raw.split("\n")) {
+        const trimmed = line.trim()
+        if (!trimmed || trimmed.startsWith("#")) continue
+        const eqIdx = trimmed.indexOf("=")
+        if (eqIdx > 0) {
+          const k = trimmed.slice(0, eqIdx).trim()
+          const v = trimmed.slice(eqIdx + 1).trim()
+          if (k) result[k] = v
+        }
+      }
+    } catch {}
+
+    return result
+  }
+}
+
+export const credentialVault = new CredentialVault()

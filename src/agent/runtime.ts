@@ -6,6 +6,7 @@ import type { SkillContext } from "../skills"
 import type { MemoryContext } from "../memory"
 import type { AgentInstance } from "./types"
 import { agentManager } from "./manager"
+import { loadSoul } from "./soul"
 
 export interface AgentContext {
   agentId: string
@@ -41,6 +42,8 @@ export class AgentRuntime {
   }
 
   async loadSkills(query?: string): Promise<string> {
+    await this.ensureSkillsLoaded()
+
     const skillCtx: SkillContext = {
       agentId: this.context.agentId,
       agentType: this.context.agentType,
@@ -70,7 +73,7 @@ export class AgentRuntime {
 
     const injected: string[] = []
     for (const name of skillNames) {
-      const content = await skillRegistry.injectSkill(name, skillCtx)
+      const content = await skillRegistry.readSkill(name, skillCtx)
       if (content) {
         injected.push(`# Skill: ${name}\n\n${content}`)
       }
@@ -124,8 +127,20 @@ export class AgentRuntime {
     await this.ensureSkillsLoaded()
 
     if (this.context.agentType) {
-      const skillContent = await this.loadSkills(this.context.agentType)
-      parts.push(this.getAgentTypeInstructions(skillContent))
+      parts.push(this.getAgentTypeInstructions(""))
+
+      const soul = await loadSoul({
+        agentType: this.context.agentType,
+        cwd: this.context.cwd,
+      })
+      if (soul.trim()) {
+        parts.push(`## Soul\n\n${soul.trim()}`)
+      }
+    }
+
+    const manifest = skillRegistry.buildManifestPrompt()
+    if (manifest.trim()) {
+      parts.push(`## Skill Catalog\n\n${manifest}`)
     }
 
     const memory = await this.loadMemory()

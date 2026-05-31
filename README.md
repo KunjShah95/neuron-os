@@ -222,12 +222,14 @@ stateDiagram-v2
 JSON-line format over stdin/stdout:
 
 **Parent → Worker:**
+
 - `{ type: "ping" }` — heartbeat check
 - `{ type: "echo", payload }` — connectivity test
 - `{ type: "run-task", payload: { command, args } }` — execute task
 - `{ type: "shutdown" }` — graceful stop
 
 **Worker → Parent:**
+
 - `{ type: "result", payload }` — command result
 - `{ type: "log", payload: { level, text } }` — structured log
 - `{ type: "heartbeat", payload }` — periodic liveness signal
@@ -291,6 +293,7 @@ Run `bun run index.ts setup` for guided configuration:
 ### Runtime Provider Switching
 
 In the chat TUI:
+
 ```
 /provider list           — list available providers
 /provider set openai     — switch to OpenAI
@@ -540,6 +543,7 @@ Configuration is persisted to `~/.aegis/config.json` via the setup wizard.
 **Current:** v0.1.0 — TUI Platform
 
 **Near-term:**
+
 - MCP tool integration and tool policy engine
 - Enhanced slash commands (model picker, tool cards, local shell execution)
 - Skill hot-reload and gating
@@ -547,6 +551,7 @@ Configuration is persisted to `~/.aegis/config.json` via the setup wizard.
 - Checkpoints and rewind in chat
 
 **Mid-term:**
+
 - Multi-channel gateway (WebSocket, Telegram, Discord, Slack)
 - Shell mode (interactive REPL)
 - Persistent agent storage and configurable lifecycles
@@ -554,6 +559,7 @@ Configuration is persisted to `~/.aegis/config.json` via the setup wizard.
 - Web-based dashboard
 
 **Long-term:**
+
 - Plugin marketplace for custom agent types
 - Remote agent orchestration
 - Learning loop (self-improvement from feedback)

@@ -497,51 +497,9 @@ const pItems: PickerItem[] = [
   { kind: "model", provider: "openai", id: "gpt-4o", label: "GPT-4o" },
 ]
 
-<<<<<<< HEAD
 const pRegion: ChatRegion = { x: 47, y: 1, width: 34, height: 10 }
 const pLines = renderPicker(pRegion, pItems, 0, "anthropic")
-assert(pLines.length === 10, "picker renders 10 lines")
-const pHeaderPlain = stripAnsi(pLines[0] || "")
-assert(pHeaderPlain.includes("Models/Providers"), "picker header has title")
-
-const pLine1Plain = stripAnsi(pLines[1] || "")
-assert(pLine1Plain.includes(">"), "selected provider shows > marker")
-assert(pLine1Plain.includes("anthropic"), "active provider name rendered")
-
-const pLine3Plain = stripAnsi(pLines[3] || "")
-assert(pLine3Plain.includes("openai"), "inactive provider name rendered")
-
-const pLine5Plain = stripAnsi(pLines[5] || "")
-assert(pLine5Plain.includes("GPT-4o"), "model label visible")
-
-// Selection at end scrolls viewport
-const pLines2 = renderPicker(pRegion, pItems, 4, "anthropic")
-const pLineLastPlain = stripAnsi(pLines2[pLines2.length - 1] || "")
-assert(pLineLastPlain.includes("GPT-4o") || !pLineLastPlain.trim(), "selection scrolls to show selected item")
-
-// Empty items
-const emptyPickerLines = renderPicker(pRegion, [], 0, "anthropic")
-assert(emptyPickerLines.length === 10, "empty picker still renders 10 lines")
-
-// Picker state initializes correctly
-const pickerState = createInitialChatState()
-assert(pickerState.ui.showPicker === false, "initial state showPicker = false")
-assert(pickerState.ui.pickerIndex === 0, "initial state pickerIndex = 0")
-assert(pickerState.ui.pickerItems.length === 0, "initial state pickerItems empty")
-
-// Layout includes picker region when showPicker=true
-const layoutNoPicker = calculateChatLayout(24, 80, 1)
-assert(layoutNoPicker.picker === undefined, "layout: no picker region when closed")
-
-const layoutWithPicker = calculateChatLayout(24, 80, 1, true)
-const wp = layoutWithPicker.picker
-assert(wp !== undefined, "layout: picker region exists when open")
-assert(wp!.width === 34, "layout: picker width is 34")
-assert(layoutWithPicker.messages.width === 45, "layout: messages shrinks when picker open")
-=======
-const pReg: ChatRegion = { x: 47, y: 1, width: 34, height: 10 }
-const pLines = renderPicker(pReg, pItems, 0, "anthropic")
-assert(pLines.length === pReg.height, `picker renders ${pReg.height} lines`)
+assert(pLines.length === pRegion.height, `picker renders ${pRegion.height} lines`)
 const pHeader = stripAnsi(pLines[0] || "")
 assert(pHeader.includes("Models/Providers"), "picker header has title")
 
@@ -555,13 +513,13 @@ const pL5 = stripAnsi(pLines[5] || "")
 assert(pL5.includes("GPT-4o"), "model label visible")
 
 // Scroll: selecting index 4 shows GPT-4o at content row 5
-const pLines2 = renderPicker(pReg, pItems, 4, "anthropic")
+const pLines2 = renderPicker(pRegion, pItems, 4, "anthropic")
 const pL5b = stripAnsi(pLines2[5] || "")
 assert(pL5b.includes("GPT-4o"), "selection at index 4 shows GPT-4o at row 5")
 
 // Empty items
-const emptyP = renderPicker(pReg, [], 0, "anthropic")
-assert(emptyP.length === pReg.height, "empty picker still renders correct lines")
+const emptyP = renderPicker(pRegion, [], 0, "anthropic")
+assert(emptyP.length === pRegion.height, "empty picker still renders correct lines")
 
 // Picker state initializes correctly
 const ps = createInitialChatState()
@@ -577,7 +535,6 @@ const lwp = calculateChatLayout(24, 80, 1, true)
 assert(lwp.picker !== undefined, "layout: picker region exists when open")
 assert(lwp.picker!.width === 34, "layout: picker width is 34")
 assert(lwp.messages.width === 45, "layout: messages shrinks when picker open")
->>>>>>> 908905d (feat: implement model picker functionality and UI rendering)
 
 // ══════════════════════════════════════════════════════════════════════
 //  Summary

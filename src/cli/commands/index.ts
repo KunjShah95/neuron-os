@@ -6,6 +6,9 @@ import { registerAgent } from "./agent"
 import { registerChat } from "./chat"
 import { registerStatus } from "./status"
 import { registerSkills } from "./skills"
+import { registerConfig } from "./config"
+import { registerCron } from "./cron"
+import { registerServe } from "./serve"
 
 export function registerAllCommands(program: Command) {
   registerWakeup(program)
@@ -15,4 +18,7 @@ export function registerAllCommands(program: Command) {
   registerChat(program)
   registerStatus(program)
   registerSkills(program)
+  registerConfig(program)
+  registerCron(program)
+  registerServe(program)
 }

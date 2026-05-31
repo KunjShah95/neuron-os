@@ -32,6 +32,7 @@ export interface AgentType {
 
 const ALL_TOOLS: ToolPermission[] = [
   { name: "read", allow: true },
+  { name: "read_skill", allow: true },
   { name: "write", allow: true },
   { name: "edit", allow: true },
   { name: "bash", allow: true },
@@ -43,6 +44,7 @@ const ALL_TOOLS: ToolPermission[] = [
 
 const READ_ONLY_TOOLS: ToolPermission[] = [
   { name: "read", allow: true },
+  { name: "read_skill", allow: true },
   { name: "grep", allow: true },
   { name: "glob", allow: true },
 ]
@@ -51,26 +53,31 @@ const WRITE_TOOLS: ToolPermission[] = [
   { name: "write", allow: true },
   { name: "edit", allow: true },
   { name: "read", allow: true },
+  { name: "read_skill", allow: true },
 ]
 
 const TEST_TOOLS: ToolPermission[] = [
   { name: "bash", allow: true, patterns: ["npm test", "npm run test", "pytest", "jest", "bun test", "vitest", "cargo test", "go test"] },
   { name: "read", allow: true },
+  { name: "read_skill", allow: true },
 ]
 
 const VALIDATE_TOOLS: ToolPermission[] = [
   { name: "read", allow: true },
+  { name: "read_skill", allow: true },
   { name: "bash", allow: true, patterns: ["npm run lint", "tsc --noEmit", "eslint", "prettier --check", "bun run lint", "bun run typecheck"] },
 ]
 
 const DEPLOY_TOOLS: ToolPermission[] = [
   { name: "bash", allow: true, patterns: ["npm run deploy", "docker", "kubectl", "terraform", "git push", "bun run deploy"] },
   { name: "read", allow: true },
+  { name: "read_skill", allow: true },
 ]
 
 const MONITOR_TOOLS: ToolPermission[] = [
   { name: "bash", allow: true },
   { name: "read", allow: true },
+  { name: "read_skill", allow: true },
 ]
 
 export const AGENT_TYPES: Record<AgentTypeName, AgentType> = {
@@ -152,6 +159,7 @@ export const AGENT_TYPES: Record<AgentTypeName, AgentType> = {
     description: "Generate documentation (read, write)",
     tools: [
       { name: "read", allow: true },
+      { name: "read_skill", allow: true },
       { name: "write", allow: true },
     ],
     systemPrompt: "You are a documentation agent. Read code and generate clear, accurate documentation. Update existing docs when code changes.",

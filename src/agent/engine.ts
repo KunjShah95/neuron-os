@@ -7,6 +7,7 @@ import type { ToolPermission } from "./agent-types"
 
 const FULL_TOOL_PERMISSIONS: ToolPermission[] = [
   { name: "read", allow: true },
+  { name: "read_skill", allow: true },
   { name: "write", allow: true },
   { name: "edit", allow: true },
   { name: "bash", allow: true },

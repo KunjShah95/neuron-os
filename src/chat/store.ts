@@ -1,3 +1,6 @@
+import { saveSession as persistSession } from "../memory/sessionStore"
+import { agentManager } from "../agent/manager"
+
 export type MessageRole = "user" | "assistant" | "system"
 
 export interface ChatMessage {
@@ -12,50 +15,38 @@ export type PickerItem =
   | { kind: "model"; provider: string; id: string; label: string }
 
 export interface ChatUIState {
-  /** The current input buffer (supports multiline) */
   input: string
-  /** Cursor position within the input */
   cursorCol: number
   cursorRow: number
-  /** Number of visible lines the input occupies */
   inputLines: number
-  /** Scroll offset for message history */
   scrollOffset: number
-  /** Whether we're currently awaiting a streaming response */
   isStreaming: boolean
-  /** Whether we've scrolled up from the latest message */
   scrolledUp: boolean
-  /** Input history (submitted messages) */
   history: string[]
   historyIndex: number
-<<<<<<< HEAD
-=======
-  /** Model picker overlay state */
->>>>>>> 908905d (feat: implement model picker functionality and UI rendering)
   showPicker: boolean
   pickerItems: PickerItem[]
   pickerIndex: number
+  shellMode: boolean
 }
 
-export type PickerItem =
-  | { kind: "provider"; name: string; active: boolean }
-  | { kind: "model"; provider: string; id: string; label: string }
+export interface ChatCheckpoint {
+  id: string
+  label: string
+  timestamp: string
+  messages: ChatMessage[]
+}
 
 export interface ChatState {
   messages: ChatMessage[]
   ui: ChatUIState
   dirty: boolean
   agentType?: string
-<<<<<<< HEAD
   sessionId: string
-=======
-  sessionId?: string
->>>>>>> 908905d (feat: implement model picker functionality and UI rendering)
+  checkpoints: ChatCheckpoint[]
   config: {
     provider?: string
     model: string
-    baseUrl?: string
-    apiKey?: string
     maxTokens: number
     baseUrl?: string
     apiKey?: string
@@ -96,10 +87,12 @@ export function createInitialChatState(agentType?: string): ChatState {
       showPicker: false,
       pickerItems: [],
       pickerIndex: 0,
+      shellMode: false,
     },
     dirty: true,
     agentType,
     sessionId: generateSessionId(agentType),
+    checkpoints: [],
     config: {
       model: "claude-sonnet-4-20250514",
       maxTokens: 8192,
@@ -159,7 +152,6 @@ export function finalizeStreamingMessage(state: ChatState) {
 
 export function saveChatSession(state: ChatState) {
   try {
-    const { saveSession } = require("../memory/sessionStore") as typeof import("../memory/sessionStore")
     const envSnapshot: Record<string, string | undefined> = {
       AI_PROVIDER: process.env.AI_PROVIDER,
       AI_MODEL: process.env.AI_MODEL,
@@ -179,7 +171,6 @@ export function saveChatSession(state: ChatState) {
       agentTraces: [] as { agentId?: string; event: string; data?: any; timestamp: string }[],
     }
     try {
-      const { agentManager } = require("../agent/manager") as typeof import("../agent/manager")
       const traces: Array<{ agentId?: string; event: string; data?: any; timestamp: string }> = []
       for (const [id, inst] of agentManager.agents) {
         const recent = (inst.log || []).slice(-10)
@@ -191,7 +182,7 @@ export function saveChatSession(state: ChatState) {
     } catch {
       // ignore
     }
-    saveSession(record)
+    persistSession(record)
   } catch {
     // ignore
   }
@@ -219,10 +210,12 @@ export function loadChatStateFromSession(sessionId: string, record: import("../m
       showPicker: false,
       pickerItems: [],
       pickerIndex: 0,
+      shellMode: false,
     },
     dirty: true,
     agentType,
     sessionId,
+    checkpoints: [],
     config: {
       model: record.providerConfig?.model || "claude-sonnet-4-20250514",
       maxTokens: record.providerConfig?.maxTokens || 8192,
@@ -238,6 +231,35 @@ export function setStreamingError(state: ChatState, error: string) {
   }
   state.ui.isStreaming = false
   state.dirty = true
+}
+
+let checkpointCounter = 0
+
+export function createCheckpoint(state: ChatState, label?: string) {
+  checkpointCounter++
+  const id = `cp-${checkpointCounter}`
+  state.checkpoints.push({
+    id,
+    label: label || `Checkpoint #${checkpointCounter}`,
+    timestamp: new Date().toISOString(),
+    messages: JSON.parse(JSON.stringify(state.messages)),
+  })
+  state.dirty = true
+  return id
+}
+
+export function rewindToCheckpoint(state: ChatState, index: number): boolean {
+  if (index < 0 || index >= state.checkpoints.length) return false
+  const cp = state.checkpoints[index]
+  if (!cp) return false
+  state.messages = JSON.parse(JSON.stringify(cp.messages))
+  state.checkpoints = state.checkpoints.slice(0, index + 1)
+  state.ui.isStreaming = false
+  state.ui.scrollOffset = 0
+  state.ui.scrolledUp = false
+  state.ui.input = ""
+  state.dirty = true
+  return true
 }
 
 

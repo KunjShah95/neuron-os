@@ -1,4 +1,4 @@
-import { readFile, readdir, stat } from "node:fs/promises"
+import { readFile, readdir } from "node:fs/promises"
 import { resolve, join, basename } from "node:path"
 import { existsSync } from "node:fs"
 
@@ -22,6 +22,12 @@ export interface SkillContext {
   agentId: string
   agentType?: string
   cwd: string
+}
+
+export interface SkillManifestEntry {
+  name: string
+  description: string
+  path: string
 }
 
 export class SkillRegistry {
@@ -142,6 +148,25 @@ export class SkillRegistry {
     return Array.from(this.skills.values())
   }
 
+  getManifest(): SkillManifestEntry[] {
+    return this.list()
+      .map((skill) => ({
+        name: skill.metadata.name,
+        description: skill.metadata.description,
+        path: skill.path,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  buildManifestPrompt(): string {
+    const entries = this.getManifest()
+    if (entries.length === 0) return ""
+
+    return entries
+      .map((skill) => `- **${skill.name}** — ${skill.description} (${skill.path}/SKILL.md)`)
+      .join("\n")
+  }
+
   async injectSkill(name: string, ctx: SkillContext): Promise<string | null> {
     const skill = this.skills.get(name)
     if (!skill) return null
@@ -155,6 +180,10 @@ export class SkillRegistry {
     content = content.replace(/\{\{cwd\}\}/g, ctx.cwd)
 
     return content
+  }
+
+  async readSkill(name: string, ctx: SkillContext): Promise<string | null> {
+    return await this.injectSkill(name, ctx)
   }
 
   async findRelevantSkills(query: string, limit = 3): Promise<Skill[]> {
