@@ -156,6 +156,40 @@ export async function handleKey(state: AppState, key: KeyEvent): Promise<"contin
       }
 
       if (ui.focus === "command" && ui.input.trim()) {
+        // If a pending rename/export action exists, handle it here
+        if (ui.pendingAction?.type === "rename") {
+          const newId = ui.input.trim()
+          const oldId = ui.pendingAction.sessionId
+          try {
+            const { renameSession, listSessions } = require("../memory/sessionStore") as typeof import("../memory/sessionStore")
+            await renameSession(oldId, newId)
+            state.sessions = await listSessions()
+            addLogEntry(state, { text: `Renamed session ${oldId} → ${newId}`, type: "success" })
+          } catch (e) {
+            addLogEntry(state, { text: `Failed to rename session: ${String(e)}`, type: "error" })
+          }
+          ui.pendingAction = undefined
+          ui.input = ""
+          state.dirty = true
+          return "refresh"
+        }
+
+        if (ui.pendingAction?.type === "export") {
+          const outPath = ui.input.trim()
+          const id = ui.pendingAction.sessionId
+          try {
+            const { exportSession } = require("../memory/sessionStore") as typeof import("../memory/sessionStore")
+            await exportSession(id, outPath)
+            addLogEntry(state, { text: `Exported session ${id} → ${outPath}`, type: "success" })
+          } catch (e) {
+            addLogEntry(state, { text: `Failed to export session: ${String(e)}`, type: "error" })
+          }
+          ui.pendingAction = undefined
+          ui.input = ""
+          state.dirty = true
+          return "refresh"
+        }
+
         const cmd = ui.input.trim()
         ui.history.push(cmd)
         if (ui.history.length > 100) ui.history.shift()
@@ -178,8 +212,60 @@ export async function handleKey(state: AppState, key: KeyEvent): Promise<"contin
 
     case "char":
       if (ui.focus === "command") {
+        // If a pending delete confirmation exists, accept y/n here
+        if (ui.pendingAction?.type === "delete") {
+          const c = key.char.toLowerCase()
+          if (c === "y") {
+            const id = ui.pendingAction.sessionId
+            try {
+              const { deleteSession, listSessions } = require("../memory/sessionStore") as typeof import("../memory/sessionStore")
+              await deleteSession(id)
+              state.sessions = await listSessions()
+              addLogEntry(state, { text: `Deleted session ${id}`, type: "success" })
+            } catch (e) {
+              addLogEntry(state, { text: `Failed to delete session: ${String(e)}`, type: "error" })
+            }
+            ui.pendingAction = undefined
+            state.dirty = true
+            return "refresh"
+          } else if (c === "n") {
+            addLogEntry(state, { text: `Delete cancelled`, type: "info" })
+            ui.pendingAction = undefined
+            state.dirty = true
+            return "refresh"
+          }
+        }
         ui.input += key.char
         state.dirty = true
+      } else if (ui.focus === "sessions") {
+        // handle quick action keys in sessions focus: d=delete, r=rename, e=export
+        const c = key.char.toLowerCase()
+        const idx = state.sessionIndex ?? 0
+        const list = state.sessions ?? []
+        const id = list[idx]
+        if (!id) return "refresh"
+        if (c === "d") {
+          ui.pendingAction = { type: "delete", sessionId: id }
+          addLogEntry(state, { text: `Confirm delete ${id}. Press 'y' to confirm or 'n' to cancel.`, type: "warn" })
+          state.dirty = true
+          return "refresh"
+        }
+        if (c === "r") {
+          ui.pendingAction = { type: "rename", sessionId: id }
+          ui.focus = "command"
+          ui.input = id
+          addLogEntry(state, { text: `Edit the name in the command bar and press Enter to rename (current: ${id})`, type: "event" })
+          state.dirty = true
+          return "refresh"
+        }
+        if (c === "e") {
+          ui.pendingAction = { type: "export", sessionId: id }
+          ui.focus = "command"
+          ui.input = `exports/${id}.json`
+          addLogEntry(state, { text: `Edit export path in the command bar and press Enter to export (suggested: exports/${id}.json)`, type: "event" })
+          state.dirty = true
+          return "refresh"
+        }
       }
       return "refresh"
 

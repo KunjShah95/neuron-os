@@ -31,6 +31,11 @@ export interface UIState {
   input: string
   history: string[]
   historyIndex: number
+  // Pending UI action for confirm flows (delete/rename/export)
+  pendingAction?: {
+    type: "delete" | "rename" | "export"
+    sessionId: string
+  }
 }
 
 export interface AppState {
@@ -205,6 +210,7 @@ export function createInitialState(): AppState {
       input: "",
       history: [],
       historyIndex: -1,
+      pendingAction: undefined,
     },
     providers: [],
     providerIndex: 0,
