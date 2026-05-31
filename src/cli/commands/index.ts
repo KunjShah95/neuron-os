@@ -9,6 +9,8 @@ import { registerSkills } from "./skills"
 import { registerConfig } from "./config"
 import { registerCron } from "./cron"
 import { registerServe } from "./serve"
+import { registerMCP } from "./mcp"
+import { registerMemory } from "./memory"
 
 export function registerAllCommands(program: Command) {
   registerWakeup(program)
@@ -21,4 +23,6 @@ export function registerAllCommands(program: Command) {
   registerConfig(program)
   registerCron(program)
   registerServe(program)
+  registerMCP(program)
+  registerMemory(program)
 }

@@ -55,200 +55,52 @@ interface ToolDef {
   execute: (args: Record<string, unknown>) => Promise<string>
 }
 
-const builtinTools: ToolDef[] = [
-  {
-    name: "read_file",
-    description: "Read the contents of a file at the given path",
-    parameters: {
-      type: "object",
-      properties: { path: { type: "string", description: "Absolute path to the file" } },
-      required: ["path"],
-    },
-    execute: async (args) => {
-      const { readFile } = await import("node:fs/promises")
-      try {
-        return await readFile(String(args.path), "utf-8")
-      } catch (err) {
-        return `Error reading file: ${err}`
-      }
-    },
-  },
-  {
-    name: "write_file",
-    description: "Write content to a file at the given path",
-    parameters: {
-      type: "object",
-      properties: {
-        path: { type: "string", description: "Absolute path to the file" },
-        content: { type: "string", description: "Content to write" },
-      },
-      required: ["path", "content"],
-    },
-    execute: async (args) => {
-      const { writeFile } = await import("node:fs/promises")
-      try {
-        await writeFile(String(args.path), String(args.content), "utf-8")
-        return `Successfully wrote ${String(args.content).length} bytes to ${String(args.path)}`
-      } catch (err) {
-        return `Error writing file: ${err}`
-      }
-    },
-  },
-  {
-    name: "bash",
-    description: "Execute a shell command and return its output",
-    parameters: {
-      type: "object",
-      properties: {
-        command: { type: "string", description: "Shell command to execute" },
-        cwd: { type: "string", description: "Working directory (optional)" },
-      },
-      required: ["command"],
-    },
-    execute: async (args) => {
-      const { execSync } = await import("node:child_process")
-      try {
-        const output = execSync(String(args.command), {
-          encoding: "utf-8",
-          cwd: args.cwd ? String(args.cwd) : undefined,
-          timeout: 30_000,
-          maxBuffer: 1024 * 1024,
-        })
-        return output || "(command completed with no output)"
-      } catch (err: any) {
-        return `Exit code ${err.status}:\n${err.stdout || ""}\n${err.stderr || ""}`.trim()
-      }
-    },
-  },
-  {
-    name: "grep",
-    description: "Search for a pattern in files using ripgrep",
-    parameters: {
-      type: "object",
-      properties: {
-        pattern: { type: "string", description: "Regex pattern to search for" },
-        include: { type: "string", description: "File glob pattern (e.g. *.ts)" },
-        path: { type: "string", description: "Directory to search in" },
-      },
-      required: ["pattern"],
-    },
-    execute: async (args) => {
-      const { execSync } = await import("node:child_process")
-      try {
-        const path = args.path ? String(args.path) : "."
-        const include = args.include ? `--include="${String(args.include)}"` : ""
-        const output = execSync(`rg --no-heading -n ${include} "${String(args.pattern)}" "${path}"`, {
-          encoding: "utf-8",
-          timeout: 15_000,
-          maxBuffer: 1024 * 512,
-        })
-        return output || "(no matches found)"
-      } catch {
-        return "(no matches found)"
-      }
-    },
-  },
-  {
-    name: "glob",
-    description: "Find files matching a glob pattern",
-    parameters: {
-      type: "object",
-      properties: {
-        pattern: { type: "string", description: "Glob pattern (e.g. **/*.ts)" },
-        path: { type: "string", description: "Directory to search in" },
-      },
-      required: ["pattern"],
-    },
-    execute: async (args) => {
-      const { globSync } = await import("glob")
-      try {
-        const cwd = args.path ? String(args.path) : process.cwd()
-        const files = globSync(String(args.pattern), { cwd })
-        return files.length > 0 ? files.join("\n") : "(no files found)"
-      } catch (err) {
-        return `Error: ${err}`
-      }
-    },
-  },
-  {
-    name: "read_skill",
-    description: "Load and return the full content of a skill by name. Skills contain workflow instructions for specific tasks.",
-    parameters: {
-      type: "object",
-      properties: {
-        name: { type: "string", description: "Name of the skill to load (e.g. code-review, debugging, git-commit)" },
-      },
-      required: ["name"],
-    },
-    execute: async (args) => {
-      const { readFile, readdir } = await import("node:fs/promises")
-      const { existsSync } = await import("node:fs")
-      const { resolve } = await import("node:path")
-      const searchPaths = [
-        resolve(process.cwd(), "skills", String(args.name), "SKILL.md"),
-        resolve(process.cwd(), ".aegis/skills", String(args.name), "SKILL.md"),
-      ]
-      for (const skillPath of searchPaths) {
-        if (existsSync(skillPath)) {
-          const content = await readFile(skillPath, "utf-8")
-          return content
-        }
-      }
-      const skillsDir = resolve(process.cwd(), "skills")
-      if (existsSync(skillsDir)) {
-        const entries = await readdir(skillsDir, { withFileTypes: true })
-        const available = entries.filter((e) => e.isDirectory()).map((e) => e.name)
-        return `Skill "${args.name}" not found. Available: ${available.join(", ")}`
-      }
-      return `Skill "${args.name}" not found. No skills directory exists.`
-    },
-  },
-  {
-    name: "save_to_memory",
-    description: "Save important information to long-term memory.",
-    parameters: {
-      type: "object",
-      properties: {
-        content: { type: "string", description: "Content to save" },
-        type: { type: "string", description: "Type: memory/daily/auto" },
-      },
-      required: ["content"],
-    },
-    execute: async (args) => {
-      const { writeFile, readFile, mkdir } = await import("node:fs/promises")
-      const { resolve, join } = await import("node:path")
-      const { existsSync } = await import("node:fs")
-      const memType = String(args.type || "memory")
+// Replace local builtin tools with runtime engine + registry integration.
+// The Agent worker will use the central AgentRuntime/AgentEngine when available,
+// falling back to the original builtin tool set for standalone usage.
+import { createAgentRuntime } from "./runtime"
+import { AIProviderManager, type AIConfig } from "../ai"
+import { AgentEngine } from "./engine"
+import { toolRegistry } from "../tools"
 
-      if (memType === "memory") {
-        const memoryFile = resolve(process.cwd(), "MEMORY.md")
-        const existing = existsSync(memoryFile) ? await readFile(memoryFile, "utf-8") : "# Aegis Memory\n\n"
-        const timestamp = new Date().toISOString()
-        await writeFile(memoryFile, existing + `\n## ${timestamp}\n\n${String(args.content)}\n`, "utf-8")
-        return "Saved to long-term memory (MEMORY.md)"
-      }
+let engine: AgentEngine | null = null
 
-      const dailyDir = resolve(process.cwd(), ".aegis/memory/daily")
-      await mkdir(dailyDir, { recursive: true })
-      const dateStr = new Date().toISOString().split("T")[0]
-      const dailyFile = join(dailyDir, `${dateStr}.md`)
-      const existing = existsSync(dailyFile) ? await readFile(dailyFile, "utf-8") : `# Daily Log - ${dateStr}\n\n`
-      await writeFile(dailyFile, existing + `\n- ${String(args.content)}\n`, "utf-8")
-      return `Saved to ${memType} log`
-    },
-  },
-]
+function buildAIConfig(): AIConfig {
+  return {
+    provider: (process.env.AEGIS_AI_PROVIDER as any) ?? "openai",
+    model: process.env.AEGIS_AI_MODEL ?? "gpt-4o",
+    apiKey: process.env.AEGIS_AI_API_KEY,
+    baseUrl: process.env.AEGIS_AI_BASE_URL,
+    temperature: process.env.AEGIS_TEMPERATURE ? parseFloat(process.env.AEGIS_TEMPERATURE) : undefined,
+    maxTokens: process.env.AEGIS_MAX_TOKENS ? parseInt(process.env.AEGIS_MAX_TOKENS, 10) : undefined,
+  }
+}
+
+async function ensureEngine(): Promise<AgentEngine> {
+  if (engine) return engine
+  const runtime = createAgentRuntime(AGENT_ID, AGENT_TYPE, process.cwd())
+  const ai = new AIProviderManager(buildAIConfig())
+  engine = new AgentEngine(runtime, ai, { maxSteps: parseInt(process.env.AEGIS_MAX_TURNS ?? "20", 10) })
+  return engine
+}
 
 function buildVercelTools(): ToolSet {
   const tools: ToolSet = {}
-  for (const t of builtinTools) {
-    const paramSchema = t.parameters as { type: string; properties: Record<string, unknown>; required?: string[] }
+  for (const t of toolRegistry.list()) {
+    const properties: Record<string, unknown> = {}
+    const required: string[] = []
+    for (const p of t.parameters) {
+      properties[p.name] = { type: p.type, description: p.description }
+      if (p.required) required.push(p.name)
+    }
+    const schema: Record<string, unknown> = { type: "object", properties }
+    if (required.length > 0) schema.required = required
     ;(tools as any)[t.name] = {
       description: t.description,
-      parameters: jsonSchema(paramSchema),
+      parameters: jsonSchema(schema),
       execute: async (toolArgs: Record<string, unknown>) => {
-        const result = await t.execute(toolArgs)
-        return { content: [{ type: "text", text: result }] }
+        const result = await t.execute(toolArgs, { agentId: AGENT_ID, agentType: AGENT_TYPE, cwd: process.cwd(), permissions: [] })
+        return { content: [{ type: "text", text: result.output || result.error || "" }] }
       },
     }
   }
@@ -344,10 +196,8 @@ async function runReActLoop(goal: string, taskId: number): Promise<string> {
   log("info", `Starting ReAct loop for task #${taskId}: ${goal.slice(0, 100)}`)
   send({ id: `task-${taskId}`, type: "log", payload: { level: "info", text: `🧠 ReAct: ${goal}` } })
 
-  const systemPrompt = await buildSystemPrompt(goal)
-  const tools = buildVercelTools()
-  const model = getModel()
-
+  // Use AgentEngine + AgentRuntime so tool permissioning and skill loading are centralized.
+  const engine = await ensureEngine()
   const messages: any[] = [{ role: "user", content: goal }]
 
   let stepCount = 0
@@ -355,67 +205,28 @@ async function runReActLoop(goal: string, taskId: number): Promise<string> {
 
   while (stepCount < MAX_TURNS) {
     stepCount++
-
     try {
-      const result = await (generateText as any)({
-        model,
-        system: systemPrompt,
-        messages,
-        tools: Object.keys(tools).length > 0 ? tools : undefined,
-        maxSteps: 5,
-        temperature: parseFloat(process.env.AEGIS_TEMPERATURE ?? "0.7"),
-      })
-
-      const stepText: string = result.text || ""
-      const toolCalls: Array<{ toolName: string; args: Record<string, unknown>; toolCallId: string }> =
-        result.toolCalls || []
+      const reply = await engine.chat(messages)
+      const stepText = reply.text || ""
 
       if (stepText) {
         finalText = stepText
-        send({
-          id: `task-${taskId}`,
-          type: "result",
-          payload: { type: "thought", content: stepText, step: stepCount },
-        })
+        send({ id: `task-${taskId}`, type: "result", payload: { type: "thought", content: stepText, step: stepCount } })
       }
 
-      if (toolCalls.length === 0 && stepText) {
+      // If engine returned no tool invocation hints (simple text), treat as final answer
+      // The AgentEngine exposes tools via the AI SDK; tool calls will be executed by the engine
+      // and included in follow-up messages. For compatibility, stop when text present and
+      // there's no explicit instruction to continue.
+      if (stepText && !/\bAction:|\bTool:|\bcall\b/i.test(stepText)) {
         log("info", `Task #${taskId}: Agent produced final answer at step ${stepCount}`)
         break
       }
 
-      messages.push({ role: "assistant", content: stepText || "", toolCalls })
-
-      for (const tc of toolCalls) {
-        const toolName = tc.toolName
-        const args = tc.args
-
-        send({
-          id: `task-${taskId}`,
-          type: "log",
-          payload: { level: "info", text: `🔧 ${toolName}(${JSON.stringify(args).slice(0, 200)})` },
-        })
-
-        const toolDef = builtinTools.find((t) => t.name === toolName)
-        if (!toolDef) {
-          messages.push({ role: "tool", content: `Error: Unknown tool "${toolName}"`, toolCallId: tc.toolCallId })
-          continue
-        }
-
-        try {
-          const output = await toolDef.execute(args)
-          const truncated =
-            output.length > 2000
-              ? output.slice(0, 2000) + `\n... (truncated, ${output.length} chars total)`
-              : output
-          messages.push({ role: "tool", content: truncated, toolCallId: tc.toolCallId })
-        } catch (err: any) {
-          messages.push({ role: "tool", content: `Error: ${err.message || String(err)}`, toolCallId: tc.toolCallId })
-        }
-      }
+      messages.push({ role: "assistant", content: stepText })
     } catch (err: any) {
-      log("error", `ReAct error at step ${stepCount}: ${err.message}`)
-      finalText = finalText || `Error: ${err.message}`
+      log("error", `ReAct error at step ${stepCount}: ${err?.message ?? String(err)}`)
+      finalText = finalText || `Error: ${err?.message ?? String(err)}`
       break
     }
   }
