@@ -1,8 +1,8 @@
 import ansiEscapes from "ansi-escapes"
 import { calculateChatLayout } from "./layout"
-import { renderChatHeader, renderMessages, renderInputArea, renderChatHint } from "./components"
+import { renderChatHeader, renderMessages, renderInputArea, renderChatHint, renderPicker } from "./components"
 import { createInitialChatState, loadChatStateFromSession, addUserMessage, addAssistantMessage, finalizeStreamingMessage, saveChatSession } from "./store"
-import type { ChatState } from "./store"
+import type { ChatState, PickerItem } from "./store"
 import { parseChatKey, handleChatKey } from "./input"
 import { streamResponse, createEngine } from "./provider"
 import { listProviders } from "../ai/providers"
@@ -39,9 +39,72 @@ export async function startChat(agentType?: AgentTypeName) {
   let frameTimer: ReturnType<typeof setTimeout> | null = null
   let abortController: AbortController | null = null
 
+  function buildPickerItems() {
+    const providers = listProviders()
+    const { MODEL_REFERENCES } = require("../ai/models") as typeof import("../ai/models")
+    const items: PickerItem[] = []
+    const currentProvider = state.config.provider || providers[0]
+    for (const p of providers) {
+      const active = p === currentProvider
+      items.push({ kind: "provider", name: p, active })
+      const models = MODEL_REFERENCES[p as keyof typeof MODEL_REFERENCES] || []
+      for (const m of models) {
+        items.push({ kind: "model", provider: p, id: m.id, label: m.label })
+      }
+    }
+    return items
+  }
+
   // Handle incoming keystrokes
   const onData = async (raw: string) => {
+    // If picker is open, intercept navigation keys
+    if (state.ui.showPicker) {
+      const pk = parseChatKey(raw)
+      switch (pk.type) {
+        case "up":
+          if (state.ui.pickerIndex > 0) state.ui.pickerIndex--
+          state.dirty = true
+          break
+        case "down":
+          if (state.ui.pickerIndex < state.ui.pickerItems.length - 1) state.ui.pickerIndex++
+          state.dirty = true
+          break
+        case "enter": {
+          const item = state.ui.pickerItems[state.ui.pickerIndex]
+          if (item && item.kind === "model") {
+            state.config.provider = item.provider
+            state.config.model = item.id
+            try {
+              const cfg = loadConfig()
+              cfg.provider = item.provider
+              cfg.model = item.id
+              saveConfig(cfg)
+            } catch { /* ignore */ }
+          }
+          state.ui.showPicker = false
+          state.dirty = true
+          break
+        }
+        case "escape":
+        case "toggle_picker":
+          state.ui.showPicker = false
+          state.dirty = true
+          break
+      }
+      return
+    }
+
     const key = parseChatKey(raw)
+
+    // Handle toggle_picker when picker is closed (open it)
+    if (key.type === "toggle_picker") {
+      state.ui.showPicker = true
+      state.ui.pickerItems = buildPickerItems()
+      state.ui.pickerIndex = 0
+      state.dirty = true
+      return
+    }
+
     const result = handleChatKey(state, key)
 
     switch (result) {
@@ -217,7 +280,7 @@ export async function startChat(agentType?: AgentTypeName) {
     if (!running) return cleanup()
 
     if (state.dirty) {
-      const layout = calculateChatLayout(rows, cols, state.ui.inputLines)
+      const layout = calculateChatLayout(rows, cols, state.ui.inputLines, state.ui.showPicker)
 
       let output = ansiEscapes.cursorHide
       output += ansiEscapes.cursorTo(0, 0)
@@ -242,6 +305,15 @@ export async function startChat(agentType?: AgentTypeName) {
       // Hint line
       output += ansiEscapes.cursorTo(0, layout.hint.y)
       output += renderChatHint(state, layout.hint)
+
+      // Picker panel
+      if (layout.picker && state.ui.showPicker) {
+        const pickerLines = renderPicker(layout.picker, state.ui.pickerItems, state.ui.pickerIndex, state.config.provider || "")
+        for (let y = 0; y < layout.picker.height; y++) {
+          output += ansiEscapes.cursorTo(layout.picker.x, layout.picker.y + y)
+          output += pickerLines[y] ?? ""
+        }
+      }
 
       // Position cursor at the correct position in the input
       const cursorX = Math.min(state.ui.cursorCol + 2, layout.input.width - 1)

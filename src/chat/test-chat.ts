@@ -13,7 +13,7 @@ import {
   finalizeStreamingMessage,
   setStreamingError,
 } from "./store"
-import type { ChatState } from "./store"
+import type { ChatState, PickerItem } from "./store"
 import { parseChatKey, handleChatKey } from "./input"
 import type { ChatKeyEvent } from "./input"
 import { renderChatHeader } from "./components/header"
@@ -480,6 +480,63 @@ assertEqual(is12.ui.cursorCol, 0, "→ at end: cursor at start of next line")
 const is13 = createInitialChatState()
 is13.ui.input = "hello"
 assertEqual(handleChatKey(is13, { type: "delete" }), "continue", "delete key returns continue")
+
+// ══════════════════════════════════════════════════════════════════════
+//  9. Model Picker
+// ══════════════════════════════════════════════════════════════════════
+
+console.log("\n=== Model Picker ===")
+
+import { renderPicker } from "./components/picker"
+
+const pItems: PickerItem[] = [
+  { kind: "provider", name: "anthropic", active: true },
+  { kind: "model", provider: "anthropic", id: "claude-sonnet-4-20250514", label: "Claude Sonnet 4" },
+  { kind: "model", provider: "anthropic", id: "claude-3-5-sonnet-latest", label: "Claude 3.5 Sonnet" },
+  { kind: "provider", name: "openai", active: false },
+  { kind: "model", provider: "openai", id: "gpt-4o", label: "GPT-4o" },
+]
+
+const pRegion: ChatRegion = { x: 47, y: 1, width: 34, height: 10 }
+const pLines = renderPicker(pRegion, pItems, 0, "anthropic")
+assert(pLines.length === 10, "picker renders 10 lines")
+const pHeaderPlain = stripAnsi(pLines[0] || "")
+assert(pHeaderPlain.includes("Models/Providers"), "picker header has title")
+
+const pLine1Plain = stripAnsi(pLines[1] || "")
+assert(pLine1Plain.includes(">"), "selected provider shows > marker")
+assert(pLine1Plain.includes("anthropic"), "active provider name rendered")
+
+const pLine3Plain = stripAnsi(pLines[3] || "")
+assert(pLine3Plain.includes("openai"), "inactive provider name rendered")
+
+const pLine5Plain = stripAnsi(pLines[5] || "")
+assert(pLine5Plain.includes("GPT-4o"), "model label visible")
+
+// Selection at end scrolls viewport
+const pLines2 = renderPicker(pRegion, pItems, 4, "anthropic")
+const pLineLastPlain = stripAnsi(pLines2[pLines2.length - 1] || "")
+assert(pLineLastPlain.includes("GPT-4o") || !pLineLastPlain.trim(), "selection scrolls to show selected item")
+
+// Empty items
+const emptyPickerLines = renderPicker(pRegion, [], 0, "anthropic")
+assert(emptyPickerLines.length === 10, "empty picker still renders 10 lines")
+
+// Picker state initializes correctly
+const pickerState = createInitialChatState()
+assert(pickerState.ui.showPicker === false, "initial state showPicker = false")
+assert(pickerState.ui.pickerIndex === 0, "initial state pickerIndex = 0")
+assert(pickerState.ui.pickerItems.length === 0, "initial state pickerItems empty")
+
+// Layout includes picker region when showPicker=true
+const layoutNoPicker = calculateChatLayout(24, 80, 1)
+assert(layoutNoPicker.picker === undefined, "layout: no picker region when closed")
+
+const layoutWithPicker = calculateChatLayout(24, 80, 1, true)
+const wp = layoutWithPicker.picker
+assert(wp !== undefined, "layout: picker region exists when open")
+assert(wp!.width === 34, "layout: picker width is 34")
+assert(layoutWithPicker.messages.width === 45, "layout: messages shrinks when picker open")
 
 // ══════════════════════════════════════════════════════════════════════
 //  Summary
