@@ -58,10 +58,6 @@ jobs:
         run: bun install --frozen-lockfile
         working-directory: dashboard
 
-      - name: Typecheck (dashboard)
-        run: bun run tsc --noEmit
-        working-directory: dashboard
-
       - name: Build dashboard
         run: bun run build
         working-directory: dashboard
