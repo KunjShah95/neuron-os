@@ -1,0 +1,76 @@
+#!/usr/bin/env bun
+// ── CI Test Runner ───────────────────────────────────────────────────
+// Runs all unit tests + TypeScript typecheck in sequence.
+// Usage: bun run scripts/run-tests.ts
+// Or:    bun run ci
+// Or:    bun run test
+
+let exitCode = 0
+
+function time<T>(label: string, fn: () => Promise<T>): Promise<T> {
+  const start = performance.now()
+  return fn().finally(() => {
+    const elapsed = ((performance.now() - start) / 1000).toFixed(2)
+    console.log(`  ── ${elapsed}s ──\n`)
+  })
+}
+
+async function run(label: string, cmd: string[]): Promise<boolean> {
+  console.log(`\n══════════════════════════════════════════════════════════`)
+  console.log(`  ${label}`)
+  console.log(`  $ ${cmd.join(" ")}`)
+  console.log(`══════════════════════════════════════════════════════════\n`)
+
+  try {
+    const result = await time(label, () => Bun.spawn(cmd, {
+      stdio: ["inherit", "inherit", "inherit"],
+      env: { ...process.env },
+    }).exited)
+
+    if (result !== 0) {
+      console.error(`❌ ${label} — FAILED (exit code ${result})`)
+      exitCode = 1
+      return false
+    }
+    console.log(`✅ ${label} — PASSED`)
+    return true
+  } catch (err) {
+    console.error(`❌ ${label} — ERROR: ${err}`)
+    exitCode = 1
+    return false
+  }
+}
+
+async function main() {
+  console.log(`\n  ╔══════════════════════════════════════════╗`)
+  console.log(`  ║     AEGIS — CI Test Suite                ║`)
+  console.log(`  ╚══════════════════════════════════════════╝\n`)
+
+  // ── 1. Dashboard TUI Smoke Tests ──────────────────────────────────
+  await run("Dashboard TUI Tests", ["bun", "run", "src/test-dashboard.ts"])
+
+  // ── 2. Chat TUI Unit Tests ────────────────────────────────────────
+  await run("Chat TUI Tests", ["bun", "run", "src/chat/test-chat.ts"])
+
+  // ── 2.5 TUI Providers & Sessions Tests ───────────────────────────
+  await run("TUI Providers/Sessions Tests", ["bun", "run", "src/test-tui-sessions.ts"])
+
+  // ── 3. Agent Manager Unit Tests ───────────────────────────────────
+  await run("Agent Manager Tests", ["bun", "run", "src/agent/test-manager.ts"])
+
+  // ── 3. TypeScript Typecheck ───────────────────────────────────────
+  await run("TypeScript Typecheck", ["bun", "run", "--bun", "tsc", "--noEmit"])
+
+  // ── Summary ────────────────────────────────────────────────────────
+  console.log(`\n══════════════════════════════════════════════════════════`)
+  if (exitCode === 0) {
+    console.log(`  ✅ ALL TESTS PASSED`)
+  } else {
+    console.error(`  ❌ SOME TESTS FAILED`)
+  }
+  console.log(`══════════════════════════════════════════════════════════\n`)
+
+  process.exit(exitCode)
+}
+
+main()

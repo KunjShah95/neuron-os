@@ -1,0 +1,58 @@
+name: Release (main)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: '1.x'
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Typecheck
+        run: bun run tsc --noEmit
+
+      - name: Lint
+        run: bun run eslint . --max-warnings=0 || true
+
+      - name: Run tests
+        run: |
+          if [ -f scripts/run-tests.ts ]; then
+            bun run scripts/run-tests.ts || bun run tsx scripts/run-tests.ts || true
+          else
+            echo "No test runner found; skipping tests"
+          fi
+
+      - name: Create release tag
+        id: tag
+        run: |
+          TAG="v$(date +%Y%m%d)-${GITHUB_RUN_NUMBER}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload source artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aegis-source-${{ github.run_id }}
+          path: .

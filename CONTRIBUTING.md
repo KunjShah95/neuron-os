@@ -1,0 +1,83 @@
+# Contributing to Aegis (Neuron OS)
+
+Thank you for considering contributing to Aegis. This document explains how to set up a development environment, the expected workflow for changes, and conventions for code, commits, and PRs.
+
+## Getting started
+
+1. Fork the repository and clone your fork:
+
+```bash
+git clone git@github.com:KunjShah95/neuron-os.git
+cd "neuron os"
+bun install
+```
+
+1. Create a branch for your work:
+
+```bash
+git checkout -b feature/short-description
+```
+
+1. Run the typechecker, linters, and tests locally before pushing:
+
+```bash
+bun run tsc --noEmit
+bun run eslint .
+bun run scripts/run-tests.ts
+```
+
+## Code style
+
+- TypeScript: follow `tsconfig.json` (strict) and prefer explicit types for public APIs.
+- Formatting: use Prettier (configured via project). Run `bun run prettier --write .` before committing.
+- Linting: keep ESLint warnings to a minimum and fix new lint errors.
+
+## Commit messages
+
+Use concise, imperative-style commit messages. Prefer Conventional Commit-style subjects:
+
+- feat: add a new feature
+- fix: bug fix
+- docs: documentation only changes
+- style: formatting, no code change
+- refactor: code change that neither fixes bug nor adds feature
+- test: adding or updating tests
+- chore: maintenance tasks
+
+Example:
+
+<<<<<<< HEAD
+```text
+=======
+```
+>>>>>>> 3d66940e45f70ac54925610b497191910c1340ee
+feat(agent): add graceful shutdown to AgentManager
+
+Add unit tests for shutdown sequence and update README with new command.
+```
+
+## Branches & PRs
+
+- Keep changes small and focused. One logical change per PR.
+- Rebase onto the latest `main` before opening the PR if there are conflicts.
+- Include unit tests for new behavior and update documentation where relevant (`docs/`, `README.md`).
+- Describe the change, motivation, and testing steps in the PR description.
+
+## Review process
+
+- Assign reviewers with appropriate domain knowledge (agent, tui, chat, etc.).
+- Address requested changes promptly and keep the PR updated.
+
+## Tests
+
+- Unit and integration tests should be deterministic and runnable locally.
+- When adding features, include tests to validate critical behaviors (spawn/recover, IPC messages, TUI rendering logic where feasible).
+
+## Security & responsible disclosure
+
+- Do not include secrets, API keys, or credentials in your changes.
+- If you discover a security issue, open a private issue tagged `security` so maintainers can triage privately.
+
+---
+
+Thanks for contributing — we look forward to your patch! If you'd like, open an issue first to discuss larger changes.
