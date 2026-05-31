@@ -18,6 +18,7 @@ export type ChatKeyEvent =
   | { type: "end" }
   | { type: "page_up" }
   | { type: "page_down" }
+  | { type: "toggle_picker" }
   | { type: "unknown"; raw: string }
 
 export function parseChatKey(raw: string): ChatKeyEvent {
@@ -35,6 +36,7 @@ export function parseChatKey(raw: string): ChatKeyEvent {
 
   // Ctrl sequences
   if (raw === "\x11") return { type: "ctrl_q" }
+  if (raw === "\x10") return { type: "toggle_picker" }
   if (raw === "\x0c") return { type: "ctrl_l" }
   if (raw === "\x03") return { type: "ctrl_c" }
 

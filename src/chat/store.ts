@@ -24,7 +24,14 @@ export interface ChatUIState {
   /** Input history (submitted messages) */
   history: string[]
   historyIndex: number
+  showPicker: boolean
+  pickerItems: PickerItem[]
+  pickerIndex: number
 }
+
+export type PickerItem =
+  | { kind: "provider"; name: string; active: boolean }
+  | { kind: "model"; provider: string; id: string; label: string }
 
 export interface ChatState {
   messages: ChatMessage[]
@@ -72,6 +79,9 @@ export function createInitialChatState(agentType?: string): ChatState {
       scrolledUp: false,
       history: [],
       historyIndex: -1,
+      showPicker: false,
+      pickerItems: [],
+      pickerIndex: 0,
     },
     dirty: true,
     agentType,
@@ -192,6 +202,9 @@ export function loadChatStateFromSession(sessionId: string, record: import("../m
       scrolledUp: false,
       history,
       historyIndex: -1,
+      showPicker: false,
+      pickerItems: [],
+      pickerIndex: 0,
     },
     dirty: true,
     agentType,
