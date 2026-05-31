@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { @apply bg-surface text-surface-50; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-surface-600 rounded-full; }
+}
+
+@layer components {
+  .glass { @apply bg-surface-800/60 backdrop-blur-xl border border-surface-700/50; }
+  .glass-strong { @apply bg-surface-800/80 backdrop-blur-xl border border-surface-700/60; }
+  .card-hover { @apply transition-all duration-300 hover:border-amber-400/30 hover:shadow-[0_0_30px_-5px_rgba(245,158,11,0.15)]; }
+}

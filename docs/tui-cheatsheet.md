@@ -13,6 +13,7 @@
 | Config | `aegis config` | Credential viewer |
 | Cron | `aegis cron` | Scheduled jobs |
 | Memory | `aegis memory` | Memory & facts |
+| AgentMemory | `aegis agentmemory` / `aegis am` | Sidecar status & search |
 | Agent | `aegis agent` | Agent list |
 | Setup | `aegis setup` | Setup wizard |
 | Serve | `aegis serve` | API server info |

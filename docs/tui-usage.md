@@ -25,6 +25,7 @@ bun run index.ts skills      # Skills browser
 bun run index.ts config      # Credential viewer
 bun run index.ts cron        # Scheduled jobs
 bun run index.ts memory      # Memory & facts
+bun run index.ts agentmemory # AgentMemory sidecar status & search
 bun run index.ts agent       # Agent list
 bun run index.ts setup       # Setup wizard
 bun run index.ts serve       # API server info
@@ -43,6 +44,9 @@ Select **Dashboard** or **Chat** from the menu.
 ### Direct commands
 
 ```bash
+# AgentMemory sidecar
+bun run index.ts agentmemory   # Status & search
+
 # Dashboard (agent monitor)
 bun run index.ts dashboard
 bun run index.ts dash          # alias

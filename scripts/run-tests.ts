@@ -61,6 +61,9 @@ async function main() {
   // ── 3.5 Agent Runtime Prompt / Skill Tests ───────────────────────
   await run("Agent Runtime Prompt Tests", ["bun", "run", "src/agent/test-runtime.ts"])
 
+  // ── 3.6 AgentMemory Connector Tests ──────────────────────────────
+  await run("AgentMemory Connector Tests", ["bun", "run", "src/memory/test-agentmemory.ts"])
+
   // ── 3. TypeScript Typecheck ───────────────────────────────────────
   await run("TypeScript Typecheck", ["bun", "run", "--bun", "tsc", "--noEmit"])
 
