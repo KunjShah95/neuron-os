@@ -99,7 +99,6 @@ export async function startChat(agentType?: AgentTypeName) {
               if (m) model = m[1]
             }
             // update chat state config
-            state.config = state.config || { model: state.config?.model ?? "claude-sonnet-4-20250514", maxTokens: state.config?.maxTokens ?? 8192 }
             state.config.provider = name
             if (model) state.config.model = model
 
@@ -189,9 +188,9 @@ export async function startChat(agentType?: AgentTypeName) {
         // Build engine using latest runtime config stored in state
         try {
           const override: any = {}
-          if (state.config?.provider) override.provider = state.config.provider
-          if (state.config?.model) override.model = state.config.model
-          if (state.config?.maxTokens) override.maxTokens = state.config.maxTokens
+          if (state.config.provider) override.provider = state.config.provider
+          if (state.config.model) override.model = state.config.model
+          if (state.config.maxTokens) override.maxTokens = state.config.maxTokens
           engine = createEngine(agentType, override)
         } catch (e) {
           // fall back to previously created engine
