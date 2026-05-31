@@ -297,6 +297,11 @@ function showHelp(state: AppState): void {
   addLogEntry(state, { text: "  kill all                      Stop all running agents", type: "info" })
   addLogEntry(state, { text: "  list                          List all agents", type: "info" })
   addLogEntry(state, { text: "  status                        Show system info (version, runtime, memory, uptime)", type: "info" })
+  addLogEntry(state, { text: "  providers                     List configured AI providers", type: "info" })
+  addLogEntry(state, { text: "  sessions                      List saved chat sessions", type: "info" })
+  addLogEntry(state, { text: "  session delete <id>           Delete a saved session", type: "info" })
+  addLogEntry(state, { text: "  session rename <id> <new>     Rename a session", type: "info" })
+  addLogEntry(state, { text: "  session export <id> <path>    Export a session to file", type: "info" })
   addLogEntry(state, { text: "  help                          Show this help", type: "info" })
   addLogEntry(state, { text: "  Ctrl+Q                        Quit dashboard", type: "info" })
 }
