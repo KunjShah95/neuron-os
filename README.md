@@ -13,6 +13,7 @@
 [![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.3.14-black)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
+[![Docs](https://github.com/KunjShah95/neuron-os/actions/workflows/docs.yml/badge.svg)](https://github.com/KunjShah95/neuron-os/actions/workflows/docs.yml)
 
 ---
 

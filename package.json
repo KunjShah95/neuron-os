@@ -8,7 +8,8 @@
     "Aegis": "./index.ts"
   },
   "devDependencies": {
-    "@types/bun": "^1.3.14"
+    "@types/bun": "^1.3.14",
+    "vitepress": "^1.6.4"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -18,7 +19,10 @@
     "ci": "bun run scripts/run-tests.ts",
     "typecheck": "bun run --bun tsc --noEmit",
     "test:dashboard": "bun run src/test-dashboard.ts",
-    "test:chat": "bun run src/chat/test-chat.ts"
+    "test:chat": "bun run src/chat/test-chat.ts",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "BUN_GC_MAX_HEAP_SIZE=4096 vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.81",
