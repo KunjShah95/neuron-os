@@ -10,7 +10,7 @@
 **The Operating System for Autonomous AI Agents**
 
 [![Version](https://img.shields.io/badge/version-0.1.0-blue)]()
-[![Bun](https://img.shields.io/badge/Bun-≥1.3.14-black)]()
+[![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.3.14-black)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 
@@ -18,8 +18,9 @@
 
 ## Features
 
-- **11 TUI modes** — unified mode launcher (just run `aegis`), with Dashboard, Chat, Status, Skills, Config, Cron, Memory, Agent Manager, Setup, API Server, and MCP screens
-- **13 specialized agent types** — build, plan, read, write, test, validate, review, debug, document, refactor, deploy, monitor, explore
+- **12 TUI modes** — unified mode launcher (just run `aegis`), with Dashboard, Chat, Status, Skills, Config, Cron, Memory, Agent Manager, AgentMemory, Setup, API Server, and MCP screens
+- **14 specialized agent types** — build, plan, read, write, test, validate, review, debug, document, refactor, deploy, monitor, explore, main
+- **Web-based dashboard** — Vite + React 19 + Tailwind CSS frontend with 12 route pages, API proxy, Framer Motion animations (`dashboard/`)
 - **Live Dashboard TUI** — real-time agent monitoring with activity log, agent cards, command bar, and status bar
 - **Streaming Chat TUI** — multi-provider AI chat with Anthropic, OpenAI, DeepSeek, Ollama, and custom endpoints
 - **Auto-recovery** — respawn crashed agents with exponential backoff (configurable retries, multiplier, cap)
@@ -54,7 +55,7 @@ bun install
 ### Run
 
 ```bash
-# Mode launcher (default) — shows interactive TUI with 11 mode options
+# Mode launcher (default) — shows interactive TUI with 12 mode options
 bun run index.ts
 
 # Or use the wakeup command explicitly
@@ -108,6 +109,7 @@ aegis agent list [--status <status>]       # List running agents
 aegis agent spawn <name> [--type <type>]   # Spawn a new agent worker
 aegis agent kill <name> [--force]          # Stop an agent
 aegis agent logs <name> [--tail N]         # View agent logs
+aegis agent inspect <name>                 # Show detailed agent info
 ```
 
 ### AgentMemory subcommands
@@ -148,6 +150,44 @@ aegis agentmemory connect                  # Test connection to sidecar
 
 ---
 
+## Web Dashboard
+
+A standalone Vite + React 19 + TypeScript + Tailwind CSS frontend lives in `dashboard/`.
+
+### Build
+
+```bash
+cd dashboard
+bun install
+bun run build          # outputs to dashboard/dist/
+```
+
+### Development
+
+```bash
+cd dashboard
+bun run dev            # Vite dev server on :5173, proxies /api to :8080
+```
+
+### Pages
+
+| Route | Page | Description |
+|-------|------|-------------|
+| `/` | Console | Home with greeting, metric cards, story feed |
+| `/chat` | Chat | Streaming AI chat with provider picker |
+| `/agents` | Agents | Agent spawning, cards, and kill controls |
+| `/memory` | Memory | Search, learned facts, activity timeline |
+| `/skills` | Skills | Trending skill cards with tags |
+| `/status` | Status | Real-time system health and metrics |
+| `/config` | Config | Credential vault viewer |
+| `/cron` | Cron | Scheduled jobs with enable/disable display |
+| `/mcp` | MCP | MCP server connection status |
+| `/server` | Server | API server info with endpoint list |
+| `/setup` | Setup | Setup wizard steps display |
+| `/docs` | Docs | Full CLI command reference with search |
+
+---
+
 ## Architecture
 
 ```mermaid
@@ -166,6 +206,14 @@ graph TD
     ML --> SV[serve]
     ML --> MCP[mcp]
 
+    subgraph "Web Frontend"
+        WB[dashboard/]
+        WB --> WB1[Console]
+        WB --> WB2[Chat]
+        WB --> WB3[Agents]
+        WB --> WB4[Docs]
+    end
+
     subgraph "TUI Screens"
         D --> DTUI[Dashboard Renderer]
         C --> CTUI[Chat Renderer]
@@ -181,6 +229,7 @@ graph TD
     S --> Wiz[Setup Wizard]
     SV --> API[API Server]
     MCP --> MCPC[MCP Client/Server]
+    API --> WB
 
     AM --> W1[Worker Process 1]
     AM --> W2[Worker Process 2]
@@ -200,6 +249,7 @@ User → aegis (no args) → Mode Launcher → Navigation (↑↓ Enter)
                                         → Chat (full TUI)
                                         → Info Screen (status/skills/config/etc.)
                                         → Setup (interactive wizard)
+                                        → Web Dashboard (dashboard/dist/)
 ```
 
 ### Module Breakdown
@@ -207,10 +257,11 @@ User → aegis (no args) → Mode Launcher → Navigation (↑↓ Enter)
 | Module | Path | Responsibility |
 |--------|------|----------------|
 | CLI | `src/cli/` | Command registration, banner, theme, palette |
-| Modes | `src/modes/` | Mode framework (types, registry, launcher) + 11 mode screens |
+| Modes | `src/modes/` | Mode framework (types, registry, launcher) + 12 mode screens |
 | Agent | `src/agent/` | Agent lifecycle, process management, IPC, hooks |
 | Dashboard TUI | `src/tui/` | Dashboard rendering, state management, commands |
 | Chat TUI | `src/chat/` | Chat UI, streaming, provider integration, session management |
+| Web Dashboard | `dashboard/` | Vite + React 19 frontend with 12 route pages |
 | Wizard | `src/wizard/` | Interactive setup flows (provider selection, key entry) |
 | Tools | `src/tools/` | Tool registry and built-in tool implementations |
 | Skills | `src/skills/` | Skill loading, registry, and remote API client |
@@ -220,12 +271,13 @@ User → aegis (no args) → Mode Launcher → Navigation (↑↓ Enter)
 
 ## Agent System
 
-### Agent Types
+### Agent Types (14)
 
 | Name | Mode | Tools | Model Hint | Description |
 |------|------|-------|------------|-------------|
 | `build` | primary | all | | Full-access development agent (all tools) |
 | `plan` | primary | read-only | claude-opus-4 | Architecture and planning |
+| `main` | (implied) | read, web tools, bash | | Default agent type |
 | `read` | subagent | read-only | | Fast codebase exploration |
 | `write` | subagent | write/edit/read | | File creation and editing |
 | `test` | subagent | bash (restricted), read | | Run tests, analyze failures |
@@ -261,14 +313,12 @@ stateDiagram-v2
 JSON-line format over stdin/stdout:
 
 **Parent → Worker:**
-
 - `{ type: "ping" }` — heartbeat check
 - `{ type: "echo", payload }` — connectivity test
 - `{ type: "run-task", payload: { command, args } }` — execute task
 - `{ type: "shutdown" }` — graceful stop
 
 **Worker → Parent:**
-
 - `{ type: "result", payload }` — command result
 - `{ type: "log", payload: { level, text } }` — structured log
 - `{ type: "heartbeat", payload }` — periodic liveness signal
@@ -299,7 +349,7 @@ JSON-line format over stdin/stdout:
 
 ## Security Model
 
-- **Tool permissions** per agent type — read, write, edit, bash, grep, glob, web_fetch, web_search
+- **Tool permissions** per agent type — read, write, edit, bash, grep, glob, web_fetch, web_search, read_skill
 - **Pattern-restricted bash** — `test`, `validate`, `deploy` agents can only run approved command patterns
 - **Auditable** — all agent actions logged with timestamps
 - **User-level permissions** — agent operates with the user's filesystem permissions
@@ -350,28 +400,20 @@ In the chat TUI:
 neuron-os/
 ├── index.ts                  # CLI entry point (Commander + mode routing)
 ├── package.json              # Dependencies and scripts
-├── tsconfig.json             # TypeScript strict config
+├── tsconfig.json             # TypeScript strict config (excludes dashboard/)
 │
 ├── src/
-│   ├── modes/                # Mode framework (11 TUI modes)
+│   ├── modes/                # Mode framework (12 TUI modes)
 │   │   ├── types.ts          # Mode interface + shared key parser
 │   │   ├── registry.ts       # Mode registry
 │   │   ├── launcher.ts       # Interactive mode selector TUI
 │   │   ├── info-screen.ts    # Reusable scrolling info screen
 │   │   ├── builtin.ts        # Dashboard + Chat mode wrappers
-│   │   ├── status.ts         # System status mode
-│   │   ├── skills.ts         # Skills browser mode
-│   │   ├── config.ts         # Credential viewer mode
-│   │   ├── cron.ts           # Scheduled jobs mode
-│   │   ├── memory.ts         # Memory/facts/vector stats mode
-│   │   ├── agent.ts          # Agent management mode
-│   │   ├── setup.ts          # Setup wizard mode
-│   │   ├── serve.ts          # API server info mode
-│   │   ├── mcp.ts            # MCP server info mode
+│   │   ├── *.ts              # 10 mode screen implementations
 │   │   └── index.ts          # Exports + registerAllModes()
 │   │
 │   ├── agent/
-│   │   ├── agent-types.ts    # 13 agent type definitions
+│   │   ├── agent-types.ts    # 14 agent type definitions
 │   │   ├── agent-worker.ts   # Default worker process (IPC loop)
 │   │   ├── engine.ts         # Agent execution engine
 │   │   ├── hooks.ts          # Lifecycle hook registry
@@ -388,7 +430,7 @@ neuron-os/
 │   │   └── store.ts          # Chat state + session persistence
 │   │
 │   ├── cli/
-│   │   ├── commands/         # 12 command registrations for Commander
+│   │   ├── commands/         # 14 command registrations for Commander
 │   │   ├── banner.ts         # Figlet ASCII banner
 │   │   ├── guard.ts          # Input validation and error handling
 │   │   ├── palette.ts        # Color palette tokens
@@ -413,7 +455,7 @@ neuron-os/
 │   │   ├── bash.ts           # Shell execution (Windows + Unix)
 │   │   ├── read.ts / write.ts / edit.ts / grep.ts / glob.ts
 │   │   ├── web-fetch.ts      # URL fetching tool
-│   │   ├── web-search.ts     # Web search tool (DuckDuckGo)
+│   │   ├── web-search.ts     # Web search tool
 │   │   └── mcp.ts            # MCP client tool
 │   │
 │   ├── skills/
@@ -421,19 +463,19 @@ neuron-os/
 │   │   └── remote.ts         # skills.sh API client
 │   │
 │   ├── memory/
-│   │   ├── system.ts           # Memory system (TF-IDF, facts, user profile)
-│   │   ├── sessionStore.ts     # Session persistence (save, list, load, delete, rename, export)
-│   │   ├── vector.ts           # Vector memory (semantic search)
-│   │   ├── agentmemory.ts      # AgentMemory sidecar connector (optional)
-│   │   ├── test-agentmemory.ts # AgentMemory connector tests (42)
-│   │   └── types.ts            # Memory type definitions
+│   │   ├── system.ts         # Memory system (TF-IDF, facts, user profile)
+│   │   ├── sessionStore.ts   # Session persistence
+│   │   ├── vector.ts         # Vector memory (semantic search)
+│   │   ├── agentmemory.ts    # AgentMemory sidecar connector
+│   │   ├── test-agentmemory.ts # Connector tests (42)
+│   │   └── types.ts          # Memory type definitions
 │   │
 │   ├── mcp/
 │   │   ├── client.ts         # MCP client (tool discovery + execution)
 │   │   └── server.ts         # MCP HTTP server
 │   │
 │   ├── api/
-│   │   └── server.ts         # HTTP REST API server
+│   │   └── server.ts         # HTTP REST API server (serves dashboard)
 │   │
 │   ├── ai/
 │   │   ├── provider.ts       # AIProviderManager class
@@ -446,12 +488,29 @@ neuron-os/
 │   ├── vault.ts              # Credential vault (~/.aegis/vault.json)
 │   └── config.ts             # Persistent config (~/.aegis/config.json)
 │
+├── dashboard/                # Web-based frontend (Vite + React 19)
+│   ├── src/
+│   │   ├── api/              # API client + types
+│   │   ├── components/       # Layout, Sidebar, AnimatedPage, UI components
+│   │   ├── routes/           # 12 route pages (Console, Chat, Agents, Docs, etc.)
+│   │   ├── App.tsx           # Router with AnimatePresence
+│   │   └── main.tsx          # React entry point
+│   ├── package.json          # React 19, Framer Motion 12, React Router 7, Tailwind 3
+│   ├── vite.config.ts        # API proxy to :8080
+│   └── tsconfig.json         # ES2020 + DOM lib
+│
 ├── skills/                   # Installed skill definitions
 ├── docs/                     # Documentation
 │   ├── tui-usage.md          # TUI walkthrough
-│   └── tui-cheatsheet.md     # Quick reference card
-└── scripts/
-    └── run-tests.ts          # CI test runner
+│   ├── tui-cheatsheet.md     # Quick reference card
+│   └── superpowers/          # Superpowers skill specs
+├── scripts/
+│   ├── run-tests.ts          # CI test runner
+│   └── ...
+└── .github/
+    └── workflows/
+        ├── ci.yml            # Test + Dashboard build
+        └── release.yml       # Test + Dashboard build + GitHub release
 ```
 
 ---
@@ -498,17 +557,25 @@ neuron-os/
 ### Commands
 
 ```bash
-# TypeScript typecheck
+# TypeScript typecheck (root project)
 bun run typecheck          # bun run --bun tsc --noEmit
+
+# TypeScript typecheck (web dashboard)
+cd dashboard && bun run tsc --noEmit
 
 # Run all tests
 bun run test               # bun run scripts/run-tests.ts
 
 # Run individual test suites
 bun run test:dashboard     # Dashboard TUI tests (54)
-bun run test:chat          # Chat TUI tests (150)
+bun run test:chat          # Chat TUI tests (164)
 bun run src/agent/test-manager.ts   # Agent manager tests (7)
 bun run src/memory/test-agentmemory.ts   # AgentMemory connector tests (42)
+bun run src/agent/test-runtime.ts   # Agent runtime prompt tests (5)
+bun run src/test-tui-sessions.ts    # TUI providers/sessions tests
+
+# Build web dashboard
+cd dashboard && bun run build
 
 # Run the CI suite
 bun run ci
@@ -516,7 +583,7 @@ bun run ci
 
 ### Codebase Conventions
 
-- **TypeScript strict mode** — full strictness enabled
+- **TypeScript strict mode** — full strictness enabled (root), ES2020 + DOM (dashboard)
 - **Bun runtime** — scripts run via `bun run`, not `node`
 - **No comments** — code should be self-documenting
 - **Assertion-based tests** — no test framework dependency
@@ -528,6 +595,7 @@ bun run ci
 - **New agent type** — add to `AGENT_TYPES` in `src/agent/agent-types.ts`
 - **New TUI component** — create in `src/tui/components/` or `src/chat/components/`
 - **New tool** — implement tool function, register in `src/tools/registry.ts`
+- **New dashboard page** — create route in `dashboard/src/routes/`, add to `App.tsx` and `Sidebar.tsx`
 
 ### Windows Notes
 
@@ -539,6 +607,8 @@ bun run ci
 
 ## Deployment
 
+### Root project
+
 ```bash
 # Bundle for production
 bun build index.ts --target=bun --outfile=dist/aegis
@@ -549,6 +619,22 @@ bun build index.ts --compile --outfile=aegis
 # Global install (dev)
 bun link
 ```
+
+### Web dashboard
+
+```bash
+cd dashboard
+bun install
+bun run build              # outputs to dashboard/dist/
+# Serve via aegis serve or any static file server
+```
+
+### CI/CD
+
+The project uses GitHub Actions with two workflows:
+
+- **`ci.yml`** — Runs on every push/PR: root typecheck, all tests, dashboard typecheck + build
+- **`release.yml`** — Runs on `main` push: same checks + git tag + GitHub release with dashboard dist
 
 ---
 
@@ -596,8 +682,8 @@ Configuration is persisted to `~/.aegis/config.json` via the setup wizard.
 **Terminal left in weird state after crash**
 > Run `reset` (Linux/WSL) or close and reopen terminal (Windows). The system restores cursor on clean exit.
 
-**How do I see my saved chat sessions?**
-> In chat TUI: `/sessions list` then `/sessions load <id>`. In dashboard: `sessions` command.
+**Web dashboard shows blank page or API errors**
+> Ensure `aegis serve` is running on port 8080. The Vite dev server proxies `/api` to it. For production, serve `dashboard/dist/` with any static server.
 
 ---
 
@@ -606,7 +692,7 @@ Configuration is persisted to `~/.aegis/config.json` via the setup wizard.
 | Technology | Purpose |
 |------------|---------|
 | [Bun](https://bun.sh) | Runtime, package manager, bundler, process spawning |
-| [TypeScript](https://typescriptlang.org) | Type safety (strict mode, ESNext target) |
+| [TypeScript](https://typescriptlang.org) | Type safety (strict mode, ESNext + DOM targets) |
 | [Commander](https://github.com/tj/commander.js) | CLI framework |
 | [@clack/prompts](https://clack.gg) | Interactive wizard UI |
 | [picocolors](https://github.com/alexeyraspopov/picocolors) | Terminal colors |
@@ -615,28 +701,30 @@ Configuration is persisted to `~/.aegis/config.json` via the setup wizard.
 | [cli-truncate](https://github.com/sindresorhus/cli-truncate) | Terminal line truncation |
 | [@ai-sdk/anthropic](https://sdk.vercel.ai) | Anthropic API streaming |
 | [@ai-sdk/openai](https://sdk.vercel.ai) | OpenAI API streaming |
+| [React 19](https://react.dev) | Web dashboard UI framework |
+| [Framer Motion 12](https://motion.dev) | Web dashboard animations |
+| [React Router 7](https://reactrouter.com) | Web dashboard routing |
+| [Tailwind CSS 3](https://tailwindcss.com) | Web dashboard styling |
+| [Vite 6](https://vitejs.dev) | Web dashboard bundler |
 
 ---
 
 ## Roadmap
 
-**Current:** v0.1.0 — TUI Platform (11 modes, agent system, chat, tools, memory, MCP)
+**Current:** v0.1.0 — TUI Platform (12 modes, agent system, chat, tools, memory, MCP, web dashboard)
 
 **Near-term:**
-
 - Slash command enhancements (model picker polish, tool cards)
 - Skill hot-reload and gating
 - Checkpoints and rewind polish in chat
 
 **Mid-term:**
-
 - Multi-channel gateway (WebSocket, Telegram, Discord, Slack)
 - Persistent agent storage and configurable lifecycles
 - Agent-to-agent communication and teams
-- Web-based dashboard
+- Web dashboard real-time agent metrics via WebSocket
 
 **Long-term:**
-
 - Plugin marketplace for custom agent types
 - Remote agent orchestration
 - Learning loop (self-improvement from feedback)

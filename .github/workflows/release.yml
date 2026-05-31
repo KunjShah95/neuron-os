@@ -6,7 +6,68 @@ on:
       - main
 
 jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.x'
+
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run tsc --noEmit
+
+      - name: Run tests
+        run: bun run scripts/run-tests.ts
+
+  dashboard:
+    name: Dashboard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.x'
+
+      - name: Cache dashboard dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: dashboard-bun-${{ hashFiles('dashboard/bun.lockb') }}
+          restore-keys: dashboard-bun-
+
+      - name: Install dashboard dependencies
+        run: bun install --frozen-lockfile
+        working-directory: dashboard
+
+      - name: Typecheck dashboard
+        run: bun run tsc --noEmit
+        working-directory: dashboard
+
+      - name: Build dashboard
+        run: bun run build
+        working-directory: dashboard
+
   release:
+    name: Release
+    needs: [test, dashboard]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -18,21 +79,11 @@ jobs:
           bun-version: '1.x'
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
-      - name: Typecheck
-        run: bun run tsc --noEmit
-
-      - name: Lint (if eslint available)
-        run: |
-          if command -v eslint >/dev/null 2>&1 || [ -f node_modules/.bin/eslint ]; then
-            bun run eslint . --max-warnings=0
-          else
-            echo "eslint not installed; skipping lint"
-          fi
-
-      - name: Run tests
-        run: bun run scripts/run-tests.ts
+      - name: Build dashboard
+        run: bun run build
+        working-directory: dashboard
 
       - name: Create release tag
         id: tag
@@ -45,9 +96,11 @@ jobs:
           git push origin "$TAG"
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
+          files: |
+            dashboard/dist/
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

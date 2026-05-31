@@ -7,8 +7,8 @@ on:
     branches: [ '**' ]
 
 jobs:
-  build:
-    name: Build / Test / Lint
+  test:
+    name: Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -19,29 +19,57 @@ jobs:
         with:
           bun-version: '1.x'
 
-      - name: Install dependencies
-        run: bun install
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: bun-
 
-      - name: Typecheck
+      - name: Install root dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck (root project)
         run: bun run tsc --noEmit
-
-      - name: Lint (if eslint available)
-        run: |
-          if command -v eslint >/dev/null 2>&1 || [ -f node_modules/.bin/eslint ]; then
-            bun run eslint . --max-warnings=0
-          else
-            echo "eslint not installed; skipping lint"
-          fi
 
       - name: Run tests
         run: bun run scripts/run-tests.ts
 
-      - name: Upload coverage/artifacts
+  dashboard:
+    name: Dashboard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.x'
+
+      - name: Cache dashboard dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: dashboard-bun-${{ hashFiles('dashboard/bun.lockb') }}
+          restore-keys: dashboard-bun-
+
+      - name: Install dashboard dependencies
+        run: bun install --frozen-lockfile
+        working-directory: dashboard
+
+      - name: Typecheck (dashboard)
+        run: bun run tsc --noEmit
+        working-directory: dashboard
+
+      - name: Build dashboard
+        run: bun run build
+        working-directory: dashboard
+
+      - name: Upload dashboard build
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: aegis-ci-logs
-          path: |
-            coverage/
-            .eslintcache
-          continue-on-error: true
+          name: dashboard-dist
+          path: dashboard/dist/
+          if-no-files-found: warn
