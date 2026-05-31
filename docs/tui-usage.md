@@ -1,12 +1,37 @@
 # Aegis TUI: Daily Usage Guide
 
-Aegis has two Terminal User Interfaces: the **Dashboard** (agent/session monitor) and the **Chat** (AI conversation). Both run in your terminal using an alternate screen — they take over the full terminal window and restore it when you quit.
+Aegis has **11 TUI modes** accessible through an interactive mode launcher. The two primary full-screen TUIs are the **Dashboard** (agent/session monitor) and the **Chat** (AI conversation). All modes run in your terminal using an alternate screen — they take over the full terminal window and restore it when you quit.
 
 ---
 
-## Launching the TUI
+## Launching
 
-### Via the interactive launcher
+### Quickest way — just run `aegis`
+
+```bash
+bun run index.ts
+# or globally: aegis
+```
+
+This opens the **Mode Launcher** — a TUI screen listing all 11 modes. Navigate with ↑↓, press Enter to select.
+
+### Launch a mode directly
+
+```bash
+bun run index.ts dashboard   # Agent monitor
+bun run index.ts chat        # AI conversation  
+bun run index.ts status      # System info
+bun run index.ts skills      # Skills browser
+bun run index.ts config      # Credential viewer
+bun run index.ts cron        # Scheduled jobs
+bun run index.ts memory      # Memory & facts
+bun run index.ts agent       # Agent list
+bun run index.ts setup       # Setup wizard
+bun run index.ts serve       # API server info
+bun run index.ts mcp         # MCP server info
+```
+
+### Via the interactive launcher command
 
 ```bash
 bun run index.ts wakeup
@@ -31,10 +56,37 @@ bun run index.ts c             # alias
 
 ```bash
 bun link   # one-time setup
-aegis wakeup
-aegis dashboard
-aegis chat
+aegis              # Mode launcher
+aegis dash         # Dashboard
+aegis chat         # Chat
+aegis status       # Status
 ```
+
+---
+
+## 0. Mode Launcher
+
+When you run `aegis` with no arguments, the mode launcher appears:
+
+```
+╭─ AEGIS MODE SELECTOR ──────────────────── v0.1.0  ↑↓ navigate  Enter select  Ctrl+Q quit ╮
+
+    Dashboard    Live agent status TUI
+    Chat         Talk to an AI agent with default tools
+    Status       System status overview
+    Skills       Installed skills & skills.sh browser
+    ...
+
+╰──────────────────────────────────────────────────────────────────────────────────────────╯
+```
+
+| Key | Action |
+|-----|--------|
+| **↑** / **↓** | Navigate modes |
+| **Enter** | Launch selected mode |
+| **Ctrl+Q** / **Ctrl+C** | Quit |
+
+Information modes (Status, Skills, Config, Cron, Memory, Agent, Serve, MCP) use a shared info screen with scrolling. Full TUIs (Dashboard, Chat) switch to their own render loops.
 
 ---
 

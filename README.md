@@ -18,6 +18,7 @@
 
 ## Features
 
+- **11 TUI modes** — unified mode launcher (just run `aegis`), with Dashboard, Chat, Status, Skills, Config, Cron, Memory, Agent Manager, Setup, API Server, and MCP screens
 - **13 specialized agent types** — build, plan, read, write, test, validate, review, debug, document, refactor, deploy, monitor, explore
 - **Live Dashboard TUI** — real-time agent monitoring with activity log, agent cards, command bar, and status bar
 - **Streaming Chat TUI** — multi-provider AI chat with Anthropic, OpenAI, DeepSeek, Ollama, and custom endpoints
@@ -26,6 +27,9 @@
 - **JSON-line IPC protocol** — structured stdin/stdout communication between parent and worker processes
 - **Interactive setup wizard** — guided provider configuration with 5 AI providers
 - **Session persistence** — chat conversations auto-saved and resumable via `/sessions` commands
+- **Web tools** — built-in web fetch and web search tools for AI agents
+- **MCP integration** — Model Context Protocol client/server for tool interoperability
+- **Vector memory** — semantic search across conversations and facts
 - **Skill integration** — extensible skill system with local registry and skills.sh API client
 - **Multi-platform** — Windows (cmd), macOS, and Linux support
 - **Tool-based security** — per-agent-type tool permissions with pattern-restricted bash access
@@ -49,39 +53,50 @@ bun install
 ### Run
 
 ```bash
-# Interactive launcher (shows banner, offers dashboard/chat/setup)
+# Mode launcher (default) — shows interactive TUI with 11 mode options
+bun run index.ts
+
+# Or use the wakeup command explicitly
 bun run index.ts wakeup
 
-# Dashboard — monitor agents in real-time
-bun run index.ts dashboard
-
-# Chat — streaming AI chat
-bun run index.ts chat
-
-# Setup wizard — configure providers
-bun run index.ts setup
+# Launch a mode directly
+bun run index.ts dashboard   # Agent monitoring
+bun run index.ts chat        # AI chat
+bun run index.ts status      # System info
+bun run index.ts skills      # Skills browser
 ```
 
 ### Global install (optional)
 
 ```bash
 bun link
-aegis wakeup
+aegis          # Mode launcher
+aegis dash     # Dashboard directly
+aegis chat     # Chat directly
 ```
 
 ---
 
 ## Commands
 
-| Command | Alias | Description |
-|---------|-------|-------------|
-| `wakeup` | `w` | Show banner and enter interactive mode |
-| `dashboard` | `dash` | Open live agent monitoring TUI |
-| `chat` | `c` | Open streaming AI chat TUI |
-| `agent` | `a` | Agent management (types, list, spawn, kill, logs, inspect) |
-| `setup` | | Interactive configuration wizard |
-| `status` | `st` | Quick system status overview (version, runtime, memory, agents) |
-| `skills` | `sk` | List installed skills and browse skills.sh |
+### TUI Modes
+
+Launch any mode directly, or run `aegis` with no arguments for the interactive mode launcher.
+
+| Mode | Command | Alias | Description |
+|------|---------|-------|-------------|
+| Mode Launcher | `aegis` (no args) / `wakeup` | `w` | Interactive mode selector |
+| Dashboard | `dashboard` | `dash` | Live agent monitoring TUI |
+| Chat | `chat` | `c` | Streaming AI chat TUI |
+| Status | `status` | `st` | System status overview |
+| Skills | `skills` | `sk` | Installed skills & skills.sh browser |
+| Config | `config` | `cfg` | Credential vault viewer |
+| Cron | `cron` | | Scheduled jobs overview |
+| Memory | `memory` | | Memory, facts & vector search stats |
+| Agent | `agent` | `a` | Agent management overview |
+| Setup | `setup` | | Interactive setup wizard |
+| API Server | `serve` | | HTTP API server (start from CLI) |
+| MCP | `mcp` | | MCP server config & status |
 
 ### Agent subcommands
 
@@ -127,41 +142,53 @@ aegis agent logs <name> [--tail N]         # View agent logs
 
 ```mermaid
 graph TD
-    CLI[index.ts<br/>Commander CLI] --> W[wakeup]
-    CLI --> D[dashboard]
-    CLI --> C[chat]
-    CLI --> A[agent]
-    CLI --> S[setup]
-    CLI --> ST[status]
-    CLI --> SK[skills]
+    CLI[index.ts<br/>Entry Point] --> ML[Mode Launcher]
+    ML --> D[dashboard]
+    ML --> C[chat]
+    ML --> ST[status]
+    ML --> SK[skills]
+    ML --> CFG[config]
+    ML --> CR[cron]
+    ML --> MEM[memory]
+    ML --> A[agent]
+    ML --> S[setup]
+    ML --> SV[serve]
+    ML --> MCP[mcp]
 
-    W --> TUI[TUI Renderer]
-    W --> Chat[Chat Renderer]
-    W --> Wiz[Setup Wizard]
-    D --> TUI
-    C --> Chat
-    S --> Wiz
+    subgraph "TUI Screens"
+        D --> DTUI[Dashboard Renderer]
+        C --> CTUI[Chat Renderer]
+        ST --> ITUI[Info Screen]
+        SK --> ITUI
+        CFG --> ITUI
+        CR --> ITUI
+        MEM --> ITUI
+        A --> ITUI
+    end
+
     A --> AM[AgentManager]
+    S --> Wiz[Setup Wizard]
+    SV --> API[API Server]
+    MCP --> MCPC[MCP Client/Server]
 
     AM --> W1[Worker Process 1]
     AM --> W2[Worker Process 2]
-    AM --> W3[Worker Process N]
-
+    AM --> WN[Worker Process N]
     AM --> HR[HookRegistry]
     AM --> RC[Auto-Recovery]
-
-    Chat --> API[AI Provider API]
-
-    TUI --> EB[Event Bridge]
+    CTUI --> AI[AI Provider API]
+    DTUI --> EB[Event Bridge]
     EB --> AM
 ```
 
 ### Data Flow
 
 ```
-User input → CLI command → Subsystem → AgentManager → Worker processes
-                                                        ↓
-                                              JSON-line IPC over stdin/stdout
+User → aegis (no args) → Mode Launcher → Navigation (↑↓ Enter)
+                                        → Dashboard (full TUI)
+                                        → Chat (full TUI)
+                                        → Info Screen (status/skills/config/etc.)
+                                        → Setup (interactive wizard)
 ```
 
 ### Module Breakdown
@@ -169,13 +196,14 @@ User input → CLI command → Subsystem → AgentManager → Worker processes
 | Module | Path | Responsibility |
 |--------|------|----------------|
 | CLI | `src/cli/` | Command registration, banner, theme, palette |
+| Modes | `src/modes/` | Mode framework (types, registry, launcher) + 11 mode screens |
 | Agent | `src/agent/` | Agent lifecycle, process management, IPC, hooks |
-| TUI | `src/tui/` | Dashboard rendering, state management, commands |
-| Chat | `src/chat/` | Chat UI, streaming, provider integration, session management |
+| Dashboard TUI | `src/tui/` | Dashboard rendering, state management, commands |
+| Chat TUI | `src/chat/` | Chat UI, streaming, provider integration, session management |
 | Wizard | `src/wizard/` | Interactive setup flows (provider selection, key entry) |
 | Tools | `src/tools/` | Tool registry and built-in tool implementations |
 | Skills | `src/skills/` | Skill loading, registry, and remote API client |
-| Memory | `src/memory/` | Session persistence and memory system |
+| Memory | `src/memory/` | Session persistence, memory system, vector search |
 
 ---
 
@@ -306,11 +334,28 @@ In the chat TUI:
 
 ```
 neuron-os/
-├── index.ts                  # CLI entry point (Commander)
+├── index.ts                  # CLI entry point (Commander + mode routing)
 ├── package.json              # Dependencies and scripts
 ├── tsconfig.json             # TypeScript strict config
 │
 ├── src/
+│   ├── modes/                # Mode framework (11 TUI modes)
+│   │   ├── types.ts          # Mode interface + shared key parser
+│   │   ├── registry.ts       # Mode registry
+│   │   ├── launcher.ts       # Interactive mode selector TUI
+│   │   ├── info-screen.ts    # Reusable scrolling info screen
+│   │   ├── builtin.ts        # Dashboard + Chat mode wrappers
+│   │   ├── status.ts         # System status mode
+│   │   ├── skills.ts         # Skills browser mode
+│   │   ├── config.ts         # Credential viewer mode
+│   │   ├── cron.ts           # Scheduled jobs mode
+│   │   ├── memory.ts         # Memory/facts/vector stats mode
+│   │   ├── agent.ts          # Agent management mode
+│   │   ├── setup.ts          # Setup wizard mode
+│   │   ├── serve.ts          # API server info mode
+│   │   ├── mcp.ts            # MCP server info mode
+│   │   └── index.ts          # Exports + registerAllModes()
+│   │
 │   ├── agent/
 │   │   ├── agent-types.ts    # 13 agent type definitions
 │   │   ├── agent-worker.ts   # Default worker process (IPC loop)
@@ -321,7 +366,7 @@ neuron-os/
 │   │   └── types.ts          # Core type definitions
 │   │
 │   ├── chat/
-│   │   ├── components/       # Header, messages, input area, hint
+│   │   ├── components/       # Header, messages, input area, picker, hint
 │   │   ├── input.ts          # Key parsing and input handling
 │   │   ├── layout.ts         # Chat layout calculations
 │   │   ├── provider.ts       # AI provider streaming
@@ -329,7 +374,7 @@ neuron-os/
 │   │   └── store.ts          # Chat state + session persistence
 │   │
 │   ├── cli/
-│   │   ├── commands/         # wakeup, dashboard, chat, agent, setup, status, skills
+│   │   ├── commands/         # 12 command registrations for Commander
 │   │   ├── banner.ts         # Figlet ASCII banner
 │   │   ├── guard.ts          # Input validation and error handling
 │   │   ├── palette.ts        # Color palette tokens
@@ -350,28 +395,45 @@ neuron-os/
 │   │
 │   ├── tools/
 │   │   ├── registry.ts       # Tool registry
-│   │   ├── index.ts          # Auto-registers 6 built-in tools
+│   │   ├── index.ts          # Auto-registers 8 built-in tools
 │   │   ├── bash.ts           # Shell execution (Windows + Unix)
 │   │   ├── read.ts / write.ts / edit.ts / grep.ts / glob.ts
+│   │   ├── web-fetch.ts      # URL fetching tool
+│   │   ├── web-search.ts     # Web search tool (DuckDuckGo)
+│   │   └── mcp.ts            # MCP client tool
 │   │
 │   ├── skills/
 │   │   ├── registry.ts       # Skill loading and injection
 │   │   └── remote.ts         # skills.sh API client
 │   │
 │   ├── memory/
-│   │   ├── system.ts         # Memory system
-│   │   └── sessionStore.ts   # Session persistence (save, list, load, delete, rename, export)
+│   │   ├── system.ts         # Memory system (TF-IDF, facts, user profile)
+│   │   ├── sessionStore.ts   # Session persistence (save, list, load, delete, rename, export)
+│   │   ├── vector.ts         # Vector memory (semantic search)
+│   │   └── types.ts          # Memory type definitions
+│   │
+│   ├── mcp/
+│   │   ├── client.ts         # MCP client (tool discovery + execution)
+│   │   └── server.ts         # MCP HTTP server
+│   │
+│   ├── api/
+│   │   └── server.ts         # HTTP REST API server
 │   │
 │   ├── ai/
 │   │   ├── provider.ts       # AIProviderManager class
 │   │   ├── providers.ts      # Provider factory (5 providers)
 │   │   └── models.ts         # Model references
 │   │
+│   ├── cron/
+│   │   └── index.ts          # Cron engine (add, remove, list, heartbeat)
+│   │
+│   ├── vault.ts              # Credential vault (~/.aegis/vault.json)
 │   └── config.ts             # Persistent config (~/.aegis/config.json)
 │
 ├── skills/                   # Installed skill definitions
 ├── docs/                     # Documentation
-│   └── tui-usage.md          # TUI walkthrough
+│   ├── tui-usage.md          # TUI walkthrough
+│   └── tui-cheatsheet.md     # Quick reference card
 └── scripts/
     └── run-tests.ts          # CI test runner
 ```
@@ -444,7 +506,8 @@ bun run ci
 
 ### Extending
 
-- **New command** — create file in `src/cli/commands/`, register in `index.ts`
+- **New mode** — create file in `src/modes/`, implement `Mode` interface, register in `src/modes/index.ts`
+- **New CLI command** — create file in `src/cli/commands/`, register in `index.ts`
 - **New agent type** — add to `AGENT_TYPES` in `src/agent/agent-types.ts`
 - **New TUI component** — create in `src/tui/components/` or `src/chat/components/`
 - **New tool** — implement tool function, register in `src/tools/registry.ts`
@@ -540,20 +603,17 @@ Configuration is persisted to `~/.aegis/config.json` via the setup wizard.
 
 ## Roadmap
 
-**Current:** v0.1.0 — TUI Platform
+**Current:** v0.1.0 — TUI Platform (11 modes, agent system, chat, tools, memory, MCP)
 
 **Near-term:**
 
-- MCP tool integration and tool policy engine
-- Enhanced slash commands (model picker, tool cards, local shell execution)
+- Slash command enhancements (model picker polish, tool cards)
 - Skill hot-reload and gating
-- Vector search for semantic memory recall
-- Checkpoints and rewind in chat
+- Checkpoints and rewind polish in chat
 
 **Mid-term:**
 
 - Multi-channel gateway (WebSocket, Telegram, Discord, Slack)
-- Shell mode (interactive REPL)
 - Persistent agent storage and configurable lifecycles
 - Agent-to-agent communication and teams
 - Web-based dashboard
@@ -563,7 +623,6 @@ Configuration is persisted to `~/.aegis/config.json` via the setup wizard.
 - Plugin marketplace for custom agent types
 - Remote agent orchestration
 - Learning loop (self-improvement from feedback)
-- Cron scheduler for autonomous operations
 - Background agents with file watching
 
 ---

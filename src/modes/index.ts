@@ -6,6 +6,8 @@ import { cronMode } from "./cron"
 import { memoryMode } from "./memory"
 import { agentMode } from "./agent"
 import { setupMode } from "./setup"
+import { serveMode } from "./serve"
+import { mcpMode } from "./mcp"
 import { dashboardMode, chatMode } from "./builtin"
 
 export function registerAllModes() {
@@ -18,6 +20,8 @@ export function registerAllModes() {
   registerMode(memoryMode)
   registerMode(agentMode)
   registerMode(setupMode)
+  registerMode(serveMode)
+  registerMode(mcpMode)
 }
 
 export { runModeLauncher } from "./launcher"

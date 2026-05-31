@@ -2,13 +2,42 @@
 
 ## Launch
 
-| Mode | Command | Alias |
-|------|---------|-------|
-| Interactive menu | `aegis wakeup` | `w` |
-| Dashboard | `aegis dashboard` | `dash` |
-| Chat | `aegis chat` | `c` |
+| Mode | Command | Description |
+|------|---------|-------------|
+| Mode Launcher | `aegis` (no args) | Interactive mode selector |
+| Interactive menu | `aegis wakeup` | Also opens mode launcher |
+| Dashboard | `aegis dashboard` / `aegis dash` | Agent monitoring TUI |
+| Chat | `aegis chat` / `aegis c` | AI conversation TUI |
+| Status | `aegis status` | System info |
+| Skills | `aegis skills` | Skills browser |
+| Config | `aegis config` | Credential viewer |
+| Cron | `aegis cron` | Scheduled jobs |
+| Memory | `aegis memory` | Memory & facts |
+| Agent | `aegis agent` | Agent list |
+| Setup | `aegis setup` | Setup wizard |
+| Serve | `aegis serve` | API server info |
+| MCP | `aegis mcp` | MCP server info |
 
 Or via bun: `bun run index.ts <command>`
+
+---
+
+## Mode Launcher Keyboard
+
+| Key | Action |
+|-----|--------|
+| **↑** / **↓** | Navigate modes |
+| **Enter** | Launch selected mode |
+| **Ctrl+Q** / **Ctrl+C** | Quit |
+
+## Info Screen Keyboard (status, skills, config, cron, memory, agent, serve, mcp)
+
+| Key | Action |
+|-----|--------|
+| **↑** / **↓** | Scroll content |
+| **PgUp** / **PgDn** | Scroll by 10 lines |
+| **Esc** | Go back to mode launcher |
+| **Ctrl+Q** / **Ctrl+C** | Quit |
 
 ---
 
@@ -47,6 +76,8 @@ $ <command input here>
 | `kill all` | | Stop all running agents |
 | `list` | `ls` | Show all agents (status, pid, uptime) |
 | `status` | `st` | Show system info (version, runtime, memory, uptime) |
+| `providers` | | List configured AI providers |
+| `sessions` | | List saved chat sessions |
 | `help` | `h` | Show commands |
 
 ---
@@ -74,8 +105,22 @@ $ <command input here>
 | **Home** / **End** | Jump to line start / end |
 | **PgUp** / **PgDn** | Scroll message history |
 | **Esc** | Cancel streaming / Clear input |
+| **Ctrl+P** | Open model picker |
 | **Backspace** | Delete character |
 | **Ctrl+Q** / **Ctrl+C** | Quit chat |
+
+### Chat — Slash Commands
+
+| Command | Description |
+|---------|-------------|
+| `/provider list` | List available AI providers |
+| `/provider set <name> [model=<model>]` | Switch provider |
+| `/sessions list` | List saved sessions |
+| `/sessions load <id>` | Resume a session |
+| `/checkpoint <label>` | Create a checkpoint |
+| `/rewind <id>` | Rewind to a checkpoint |
+| `/shell` | Toggle shell mode |
+| `/clear` | Clear chat |
 
 ---
 
@@ -117,7 +162,7 @@ $ <command input here>
 - Terminal ≥ **80×24**
 - **TTY** required (no pipes)
 - ANSI escape code support
-- **Chat only:** `ANTHROPIC_API_KEY` env var
+- **Chat only:** `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` env var
 
 ## Troubleshooting
 
