@@ -34,5 +34,5 @@ export function renderChatHint(state: ChatState, region: ChatRegion): string {
   if (state.ui.isStreaming) {
     return theme.muted(cliTruncate(` ${box.dot} Streaming... Esc to cancel`, region.width))
   }
-  return theme.muted(cliTruncate(` ${box.dot} Enter to send | Alt+Enter newline | ${box.arrow}${box.arrow} history | Ctrl+Q quit`, region.width))
+  return theme.muted(cliTruncate(` ${box.dot} Enter send | Alt+Enter newline | ${box.arrow}${box.arrow} history | /provider /sessions /clear`, region.width))
 }
