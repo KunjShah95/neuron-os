@@ -533,8 +533,9 @@ const layoutNoPicker = calculateChatLayout(24, 80, 1)
 assert(layoutNoPicker.picker === undefined, "layout: no picker region when closed")
 
 const layoutWithPicker = calculateChatLayout(24, 80, 1, true)
-assert(layoutWithPicker.picker !== undefined, "layout: picker region exists when open")
-assert(layoutWithPicker.picker.width === 34, "layout: picker width is 34")
+const wp = layoutWithPicker.picker
+assert(wp !== undefined, "layout: picker region exists when open")
+assert(wp!.width === 34, "layout: picker width is 34")
 assert(layoutWithPicker.messages.width === 45, "layout: messages shrinks when picker open")
 
 // ══════════════════════════════════════════════════════════════════════
