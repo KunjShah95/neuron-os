@@ -40,6 +40,7 @@ const ALL_TOOLS: ToolPermission[] = [
   { name: "glob", allow: true },
   { name: "web_fetch", allow: true },
   { name: "web_search", allow: true },
+  { name: "computer", allow: true },
 ]
 
 const READ_ONLY_TOOLS: ToolPermission[] = [

@@ -10,6 +10,9 @@ import { serveMode } from "./serve"
 import { mcpMode } from "./mcp"
 import { agentMemoryMode } from "./agentmemory"
 import { dashboardMode, chatMode } from "./builtin"
+import { sandboxMode } from "./sandbox"
+import { computerMode } from "./computer"
+import { harnessMode } from "./harness"
 
 export function registerAllModes() {
   registerMode(dashboardMode)
@@ -24,6 +27,9 @@ export function registerAllModes() {
   registerMode(serveMode)
   registerMode(mcpMode)
   registerMode(agentMemoryMode)
+  registerMode(sandboxMode)
+  registerMode(computerMode)
+  registerMode(harnessMode)
 }
 
 export { runModeLauncher } from "./launcher"

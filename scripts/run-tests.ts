@@ -64,7 +64,20 @@ async function main() {
   // ── 3.6 AgentMemory Connector Tests ──────────────────────────────
   await run("AgentMemory Connector Tests", ["bun", "run", "src/memory/test-agentmemory.ts"])
 
-  // ── 3. TypeScript Typecheck ───────────────────────────────────────
+  // ── 4. Sandbox Tests ───────────────────────────────────────────────
+  await run("Sandbox Filesystem Tests", ["bun", "run", "src/sandbox/test-filesystem.ts"])
+  await run("Sandbox Process Tests", ["bun", "run", "src/sandbox/test-process.ts"])
+  await run("Sandbox Module Tests", ["bun", "run", "src/sandbox/test-index.ts"])
+
+  // ── 5. Computer Use Tests ──────────────────────────────────────────
+  await run("Computer Tool Tests", ["bun", "run", "src/tools/test-computer.ts"])
+
+  // ── 6. Harness Tests ───────────────────────────────────────────────
+  await run("Harness Runner Tests", ["bun", "run", "src/harness/test-runner.ts"])
+  await run("Harness Reporter Tests", ["bun", "run", "src/harness/test-reporter.ts"])
+  await run("Harness Module Tests", ["bun", "run", "src/harness/test-index.ts"])
+
+  // ── 7. TypeScript Typecheck ───────────────────────────────────────
   await run("TypeScript Typecheck", ["bun", "run", "--bun", "tsc", "--noEmit"])
 
   // ── Summary ────────────────────────────────────────────────────────
