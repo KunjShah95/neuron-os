@@ -63,8 +63,8 @@ agentManager.cancelRecovery(id)
 agentManager.agents.set(id, instance)
 
 // Access private methods via `any`
-const calc = (agentManager as any).calculateBackoff as (cfg: any, attempt: number) => number
-const trig = (agentManager as any).triggerRecovery as (agentId: string, code: number) => boolean
+const calc = (agentManager as any).calculateBackoff.bind(agentManager) as (cfg: any, attempt: number) => number
+const trig = (agentManager as any).triggerRecovery.bind(agentManager) as (agentId: string, code: number) => boolean
 
 // Test backoff calculation
 const cfg = { backoffMs: 1000, backoffMultiplier: 2, backoffMax: 5000 }
