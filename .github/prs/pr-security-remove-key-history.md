@@ -13,7 +13,7 @@ Action items:
 Commands (recommended):
 
 - pip install git-filter-repo
-- git clone <https://github.com/><owner>/<repo>.git repo-clean
+- git clone https://github.com/OWNER/REPO.git repo-clean
 - cd repo-clean
 - git filter-repo --invert-paths --path .openclaude-profile.json
 - git push --force origin main
