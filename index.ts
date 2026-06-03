@@ -32,6 +32,7 @@ async function gracefulShutdown(code = 0): Promise<void> {
 
 // Register signal handlers
 process.on("SIGINT", () => {
+  if ((program as any)._interactive) return
   log.debug("Received SIGINT")
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
   gracefulShutdown(0)
@@ -44,7 +45,13 @@ process.on("SIGTERM", () => {
 })
 
 // Register error boundaries (unhandledRejection, uncaughtException)
-registerErrorBoundaries(gracefulShutdown)
+registerErrorBoundaries((code: number) => {
+  if ((program as any)._interactive) {
+    log.error("Error in interactive mode, returning to menu...")
+    return
+  }
+  return gracefulShutdown(code)
+})
 
 // ── CLI Setup ─────────────────────────────────────────────────────────
 
@@ -57,29 +64,9 @@ program
 
 registerAllCommands(program)
 
-// If no args, show banner and run the wakeup TUI (pick CLI or Telegram mode)
-const noArgs = process.argv.slice(2).length === 0
-if (noArgs) {
-  await runWakeup()
-  await gracefulShutdown(0)
-} else {
-  // Only register commands and parse if there are args
-
-// compat alias
-program
-  .command("build [sub]")
-  .description("Build subcommands (e.g. 'build wakeup')")
-  .allowUnknownOption()
-  .action(async (sub?: string) => {
-    if (sub === "wakeup") {
-      await runWakeup()
-    } else {
-      console.log("usage: aegis build wakeup")
-    }
-  })
-
-// Show banner before any command except --help/--version
+// Show banner before any command except --help/--version or interactive mode
 program.hook("preAction", () => {
+  if ((program as any)._interactive) return
   const args = process.argv.slice(2)
   if (
     !args.includes("--help") &&
@@ -91,8 +78,23 @@ program.hook("preAction", () => {
   }
 })
 
-  await program.parseAsync(process.argv)
+// If no args, launch interactive picker
+const noArgs = process.argv.slice(2).length === 0
+if (noArgs) {
+  await runWakeup(program)
+} else {
+  // compat alias
+  program
+    .command("build [sub]")
+    .description("Build subcommands (e.g. 'build wakeup')")
+    .allowUnknownOption()
+    .action(async (sub?: string) => {
+      if (sub === "wakeup") {
+        await runWakeup(program)
+      } else {
+        console.log("usage: aegis build wakeup")
+      }
+    })
 
-  // Ensure process exits after command completes
-  await gracefulShutdown(0)
+  await program.parseAsync(process.argv)
 }

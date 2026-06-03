@@ -1,6 +1,7 @@
 import { agentManager } from "../agent/manager"
 import { memorySystem } from "../memory"
 import { createLogger } from "../cli/logger"
+import type { AgentTypeName } from "../agent/agent-types"
 
 const log = createLogger("api")
 
@@ -231,7 +232,7 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
     try {
       const id = await agentManager.spawn({
         name: payload.name,
-        agentType: payload.type as any,
+        agentType: payload.type as AgentTypeName | undefined,
         script: payload.script ?? "src/agent/agent-worker.ts",
       })
       log.info("Agent spawned via API", { agentId: id, name: payload.name })

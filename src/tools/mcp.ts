@@ -1,5 +1,5 @@
 import { toolRegistry } from "./registry"
-import type { Tool, ToolContext, ToolResult } from "./registry"
+import type { Tool, ToolResult } from "./registry"
 
 interface MCPServerConfig {
   name: string
@@ -77,7 +77,7 @@ export async function registerMCPTools(): Promise<number> {
             description: (val as { description?: string }).description || "",
             required: def.inputSchema?.required?.includes(key) || false,
           })),
-          async execute(params, ctx): Promise<ToolResult> {
+          async execute(params, _ctx): Promise<ToolResult> {
             try {
               const result = await callMCPTool(server, def.name, params)
               return {

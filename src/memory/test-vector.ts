@@ -8,7 +8,7 @@
  */
 
 import { VectorMemory } from "./vector"
-import { existsSync, rmSync, mkdirSync } from "node:fs"
+import { existsSync, rmSync } from "node:fs"
 import { resolve } from "node:path"
 
 let passed = 0
@@ -172,8 +172,8 @@ async function testSimilarTextsRankNearby() {
   const vm = freshVM()
   await vm.initialize()
 
-  const id1 = await vm.add("This is a test document about artificial intelligence", "test", "demo")
-  const id2 = await vm.add("This is a test document about artificial intelligence", "test", "demo")
+  await vm.add("This is a test document about artificial intelligence", "test", "demo")
+  await vm.add("This is a test document about artificial intelligence", "test", "demo")
 
   const results = await vm.search("artificial intelligence", 10, 0)
   assert(results.length >= 2, "identical texts both returned for matching query")
@@ -254,7 +254,7 @@ async function testRemove() {
   await vm.initialize()
 
   const id1 = await vm.add("First", "test")
-  const id2 = await vm.add("Second", "test")
+  await vm.add("Second", "test")
 
   let stats = await vm.getStats()
   assertEqual(stats.total, 2, "before remove: total=2")

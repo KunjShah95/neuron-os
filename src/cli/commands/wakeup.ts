@@ -5,11 +5,8 @@ export function registerWakeup(program: Command) {
     .command("wakeup")
     .alias("w")
     .description("Show the banner and available commands")
-    .action(handleWakeup)
-}
-
-async function handleWakeup() {
-  // Re-use the same wakeup logic that runs on no-args
-  const { runWakeup } = await import("../wakeup")
-  await runWakeup()
+    .action(async () => {
+      const { runWakeup } = await import("../wakeup")
+      await runWakeup(program)
+    })
 }

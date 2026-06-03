@@ -2,7 +2,7 @@ import ansiEscapes from "ansi-escapes"
 import { calculateChatLayout } from "./layout"
 import { renderChatHeader, renderMessages, renderInputArea, renderChatHint, renderPicker } from "./components"
 import { createInitialChatState, loadChatStateFromSession, addUserMessage, addAssistantMessage, finalizeStreamingMessage, saveChatSession, createCheckpoint, rewindToCheckpoint } from "./store"
-import type { ChatState, PickerItem } from "./store"
+import type { PickerItem } from "./store"
 import { parseChatKey, handleChatKey } from "./input"
 import { streamResponse, createEngine } from "./provider"
 import { listProviders } from "../ai/providers"
@@ -71,27 +71,6 @@ export async function startChat(agentType?: AgentTypeName) {
       }
     }
     return 0
-  }
-
-  function selectPickerItem(item: PickerItem) {
-    if (item.kind === "provider") {
-      state.config.provider = item.name
-      const models = MODEL_REFERENCES[item.name as AIProviderType]
-      if (models && models[0]) {
-        state.config.model = models[0].id
-      }
-    } else {
-      state.config.provider = item.provider
-      state.config.model = item.id
-    }
-    const cfg = loadConfig()
-    cfg.provider = state.config.provider
-    cfg.model = state.config.model
-    saveConfig(cfg)
-  }
-
-  function getActiveProvider(): string {
-    return state.config.provider || "anthropic"
   }
 
   // Handle incoming keystrokes

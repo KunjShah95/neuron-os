@@ -1,5 +1,4 @@
 import type { Command } from "commander"
-import { theme } from "../theme"
 
 export function registerSetup(program: Command) {
   program

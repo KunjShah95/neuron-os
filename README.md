@@ -13,9 +13,10 @@
 [![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.3.14-black)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
-[![Docs](https://github.com/KunjShah95/neuron-os/actions/workflows/docs.yml/badge.svg)](https://github.com/KunjShah95/neuron-os/actions/workflows/docs.yml)
 
 ---
+
+> **📚 Full documentation available in [`docs/`](docs/index.md)** — quick start, architecture, CLI reference, agent system, memory system, development guides, REST API reference, FAQ, and troubleshooting.
 
 ## Features
 
@@ -717,6 +718,7 @@ docker build -t neuron-os/aegis:latest .
 ```
 
 The multi-stage build:
+
 1. **Stage 1** — Builds the Vite + React dashboard (`dashboard/dist/`)
 2. **Stage 2** — Installs production `node_modules` (`bun install --production`)
 3. **Stage 3** — Slim runtime image (`oven/bun:1-slim`) with non-root user, only production deps + source + pre-built dashboard
@@ -746,6 +748,7 @@ docker compose --profile dev up
 ```
 
 The compose file:
+
 - Mounts `src/` and `index.ts` read-only for live reload
 - Passes `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY` from your shell environment
 - Stores vault data in a named volume (`aegis-data`)

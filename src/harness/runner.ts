@@ -2,6 +2,7 @@ import type { TestCase, EvalResult, ToolTrace } from "./types"
 import { createAgentRuntime } from "../agent"
 import { AIProviderManager, type AIConfig } from "../ai"
 import { AgentEngine } from "../agent"
+import type { AIProviderType } from "../ai/models"
 
 const DEFAULT_MODEL = process.env.HARNESS_MODEL || "claude-sonnet-4-20250514"
 
@@ -16,7 +17,7 @@ export async function runTest(test: TestCase, config?: HarnessRunnerConfig): Pro
   try {
     const runtime = createAgentRuntime("harness", "build")
     const ai = new AIProviderManager({
-      provider: "anthropic" as any,
+      provider: "anthropic" as AIProviderType,
       model: DEFAULT_MODEL,
       apiKey: process.env.ANTHROPIC_API_KEY || "",
       temperature: 0.5,

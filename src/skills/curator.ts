@@ -1,5 +1,5 @@
-import { readFile, writeFile, readdir } from "node:fs/promises"
-import { resolve, join, basename } from "node:path"
+import { readFile, writeFile } from "node:fs/promises"
+import { resolve, join } from "node:path"
 import { existsSync } from "node:fs"
 
 export interface SkillScore {

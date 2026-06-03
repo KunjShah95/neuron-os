@@ -13,7 +13,7 @@ import {
   finalizeStreamingMessage,
   setStreamingError,
 } from "./store"
-import type { ChatState, PickerItem } from "./store"
+import type { PickerItem } from "./store"
 import { parseChatKey, handleChatKey } from "./input"
 import type { ChatKeyEvent } from "./input"
 import { renderChatHeader } from "./components/header"

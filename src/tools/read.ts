@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises"
 import { resolve } from "node:path"
-import type { Tool, ToolContext, ToolResult } from "./registry"
+import type { Tool, ToolResult } from "./registry"
 
 export const readTool: Tool = {
   name: "read",

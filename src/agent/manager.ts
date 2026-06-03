@@ -1,7 +1,6 @@
 import { spawn } from "bun"
 import type { Subprocess } from "bun"
-import { resolve, dirname } from "node:path"
-import { fileURLToPath } from "node:url"
+import { resolve } from "node:path"
 import type {
   AgentDef,
   AgentInstance,
@@ -18,9 +17,6 @@ import { HookRegistry } from "./hooks"
 import { getAgentType, getAllAgentTypes, type AgentType } from "./agent-types"
 
 // ── Helpers ───────────────────────────────────────────────────────────
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
 
 let nextAgentId = 1
 function generateId(): string {
@@ -67,6 +63,7 @@ export class AgentManager {
 
     if (hbMs > 0) {
       this.heartbeatTimer = setInterval(() => this.checkHeartbeats(), hbMs * 2)
+      this.heartbeatTimer.unref()
     }
   }
 
@@ -445,13 +442,6 @@ export class AgentManager {
         }
       }
       this.listeners.add(handler)
-
-      // Also handle via the sent IPC response
-      const resultHandler = (event: AgentEvent) => {
-        if (event.type === "agent:result" && event.agentId === toId) {
-          // Already handled above
-        }
-      }
     })
   }
 

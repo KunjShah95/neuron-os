@@ -8,6 +8,7 @@ import { AIProviderManager, type AIConfig } from "../../ai"
 import { AgentEngine } from "../../agent/engine"
 import { loadConfig, saveConfig } from "../../config"
 import type { ModelMessage } from "ai"
+import type { AIProviderType } from "../../ai/models"
 
 export function registerChat(program: Command) {
   program
@@ -23,7 +24,7 @@ export function registerChat(program: Command) {
 function loadAIConfig(overrideProvider?: string, overrideModel?: string): AIConfig {
   const cfg = loadConfig()
   return {
-    provider: (overrideProvider || cfg.provider || "anthropic") as any,
+    provider: (overrideProvider || cfg.provider || "anthropic") as AIProviderType,
     model: overrideModel || cfg.model || "claude-sonnet-4-20250514",
     apiKey: process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || cfg.apiKey,
     baseUrl: process.env.AI_BASE_URL || cfg.baseUrl,

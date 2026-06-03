@@ -9,6 +9,7 @@
 import { createAgentRuntime } from "../agent/runtime"
 import { AIProviderManager, type AIConfig } from "../ai"
 import { AgentEngine } from "../agent/engine"
+import type { AIProviderType } from "../ai/models"
 import { ActionTracker, type ActionLog } from "../agent/action-tracker"
 import { AgentToolExecutor } from "../agent/agent-tools"
 
@@ -18,7 +19,7 @@ interface AgentOrchestratorCallbacks {
 
 function buildAIConfig(): AIConfig {
   return {
-    provider: (process.env.AEGIS_AI_PROVIDER as any) ?? "openai",
+    provider: (process.env.AEGIS_AI_PROVIDER ?? "openai") as AIProviderType,
     model: process.env.AEGIS_AI_MODEL ?? "gpt-4o",
     apiKey: process.env.AEGIS_AI_API_KEY,
     baseUrl: process.env.AEGIS_AI_BASE_URL,
@@ -43,8 +44,8 @@ export async function runAgentOrchestrator(
   const ai = new AIProviderManager(buildAIConfig())
   const engine = new AgentEngine(runtime, ai, { maxSteps: 25 })
 
-  // Phase 1: AI explores and plans
-  const exploreResult = await engine.chat([
+  // Phase 1: AI explores and plans (result is used implicitly for context)
+  await engine.chat([
     {
       role: "user",
       content: `You are a code modification agent. Your task is to accomplish the following goal by exploring the codebase, planning your changes, and reporting what changes need to be made.

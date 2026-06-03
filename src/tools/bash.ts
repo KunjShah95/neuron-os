@@ -1,6 +1,6 @@
 import { spawn } from "bun"
 import { platform } from "os"
-import type { Tool, ToolContext, ToolResult } from "./registry"
+import type { Tool, ToolResult } from "./registry"
 
 function shellCmd(command: string): string[] {
   return platform() === "win32" ? ["cmd", "/c", command] : ["bash", "-c", command]

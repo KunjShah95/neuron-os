@@ -1,4 +1,3 @@
-import type { TestCase } from "./types"
 import { runTest, runSuite } from "./runner"
 import { generateJsonReport, generateMarkdownReport } from "./reporter"
 

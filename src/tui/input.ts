@@ -1,5 +1,7 @@
 import type { AppState } from "./store"
 import { addLogEntry } from "./store"
+import { saveConfig, loadConfig } from "../config"
+import { loadSession, renameSession, listSessions, exportSession, deleteSession } from "../memory/sessionStore"
 
 export type KeyEvent =
   | { type: "char"; char: string }
@@ -118,7 +120,6 @@ export async function handleKey(state: AppState, key: KeyEvent): Promise<"contin
         const name = list[idx]
         if (name) {
           try {
-            const { saveConfig, loadConfig } = require("../config") as typeof import("../config")
             const cfg = loadConfig()
             cfg.provider = name
             saveConfig(cfg)
@@ -137,7 +138,6 @@ export async function handleKey(state: AppState, key: KeyEvent): Promise<"contin
         const id = list[idx]
         if (id) {
           try {
-            const { loadSession } = require("../memory/sessionStore") as typeof import("../memory/sessionStore")
             const rec = await loadSession(id)
             if (rec) {
               addLogEntry(state, { text: `Replaying session ${id} (${rec.createdAt})`, type: "event" })
@@ -161,7 +161,6 @@ export async function handleKey(state: AppState, key: KeyEvent): Promise<"contin
           const newId = ui.input.trim()
           const oldId = ui.pendingAction.sessionId
           try {
-            const { renameSession, listSessions } = require("../memory/sessionStore") as typeof import("../memory/sessionStore")
             await renameSession(oldId, newId)
             state.sessions = await listSessions()
             addLogEntry(state, { text: `Renamed session ${oldId} → ${newId}`, type: "success" })
@@ -178,7 +177,6 @@ export async function handleKey(state: AppState, key: KeyEvent): Promise<"contin
           const outPath = ui.input.trim()
           const id = ui.pendingAction.sessionId
           try {
-            const { exportSession } = require("../memory/sessionStore") as typeof import("../memory/sessionStore")
             await exportSession(id, outPath)
             addLogEntry(state, { text: `Exported session ${id} → ${outPath}`, type: "success" })
           } catch (e) {
@@ -218,7 +216,6 @@ export async function handleKey(state: AppState, key: KeyEvent): Promise<"contin
           if (c === "y") {
             const id = ui.pendingAction.sessionId
             try {
-              const { deleteSession, listSessions } = require("../memory/sessionStore") as typeof import("../memory/sessionStore")
               await deleteSession(id)
               state.sessions = await listSessions()
               addLogEntry(state, { text: `Deleted session ${id}`, type: "success" })

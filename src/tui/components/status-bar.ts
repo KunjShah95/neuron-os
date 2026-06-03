@@ -1,4 +1,3 @@
-import cliTruncate from "cli-truncate"
 import { theme, box } from "../../cli/theme"
 import type { Region } from "../layout"
 import type { AppState } from "../store"

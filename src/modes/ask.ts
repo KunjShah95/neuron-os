@@ -8,10 +8,11 @@
 import { createAgentRuntime } from "../agent/runtime"
 import { AIProviderManager, type AIConfig } from "../ai"
 import { AgentEngine } from "../agent/engine"
+import type { AIProviderType } from "../ai/models"
 
 function buildAIConfig(): AIConfig {
   return {
-    provider: (process.env.AEGIS_AI_PROVIDER as any) ?? "openai",
+    provider: (process.env.AEGIS_AI_PROVIDER ?? "openai") as AIProviderType,
     model: process.env.AEGIS_AI_MODEL ?? "gpt-4o",
     apiKey: process.env.AEGIS_AI_API_KEY,
     baseUrl: process.env.AEGIS_AI_BASE_URL,

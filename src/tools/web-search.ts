@@ -1,4 +1,4 @@
-import type { Tool, ToolContext, ToolResult } from "./registry"
+import type { Tool, ToolResult } from "./registry"
 
 export const webSearchTool: Tool = {
   name: "web_search",

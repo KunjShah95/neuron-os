@@ -4,8 +4,6 @@ import { readFileSync, unlinkSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
-type ComputerAction = "screenshot" | "mouse_move" | "left_click" | "right_click" | "double_click" | "drag" | "type" | "keypress" | "scroll"
-
 function takeScreenshot(): string {
   const tmp = join(tmpdir(), `aegis-screen-${Date.now()}.png`)
   const platform = process.platform
@@ -71,7 +69,7 @@ function keypressFn(key: string): void {
   }
 }
 
-function scrollFn(y: number): void {
+function scrollFn(_y: number): void {
   if (process.platform === "linux") {
     execSync(`xdotool click 4`, { timeout: 3000 })
   }
