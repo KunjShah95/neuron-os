@@ -17,6 +17,8 @@
     "test": "bun run scripts/run-tests.ts",
     "ci": "bun run scripts/run-tests.ts",
     "typecheck": "bun run --bun tsc --noEmit",
+    "bench": "bun run scripts/bench-memory-system.ts",
+    "bench:update": "bun run scripts/bench-memory-system.ts --update-baseline",
     "test:dashboard": "bun run src/test-dashboard.ts",
     "test:chat": "bun run src/chat/test-chat.ts"
   },

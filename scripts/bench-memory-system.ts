@@ -17,7 +17,7 @@
  */
 
 import { MemorySystem } from "../src/memory/system"
-import { existsSync, mkdirSync, rmSync, readFileSync, readdirSync } from "node:fs"
+import { existsSync, mkdirSync, rmSync, readFileSync, writeFileSync, readdirSync } from "node:fs"
 import { resolve, join } from "node:path"
 
 // ── Configuration ──────────────────────────────────────────────────
@@ -27,6 +27,9 @@ const NUM_MEMORIES = 100
 const NUM_DAILY_LOGS = 30
 const NUM_AUTO_MEMORIES = 200
 const NUM_FACTS = 500
+
+const BASELINE_FILE = resolve(import.meta.dir || process.cwd(), "bench-baseline.json")
+const UPDATE_BASELINE = process.argv.includes("--update-baseline")
 
 const TMP_ROOT = resolve(process.cwd(), "tmp-bench-memory-" + Date.now())
 
@@ -508,6 +511,40 @@ async function runAll() {
     const full = results[5]!.meanMs
     const ratio = full / empty
     console.log(`  Scaling factor (empty → full): ${ratio.toFixed(1)}x`)
+    console.log("")
+  }
+
+  // ── Baseline ─────────────────────────────────────────────────────
+  const baseline: Record<string, { mean: number; min: number; max: number; samples: number }> = {}
+  for (const r of results) {
+    baseline[r.label] = { mean: r.meanMs, min: r.minMs, max: r.maxMs, samples: ITERATIONS }
+  }
+
+  if (UPDATE_BASELINE) {
+    writeFileSync(BASELINE_FILE, JSON.stringify(baseline, null, 2))
+    console.log(`  Baseline saved to ${BASELINE_FILE}`)
+    console.log("")
+  } else if (existsSync(BASELINE_FILE)) {
+    const prev = JSON.parse(readFileSync(BASELINE_FILE, "utf-8")) as Record<string, { mean: number }>
+    console.log("  ── Baseline comparison (regression check) ──")
+    console.log("")
+    let regression = false
+    for (const r of results) {
+      const prevEntry = prev[r.label]
+      if (prevEntry && prevEntry.mean > 0) {
+        const change = ((r.meanMs - prevEntry.mean) / prevEntry.mean) * 100
+        const sign = change >= 0 ? "+" : ""
+        const ok = change <= 20
+        if (!ok) regression = true
+        console.log(`  ${ok ? "✅" : "❌"} ${r.label}: ${fmtMs(r.meanMs)} (${sign}${change.toFixed(1)}% vs baseline)`)
+      }
+    }
+    if (regression) {
+      console.log("")
+      console.log("  ❌ BENCHMARK REGRESSION DETECTED (>20% increase in one or more stages)")
+      console.log("")
+      process.exit(1)
+    }
     console.log("")
   }
 

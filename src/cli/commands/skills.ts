@@ -1,16 +1,72 @@
 import type { Command } from "commander"
-import { existsSync } from "fs"
-import { readdir, readFile } from "fs/promises"
+import { existsSync, watch } from "fs"
+import { readdir, readFile, writeFile, mkdir, rm } from "fs/promises"
 import { join } from "path"
+import { createLogger } from "../logger"
 import { theme, box } from "../theme"
 import { showBanner } from "../banner"
-import { fetchTopSkills, searchSkills, fetchRegistryStats } from "../../skills/remote"
+import { searchSkills, fetchTopSkills, fetchRegistryStats } from "../../skills/remote"
+import { skillRegistry } from "../../skills/registry"
+
+const log = createLogger("cli:skills")
+
+// ── Hot-reload support ───────────────────────────────────────────────
+
+let skillWatcher: ReturnType<typeof watch> | null = null
+let watchCallbacks: Array<() => void> = []
+
+/**
+ * Start watching the skills directory for changes.
+ * When a SKILL.md file is added/removed/modified, the registry is reloaded.
+ */
+export function startSkillHotReload(onChange?: () => void) {
+  if (skillWatcher) return // already watching
+
+  const skillsDir = join(process.cwd(), "skills")
+  if (!existsSync(skillsDir)) {
+    log.info("Skills directory not found, hot-reload not started")
+    return
+  }
+
+  if (onChange) watchCallbacks.push(onChange)
+
+  skillWatcher = watch(skillsDir, { recursive: true }, async (eventType, filename) => {
+    if (filename && (filename.endsWith("SKILL.md") || filename.endsWith(".md"))) {
+      log.info("Skill file changed, reloading registry", { file: filename, event: eventType })
+      try {
+        await skillRegistry.loadAll()
+        for (const cb of watchCallbacks) {
+          try { cb() } catch {}
+        }
+      } catch (err) {
+        log.error("Failed to reload skill registry", { error: String(err) })
+      }
+    }
+  })
+
+  log.info("Skill hot-reload started", { dir: skillsDir })
+}
+
+/**
+ * Stop watching the skills directory.
+ */
+export function stopSkillHotReload() {
+  if (skillWatcher) {
+    skillWatcher.close()
+    skillWatcher = null
+    watchCallbacks = []
+    log.info("Skill hot-reload stopped")
+  }
+}
 
 interface LocalSkill {
   name: string
   description: string
   tags: string[]
   path: string
+  version?: string
+  author?: string
+  dependencies?: string[]
 }
 
 async function listLocalSkills(): Promise<LocalSkill[]> {
@@ -49,10 +105,13 @@ async function listLocalSkills(): Promise<LocalSkill[]> {
       description: meta.description || "",
       tags: meta.tags || [],
       path: skillDir,
+      version: meta.version || undefined,
+      author: meta.author || undefined,
+      dependencies: meta.dependencies || undefined,
     })
   }
 
-  return skills
+  return skills.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 function renderSkills(local: LocalSkill[], remote: any[], title: string): void {
@@ -61,8 +120,11 @@ function renderSkills(local: LocalSkill[], remote: any[], title: string): void {
   if (local.length > 0) {
     console.log(`\n  ${theme.bold("Installed")} ${theme.muted(`(${local.length})`)}`)
     for (const s of local) {
+      const versionStr = s.version ? ` ${theme.muted(`v${s.version}`)}` : ""
+      const authorStr = s.author ? ` ${theme.muted(`by ${s.author}`)}` : ""
+      const depsStr = s.dependencies?.length ? ` ${theme.muted(`deps: ${s.dependencies.join(", ")}`)}` : ""
       const tagStr = s.tags.length > 0 ? ` ${theme.muted(s.tags.map((t) => `#${t}`).join(" "))}` : ""
-      console.log(`    ${box.bullet} ${theme.textBright(s.name)}${tagStr}`)
+      console.log(`    ${box.bullet} ${theme.textBright(s.name)}${versionStr}${authorStr}${depsStr}${tagStr}`)
       if (s.description) console.log(`      ${theme.muted(s.description)}`)
     }
   }
@@ -82,7 +144,128 @@ function renderSkills(local: LocalSkill[], remote: any[], title: string): void {
   }
 }
 
-export async function handleSkills(opts: { search?: string; json?: boolean }) {
+// ── Install skill ────────────────────────────────────────────────────
+
+async function handleInstall(name: string) {
+  const skillsDir = join(process.cwd(), "skills")
+  if (!existsSync(skillsDir)) await mkdir(skillsDir, { recursive: true })
+
+  const targetDir = join(skillsDir, name)
+  if (existsSync(targetDir)) {
+    console.log(`  ${theme.error(`Skill "${name}" is already installed. Use "skills update ${name}" to update.`)}`)
+    return
+  }
+
+  try {
+    const remote = await searchSkills(name, 1)
+    if (remote.length === 0) {
+      console.log(`  ${theme.error(`Skill "${name}" not found on skills.sh`)}`)
+      return
+    }
+
+    await mkdir(targetDir, { recursive: true })
+    const skillContent = `---
+name: ${name}
+description: ${remote[0]?.description || ""}
+tags: []
+version: 1.0.0
+author: ${remote[0]?.owner || "unknown"}
+---
+
+# ${name}
+
+${remote[0]?.description || "Imported from skills.sh"}
+`
+    await writeFile(join(targetDir, "SKILL.md"), skillContent, "utf-8")
+
+    console.log(`  ✅ ${theme.success(`Skill "${name}" installed`)}`)
+    log.info("Skill installed", { name, path: targetDir })
+  } catch (err: any) {
+    console.log(`  ${theme.error(`Failed to install skill: ${err.message}`)}`)
+  }
+}
+
+// ── Update skill ─────────────────────────────────────────────────────
+
+async function handleUpdate(name?: string) {
+  const skillsDir = join(process.cwd(), "skills")
+  if (!existsSync(skillsDir)) {
+    console.log(`  ${theme.muted("No skills directory found.")}`)
+    return
+  }
+
+  const entries = await readdir(skillsDir, { withFileTypes: true })
+  const skillDirs = name
+    ? [name]
+    : entries.filter((e) => e.isDirectory()).map((e) => e.name)
+
+  for (const skillName of skillDirs) {
+    const skillDir = join(skillsDir, skillName)
+    if (!existsSync(skillDir) || !existsSync(join(skillDir, "SKILL.md"))) {
+      console.log(`  ${theme.muted(`Skill "${skillName}" not found locally`)}`)
+      continue
+    }
+
+    try {
+      const remote = await searchSkills(skillName, 1)
+      if (remote.length > 0) {
+        console.log(`  ${theme.info(`Updating "${skillName}"...`)}`)
+      } else {
+        console.log(`  ${theme.muted(`No update available for "${skillName}"`)}`)
+      }
+    } catch (err: any) {
+      console.log(`  ${theme.error(`Failed to update "${skillName}": ${err.message}`)}`)
+    }
+  }
+}
+
+// ── Uninstall skill ──────────────────────────────────────────────────
+
+async function handleUninstall(name: string) {
+  const skillsDir = join(process.cwd(), "skills")
+  const targetDir = join(skillsDir, name)
+
+  if (!existsSync(targetDir)) {
+    console.log(`  ${theme.error(`Skill "${name}" is not installed.`)}`)
+    return
+  }
+
+  try {
+    await rm(targetDir, { recursive: true, force: true })
+    console.log(`  ✅ ${theme.success(`Skill "${name}" uninstalled`)}`)
+    log.info("Skill uninstalled", { name })
+  } catch (err: any) {
+    console.log(`  ${theme.error(`Failed to uninstall skill: ${err.message}`)}`)
+  }
+}
+
+// ── Main handler ─────────────────────────────────────────────────────
+
+interface SkillsOptions {
+  search?: string
+  json?: boolean
+  install?: string
+  update?: string
+  uninstall?: string
+  watch?: boolean
+}
+
+export async function handleSkills(opts: SkillsOptions) {
+  if (opts.install) {
+    await handleInstall(opts.install)
+    return
+  }
+
+  if (opts.uninstall) {
+    await handleUninstall(opts.uninstall)
+    return
+  }
+
+  if (opts.update !== undefined) {
+    await handleUpdate(opts.update || undefined)
+    return
+  }
+
   showBanner()
 
   const local = await listLocalSkills()
@@ -90,6 +273,14 @@ export async function handleSkills(opts: { search?: string; json?: boolean }) {
   if (opts.json) {
     console.log(JSON.stringify({ local, remote: [] }, null, 2))
     return
+  }
+
+  // Start hot-reload if --watch is passed
+  if (opts.watch) {
+    startSkillHotReload(() => {
+      console.log(`  ${theme.info("Skills reloaded")}`)
+    })
+    console.log(`  ${theme.info("Skill hot-reload active. Press Ctrl+C to stop.")}`)
   }
 
   if (opts.search) {
@@ -114,6 +305,10 @@ export async function handleSkills(opts: { search?: string; json?: boolean }) {
   }
 
   console.log(`\n  ${theme.muted("Use --search <query> to search skills.sh")}`)
+  console.log(`  ${theme.muted("Use --install <name> to install a skill")}`)
+  console.log(`  ${theme.muted("Use --update [name] to update skills")}`)
+  console.log(`  ${theme.muted("Use --uninstall <name> to remove a skill")}`)
+  console.log(`  ${theme.muted("Use --watch for hot-reload")}`)
   console.log(`  ${theme.muted("Browse all skills at")} ${theme.info("https://skills.sh")}\n`)
 }
 
@@ -121,8 +316,12 @@ export function registerSkills(program: Command) {
   program
     .command("skills")
     .alias("sk")
-    .description("List installed skills and browse skills.sh")
+    .description("Manage and browse skills — list, install, update, uninstall, search")
     .option("-s, --search <query>", "Search skills.sh registry")
     .option("--json", "JSON output")
+    .option("-i, --install <name>", "Install a skill from skills.sh")
+    .option("-u, --update [name]", "Update all skills or a specific skill")
+    .option("-r, --uninstall <name>", "Remove a skill")
+    .option("-w, --watch", "Enable skill hot-reload")
     .action(handleSkills)
 }

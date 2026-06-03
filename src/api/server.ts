@@ -365,6 +365,60 @@ function jsonResponse(status: number, body: unknown, config: ApiServerConfig, re
   })
 }
 
+// ── WebSocket Support ────────────────────────────────────────────────
+
+interface WsClient {
+  socket: import("bun").ServerWebSocket<undefined>
+  id: string
+  subscribed: boolean
+}
+
+const wsClients = new Map<string, WsClient>()
+let wsIdCounter = 0
+let unsubWsRef: (() => void) | null = null
+
+function broadcastWsEvent(event: string, data: Record<string, unknown>) {
+  const msg = JSON.stringify({ event, data, timestamp: Date.now() })
+  for (const [id, client] of wsClients) {
+    if (client.subscribed) {
+      try {
+        client.socket.send(msg)
+      } catch {
+        wsClients.delete(id)
+      }
+    }
+  }
+}
+
+/**
+ * Bridge AgentManager events to WebSocket clients.
+ * Call this after creating the server to start forwarding events.
+ */
+export function startWsEventBridge() {
+  if (unsubWsRef) return // already started
+
+  const handler = (event: any) => {
+    broadcastWsEvent(event.type || "agent:event", {
+      agentId: event.agentId,
+      data: event.data,
+    })
+  }
+
+  agentManager.onEvent(handler)
+  unsubWsRef = () => agentManager.offEvent(handler)
+  log.info("WebSocket event bridge started")
+}
+
+/**
+ * Stop forwarding AgentManager events to WebSocket clients.
+ */
+export function stopWsEventBridge() {
+  if (unsubWsRef) {
+    unsubWsRef()
+    unsubWsRef = null
+  }
+}
+
 // ── Server Start ──────────────────────────────────────────────────────
 
 export function startApiServer(config: ApiServerConfig): { stop: () => void } {
@@ -383,9 +437,88 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
     port: config.port,
     hostname: config.host,
 
+    // ── WebSocket handler ───────────────────────────────────────────
+    websocket: {
+      async open(ws: import("bun").ServerWebSocket<undefined>) {
+        const id = `ws-${++wsIdCounter}`
+        wsClients.set(id, { socket: ws, id, subscribed: true })
+        log.info("WebSocket client connected", { clientId: id })
+
+        // Send initial state snapshot
+        const agents = agentManager.list().map((a) => ({
+          id: a.id,
+          name: a.def.name,
+          type: a.def.agentType,
+          status: a.status,
+          pid: a.pid,
+          uptime: a.spawnTime ? Math.floor((Date.now() - a.spawnTime) / 1000) : 0,
+        }))
+        ws.send(JSON.stringify({ event: "connected", data: { clientId: id, agents }, timestamp: Date.now() }))
+      },
+
+      message(ws: import("bun").ServerWebSocket<undefined>, message: string | Buffer) {
+        // Handle client messages (e.g., subscribe/unsubscribe)
+        try {
+          const parsed = JSON.parse(message.toString())
+          if (parsed.type === "ping") {
+            ws.send(JSON.stringify({ event: "pong", data: {}, timestamp: Date.now() }))
+          }
+          if (parsed.type === "unsubscribe") {
+            for (const [, client] of wsClients) {
+              if (client.socket === ws) {
+                client.subscribed = false
+                break
+              }
+            }
+          }
+          if (parsed.type === "subscribe") {
+            for (const [, client] of wsClients) {
+              if (client.socket === ws) {
+                client.subscribed = true
+                break
+              }
+            }
+          }
+        } catch {}
+      },
+
+      close(ws: import("bun").ServerWebSocket<undefined>) {
+        // Remove client
+        for (const [id, client] of wsClients) {
+          if (client.socket === ws) {
+            wsClients.delete(id)
+            log.info("WebSocket client disconnected", { clientId: id })
+            break
+          }
+        }
+      },
+
+      drain(_ws: import("bun").ServerWebSocket<undefined>) {
+        // Backpressure handling — could implement message buffering here
+      },
+    },
+
     async fetch(request: Request): Promise<Response> {
       const url = new URL(request.url)
       const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
+
+      // ── WebSocket upgrade ────────────────────────────────────────
+      if (url.pathname === "/api/v1/ws" && request.headers.get("upgrade") === "websocket") {
+        // Event bridge is started at the end of startApiServer()
+
+        // Check authentication for WebSocket
+        if (config.apiKey) {
+          const authHeader = request.headers.get("authorization") || request.headers.get("x-api-key") || ""
+          const authed = authHeader === `Bearer ${config.apiKey}` || authHeader === config.apiKey
+          if (!authed) {
+            return new Response("Unauthorized", { status: 401 })
+          }
+        }
+
+        const upgraded = server.upgrade(request)
+        if (upgraded) return new Response(null, { status: 101 })
+        return new Response("WebSocket upgrade failed", { status: 400 })
+      }
 
       // Rate limiting
       const rateCheck = rateLimiter.check(ip)
@@ -396,6 +529,55 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
           headers: {
             "Content-Type": "application/json",
             "Retry-After": String(Math.ceil((rateCheck.resetAt - Date.now()) / 1000)),
+            ...SECURITY_HEADERS,
+          },
+        })
+      }
+
+      // Server-sent events endpoint for clients without WebSocket
+      if (url.pathname === "/api/v1/events" && request.method === "GET") {
+        let unsubSse: (() => void) | null = null
+        let closed = false
+
+        const stream = new ReadableStream({
+          start(controller) {
+            const encoder = new TextEncoder()
+
+            // Send initial state
+            const agents = agentManager.list().map((a) => ({
+              id: a.id,
+              name: a.def.name,
+              type: a.def.agentType,
+              status: a.status,
+              pid: a.pid,
+              uptime: a.spawnTime ? Math.floor((Date.now() - a.spawnTime) / 1000) : 0,
+            }))
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ event: "connected", data: { agents } })}\n\n`))
+
+            // Subscribe to agent events
+            const handler = (event: any) => {
+              if (closed) return
+              try {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ event: event.type || "agent:event", data: { agentId: event.agentId, data: event.data } })}\n\n`))
+              } catch {}
+            }
+            agentManager.onEvent(handler)
+            unsubSse = () => agentManager.offEvent(handler)
+          },
+          cancel() {
+            closed = true
+            if (unsubSse) {
+              unsubSse()
+              unsubSse = null
+            }
+          },
+        })
+
+        return new Response(stream, {
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
             ...SECURITY_HEADERS,
           },
         })
@@ -415,10 +597,15 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
     },
   })
 
+  // Start WebSocket event bridge for any reconnecting clients
+  startWsEventBridge()
+
   log.info("API server listening", { url: `http://${config.host}:${config.port}` })
 
   return {
     stop: () => {
+      stopWsEventBridge()
+      wsClients.clear()
       server.stop()
       log.info("API server stopped")
     },

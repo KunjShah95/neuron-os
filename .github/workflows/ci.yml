@@ -35,6 +35,11 @@ jobs:
       - name: Run tests
         run: bun run scripts/run-tests.ts
 
+      - name: Run benchmarks
+        run: bun run scripts/bench-memory-system.ts
+        env:
+          NODE_ENV: test
+
   dashboard:
     name: Dashboard
     runs-on: ubuntu-latest

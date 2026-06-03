@@ -52,6 +52,9 @@ async function main() {
   // ── 2. Chat TUI Unit Tests ────────────────────────────────────────
   await run("Chat TUI Tests", ["bun", "run", "src/chat/test-chat.ts"])
 
+  // ── 2.1 Chat Integration Tests ────────────────────────────────────
+  await run("Chat Integration Tests", ["bun", "run", "src/chat/test-chat-integration.ts"])
+
   // ── 2.5 TUI Providers & Sessions Tests ───────────────────────────
   await run("TUI Providers/Sessions Tests", ["bun", "run", "src/test-tui-sessions.ts"])
 

@@ -1,21 +1,23 @@
 Title: Add WebSocket support for real-time dashboard updates
 
 Description:
-Implements Issue #007. Adds WebSocket-based real-time agent event streaming to the web dashboard, replacing HTTP polling.
+Implements Issue #007. Adds WebSocket-based real-time agent event streaming to the API server with SSE fallback.
 
 Changes:
 
-- Added WebSocket endpoint `/api/v1/ws` to the API server
-- Bridge AgentManager events (spawn, kill, log, heartbeat, error, exit) to WebSocket
-- Updated React dashboard to use WebSocket with reconnection logic
-- Kept REST API as fallback for initial page load
-- Added `AEGIS_API_WS_PORT` env var for configurable WebSocket port
+- Added WebSocket endpoint `/api/v1/ws` to `src/api/server.ts` using Bun's built-in WebSocket support
+- Added `startWsEventBridge()` / `stopWsEventBridge()` — bridges AgentManager events (spawn, kill, log, heartbeat, error, exit) to connected WebSocket clients
+- Sends initial agent state snapshot on connection
+- Supports subscribe/unsubscribe/ping messages from clients
+- Added SSE fallback endpoint `/api/v1/events` for clients without WebSocket support
+- Proper cleanup on server stop: closes all WebSocket connections, stops event bridge
+- Auth support for WebSocket connections (uses same `AEGIS_API_KEY` as REST API)
 
 Testing:
 
-- Dashboard updates within 200ms of agent events
-- WebSocket reconnects automatically on disconnect
-- All existing REST endpoints remain functional
-- CORS and authentication work with WebSocket upgrade
+- WebSocket clients receive real-time agent events
+- SSE endpoint streams events with `text/event-stream`
+- All existing API endpoints remain functional
+- All existing tests pass
 
 Closes #007

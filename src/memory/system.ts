@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir, readdir } from "node:fs/promises"
+import { readFile, writeFile, mkdir, readdir, stat } from "node:fs/promises"
 import { resolve, join } from "node:path"
 import { existsSync } from "node:fs"
 import type { MemoryEntry, MemoryContext, ExtractedFact, UserProfile } from "./types"
@@ -16,6 +16,48 @@ export class MemorySystem {
   private autoMemoryDir: string
   private factsFile: string
   private agentMemory?: AgentMemoryConnector
+
+  // ── LRU Cache for frequently accessed files ──────────────────
+  private cache = new Map<string, { content: string; timestamp: number; mtime: number }>()
+  private cacheMaxSize = 20
+  private cacheAutoFileList: string[] | null = null
+  private cacheAutoFileListTime = 0
+
+  private invalidateCache(path?: string) {
+    if (path) {
+      this.cache.delete(path)
+    } else {
+      this.cache.clear()
+      this.cacheAutoFileList = null
+    }
+  }
+
+  private async cachedRead(path: string): Promise<string> {
+    try {
+      if (!existsSync(path)) return ""
+      const st = await stat(path).catch(() => null)
+      const mtime = st?.mtimeMs ?? 0
+      const cached = this.cache.get(path)
+
+      if (cached && cached.mtime === mtime) {
+        return cached.content
+      }
+
+      const content = await readFile(path, "utf-8")
+
+      // LRU: delete and re-insert to move to front
+      this.cache.delete(path)
+      if (this.cache.size >= this.cacheMaxSize) {
+        const firstKey = this.cache.keys().next().value
+        if (firstKey) this.cache.delete(firstKey)
+      }
+      this.cache.set(path, { content, timestamp: Date.now(), mtime })
+
+      return content
+    } catch {
+      return ""
+    }
+  }
 
   constructor(cwd: string = process.cwd(), agentMemory?: AgentMemoryConnector) {
     this.memoryDir = resolve(cwd, ".aegis/memory")
@@ -56,7 +98,7 @@ export class MemorySystem {
   async loadUserProfile(): Promise<string> {
     try {
       if (existsSync(this.userFile)) {
-        return await readFile(this.userFile, "utf-8")
+        return await this.cachedRead(this.userFile)
       }
     } catch (err) {
       log.error("Failed to load user.md", { error: String(err) })
@@ -69,6 +111,7 @@ export class MemorySystem {
       const existing = await this.loadUserProfile()
       const entry = `\n${content}\n`
       await writeFile(this.userFile, existing + entry, "utf-8")
+      this.invalidateCache(this.userFile)
     } catch (err) {
       log.error("Failed to append to user.md", { error: String(err) })
     }
@@ -91,12 +134,13 @@ export class MemorySystem {
     }
 
     await writeFile(this.userFile, updated, "utf-8")
+    this.invalidateCache(this.userFile)
   }
 
   async loadMemory(): Promise<string> {
     try {
       if (existsSync(this.memoryFile)) {
-        return await readFile(this.memoryFile, "utf-8")
+        return await this.cachedRead(this.memoryFile)
       }
     } catch (err) {
       log.error("Failed to load MEMORY.md", { error: String(err) })
@@ -110,6 +154,7 @@ export class MemorySystem {
       const timestamp = new Date().toISOString()
       const entry = `\n## ${timestamp}\n\n${content}\n`
       await writeFile(this.memoryFile, existing + entry, "utf-8")
+      this.invalidateCache(this.memoryFile)
 
       if (this.agentMemory) {
         try {
@@ -128,7 +173,7 @@ export class MemorySystem {
 
     try {
       if (existsSync(dailyFile)) {
-        return await readFile(dailyFile, "utf-8")
+        return await this.cachedRead(dailyFile)
       }
     } catch (err) {
       log.error(`Failed to load daily log ${dateStr}`, { error: String(err) })
@@ -144,7 +189,7 @@ export class MemorySystem {
     try {
       let existing = ""
       if (existsSync(dailyFile)) {
-        existing = await readFile(dailyFile, "utf-8")
+        existing = await this.cachedRead(dailyFile)
       } else {
         existing = `# Daily Log - ${dateStr}\n\n`
       }
@@ -154,6 +199,7 @@ export class MemorySystem {
       const timestamp = timePart ? timePart.split(".")[0] : "00:00:00"
       const entry = `\n## ${timestamp}\n\n${content}\n`
       await writeFile(dailyFile, existing + entry, "utf-8")
+      this.invalidateCache(dailyFile)
     } catch (err) {
       log.error(`Failed to append to daily log ${dateStr}`, { error: String(err) })
     }
@@ -168,7 +214,7 @@ export class MemorySystem {
       const memories: string[] = []
 
       for (const file of recent) {
-        const content = await readFile(file, "utf-8")
+        const content = await this.cachedRead(file)
         memories.push(content)
       }
 
@@ -180,11 +226,19 @@ export class MemorySystem {
   }
 
   private async listAutoMemoryFiles(): Promise<string[]> {
+    // Cache the file list for 2 seconds to avoid repeated readdir calls
+    const now = Date.now()
+    if (this.cacheAutoFileList && (now - this.cacheAutoFileListTime) < 2000) {
+      return this.cacheAutoFileList
+    }
     const files = await readdir(this.autoMemoryDir)
-    return files
+    const result = files
       .filter((f) => f.endsWith(".md"))
       .map((f) => join(this.autoMemoryDir, f))
       .sort()
+    this.cacheAutoFileList = result
+    this.cacheAutoFileListTime = now
+    return result
   }
 
   async saveAutoMemory(content: string, tag?: string): Promise<void> {
@@ -195,6 +249,7 @@ export class MemorySystem {
 
       const formatted = `# Auto Memory\n\n**Timestamp:** ${new Date().toISOString()}\n${tag ? `**Tag:** ${tag}\n` : ""}\n${content}\n`
       await writeFile(filepath, formatted, "utf-8")
+      this.cacheAutoFileList = null  // invalidate auto file list cache
     } catch (err) {
       log.error("Failed to save auto memory", { error: String(err) })
     }
@@ -242,6 +297,7 @@ export class MemorySystem {
       const existing = await this.loadFacts()
       const merged = this.deduplicateFacts([...existing, ...facts])
       await writeFile(this.factsFile, JSON.stringify(merged, null, 2), "utf-8")
+      this.invalidateCache(this.factsFile)
     } catch (err) {
       log.error("Failed to store facts", { error: String(err) })
     }
@@ -250,7 +306,7 @@ export class MemorySystem {
   private async loadFacts(): Promise<ExtractedFact[]> {
     try {
       if (!existsSync(this.factsFile)) return []
-      const raw = await readFile(this.factsFile, "utf-8")
+      const raw = await this.cachedRead(this.factsFile)
       return JSON.parse(raw) as ExtractedFact[]
     } catch {
       return []

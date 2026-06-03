@@ -1,20 +1,24 @@
 Title: Add skill marketplace integration and hot-reload
 
 Description:
-Implements Issue #008. Adds a full skill marketplace workflow — search, install, update, uninstall — plus hot-reload without restart.
+Implements Issue #008. Adds skill marketplace CLI commands (install, update, uninstall) plus hot-reload without restart.
 
 Changes:
 
-- Added `aegis skill search/install/update/uninstall` CLI commands
-- Extended skills.sh API client in `src/skills/remote.ts` with marketplace endpoints
-- Implemented skill hot-reload via fs.watch on `skills/` directory
-- Added version, author, and dependency display in skills mode
-- Created `skills.json` manifest for tracking installed versions
+- Extended `aegis skills` CLI command with subcommands:
+  - `--install <name>` — install a skill from skills.sh: creates directory + SKILL.md with metadata
+  - `--update [name]` — search for updates to all or specific skill
+  - `--uninstall <name>` — remove a skill by deleting its directory
+  - `--watch` — enable hot-reload via `fs.watch` on skills/ directory
+  - `--search <query>` — search skills.sh registry (improved)
+- Added `startSkillHotReload()` / `stopSkillHotReload()` — automatically reloads the `SkillRegistry` when SKILL.md files are added/modified/removed
+- Updated skill display to show version, author, and dependency info
+- Added `fetchTopSkills` import to support trending skills display
 
 Testing:
 
-- Skill CRUD operations tested end-to-end
-- Hot-reload verified: adding/removing skill files updates available skills immediately
-- Error handling tested for network failures and version conflicts
+- Skill CRUD operations work via CLI commands
+- Hot-reload reloads registry on file changes
+- Error handling for missing skills, network failures, and invalid names
 
 Closes #008
