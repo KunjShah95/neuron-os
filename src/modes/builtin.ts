@@ -1,4 +1,3 @@
-import ansiEscapes from "ansi-escapes"
 import { showBanner } from "../cli/banner"
 import type { Mode } from "./types"
 

@@ -1,4 +1,4 @@
-import { streamText, generateText, tool, jsonSchema, stepCountIs } from "ai"
+import { streamText, generateText, jsonSchema, stepCountIs } from "ai"
 import type { ModelMessage, ToolSet } from "ai"
 import { AgentRuntime } from "./runtime"
 import { toolRegistry, type ToolParameter, type ToolContext } from "../tools"

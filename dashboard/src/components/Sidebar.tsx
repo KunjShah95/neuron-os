@@ -15,6 +15,7 @@ const navItems: NavItem[] = [
   { path: "/serve", label: "Server", icon: "↗" },
   { path: "/setup", label: "Setup", icon: "⚡" },
   { path: "/docs", label: "Docs", icon: "?" },
+  { path: "/site", label: "Website", icon: "🌐" },
 ]
 
 export default function Sidebar() {

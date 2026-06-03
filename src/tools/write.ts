@@ -1,6 +1,6 @@
 import { writeFile, mkdir } from "node:fs/promises"
 import { resolve, dirname } from "node:path"
-import type { Tool, ToolContext, ToolResult } from "./registry"
+import type { Tool, ToolResult } from "./registry"
 
 export const writeTool: Tool = {
   name: "write",

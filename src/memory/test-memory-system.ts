@@ -8,8 +8,8 @@
  */
 
 import { MemorySystem } from "./system"
-import { existsSync, mkdirSync, rmSync, readFileSync, writeFileSync } from "node:fs"
-import { resolve, join } from "node:path"
+import { existsSync, mkdirSync, rmSync, readFileSync } from "node:fs"
+import { resolve } from "node:path"
 
 let passed = 0
 let failed = 0

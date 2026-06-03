@@ -1,6 +1,6 @@
 import { toolRegistry } from "../tools"
 import { skillRegistry } from "../skills"
-import { memorySystem } from "../memory"
+import { memorySystem as globalMemorySystem, type MemorySystem } from "../memory"
 import type { ToolContext, ToolResult } from "../tools"
 import type { SkillContext } from "../skills"
 import type { MemoryContext } from "../memory"
@@ -16,9 +16,11 @@ export interface AgentContext {
 
 export class AgentRuntime {
   readonly context: AgentContext
+  private memory: MemorySystem
 
-  constructor(context: AgentContext) {
+  constructor(context: AgentContext, memorySystem?: MemorySystem) {
     this.context = context
+    this.memory = memorySystem ?? globalMemorySystem
   }
 
   async executeTool(name: string, params: Record<string, unknown>): Promise<ToolResult> {
@@ -88,21 +90,21 @@ export class AgentRuntime {
       cwd: this.context.cwd,
     }
 
-    return await memorySystem.buildContext(memoryCtx)
+    return await this.memory.buildContext(memoryCtx)
   }
 
   async saveToMemory(content: string, type: "memory" | "daily" | "auto" = "memory"): Promise<void> {
     if (type === "memory") {
-      await memorySystem.appendToMemory(content)
+      await this.memory.appendToMemory(content)
     } else if (type === "daily") {
-      await memorySystem.appendToDailyLog(content)
+      await this.memory.appendToDailyLog(content)
     } else if (type === "auto") {
-      await memorySystem.saveAutoMemory(content)
+      await this.memory.saveAutoMemory(content)
     }
   }
 
   async searchMemory(query: string): Promise<string> {
-    const results = await memorySystem.search(query)
+    const results = await this.memory.search(query)
     if (results.length === 0) {
       return "No relevant memories found."
     }
@@ -127,7 +129,7 @@ export class AgentRuntime {
     await this.ensureSkillsLoaded()
 
     if (this.context.agentType) {
-      parts.push(this.getAgentTypeInstructions(""))
+      parts.push(this.getAgentTypeInstructions())
 
       const soul = await loadSoul({
         agentType: this.context.agentType,
@@ -151,7 +153,7 @@ export class AgentRuntime {
     return parts.join("\n\n---\n\n")
   }
 
-  private getAgentTypeInstructions(skillContent: string): string {
+  private getAgentTypeInstructions(): string {
     const type = this.context.agentType || "aegis"
 
     const instructions: Record<string, string> = {
@@ -170,9 +172,7 @@ export class AgentRuntime {
       explore: "You are an explore agent. Quickly search and understand codebases.",
     }
 
-    const base = instructions[type] || `You are a ${type} agent.`
-    if (!skillContent.trim()) return base
-    return `${base}\n\n## Loaded Skills\n\nThe following skill workflows are loaded for this session. Follow them when relevant:\n\n${skillContent}`
+    return instructions[type] || `You are a ${type} agent.`
   }
 
   private getAgent(): AgentInstance | undefined {
@@ -180,10 +180,10 @@ export class AgentRuntime {
   }
 }
 
-export function createAgentRuntime(agentId: string, agentType?: string, cwd?: string): AgentRuntime {
+export function createAgentRuntime(agentId: string, agentType?: string, cwd?: string, memorySystem?: MemorySystem): AgentRuntime {
   return new AgentRuntime({
     agentId,
     agentType,
     cwd: cwd || process.cwd(),
-  })
+  }, memorySystem)
 }

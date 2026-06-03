@@ -3,7 +3,7 @@ import { readdir, readFile } from "fs/promises"
 import { join } from "path"
 import { theme } from "../cli/theme"
 import { showInfoScreen } from "./info-screen"
-import { fetchTopSkills, searchSkills, fetchRegistryStats } from "../skills/remote"
+import { fetchTopSkills, fetchRegistryStats } from "../skills/remote"
 import type { Mode } from "./types"
 
 interface LocalSkill {

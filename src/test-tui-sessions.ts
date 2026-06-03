@@ -4,10 +4,6 @@ import { renderSessions } from "./tui/components/sessions"
 import { listProviders } from "./ai/providers"
 import { saveSession, listSessions, loadSession } from "./memory/sessionStore"
 
-async function assertEq(a: any, b: any, msg?: string) {
-  if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(msg ?? `Assertion failed: ${JSON.stringify(a)} !== ${JSON.stringify(b)}`)
-}
-
 async function testRenderProviders() {
   const state = createInitialState()
   state.providers = listProviders()

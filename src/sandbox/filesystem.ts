@@ -29,7 +29,7 @@ export class FilesystemSandbox implements Sandbox {
     return originalPath
   }
 
-  restrictCommand(cmd: string): CommandCheck {
+  restrictCommand(_cmd: string): CommandCheck {
     return { allowed: true }
   }
 

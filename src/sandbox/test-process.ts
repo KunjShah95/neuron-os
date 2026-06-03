@@ -6,11 +6,6 @@ function assert(cond: boolean, label: string) {
   if (cond) { passed++; console.log(`  ✅ ${label}`) }
   else { failed++; console.error(`  ❌ ${label}`) }
 }
-function assertEqual<T>(a: T, b: T, label: string) {
-  if (a === b) { passed++; console.log(`  ✅ ${label}`) }
-  else { failed++; console.error(`  ❌ ${label}: ${JSON.stringify(a)} !== ${JSON.stringify(b)}`) }
-}
-
 const s = new ProcessSandbox({ enabled: true })
 
 const res1 = s.restrictCommand("echo hello")

@@ -4,6 +4,8 @@ import { isValidAgentType } from "../agent/agent-types"
 import { addLogEntry } from "./store"
 import type { AppState } from "./store"
 import type { AgentTypeName } from "../agent/agent-types"
+import { listProviders } from "../ai/providers"
+import { listSessions, deleteSession, renameSession, exportSession } from "../memory/sessionStore"
 
 // ── Command dispatch ──────────────────────────────────────────────────
 
@@ -46,7 +48,6 @@ export async function executeCommand(state: AppState, input: string): Promise<vo
     case "providers":
       // Populate provider list and switch focus
       try {
-        const { listProviders } = require("../ai/providers") as typeof import("../ai/providers")
         state.providers = listProviders()
         state.providerIndex = 0
         state.ui.focus = "providers"
@@ -58,7 +59,6 @@ export async function executeCommand(state: AppState, input: string): Promise<vo
 
     case "sessions":
       try {
-        const { listSessions } = require("../memory/sessionStore") as typeof import("../memory/sessionStore")
         state.sessions = await listSessions()
         state.sessionIndex = 0
         state.ui.focus = "sessions"
@@ -71,7 +71,6 @@ export async function executeCommand(state: AppState, input: string): Promise<vo
     case "session": {
       // session <list|delete|rename|export> [args]
       const sub = args[0] ?? "list"
-      const { listSessions, loadSession, deleteSession, renameSession, exportSession } = require("../memory/sessionStore") as typeof import("../memory/sessionStore")
       try {
         if (sub === "list") {
           state.sessions = await listSessions()

@@ -34,7 +34,7 @@ const id = "test-agent-recovery"
 // Create a fake subprocess stub
 const fakeProc = {
   pid: 0,
-  kill: (sig?: number) => {},
+  kill: (_sig?: number) => {},
   exited: Promise.resolve(0),
   stdin: null,
   stdout: null,

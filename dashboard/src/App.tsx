@@ -13,6 +13,10 @@ import MCP from "./routes/MCP"
 import Serve from "./routes/Serve"
 import Setup from "./routes/Setup"
 import Docs from "./routes/Docs"
+import SiteHome from "./site/Home"
+import SiteFeatures from "./site/Features"
+import SiteDemo from "./site/Demo"
+import SiteAbout from "./site/About"
 
 export default function App() {
   const location = useLocation()
@@ -22,6 +26,12 @@ export default function App() {
       <Routes location={location} key={location.pathname}>
         <Route element={<Layout />}>
           <Route index element={<Dashboard />} />
+          <Route path="site">
+            <Route index element={<SiteHome />} />
+            <Route path="features" element={<SiteFeatures />} />
+            <Route path="demo" element={<SiteDemo />} />
+            <Route path="about" element={<SiteAbout />} />
+          </Route>
           <Route path="chat" element={<Chat />} />
           <Route path="agents" element={<Agents />} />
           <Route path="memory" element={<Memory />} />

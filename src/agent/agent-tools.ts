@@ -30,13 +30,6 @@ const DEFAULT_CONFIG: AgentToolConfig = {
   excludePatterns: ["node_modules", ".git", "dist", ".next", "bun.lock"],
 }
 
-const TEXT_EXTENSIONS = new Set([
-  ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs",
-  ".json", ".md", ".mdx", ".css", ".html", ".yml",
-  ".yaml", ".toml", ".txt", ".env", ".gitignore",
-  ".npmrc", ".babelrc", ".prettierrc", ".eslintrc",
-])
-
 export class AgentToolExecutor {
   private tracker: ActionTracker
   private config: AgentToolConfig
@@ -60,11 +53,6 @@ export class AgentToolExecutor {
       throw new Error(`Path escapes workspace: ${rel}`)
     }
     return abs
-  }
-
-  private isTextFile(filePath: string): boolean {
-    const ext = path.extname(filePath).toLowerCase()
-    return TEXT_EXTENSIONS.has(ext) || ext === ""
   }
 
   private excluded(relPath: string): boolean {

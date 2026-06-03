@@ -2,6 +2,7 @@ import type { Command } from "commander"
 import { theme } from "../theme"
 import { showBanner } from "../banner"
 import { memorySystem, vectorMemory } from "../../memory"
+import type { ExtractedFact } from "../../memory/types"
 
 export function registerMemory(program: Command) {
   const mem = program
@@ -74,7 +75,7 @@ export function registerMemory(program: Command) {
     .option("--category <cat>", "Filter by category: preference, project, identity, etc")
     .action(async (opts: { category?: string }) => {
       if (opts.category) {
-        const facts = await memorySystem.getFactsByCategory(opts.category as any)
+        const facts = await memorySystem.getFactsByCategory(opts.category as ExtractedFact["category"])
         if (facts.length === 0) {
           console.log(theme.dim(`  No facts found for category "${opts.category}".`))
           return

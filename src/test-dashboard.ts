@@ -15,7 +15,7 @@ import {
   updateMetrics,
   setAgentStatus,
 } from "./tui/store"
-import type { AppState } from "./tui/store"
+
 
 let passed = 0
 let failed = 0
@@ -223,12 +223,9 @@ assertEqual(storeTest.ui.input, "", "initial input = empty")
 addLogEntry(storeTest, { text: "test entry", type: "info" })
 assertEqual(storeTest.log.length, 2, "addLogEntry adds entry")
 assertEqual(storeTest.log[1]?.text, "test entry", "log entry text matches")
-assertEqual(storeTest.ui.logScroll, 0, "log scroll reset to 0")
-
-// Metrics
-const metricsBefore = storeTest.metrics.memPercent
-updateMetrics(storeTest)
-assert(typeof storeTest.metrics.memPercent === "number", "metrics update sets memPercent")
+assertEqual(storeTest.ui.logScroll, 0, "log scroll reset to 0")  // Metrics
+  updateMetrics(storeTest)
+  assert(typeof storeTest.metrics.memPercent === "number", "metrics update sets memPercent")
 assert(storeTest.metrics.uptime >= 0, "metrics update sets uptime")
 
 // Agent status mutation

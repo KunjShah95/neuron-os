@@ -1,9 +1,12 @@
-import { readFile, writeFile, mkdir, readdir, appendFile } from "node:fs/promises"
+import { readFile, writeFile, mkdir, readdir } from "node:fs/promises"
 import { resolve, join } from "node:path"
 import { existsSync } from "node:fs"
 import type { MemoryEntry, MemoryContext, ExtractedFact, UserProfile } from "./types"
 import type { AgentMemoryConnector } from "./agentmemory"
 import { agentMemory } from "./agentmemory"
+import { createLogger } from "../cli/logger"
+
+const log = createLogger("memory:system")
 
 export class MemorySystem {
   private memoryDir: string
@@ -56,7 +59,7 @@ export class MemorySystem {
         return await readFile(this.userFile, "utf-8")
       }
     } catch (err) {
-      console.error("Failed to load user.md:", err)
+      log.error("Failed to load user.md", { error: String(err) })
     }
     return ""
   }
@@ -67,7 +70,7 @@ export class MemorySystem {
       const entry = `\n${content}\n`
       await writeFile(this.userFile, existing + entry, "utf-8")
     } catch (err) {
-      console.error("Failed to append to user.md:", err)
+      log.error("Failed to append to user.md", { error: String(err) })
     }
   }
 
@@ -96,7 +99,7 @@ export class MemorySystem {
         return await readFile(this.memoryFile, "utf-8")
       }
     } catch (err) {
-      console.error("Failed to load MEMORY.md:", err)
+      log.error("Failed to load MEMORY.md", { error: String(err) })
     }
     return ""
   }
@@ -114,7 +117,7 @@ export class MemorySystem {
         } catch {}
       }
     } catch (err) {
-      console.error("Failed to append to MEMORY.md:", err)
+      log.error("Failed to append to MEMORY.md", { error: String(err) })
     }
   }
 
@@ -128,7 +131,7 @@ export class MemorySystem {
         return await readFile(dailyFile, "utf-8")
       }
     } catch (err) {
-      console.error(`Failed to load daily log ${dateStr}:`, err)
+      log.error(`Failed to load daily log ${dateStr}`, { error: String(err) })
     }
     return ""
   }
@@ -152,7 +155,7 @@ export class MemorySystem {
       const entry = `\n## ${timestamp}\n\n${content}\n`
       await writeFile(dailyFile, existing + entry, "utf-8")
     } catch (err) {
-      console.error(`Failed to append to daily log ${dateStr}:`, err)
+      log.error(`Failed to append to daily log ${dateStr}`, { error: String(err) })
     }
   }
 
@@ -171,7 +174,7 @@ export class MemorySystem {
 
       return memories
     } catch (err) {
-      console.error("Failed to load auto memories:", err)
+      log.error("Failed to load auto memories", { error: String(err) })
       return []
     }
   }
@@ -193,7 +196,7 @@ export class MemorySystem {
       const formatted = `# Auto Memory\n\n**Timestamp:** ${new Date().toISOString()}\n${tag ? `**Tag:** ${tag}\n` : ""}\n${content}\n`
       await writeFile(filepath, formatted, "utf-8")
     } catch (err) {
-      console.error("Failed to save auto memory:", err)
+      log.error("Failed to save auto memory", { error: String(err) })
     }
   }
 
@@ -240,7 +243,7 @@ export class MemorySystem {
       const merged = this.deduplicateFacts([...existing, ...facts])
       await writeFile(this.factsFile, JSON.stringify(merged, null, 2), "utf-8")
     } catch (err) {
-      console.error("Failed to store facts:", err)
+      log.error("Failed to store facts", { error: String(err) })
     }
   }
 

@@ -104,7 +104,7 @@ async function testHealthCaching() {
 async function testSearch() {
   const svr = mockServer({
     "/agentmemory/livez": () => new Response(JSON.stringify({ status: "ok" })),
-    "/agentmemory/smart-search": (body) => new Response(JSON.stringify({
+    "/agentmemory/smart-search": () => new Response(JSON.stringify({
       results: [
         { content: "Found result about DB performance", score: 0.95, timestamp: "2026-01-01T00:00:00Z" },
         { content: "Another related memory", score: 0.82 },
@@ -125,7 +125,7 @@ async function testRemember() {
   const svr = mockServer({
     "/agentmemory/livez": () => new Response(JSON.stringify({ status: "ok" })),
     "/agentmemory/remember": (body) => {
-      assert(body.content === "test insight", "remember receives content")
+      assert((body as any).content === "test insight", "remember receives content")
       assert(body.type === "insight", "remember receives type")
       return new Response(JSON.stringify({ id: "mem-123" }))
     },
@@ -142,7 +142,7 @@ async function testRememberWithConcepts() {
   const svr = mockServer({
     "/agentmemory/livez": () => new Response(JSON.stringify({ status: "ok" })),
     "/agentmemory/remember": (body) => {
-      assertDeepEqual(body.concepts, ["ai", "testing"], "remember sends concepts")
+      assertDeepEqual((body as any).concepts, ["ai", "testing"], "remember sends concepts")
       return new Response(JSON.stringify({ id: "mem-456" }))
     },
   })
@@ -173,7 +173,7 @@ async function testContext() {
   const svr = mockServer({
     "/agentmemory/livez": () => new Response(JSON.stringify({ status: "ok" })),
     "/agentmemory/context": (body) => {
-      assertEqual(body.sessionId, "sid-1", "context receives sessionId")
+      assertEqual((body as any).sessionId, "sid-1", "context receives sessionId")
       return new Response(JSON.stringify({ context: "Captured context from agent run" }))
     },
   })
@@ -189,7 +189,7 @@ async function testSessionLifecycle() {
   const svr = mockServer({
     "/agentmemory/livez": () => new Response(JSON.stringify({ status: "ok" })),
     "/agentmemory/session/start": () => new Response(JSON.stringify({ sessionId: "session-new" })),
-    "/agentmemory/session/end": (body) => new Response(JSON.stringify({ ok: true })),
+    "/agentmemory/session/end": () => new Response(JSON.stringify({ ok: true })),
   })
 
   const c = new AgentMemoryConnector({ url: BASE })
@@ -226,8 +226,8 @@ async function testListSessions() {
 async function testForget() {
   const svr = mockServer({
     "/agentmemory/livez": () => new Response(JSON.stringify({ status: "ok" })),
-    "/agentmemory/forget": (body) => {
-      assertDeepEqual(body.observationIds, ["obs-1", "obs-2"], "forget sends observationIds")
+    "/agentmemory/forget": (_body) => {
+      assertDeepEqual(_body.observationIds, ["obs-1", "obs-2"], "forget sends observationIds")
       return new Response(JSON.stringify({ ok: true }))
     },
   })
@@ -260,7 +260,7 @@ async function testGetStats() {
 async function testAuthHeaders() {
   let authHeader: string | null = null
   const svr = mockServer({
-    "/agentmemory/livez": (body, req) => {
+    "/agentmemory/livez": (_body, req) => {
       authHeader = req ? req.headers.get("authorization") : null
       return new Response(JSON.stringify({ status: "ok" }))
     },

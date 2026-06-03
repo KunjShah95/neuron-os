@@ -1,4 +1,4 @@
-import type { Sandbox, SandboxConfig, SandboxStatus, CommandCheck, DeniedOp } from "./types"
+import type { Sandbox, SandboxConfig, SandboxStatus, CommandCheck } from "./types"
 import { execSync } from "node:child_process"
 
 export class DockerSandbox implements Sandbox {
@@ -7,7 +7,6 @@ export class DockerSandbox implements Sandbox {
   private _enabled: boolean
   private containerId: string | null = null
   private dockerAvailable: boolean
-  private deniedOps: DeniedOp[] = []
 
   constructor(config?: Partial<SandboxConfig>) {
     this.image = config?.dockerImage || "ubuntu:22.04"

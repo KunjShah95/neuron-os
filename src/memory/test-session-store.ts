@@ -56,10 +56,6 @@ function cleanTmp() {
 // Simpler approach: test the exported functions directly with
 // a temp dir that matches `data/sessions/` under TMP_ROOT.
 
-function sessionsDir(): string {
-  return resolve(TMP_ROOT, "data", "sessions")
-}
-
 // We re-import the module for each test by using dynamic import with
 // a cache buster. Actually, the simplest approach: run each test in
 // a subprocess. But that's slow.

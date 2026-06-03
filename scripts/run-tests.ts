@@ -7,7 +7,7 @@
 
 let exitCode = 0
 
-function time<T>(label: string, fn: () => Promise<T>): Promise<T> {
+function time<T>(_label: string, fn: () => Promise<T>): Promise<T> {
   const start = performance.now()
   return fn().finally(() => {
     const elapsed = ((performance.now() - start) / 1000).toFixed(2)
@@ -60,6 +60,9 @@ async function main() {
 
   // ── 3.5 Agent Runtime Prompt / Skill Tests ───────────────────────
   await run("Agent Runtime Prompt Tests", ["bun", "run", "src/agent/test-runtime.ts"])
+
+  // ── 3.6 Agent Lifecycle Integration Tests ────────────────────────
+  await run("Agent Lifecycle Integration Tests", ["bun", "run", "src/agent/test-lifecycle-integration.ts"])
 
   // ── 3.6 AgentMemory Connector Tests ──────────────────────────────
   await run("AgentMemory Connector Tests", ["bun", "run", "src/memory/test-agentmemory.ts"])

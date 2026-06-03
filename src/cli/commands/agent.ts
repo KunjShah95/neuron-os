@@ -2,6 +2,7 @@ import type { Command } from "commander"
 import { theme } from "../theme"
 import { agentManager } from "../../agent/manager"
 import { getAgentType, isValidAgentType, getPrimaryAgentTypes, getSubagentTypes, type AgentTypeName } from "../../agent/agent-types"
+import type { AgentLogLevel } from "../../agent/types"
 
 export function registerAgent(program: Command) {
   const agent = program
@@ -176,7 +177,7 @@ export function registerAgent(program: Command) {
       function printLogs() {
         const logs = agentManager.getLogs(instance.id, {
           tail,
-          level: opts.level as any,
+          level: opts.level as AgentLogLevel | undefined,
         })
 
         const levelColor: Record<string, (s: string) => string> = {

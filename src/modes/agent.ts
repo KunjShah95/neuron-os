@@ -44,7 +44,6 @@ export const agentMode: Mode = {
       }
     }
 
-    const allTypes = agentManager.list()
     lines.push(`  ${theme.heading("Agent Types")}`)
     lines.push("")
     const { getPrimaryAgentTypes, getSubagentTypes } = await import("../agent/agent-types")

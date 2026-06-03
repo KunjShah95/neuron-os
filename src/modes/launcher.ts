@@ -1,10 +1,9 @@
 import ansiEscapes from "ansi-escapes"
 import { theme, box } from "../cli/theme"
-import { listModes, getMode } from "./registry"
+import { listModes } from "./registry"
 import { parseKey } from "./types"
-import type { Mode } from "./types"
 
-export async function runModeLauncher(initialMode?: string): Promise<"quit"> {
+export async function runModeLauncher(): Promise<"quit"> {
   const modes = listModes().filter((m) => !m.id.startsWith("_"))
   let selected = 0
 
@@ -18,7 +17,6 @@ export async function runModeLauncher(initialMode?: string): Promise<"quit"> {
   process.stdin.resume()
   process.stdin.setEncoding("utf8")
 
-  const rows = process.stdout.rows ?? 24
   const cols = process.stdout.columns ?? 80
 
   let running = true

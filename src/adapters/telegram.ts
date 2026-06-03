@@ -13,7 +13,6 @@
  */
 
 import { Telegraf, Markup } from "telegraf"
-import type { Context } from "telegraf"
 import type { PlatformAdapter, PlatformSendOptions } from "./types"
 interface TelegramConfig {
   botToken: string
@@ -67,7 +66,6 @@ function commandArg(text: string, command: string): string {
 
 export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
   const bot = new Telegraf(config.botToken)
-  let running = false
 
   // ── Auth middleware ────────────────────────────────────────────────
   bot.use(async (ctx, next) => {
@@ -252,7 +250,6 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
   const approvalCallbacks = new Map<number, (approved: boolean) => void>()
 
   bot.action(/agent_diff:(\d+)/, async (ctx) => {
-    const msgId = parseInt(ctx.match[1]!, 10)
     // Fetch the staged summary and show more detail
     await ctx.answerCbQuery("Generating diff...")
     await ctx.reply("📋 Diff view would be shown here (requires storing staged actions per session)")
@@ -300,13 +297,11 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
     name: "telegram",
 
     async start() {
-      running = true
       await bot.launch()
       console.log("[telegram] Telegraf bot started")
     },
 
     async stop() {
-      running = false
       bot.stop()
       console.log("[telegram] Telegraf bot stopped")
     },

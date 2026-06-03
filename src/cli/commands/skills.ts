@@ -1,7 +1,7 @@
 import type { Command } from "commander"
 import { existsSync } from "fs"
 import { readdir, readFile } from "fs/promises"
-import { join, basename } from "path"
+import { join } from "path"
 import { theme, box } from "../theme"
 import { showBanner } from "../banner"
 import { fetchTopSkills, searchSkills, fetchRegistryStats } from "../../skills/remote"

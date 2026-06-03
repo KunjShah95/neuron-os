@@ -4,6 +4,7 @@ import { AIProviderManager, type AIConfig } from "../ai"
 import { AgentEngine, createAgentRuntime } from "../agent"
 import { loadConfig } from "../config"
 import type { ModelMessage } from "ai"
+import type { AIProviderType } from "../ai/models"
 
 export interface ProviderConfig {
   apiKey?: string
@@ -15,7 +16,7 @@ export interface ProviderConfig {
 function loadAIConfig(): AIConfig {
   const cfg = loadConfig()
   return {
-    provider: (process.env.AI_PROVIDER || cfg.provider || "anthropic") as any,
+    provider: (process.env.AI_PROVIDER || cfg.provider || "anthropic") as AIProviderType,
     model: process.env.AI_MODEL || cfg.model || "claude-sonnet-4-20250514",
     apiKey: process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || cfg.apiKey,
     baseUrl: process.env.AI_BASE_URL || cfg.baseUrl,

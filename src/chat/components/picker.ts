@@ -7,7 +7,7 @@ export function renderPicker(
   region: ChatRegion,
   items: PickerItem[],
   selectedIndex: number,
-  activeProvider: string,
+  _activeProvider: string,
 ): string[] {
   const lines: string[] = []
   const maxLines = region.height

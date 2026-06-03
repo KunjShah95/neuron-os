@@ -2,6 +2,7 @@ import { toolRegistry } from "../tools"
 import { memorySystem } from "../memory"
 import { agentManager } from "../agent/manager"
 import { skillRegistry } from "../skills"
+import type { AgentTypeName } from "../agent/agent-types"
 
 export interface MCPServerConfig {
   port?: number
@@ -194,7 +195,7 @@ async function handleRequest(req: MCPRequest): Promise<MCPResponse> {
         if (!params?.name) return jsonRpc(id, undefined, { code: -32602, message: "Missing 'name' parameter" })
         const agentId = await agentManager.spawn({
           name: String(params.name),
-          agentType: params.type as any,
+          agentType: String(params.type ?? "") as AgentTypeName | undefined,
           script: "src/agent/agent-worker.ts",
         })
         return jsonRpc(id, { agentId, status: "spawned" })

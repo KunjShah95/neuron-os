@@ -1,5 +1,5 @@
-import { readFile, writeFile, mkdir, readdir } from "node:fs/promises"
-import { resolve, join } from "node:path"
+import { readFile, writeFile, mkdir } from "node:fs/promises"
+import { resolve } from "node:path"
 import { existsSync } from "node:fs"
 
 export interface VectorEntry {
@@ -16,8 +16,6 @@ const INDEX_FILE = resolve(VECTOR_DIR, "index.json")
 
 export class VectorMemory {
   private entries: VectorEntry[] = []
-  private initialized = false
-
   async initialize(): Promise<void> {
     await mkdir(VECTOR_DIR, { recursive: true })
 
@@ -30,8 +28,6 @@ export class VectorMemory {
         this.entries = []
       }
     }
-
-    this.initialized = true
   }
 
   // ── Simple character-level embedding (no external deps) ────────────

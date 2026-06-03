@@ -1,7 +1,8 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises"
-import { resolve, join } from "node:path"
-import { existsSync } from "node:fs"
+import { readFileSync, existsSync } from "node:fs"
+import { resolve } from "node:path"
 import { agentManager } from "../agent/manager"
+import type { AgentTypeName } from "../agent/agent-types"
 
 export interface CronJob {
   name: string
@@ -123,7 +124,7 @@ export function startCronEngine(): Array<{ name: string; stop: () => void }> {
       try {
         const id = await agentManager.spawn({
           name: `cron-${job.name}`,
-          agentType: (job.agentType as any) ?? "build",
+          agentType: (job.agentType ?? "build") as AgentTypeName,
           script: "src/agent/agent-worker.ts",
           tags: ["cron"],
           recovery: { maxRetries: 2, backoffMs: 5_000 },
@@ -153,7 +154,7 @@ export function startCronEngine(): Array<{ name: string; stop: () => void }> {
           try {
             const id = await agentManager.spawn({
               name: `cron-${job.name}`,
-              agentType: (job.agentType as any) ?? "build",
+              agentType: (job.agentType ?? "build") as AgentTypeName,
               script: "src/agent/agent-worker.ts",
               tags: ["cron"],
               recovery: { maxRetries: 2 },
@@ -181,7 +182,7 @@ export function startCronEngine(): Array<{ name: string; stop: () => void }> {
 function loadCronJobsSync(): CronJob[] {
   try {
     if (!existsSync(CRON_FILE)) return []
-    const raw = require("fs").readFileSync(CRON_FILE, "utf-8")
+    const raw = readFileSync(CRON_FILE, "utf-8")
     return JSON.parse(raw) as CronJob[]
   } catch {
     return []

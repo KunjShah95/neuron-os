@@ -30,11 +30,6 @@ function assertEqual<T>(a: T, b: T, label: string) {
   else { failed++; console.error(`  ❌ ${label} — expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`) }
 }
 
-function assertNotEqual<T>(a: T, b: T, label: string) {
-  if (a !== b) { passed++; console.log(`  ✅ ${label}`) }
-  else { failed++; console.error(`  ❌ ${label} — expected not ${JSON.stringify(b)}`) }
-}
-
 function assertDefined<T>(v: T | undefined | null, label: string) {
   if (v !== undefined && v !== null) { passed++; console.log(`  ✅ ${label}`) }
   else { failed++; console.error(`  ❌ ${label} — value was ${String(v)}`) }
@@ -734,13 +729,13 @@ console.log("\n=== AgentEngine Utility Tests ===\n")
 
 function testEngineConstructor() {
   const runtime = new AgentRuntime({ agentId: "engine-test", cwd: "." })
-  const engine = new AgentEngine(runtime, {} as any, { maxSteps: 5 })
+  new AgentEngine(runtime, {} as any, { maxSteps: 5 })
   assert(true, "AgentEngine constructor with maxSteps succeeds")
 }
 
 function testEngineDefaultMaxSteps() {
   const runtime = new AgentRuntime({ agentId: "engine-default", cwd: "." })
-  const engine = new AgentEngine(runtime, {} as any)
+  new AgentEngine(runtime, {} as any)
   assert(true, "AgentEngine constructor with defaults succeeds")
 }
 
