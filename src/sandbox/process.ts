@@ -67,6 +67,7 @@ export class ProcessSandbox implements Sandbox {
   }
 
   cleanup(): void {
+    // Best-effort cleanup — temp dir will be cleaned by OS if this fails
     try { rmSync(this.tempDir, { recursive: true, force: true }) } catch {}
   }
 }

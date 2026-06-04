@@ -57,6 +57,7 @@ export class DockerSandbox implements Sandbox {
 
   cleanup(): void {
     if (this.containerId) {
+      // Best-effort cleanup — container may already be removed
       try { execSync(`docker rm -f ${this.containerId}`, { stdio: "ignore" }) } catch {}
       this.containerId = null
     }

@@ -95,6 +95,9 @@ async function main() {
   // ── 6.8 Agent Runtime Extended Tests ──────────────────────────────
   await run("Agent Runtime Extended Tests", ["bun", "run", "src/agent/test-runtime-extended.ts"])
 
+  // ── 6.9 Skills CLI Tests ───────────────────────────────────────────
+  await run("Skills CLI Tests", ["bun", "test", "src/modes/skills.test.ts"])
+
   // ── 7. TypeScript Typecheck ───────────────────────────────────────
   await run("TypeScript Typecheck", ["bun", "run", "--bun", "tsc", "--noEmit"])
 

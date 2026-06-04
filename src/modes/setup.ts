@@ -27,7 +27,9 @@ export const setupMode: Mode = {
 
     try {
       process.stdin.setRawMode(wasRaw ?? false)
-    } catch {}
+    } catch {
+      // Best-effort restore — stdin may already be in a clean state
+    }
 
     return "back"
   },

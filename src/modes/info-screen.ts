@@ -58,6 +58,7 @@ export async function showInfoScreen(
   function cleanup() {
     if (cleanedUp) return
     cleanedUp = true
+    // Best-effort restore of terminal state — stdin may already be in a clean state
     try { process.stdin.setRawMode(wasRaw ?? false) } catch {}
     process.stdin.pause()
     process.stdout.write(ansiEscapes.exitAlternativeScreen)

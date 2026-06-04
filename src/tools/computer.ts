@@ -16,6 +16,7 @@ function takeScreenshot(): string {
     execSync(`powershell -Command "Add-Type -AssemblyName System.Windows.Forms; $bmp = [Drawing.Bitmap]::new([System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width, [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Height); $gfx = [Drawing.Graphics]::FromImage($bmp); $gfx.CopyFromScreen(0, 0, 0, 0, $bmp.Size); $bmp.Save('${tmp}')"`, { timeout: 15000 })
   }
   const data = readFileSync(tmp)
+  // Best-effort cleanup of temp screenshot
   try { unlinkSync(tmp) } catch {}
   return data.toString("base64")
 }

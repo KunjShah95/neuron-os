@@ -1,16 +1,1 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
-echo "🔍 Running pre-commit checks..."
-
-# TypeScript typecheck
-echo "  • Typecheck..."
-bun run tsc --noEmit 2>/dev/null
-if [ $? -ne 0 ]; then
-  echo "  ❌ TypeScript errors found. Fix them before committing."
-  exit 1
-fi
-
-# Check for unstaged changes that would break typecheck
-echo "  ✅ Typecheck passed"
-echo ""
+bun run tsc --noEmit

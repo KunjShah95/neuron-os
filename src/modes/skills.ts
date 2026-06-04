@@ -79,7 +79,9 @@ export const skillsMode: Mode = {
     let remote: any[] = []
     try {
       remote = await fetchTopSkills(5)
-    } catch {}
+    } catch {
+      // fetchTopSkills returns empty array on failure, remote stays empty
+    }
     const stats = await fetchRegistryStats().catch(() => null)
 
     if (remote.length > 0) {
