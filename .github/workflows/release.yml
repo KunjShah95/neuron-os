@@ -53,7 +53,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
-          key: dashboard-bun-${{ hashFiles('dashboard/bun.lockb') }}
+          key: dashboard-bun-${{ hashFiles('dashboard/bun.lock') }}
           restore-keys: dashboard-bun-
 
       - name: Install dashboard dependencies
@@ -77,8 +77,15 @@ jobs:
         with:
           bun-version: '1.x'
 
-      - name: Install dependencies
+      - name: Install root dependencies
         run: bun install --frozen-lockfile
+
+      - name: Install dashboard dependencies
+        run: bun install --frozen-lockfile
+        working-directory: dashboard
+
+      - name: Typecheck
+        run: bun run --bun tsc --noEmit
 
       - name: Build dashboard
         run: bun run build

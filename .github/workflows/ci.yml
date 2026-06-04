@@ -30,7 +30,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Typecheck (root project)
-        run: bun run tsc --noEmit
+        run: bun run --bun tsc --noEmit
 
       - name: Run tests
         run: bun run scripts/run-tests.ts
