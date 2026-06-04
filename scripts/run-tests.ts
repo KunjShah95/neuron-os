@@ -110,6 +110,9 @@ async function main() {
   // ── 6.12 Telemetry Tests ───────────────────────────────────────────
   await run("Telemetry Tests", ["bun", "test", "src/telemetry/telemetry.test.ts"])
 
+  // ── 6.13 Dashboard Unit Tests ──────────────────────────────────────
+  await run("Dashboard Unit Tests", ["bun", "run", "--cwd", "dashboard", "vitest", "run"])
+
   // ── 7. TypeScript Typecheck ───────────────────────────────────────
   await run("TypeScript Typecheck", ["bun", "run", "--bun", "tsc", "--noEmit"])
 
