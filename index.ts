@@ -7,6 +7,7 @@ import { runWakeup } from "./src/cli/wakeup"
 import { registerErrorBoundaries } from "./src/cli/guard"
 import { createLogger } from "./src/cli/logger"
 import { agentManager } from "./src/agent/manager"
+import { recordCommand, flushOnExit } from "./src/telemetry"
 
 const log = createLogger("cli")
 
@@ -14,6 +15,9 @@ const log = createLogger("cli")
 
 async function gracefulShutdown(code = 0): Promise<void> {
   log.info("Shutting down gracefully...")
+
+  // Flush any pending telemetry events
+  await flushOnExit()
 
   // Kill all running agents with a reasonable timeout
   const agentCount = agentManager.agents.size
@@ -96,5 +100,26 @@ if (noArgs) {
       }
     })
 
-  await program.parseAsync(process.argv)
+  // ── Record telemetry for the command ────────────────────────────────
+  // Sanitize: only capture the command path (e.g. "config set"), not argument values
+  const rawArgs = process.argv.slice(2)
+  const commandName = rawArgs
+    .filter((a) => !a.startsWith("-")) // skip flags
+    .slice(0, 2)                        // only command + 1 subcommand maximum
+    .map((a) => a.replace(/[^a-zA-Z0-9_-]/g, "")) // strip special chars
+    .filter(Boolean)
+    .join(" ") || "(interactive)"
+  const startTime = Date.now()
+  let exitCode = 0
+
+  try {
+    await program.parseAsync(process.argv)
+    exitCode = 0
+  } catch (err) {
+    exitCode = 1
+    throw err
+  } finally {
+    const duration = Date.now() - startTime
+    recordCommand(commandName, exitCode === 0, duration)
+  }
 }

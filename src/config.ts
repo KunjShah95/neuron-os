@@ -22,6 +22,7 @@ export const AppConfigSchema = z.object({
   workspace: z.string().min(1, "Workspace path cannot be empty").optional(),
   agentName: z.string().min(1, "Agent name cannot be empty").optional(),
   startOnBoot: z.boolean().optional(),
+  telemetryOptIn: z.boolean().optional(),
 })
 
 /** Zod inference type for AppConfig */

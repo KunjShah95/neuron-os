@@ -104,6 +104,9 @@ async function main() {
   // ── 6.11 MCP HTTP Tests ───────────────────────────────────────────
   await run("MCP HTTP Tests", ["bun", "test", "src/mcp/mcp-http.test.ts"])
 
+  // ── 6.12 Telemetry Tests ───────────────────────────────────────────
+  await run("Telemetry Tests", ["bun", "test", "src/telemetry/telemetry.test.ts"])
+
   // ── 7. TypeScript Typecheck ───────────────────────────────────────
   await run("TypeScript Typecheck", ["bun", "run", "--bun", "tsc", "--noEmit"])
 
