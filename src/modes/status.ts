@@ -1,6 +1,7 @@
 import os from "os"
 import { theme } from "../cli/theme"
 import { showInfoScreen } from "./info-screen"
+import { getVersion } from "../version"
 import type { Mode } from "./types"
 
 export const statusMode: Mode = {
@@ -19,7 +20,7 @@ export const statusMode: Mode = {
 
     const lines = [
       ``,
-      `  ${theme.bold("Version:")}  0.1.0`,
+      `  ${theme.bold("Version:")}  ${getVersion()}`,
       `  ${theme.bold("Runtime:")}  ${runtime}`,
       `  ${theme.bold("Platform:")} ${process.platform} ${process.arch}`,
       `  ${theme.bold("Memory:")}   ${memMB} MB RSS`,

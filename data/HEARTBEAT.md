@@ -1,17 +1,29 @@
 # Heartbeat Checklist
 
-Tasks the agent should proactively check on each heartbeat cycle.
+Tasks the system should check on each heartbeat cycle.
 
-## Daily Tasks
+> **Note:** These items are monitored programmatically via the cron engine
+> and agent hooks. Environment-specific overrides can be configured in
+> `~/.aegis/config.json` under the `heartbeat` key.
 
-- [ ] Check for pending file changes that need commit
-- [ ] Review any errors in recent logs
-- [ ] Check system health
-- [ ] Process any pending memory facts
+## Automated Checks (Cron Engine)
 
-## Weekly Tasks
+- File change detection via `watch` mode agents
+- Error log scanning via `monitor` agent type
+- System health via `/api/v1/health` endpoint
+- Memory fact consolidation — triggered weekly via cron schedule
 
-- [ ] Prune old session logs (older than 30 days)
-- [ ] Review and consolidate memory facts
-- [ ] Clean up completed cron job results
-- [ ] Review skill scores and prune low-performers
+## Agent Lifecycle
+
+- Active agent health checks (heartbeat timeout = 30s)
+- Auto-recovery with exponential backoff (5 retries, 1s base, 60s cap)
+- Stale session cleanup (>30 days) — runs on cron schedule
+
+## Scheduled Jobs
+
+| Job | Schedule | Description |
+|-----|----------|-------------|
+| Session cleanup | Daily at 03:00 | Remove sessions older than 30 days |
+| Memory consolidation | Weekly on Sunday | Summarize and prune redundant facts |
+| Skill pruning | Weekly on Monday | Remove skills with <30% success rate |
+| Telemetry flush | Every 10s (when opted in) | Send queued telemetry events |

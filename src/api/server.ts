@@ -1,9 +1,20 @@
+import { readFileSync } from "node:fs"
+import { resolve } from "node:path"
 import { agentManager } from "../agent/manager"
 import { memorySystem } from "../memory"
 import { createLogger } from "../cli/logger"
 import type { AgentTypeName } from "../agent/agent-types"
 
 const log = createLogger("api")
+
+/** Read package version once at module load time. */
+let _version: string
+try {
+  const pkg = JSON.parse(readFileSync(resolve(import.meta.dir, "..", "..", "package.json"), "utf-8"))
+  _version = String(pkg.version || "0.0.0")
+} catch {
+  _version = "0.0.0"
+}
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -331,7 +342,7 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
   if (pathname === "/api/v1/health" && method === "GET") {
     return jsonResponse(200, {
       status: "ok",
-      version: "0.1.0",
+      version: _version,
       uptime: process.uptime(),
       agents: {
         total: agentManager.agents.size,

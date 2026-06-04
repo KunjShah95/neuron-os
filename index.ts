@@ -1,5 +1,41 @@
 #!/usr/bin/env bun
 
+import { readFileSync, existsSync } from "node:fs"
+import { resolve } from "node:path"
+
+// ── Auto-load .env file ─────────────────────────────────────────────
+// Loads .env from project root if it exists (before any other imports).
+// Supports both KEY=value and export KEY=value formats.
+// Does NOT override already-set environment variables.
+function loadDotEnv(): void {
+  const envPath = resolve(import.meta.dir ?? process.cwd(), ".env")
+  if (!existsSync(envPath)) return
+  try {
+    const content = readFileSync(envPath, "utf-8")
+    for (const line of content.split("\n")) {
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith("#")) continue
+      // Strip optional 'export ' prefix
+      const cleaned = trimmed.startsWith("export ") ? trimmed.slice(7) : trimmed
+      const eqIdx = cleaned.indexOf("=")
+      if (eqIdx <= 0) continue
+      const key = cleaned.slice(0, eqIdx).trim()
+      let value = cleaned.slice(eqIdx + 1).trim()
+      // Strip surrounding quotes if present
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1)
+      }
+      if (key && !process.env[key]) {
+        process.env[key] = value
+      }
+    }
+  } catch {
+    // .env loading is best-effort
+  }
+}
+loadDotEnv()
+
 import { Command } from "commander"
 import { showBanner } from "./src/cli/banner"
 import { registerAllCommands } from "./src/cli/commands"
