@@ -10,11 +10,10 @@
 
 import { createInitialChatState, addUserMessage, addAssistantMessage, appendToStreamingMessage, finalizeStreamingMessage, saveChatSession, setStreamingError, createCheckpoint, rewindToCheckpoint } from "./store"
 import type { ChatState } from "./store"
-import { AIProviderManager, type AIConfig } from "../ai"
 import { AgentRuntime } from "../agent/runtime"
 import { AgentEngine, type AgentEngineConfig } from "../agent/engine"
 import { MemorySystem } from "../memory/system"
-import type { LanguageModel } from "ai"
+import { createMockModel, createTestEngine as createTestEngineFromUtils, AIProviderManager, type AIConfig } from "../test-utils/mock-ai"
 import { existsSync, mkdirSync, rmSync } from "node:fs"
 import { resolve } from "node:path"
 
@@ -37,56 +36,14 @@ function cleanTmp() {
   if (existsSync(TMP_ROOT)) rmSync(TMP_ROOT, { recursive: true })
 }
 
-// ── Mock AI helpers (from test-lifecycle-integration.ts pattern) ────
-
-function createMockModel(responseText: string): LanguageModel {
-  const chunks = responseText.split(/(?<=\s)/).filter(Boolean)
-  return {
-    specificationVersion: "v2",
-    provider: "mock",
-    modelId: "mock-model",
-    async doGenerate(_options: Record<string, unknown>) {
-      return {
-        content: [{ type: "text" as const, text: responseText }],
-        finishReason: "stop" as const,
-        usage: { promptTokens: 10, completionTokens: responseText.length },
-        rawCall: { rawPrompt: null, rawSettings: null },
-      }
-    },
-    async doStream(_options: Record<string, unknown>) {
-      const stream = new ReadableStream({
-        async start(controller: any) {
-          for (const chunk of chunks) {
-            controller.enqueue({ type: "text-delta" as const, delta: chunk })
-          }
-          controller.enqueue({ type: "finish" as const, finishReason: "stop" as const, usage: { promptTokens: 10, completionTokens: responseText.length } })
-          controller.close()
-        },
-      })
-      return { stream, rawCall: { rawPrompt: null, rawSettings: null } }
-    },
-  } as unknown as LanguageModel
-}
-
-function createMockAI(responseText: string): AIProviderManager {
-  const mockModel = createMockModel(responseText)
-  const ai = new AIProviderManager({ provider: "mock", model: "mock-model" } as unknown as AIConfig)
-  Object.defineProperty(ai, "getModel", { value: () => mockModel, writable: false })
-  return ai
-}
+// ── Mock AI helpers (imported from shared test utilities) ────────
 
 async function createTestEnv(
   subdir: string,
   aiResponse: string,
   engineConfig?: AgentEngineConfig,
 ): Promise<{ engine: AgentEngine; runtime: AgentRuntime; memory: MemorySystem; state: ChatState }> {
-  const dir = resolve(TMP_ROOT, subdir)
-  mkdirSync(dir, { recursive: true })
-  const memory = new MemorySystem(dir)
-  await memory.initialize()
-  const runtime = new AgentRuntime({ agentId: "chat-test", agentType: "build", cwd: dir }, memory)
-  const ai = createMockAI(aiResponse)
-  const engine = new AgentEngine(runtime, ai, engineConfig)
+  const { engine, runtime, memory } = await createTestEngineFromUtils(TMP_ROOT, subdir, aiResponse, engineConfig)
   const state = createInitialChatState("build")
   return { engine, runtime, memory, state }
 }

@@ -19,8 +19,7 @@
 import { MemorySystem } from "../memory/system"
 import { AgentRuntime, createAgentRuntime } from "./runtime"
 import { AgentEngine, type AgentEngineConfig } from "./engine"
-import { AIProviderManager, type AIConfig } from "../ai"
-import type { LanguageModel } from "ai"
+import { createTestEngine as createTestEngineFromUtils } from "../test-utils/mock-ai"
 import { existsSync, mkdirSync, rmSync } from "node:fs"
 import { resolve } from "node:path"
 
@@ -417,101 +416,19 @@ async function testLifecycleWithSearchAfterWrite() {
 }
 
 // ================================================================
-//  MOCK AI PROVIDER FOR AGENTENGINE TESTS
+//  MOCK AI PROVIDER FOR AGENTENGINE TESTS (imported from shared utilities)
 // ================================================================
 
 /**
- * Create a mock LanguageModel that returns predefined text.
- * Wraps the raw object in a cast so the Vercel AI SDK's streamText()
- * and generateText() can consume it without a real API key.
- *
- * The internal LanguageModelV1 types are complex; we satisfy the interface
- * at runtime with the right shapes.
- */
-function createMockModel(responseText: string): LanguageModel {
-  // Split on word boundaries for realistic streaming
-  const chunks = responseText.split(/(?<=\s)/).filter(Boolean)
-
-  return {
-    specificationVersion: "v2",
-    provider: "mock",
-    modelId: "mock-model",
-
-    async doGenerate(_options: Record<string, unknown>) {
-      return {
-        content: [{ type: "text" as const, text: responseText }],
-        finishReason: "stop" as const,
-        usage: { promptTokens: 10, completionTokens: responseText.length },
-        rawCall: { rawPrompt: null, rawSettings: null },
-      }
-    },
-
-    async doStream(_options: Record<string, unknown>) {
-      // AI SDK v6 expects a ReadableStream with stream parts using "delta" (not "textDelta")
-      const stream = new ReadableStream({
-        async start(controller: any) {
-          for (const chunk of chunks) {
-            controller.enqueue({ type: "text-delta" as const, delta: chunk })
-          }
-          controller.enqueue({ type: "finish" as const, finishReason: "stop" as const, usage: { promptTokens: 10, completionTokens: responseText.length } })
-          controller.close()
-        },
-      })
-
-      return {
-        stream,
-        rawCall: { rawPrompt: null, rawSettings: null },
-      }
-    },
-  } as unknown as LanguageModel
-}
-
-/**
- * Create a mock AIProviderManager that returns a mock model.
- * This allows AgentEngine.chat() and streamChat() to run without real API keys.
- */
-function createMockAI(responseText: string): AIProviderManager {
-  const mockModel = createMockModel(responseText)
-
-  // Override getModel() to return our mock
-  const ai = new AIProviderManager({
-    provider: "mock",
-    model: "mock-model",
-  } as unknown as AIConfig)
-
-  // Use Object.defineProperty for a clean override
-  Object.defineProperty(ai, "getModel", {
-    value: () => mockModel,
-    writable: false,
-  })
-
-  return ai
-}
-
-/**
- * Create a ready-to-use AgentEngine with a mock AI and a MemorySystem
- * pointed at a temp directory.
+ * Convenience wrapper around shared createTestEngine that uses the
+ * lifecycle test-specific TMP_ROOT.
  */
 async function createTestEngine(
   subdir: string,
   aiResponse: string,
   engineConfig?: AgentEngineConfig,
 ): Promise<{ engine: AgentEngine; runtime: AgentRuntime; memory: MemorySystem; dir: string }> {
-  const dir = resolve(TMP_ROOT, subdir)
-  mkdirSync(dir, { recursive: true })
-
-  const memory = new MemorySystem(dir)
-  await memory.initialize()
-
-  const runtime = new AgentRuntime(
-    { agentId: "engine-test", agentType: "build", cwd: dir },
-    memory,
-  )
-
-  const ai = createMockAI(aiResponse)
-  const engine = new AgentEngine(runtime, ai, engineConfig)
-
-  return { engine, runtime, memory, dir }
+  return createTestEngineFromUtils(TMP_ROOT, subdir, aiResponse, engineConfig)
 }
 
 // ================================================================

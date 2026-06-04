@@ -199,24 +199,59 @@ async function handleUpdate(name?: string) {
     ? [name]
     : entries.filter((e) => e.isDirectory()).map((e) => e.name)
 
+  if (skillDirs.length === 0) {
+    console.log(`  ${theme.muted("No skills installed to update.")}`)
+    return
+  }
+
+  let updated = 0
+  let failed = 0
+
   for (const skillName of skillDirs) {
     const skillDir = join(skillsDir, skillName)
-    if (!existsSync(skillDir) || !existsSync(join(skillDir, "SKILL.md"))) {
-      console.log(`  ${theme.muted(`Skill "${skillName}" not found locally`)}`)
+    const skillMd = join(skillDir, "SKILL.md")
+    if (!existsSync(skillMd)) {
+      console.log(`  ${theme.muted(`Skill "${skillName}" has no SKILL.md, skipping`)}`)
       continue
     }
 
     try {
+      // Search skills.sh for latest version
       const remote = await searchSkills(skillName, 1)
-      if (remote.length > 0) {
-        console.log(`  ${theme.info(`Updating "${skillName}"...`)}`)
-      } else {
-        console.log(`  ${theme.muted(`No update available for "${skillName}"`)}`)
+      if (remote.length === 0) {
+        console.log(`  ${theme.muted(`"${skillName}": not found on skills.sh, keeping local version`)}`)
+        continue
       }
+
+      const remoteSkill = remote[0]!
+
+      // Read current local skill to preserve any customizations
+      const currentContent = await readFile(skillMd, "utf-8")
+      const currentBody = currentContent.replace(/^---\n[\s\S]*?\n---\n/, "").trim()
+
+      // Build updated SKILL.md with fresh description but preserve local body
+      const updatedContent = `---
+name: ${skillName}
+description: ${remoteSkill.description || ""}
+tags: ${JSON.stringify(remoteSkill.tags || [])}
+version: 1.0.0
+author: ${remoteSkill.owner || "unknown"}
+updated: ${new Date().toISOString()}
+---
+
+${currentBody || `# ${skillName}\n\n${remoteSkill.description || ""}`}
+`
+      await writeFile(skillMd, updatedContent, "utf-8")
+      updated++
+      console.log(`  ✅ ${theme.success(`"${skillName}": updated successfully`)}`)
+      log.info("Skill updated", { name: skillName })
     } catch (err: any) {
-      console.log(`  ${theme.error(`Failed to update "${skillName}": ${err.message}`)}`)
+      failed++
+      console.log(`  ${theme.error(`"${skillName}": update failed — ${err.message}`)}`)
     }
   }
+
+  console.log(`\n  ${theme.info(`Updated ${updated} skill(s)`)}${failed > 0 ? `, ${failed} failed` : ""}`)
 }
 
 // ── Uninstall skill ──────────────────────────────────────────────────
