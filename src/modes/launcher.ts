@@ -50,7 +50,9 @@ export async function runModeLauncher(): Promise<"quit"> {
     cleanedUp = true
     try {
       process.stdin.setRawMode(wasRaw ?? false)
-    } catch {}
+    } catch {
+      // Best-effort restore — stdin may already be cleaned up
+    }
     process.stdin.pause()
     process.stdout.write(ansiEscapes.exitAlternativeScreen)
     process.stdout.write(ansiEscapes.cursorShow)

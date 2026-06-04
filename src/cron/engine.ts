@@ -2,7 +2,10 @@ import { readFile, writeFile, mkdir } from "node:fs/promises"
 import { readFileSync, existsSync } from "node:fs"
 import { resolve } from "node:path"
 import { agentManager } from "../agent/manager"
+import { createLogger } from "../cli/logger"
 import type { AgentTypeName } from "../agent/agent-types"
+
+const log = createLogger("cron")
 
 export interface CronJob {
   name: string
@@ -49,7 +52,9 @@ export async function loadHeartbeatChecklist(): Promise<string> {
     if (existsSync(HEARTBEAT_FILE)) {
       return await readFile(HEARTBEAT_FILE, "utf-8")
     }
-  } catch {}
+  } catch (err) {
+    log.warn("Failed to load heartbeat checklist", { error: String(err) })
+  }
   return ""
 }
 
@@ -137,7 +142,7 @@ export function startCronEngine(): Array<{ name: string; stop: () => void }> {
           timestamp: Date.now(),
         })
       } catch (err) {
-        console.error(`Cron job "${job.name}" failed:`, err)
+        log.error(`Cron job "${job.name}" failed`, { error: String(err) })
       }
     }
   }
@@ -170,10 +175,9 @@ export function startCronEngine(): Array<{ name: string; stop: () => void }> {
           }
         }, schedule)
         timers.push({ name: `cron-${job.name}`, stop: () => clearInterval(timer) })
+      }      } catch (err) {
+        log.warn("Failed to schedule cron job", { job: job.name, error: String(err) })
       }
-    } catch {
-      console.warn(`Failed to schedule cron job: ${job.name}`)
-    }
   }
 
   return timers

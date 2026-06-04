@@ -542,11 +542,12 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
                 break
               }
             }
+          }          } catch (err) {
+            log.warn("WS message parse failed", { error: String(err) })
           }
-        } catch {}
-      },
+        },
 
-      close(ws: import("bun").ServerWebSocket<undefined>) {
+        close(ws: import("bun").ServerWebSocket<undefined>) {
         // Remove client
         for (const [id, client] of wsClients) {
           if (client.socket === ws) {
@@ -623,7 +624,9 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
               if (closed) return
               try {
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ event: event.type || "agent:event", data: { agentId: event.agentId, data: event.data } })}\n\n`))
-              } catch {}
+              } catch (err) {
+                log.warn("SSE controller enqueue failed", { error: String(err) })
+              }
             }
             agentManager.onEvent(handler)
             unsubSse = () => agentManager.offEvent(handler)

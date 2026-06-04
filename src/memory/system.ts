@@ -54,7 +54,8 @@ export class MemorySystem {
       this.cache.set(path, { content, timestamp: Date.now(), mtime })
 
       return content
-    } catch {
+    } catch (err) {
+      log.warn("Failed to read file (cached read)", { path, error: String(err) })
       return ""
     }
   }
@@ -308,7 +309,8 @@ export class MemorySystem {
       if (!existsSync(this.factsFile)) return []
       const raw = await this.cachedRead(this.factsFile)
       return JSON.parse(raw) as ExtractedFact[]
-    } catch {
+    } catch (err) {
+      log.warn("Failed to load facts file, returning empty", { error: String(err) })
       return []
     }
   }
@@ -409,7 +411,9 @@ export class MemorySystem {
             category: "agentmemory",
           })
         }
-      } catch {}
+      } catch (err) {
+        log.warn("AgentMemory search failed, falling back to local search", { error: String(err) })
+      }
     }
 
     // ── Local search (always runs) ──────────────────────────────

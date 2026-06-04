@@ -176,7 +176,9 @@ export class CredentialVault {
           if (k) result[k] = v
         }
       }
-    } catch {}
+    } catch (err) {
+      log.warn("Failed to load scoped env file", { scope, error: String(err) })
+    }
 
     return result
   }

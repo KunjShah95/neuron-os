@@ -1,5 +1,5 @@
 /**
- * Structured logger with levels, JSON output, and module-scoped instances.
+ * Structured logger with levels, JSON output, module-scoped instances, and file rotation.
  *
  * Log levels (controlled by AEGIS_LOG_LEVEL env var):
  *   debug → info → warn → error
@@ -8,9 +8,16 @@
  *   {"level":"info","time":"2026-05-31T10:00:00.000Z","module":"agent","msg":"Spawned","agentId":"abc"}
  *
  * Pretty-prints to stderr when stdout is a TTY (non-JSON mode).
+ *
+ * File logging (controlled by AEGIS_LOG_FILE env var):
+ *   Set AEGIS_LOG_FILE=<path> to write JSON logs to a file.
+ *   Log files are automatically rotated at 10MB (AEGIS_LOG_MAX_SIZE bytes).
+ *   Keeps up to 5 rotated files (AEGIS_LOG_MAX_FILES).
  */
 
 import pc from "picocolors"
+import { appendFileSync, mkdirSync, renameSync, existsSync, statSync } from "node:fs"
+import { dirname } from "node:path"
 
 const LOG_LEVELS = ["debug", "info", "warn", "error"] as const
 type LogLevel = (typeof LOG_LEVELS)[number]
@@ -85,6 +92,94 @@ function jsonPrint(level: LogLevel, module: string, msg: string, data?: Record<s
   return JSON.stringify(entry)
 }
 
+// ── File logging with rotation ───────────────────────────────────────
+
+interface FileLogConfig {
+  path: string
+  maxSizeBytes: number
+  maxFiles: number
+}
+
+let fileLogConfig: FileLogConfig | null = null
+let _fileLogWarned = false
+
+function initFileLog(): void {
+  if (fileLogConfig) return
+  const filePath = process.env.AEGIS_LOG_FILE
+  if (!filePath) return
+
+  const maxSize = parseInt(process.env.AEGIS_LOG_MAX_SIZE || "", 10) || 10 * 1024 * 1024
+  const maxFiles = parseInt(process.env.AEGIS_LOG_MAX_FILES || "", 10) || 5
+
+  // Ensure directory exists
+  try {
+    mkdirSync(dirname(filePath), { recursive: true })
+  } catch {
+    // Directory might already exist
+  }
+
+  fileLogConfig = { path: filePath, maxSizeBytes: maxSize, maxFiles }
+}
+
+function rotateLogFile(): void {
+  if (!fileLogConfig) return
+  const { path, maxFiles } = fileLogConfig
+
+  // Remove the oldest rotated file
+  const oldest = `${path}.${maxFiles}`
+  if (existsSync(oldest)) {
+    try {
+      renameSync(oldest, oldest + ".old")
+    } catch {
+      // Best effort cleanup
+    }
+  }
+
+  // Shift existing rotated files: .2 → .3, .1 → .2, etc.
+  for (let i = maxFiles - 1; i >= 1; i--) {
+    const src = `${path}.${i}`
+    const dst = `${path}.${i + 1}`
+    if (existsSync(src)) {
+      try {
+        renameSync(src, dst)
+      } catch {
+        // Best effort
+      }
+    }
+  }
+
+  // Rotate current → .1
+  if (existsSync(path)) {
+    try {
+      renameSync(path, `${path}.1`)
+    } catch {
+      // Best effort
+    }
+  }
+}
+
+function writeToFile(line: string): void {
+  if (!fileLogConfig) return
+  const { path, maxSizeBytes } = fileLogConfig
+
+  try {
+    // Check size and rotate if needed
+    if (existsSync(path)) {
+      const st = statSync(path)
+      if (st.size > maxSizeBytes) {
+        rotateLogFile()
+      }
+    }
+
+    appendFileSync(path, line + "\n", "utf-8")
+  } catch (err) {
+    if (!_fileLogWarned) {
+      process.stderr.write(`[logger] Failed to write to log file ${path}: ${(err as Error)?.message ?? err}\n`)
+      _fileLogWarned = true
+    }
+  }
+}
+
 /**
  * Create a scoped logger instance.
  *
@@ -93,11 +188,19 @@ function jsonPrint(level: LogLevel, module: string, msg: string, data?: Record<s
  * log.info("Spawned", { agentId: "abc", type: "build" })
  */
 export function createLogger(module: string) {
+  // Lazy-init file logging on first use
+  initFileLog()
+
   const log = (level: LogLevel, msg: string, data?: Record<string, unknown>) => {
     if (!shouldLog(level)) return
     const line = isTTY() ? prettyPrint(level, module, msg, data) : jsonPrint(level, module, msg, data)
     // Write to stderr so stdout can be used for machine-readable output
     process.stderr.write(line + "\n")
+
+    // Also write JSON line to log file if configured
+    if (fileLogConfig) {
+      writeToFile(jsonPrint(level, module, msg, data))
+    }
   }
 
   return {

@@ -36,7 +36,9 @@ export function startSkillHotReload(onChange?: () => void) {
       try {
         await skillRegistry.loadAll()
         for (const cb of watchCallbacks) {
-          try { cb() } catch {}
+          try { cb() } catch (err) {
+            log.warn("Skill hot-reload callback failed", { error: String(err) })
+          }
         }
       } catch (err) {
         log.error("Failed to reload skill registry", { error: String(err) })
@@ -315,14 +317,14 @@ export async function handleSkills(opts: SkillsOptions) {
     startSkillHotReload(() => {
       console.log(`  ${theme.info("Skills reloaded")}`)
     })
-    console.log(`  ${theme.info("Skill hot-reload active. Press Ctrl+C to stop.")}`)
-  }
+    console.log(`  ${theme.info("Skill hot-reload active. Press Ctrl+C to stop.")}`)    }
 
   if (opts.search) {
     try {
       const remote = await searchSkills(opts.search)
       renderSkills(local, remote, `Skills matching "${opts.search}"`)
-    } catch {
+    } catch (err) {
+      log.warn("Failed to search skills", { query: opts.search, error: String(err) })
       renderSkills(local, [], `Skills matching "${opts.search}"`)
     }
   } else {
@@ -330,7 +332,9 @@ export async function handleSkills(opts: SkillsOptions) {
     try {
       const top = await fetchTopSkills(5)
       remote = top
-    } catch {}
+    } catch (err) {
+      log.warn("Failed to fetch top skills", { error: String(err) })
+    }
 
     const stats = await fetchRegistryStats().catch(() => null)
     renderSkills(local, remote, "Skills")
