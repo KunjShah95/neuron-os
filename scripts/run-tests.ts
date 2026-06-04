@@ -46,6 +46,9 @@ async function main() {
   console.log(`  ║     AEGIS — CI Test Suite                ║`)
   console.log(`  ╚══════════════════════════════════════════╝\n`)
 
+  // ── 0. Full-Stack Integration Tests ───────────────────────────────
+  await run("Full-Stack Integration Tests", ["bun", "run", "src/test-fullstack-integration.ts"])
+
   // ── 1. Dashboard TUI Smoke Tests ──────────────────────────────────
   await run("Dashboard TUI Tests", ["bun", "run", "src/test-dashboard.ts"])
 
