@@ -54,3 +54,22 @@ export interface WsEvent {
 
 /** Connection status for real-time updates. */
 export type WsConnectionStatus = "disconnected" | "connecting" | "connected" | "reconnecting"
+
+/** Response from /api/v1/ws/health endpoint. */
+export interface WsHealthResponse {
+  status: "running" | "stopped"
+  clients: {
+    connected: number
+    subscribed: number
+    peak: number
+  }
+  uptime: number
+  totalConnections: number
+  messagesBroadcast: number
+  lastConnectionAt: number | null
+  clientsList: Array<{
+    id: string
+    subscribed: boolean
+    connectedFor: number
+  }>
+}

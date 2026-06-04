@@ -98,6 +98,12 @@ async function main() {
   // ── 6.9 Skills CLI Tests ───────────────────────────────────────────
   await run("Skills CLI Tests", ["bun", "test", "src/modes/skills.test.ts"])
 
+  // ── 6.10 Rate Limiter Tests ───────────────────────────────────────
+  await run("Rate Limiter Tests", ["bun", "test", "src/api/rate-limiter.test.ts"])
+
+  // ── 6.11 MCP HTTP Tests ───────────────────────────────────────────
+  await run("MCP HTTP Tests", ["bun", "test", "src/mcp/mcp-http.test.ts"])
+
   // ── 7. TypeScript Typecheck ───────────────────────────────────────
   await run("TypeScript Typecheck", ["bun", "run", "--bun", "tsc", "--noEmit"])
 

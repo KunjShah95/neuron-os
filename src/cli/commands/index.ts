@@ -19,6 +19,7 @@ import { registerSandbox } from "./sandbox"
 import { registerComputer } from "./computer"
 import { registerHarness } from "./harness"
 import { registerAgentRun } from "./agent-run"
+import { registerOpenApi } from "./openapi"
 
 export function registerAllCommands(program: Command) {
   registerWakeup(program)
@@ -41,4 +42,5 @@ export function registerAllCommands(program: Command) {
   registerComputer(program)
   registerHarness(program)
   registerAgentRun(program)
+  registerOpenApi(program)
 }
