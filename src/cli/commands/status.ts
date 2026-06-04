@@ -3,6 +3,7 @@ import os from "os"
 import { theme } from "../theme"
 import { showBanner } from "../banner"
 import { agentManager } from "../../agent/manager"
+import { getVersion } from "../../version"
 import { existsSync, statSync } from "node:fs"
 
 export function registerStatus(program: Command) {
@@ -54,7 +55,7 @@ function buildStatusReport() {
   const logFileStats = getLogFileStats()
 
   return {
-    version: "0.1.0",
+    version: getVersion(),
     runtime,
     platform: process.platform,
     arch: process.arch,

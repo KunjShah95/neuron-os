@@ -2,6 +2,7 @@ import ansiEscapes from "ansi-escapes"
 import { theme, box } from "../cli/theme"
 import { listModes } from "./registry"
 import { parseKey } from "./types"
+import { getVersionDisplay } from "../version"
 
 export async function runModeLauncher(): Promise<"quit"> {
   const modes = listModes().filter((m) => !m.id.startsWith("_"))
@@ -26,7 +27,7 @@ export async function runModeLauncher(): Promise<"quit"> {
     let output = ansiEscapes.cursorHide + ansiEscapes.cursorTo(0, 0)
 
     const title = " AEGIS MODE SELECTOR "
-    const version = " v0.1.0  ↑↓ navigate  Enter select  Ctrl+Q quit  "
+    const version = ` ${getVersionDisplay()}  ↑↓ navigate  Enter select  Ctrl+Q quit  `
     const titleLine = theme.muted(box.tl + box.h + " ") + theme.heading(title) + theme.muted(" " + box.h.repeat(Math.max(0, cols - title.length - version.length - 4)) + " " + version + box.tr)
     output += titleLine + "\n"
     output += "\n"

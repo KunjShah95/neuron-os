@@ -6,6 +6,7 @@ import type { AppState } from "./store"
 import type { AgentTypeName } from "../agent/agent-types"
 import { listProviders } from "../ai/providers"
 import { listSessions, deleteSession, renameSession, exportSession } from "../memory/sessionStore"
+import { getVersionDisplay } from "../version"
 
 // ── Command dispatch ──────────────────────────────────────────────────
 
@@ -258,7 +259,7 @@ function showStatus(state: AppState): void {
   const memMB = (mem.rss / 1024 / 1024).toFixed(1)
   const uptime = formatDuration(process.uptime())
   const agentCount = agentManager.list().length
-  const version = "v0.1.0"
+  const version = getVersionDisplay()
   const runtime = `Bun ${process.version}`
   const platform = `${process.platform} ${process.arch}`
 

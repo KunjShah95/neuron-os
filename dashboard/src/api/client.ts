@@ -109,7 +109,7 @@ export async function apiRequest<T>(
 export const api = {
   /** Server health check with no retry (fast fail). */
   health: () =>
-    requestWithRetry<{ status: string; agents: number; uptime: number }>("/health", {}, 0),
+    requestWithRetry<{ status: string; version: string; agents: number; uptime: number }>("/health", {}, 0),
 
   /** WebSocket connection health stats. */
   wsHealth: () =>

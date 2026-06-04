@@ -32,15 +32,29 @@ function replyTo(msg: AgentIpcMessage, type: string, payload?: unknown): void {
 // falling back to the original builtin tool set for standalone usage.
 import { createAgentRuntime } from "./runtime"
 import { AIProviderManager, type AIConfig } from "../ai"
+import { getDefaultModel } from "../ai/models"
+
+/** Resolve the API key for a given provider from known env vars. */
+function resolveApiKey(provider: string): string | undefined {
+  const envMap: Record<string, string> = {
+    anthropic: "ANTHROPIC_API_KEY",
+    openai: "OPENAI_API_KEY",
+    deepseek: "DEEPSEEK_API_KEY",
+  }
+  return process.env[envMap[provider] || ""] || process.env.AEGIS_AI_API_KEY
+}
 import { AgentEngine } from "./engine"
 
 let engine: AgentEngine | null = null
 
 function buildAIConfig(): AIConfig {
+  // Read provider + model from env, with a reasonable default
+  const provider = (process.env.AEGIS_AI_PROVIDER || process.env.AEGIS_DEFAULT_PROVIDER || "openai") as any
+  const model = process.env.AEGIS_AI_MODEL || process.env.AEGIS_DEFAULT_MODEL || getDefaultModel(provider)
   return {
-    provider: (process.env.AEGIS_AI_PROVIDER as any) ?? "openai",
-    model: process.env.AEGIS_AI_MODEL ?? "gpt-4o",
-    apiKey: process.env.AEGIS_AI_API_KEY,
+    provider,
+    model,
+    apiKey: process.env.AEGIS_AI_API_KEY || resolveApiKey(provider),
     baseUrl: process.env.AEGIS_AI_BASE_URL,
     temperature: process.env.AEGIS_TEMPERATURE ? parseFloat(process.env.AEGIS_TEMPERATURE) : undefined,
     maxTokens: process.env.AEGIS_MAX_TOKENS ? parseInt(process.env.AEGIS_MAX_TOKENS, 10) : undefined,

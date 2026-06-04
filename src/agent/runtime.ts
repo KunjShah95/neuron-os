@@ -55,11 +55,25 @@ export class AgentRuntime {
     const skillNames = new Set<string>()
 
     if (query) {
-      const explicit: Record<string, string[]> = {
-        review: ["code-review"],
-        debug: ["debugging"],
-        build: ["git-commit", "code-review"],
-        deploy: ["git-commit"],
+      // Read per-agent-type skill mappings from env var (JSON object) or fall back to defaults.
+      // Example: AEGIS_SKILL_MAPPINGS='{"review":["code-review"],"debug":["debugging"]}'
+      let explicit: Record<string, string[]> = {}
+      const envMappings = process.env.AEGIS_SKILL_MAPPINGS
+      if (envMappings) {
+        try {
+          explicit = JSON.parse(envMappings)
+        } catch {
+          // Fall through to defaults
+        }
+      }
+      // Built-in defaults as fallback (can be overridden via env var)
+      if (Object.keys(explicit).length === 0) {
+        explicit = {
+          review: ["code-review"],
+          debug: ["debugging"],
+          build: ["git-commit", "code-review"],
+          deploy: ["git-commit"],
+        }
       }
       for (const name of explicit[query] || []) {
         skillNames.add(name)

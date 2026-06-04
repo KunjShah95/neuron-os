@@ -2,6 +2,7 @@ import figlet from "figlet"
 import { existsSync } from "fs"
 import { readdirSync } from "fs"
 import { join } from "path"
+import { getVersion } from "../version"
 import { theme } from "./theme"
 
 let bannerEmitted = false
@@ -21,7 +22,8 @@ export function showBanner(opts?: { version?: string; tagline?: string }) {
     const text = figlet.textSync("AEGIS", { font: "Big" })
     const colored = text.split("\n").map((l) => theme.accent(l)).join("\n")
     console.log(colored)
-    const version = opts?.version ?? "v0.1.0"
+    const version = opts?.version ?? `v${getVersion()}`
+
     const tagline = opts?.tagline ?? "The Operating System for Autonomous AI Agents"
     console.log(theme.muted(`${version} — ${tagline}`))
 
