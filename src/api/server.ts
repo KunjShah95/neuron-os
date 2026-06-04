@@ -4,8 +4,29 @@ import { agentManager } from "../agent/manager"
 import { memorySystem } from "../memory"
 import { createLogger } from "../cli/logger"
 import type { AgentTypeName } from "../agent/agent-types"
+import { z } from "zod"
 
 const log = createLogger("api")
+
+// ── Zod Schemas for request validation ─────────────────────────────────
+
+const SpawnAgentSchema = z.object({
+  name: z.string().min(1, "Name is required").max(64, "Name too long").regex(/^[a-zA-Z0-9_-]+$/, "Name must be alphanumeric with -_"),
+  type: z.string().max(32, "Type too long").optional(),
+  script: z.string().max(256, "Script path too long").optional(),
+})
+
+const TaskGoalSchema = z.object({
+  goal: z.string().min(1, "Goal is required").max(4000, "Goal too long"),
+})
+
+const MemoryContentSchema = z.object({
+  content: z.string().min(1, "Content is required").max(50000, "Content too long"),
+})
+
+const MemoryQuerySchema = z.object({
+  query: z.string().min(1, "Query is required").max(1000, "Query too long"),
+})
 
 /** Read package version once at module load time. */
 let _version: string
@@ -31,6 +52,10 @@ export interface ApiServerConfig {
   rateLimitMax?: number
   /** Rate limit: window in ms. Default: 60000 (1 minute) */
   rateLimitWindowMs?: number
+  /** Webhook configuration. When provided, wraps fetch with webhook routes at /api/v1/webhook/* */
+  webhookConfig?: import("./webhook-handler").WebhookConfig
+  /** Enable session store endpoints at /api/v1/sessions/* (requires SQLite session-persistence) */
+  sessionDb?: boolean
 }
 
 interface ApiRequest {
@@ -113,66 +138,7 @@ function buildCorsHeaders(origin: string | null, allowedOrigins: string[]): Reco
   return {}
 }
 
-// ── Input Validation ──────────────────────────────────────────────────
-
-interface ValidationRule {
-  field: string
-  type: "string" | "number" | "boolean"
-  required?: boolean
-  minLength?: number
-  maxLength?: number
-  pattern?: RegExp
-}
-
-function validateBody(body: unknown, rules: ValidationRule[]): { valid: boolean; errors: string[] } {
-  const errors: string[] = []
-  const obj = body as Record<string, unknown> | undefined
-
-  if (!obj || typeof obj !== "object") {
-    return { valid: false, errors: ["Request body must be a JSON object"] }
-  }
-
-  for (const rule of rules) {
-    const value = obj[rule.field]
-
-    if (value === undefined || value === null) {
-      if (rule.required) {
-        errors.push(`"${rule.field}" is required`)
-      }
-      continue
-    }
-
-    if (rule.type === "string") {
-      if (typeof value !== "string") {
-        errors.push(`"${rule.field}" must be a string`)
-        continue
-      }
-      if (rule.minLength !== undefined && value.length < rule.minLength) {
-        errors.push(`"${rule.field}" must be at least ${rule.minLength} characters`)
-      }
-      if (rule.maxLength !== undefined && value.length > rule.maxLength) {
-        errors.push(`"${rule.field}" must be at most ${rule.maxLength} characters`)
-      }
-      if (rule.pattern && !rule.pattern.test(value)) {
-        errors.push(`"${rule.field}" contains invalid characters`)
-      }
-    }
-
-    if (rule.type === "number") {
-      if (typeof value !== "number" || isNaN(value)) {
-        errors.push(`"${rule.field}" must be a number`)
-      }
-    }
-
-    if (rule.type === "boolean") {
-      if (typeof value !== "boolean") {
-        errors.push(`"${rule.field}" must be a boolean`)
-      }
-    }
-  }
-
-  return { valid: errors.length === 0, errors }
-}
+// ── Input Validation (Zod schemas defined above) ──────────────────────
 
 // ── Response Helpers ──────────────────────────────────────────────────
 
@@ -229,17 +195,12 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
   }
 
   if (pathname === "/api/v1/agents" && method === "POST") {
-    // Validate input
-    const validation = validateBody(body, [
-      { field: "name", type: "string", required: true, minLength: 1, maxLength: 64, pattern: /^[a-zA-Z0-9_-]+$/ },
-      { field: "type", type: "string", maxLength: 32 },
-      { field: "script", type: "string", maxLength: 256 },
-    ])
-    if (!validation.valid) {
-      return jsonResponse(400, { error: validation.errors.join("; ") }, config, req)
+    const spawnResult = SpawnAgentSchema.safeParse(body)
+    if (!spawnResult.success) {
+      return jsonResponse(400, { error: spawnResult.error.issues.map(i => i.message).join("; ") }, config, req)
     }
 
-    const payload = body as { name: string; type?: string; script?: string }
+    const payload = spawnResult.data
     try {
       const id = await agentManager.spawn({
         name: payload.name,
@@ -283,14 +244,12 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
   const taskMatch = pathname.match(/^\/api\/v1\/agents\/([^/]+)\/tasks$/)
   if (taskMatch && method === "POST") {
     const agentId = taskMatch[1]!
-    const validation = validateBody(body, [
-      { field: "goal", type: "string", required: true, minLength: 1, maxLength: 4000 },
-    ])
-    if (!validation.valid) {
-      return jsonResponse(400, { error: validation.errors.join("; ") }, config, req)
+    const goalResult = TaskGoalSchema.safeParse(body)
+    if (!goalResult.success) {
+      return jsonResponse(400, { error: goalResult.error.issues.map(i => i.message).join("; ") }, config, req)
     }
 
-    const payload = body as { goal?: string }
+    const payload = goalResult.data
     const instance = agentManager.get(agentId)
     if (!instance) return jsonResponse(404, { error: "Agent not found" }, config, req)
 
@@ -314,25 +273,21 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
   }
 
   if (pathname === "/api/v1/memory" && method === "POST") {
-    const validation = validateBody(body, [
-      { field: "content", type: "string", required: true, minLength: 1, maxLength: 50000 },
-    ])
-    if (!validation.valid) {
-      return jsonResponse(400, { error: validation.errors.join("; ") }, config, req)
+    const memResult = MemoryContentSchema.safeParse(body)
+    if (!memResult.success) {
+      return jsonResponse(400, { error: memResult.error.issues.map(i => i.message).join("; ") }, config, req)
     }
-    const payload = body as { content: string }
+    const payload = memResult.data
     await memorySystem.appendToMemory(payload.content)
     return jsonResponse(201, { status: "saved" }, config, req)
   }
 
   if (pathname === "/api/v1/memory/search" && method === "POST") {
-    const validation = validateBody(body, [
-      { field: "query", type: "string", required: true, minLength: 1, maxLength: 1000 },
-    ])
-    if (!validation.valid) {
-      return jsonResponse(400, { error: validation.errors.join("; ") }, config, req)
+    const queryResult = MemoryQuerySchema.safeParse(body)
+    if (!queryResult.success) {
+      return jsonResponse(400, { error: queryResult.error.issues.map(i => i.message).join("; ") }, config, req)
     }
-    const payload = body as { query: string }
+    const payload = queryResult.data
     const results = await memorySystem.search(payload.query)
     return jsonResponse(200, { results }, config, req)
   }
@@ -360,6 +315,37 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
   if (pathname === "/api/v1/types" && method === "GET") {
     const { getAllAgentTypes } = await import("../agent/agent-types")
     return jsonResponse(200, { types: getAllAgentTypes() }, config, req)
+  }
+
+  // ── Sessions (when sessionDb enabled) ─────────────────────────
+
+  if (config.sessionDb && pathname === "/api/v1/sessions" && method === "GET") {
+    const { sessionStore } = await import("../memory/session-persistence")
+    const sessions = sessionStore.restoreRecentSessions(50)
+    return jsonResponse(200, { sessions }, config, req)
+  }
+
+  if (config.sessionDb && pathname === "/api/v1/sessions/stats" && method === "GET") {
+    const { sessionStore } = await import("../memory/session-persistence")
+    const stats = sessionStore.getStats()
+    return jsonResponse(200, stats, config, req)
+  }
+
+  const sessionMatch = pathname.match(/^\/api\/v1\/sessions\/([^/]+)$/)
+  if (config.sessionDb && sessionMatch && method === "GET") {
+    const { sessionStore } = await import("../memory/session-persistence")
+    const sessionId = sessionMatch[1]!
+    const session = sessionStore.getSession(sessionId)
+    if (!session) return jsonResponse(404, { error: "Session not found" }, config, req)
+
+    const messages = sessionStore.getMessages(sessionId, 100)
+    return jsonResponse(200, { session, messages }, config, req)
+  }
+
+  if (config.sessionDb && sessionMatch && method === "DELETE") {
+    const { sessionStore } = await import("../memory/session-persistence")
+    sessionStore.deleteSession(sessionMatch[1]!)
+    return jsonResponse(200, { status: "deleted" }, config, req)
   }
 
   return jsonResponse(404, { error: "Not found" }, config, req)
@@ -608,6 +594,13 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
             ...SECURITY_HEADERS,
           },
         })
+      }
+
+      // ── Webhook routes (when webhookConfig is set) ──────────────
+      if (config.webhookConfig && url.pathname.startsWith("/api/v1/webhook/")) {
+        const { createWebhookHandler } = await import("./webhook-handler")
+        const handler = createWebhookHandler(config.webhookConfig)
+        return handler(request)
       }
 
       // Server-sent events endpoint for clients without WebSocket
