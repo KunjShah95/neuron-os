@@ -96,4 +96,50 @@ export function registerConfig(program: Command) {
         console.log(`  ${theme.accent(e.key.padEnd(30))} ${theme.dim(`[${e.scope}]`)} ${masked}`)
       }
     })
+
+  config
+    .command("validate")
+    .description("Validate config file against schema")
+    .action(async () => {
+      const { AppConfigSchema } = await import("../../config")
+      const { existsSync, readFileSync } = await import("fs")
+      const { join } = await import("path")
+      const { homedir } = await import("os")
+
+      const configPath = join(homedir(), ".aegis", "config.json")
+      if (!existsSync(configPath)) {
+        console.log(theme.warn("  No config file found at ~/.aegis/config.json"))
+        return
+      }
+
+      let raw: string
+      try {
+        raw = readFileSync(configPath, "utf-8")
+      } catch (err) {
+        console.log(theme.error(`  Failed to read config: ${(err as Error).message}`))
+        process.exitCode = 1
+        return
+      }
+
+      let parsed: Record<string, unknown>
+      try {
+        parsed = JSON.parse(raw)
+      } catch (err) {
+        console.log(theme.error(`  Invalid JSON: ${(err as Error).message}`))
+        process.exitCode = 1
+        return
+      }
+
+      const result = AppConfigSchema.safeParse(parsed)
+      if (result.success) {
+        console.log(theme.success("  Config is valid"))
+      } else {
+        console.log(theme.error("  Config validation errors:"))
+        for (const issue of result.error.issues) {
+          const path = issue.path.length > 0 ? issue.path.join(".") : "(root)"
+          console.log(`    ${theme.accent(path)}: ${issue.message}`)
+        }
+        process.exitCode = 1
+      }
+    })
 }
