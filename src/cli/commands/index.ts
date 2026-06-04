@@ -21,6 +21,7 @@ import { registerHarness } from "./harness"
 import { registerAgentRun } from "./agent-run"
 import { registerOpenApi } from "./openapi"
 import { registerTelemetry } from "./telemetry"
+import { registerSetupKeys } from "./setup-keys"
 
 export function registerAllCommands(program: Command) {
   registerWakeup(program)
@@ -45,4 +46,5 @@ export function registerAllCommands(program: Command) {
   registerAgentRun(program)
   registerOpenApi(program)
   registerTelemetry(program)
+  registerSetupKeys(program)
 }
