@@ -32,7 +32,6 @@ export function registerAllModes() {
   registerMode(harnessMode)
 }
 
-export { runModeLauncher } from "./launcher"
 export { registerMode, listModes, getMode } from "./registry"
 export type { Mode, KeyEvent } from "./types"
 export { parseKey } from "./types"
