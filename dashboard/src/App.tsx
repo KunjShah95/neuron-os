@@ -17,6 +17,7 @@ import SiteHome from "./site/Home"
 import SiteFeatures from "./site/Features"
 import SiteDemo from "./site/Demo"
 import SiteAbout from "./site/About"
+import ErrorBoundary from "./components/ErrorBoundary"
 
 export default function App() {
   const location = useLocation()
@@ -25,24 +26,24 @@ export default function App() {
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route element={<Layout />}>
-          <Route index element={<Dashboard />} />
+          <Route index element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+          <Route path="chat" element={<ErrorBoundary><Chat /></ErrorBoundary>} />
+          <Route path="agents" element={<ErrorBoundary><Agents /></ErrorBoundary>} />
+          <Route path="memory" element={<ErrorBoundary><Memory /></ErrorBoundary>} />
+          <Route path="skills" element={<ErrorBoundary><Skills /></ErrorBoundary>} />
+          <Route path="status" element={<ErrorBoundary><Status /></ErrorBoundary>} />
+          <Route path="config" element={<ErrorBoundary><Config /></ErrorBoundary>} />
+          <Route path="cron" element={<ErrorBoundary><Cron /></ErrorBoundary>} />
+          <Route path="mcp" element={<ErrorBoundary><MCP /></ErrorBoundary>} />
+          <Route path="serve" element={<ErrorBoundary><Serve /></ErrorBoundary>} />
+          <Route path="setup" element={<ErrorBoundary><Setup /></ErrorBoundary>} />
+          <Route path="docs" element={<ErrorBoundary><Docs /></ErrorBoundary>} />
           <Route path="site">
             <Route index element={<SiteHome />} />
             <Route path="features" element={<SiteFeatures />} />
             <Route path="demo" element={<SiteDemo />} />
             <Route path="about" element={<SiteAbout />} />
           </Route>
-          <Route path="chat" element={<Chat />} />
-          <Route path="agents" element={<Agents />} />
-          <Route path="memory" element={<Memory />} />
-          <Route path="skills" element={<Skills />} />
-          <Route path="status" element={<Status />} />
-          <Route path="config" element={<Config />} />
-          <Route path="cron" element={<Cron />} />
-          <Route path="mcp" element={<MCP />} />
-          <Route path="serve" element={<Serve />} />
-          <Route path="setup" element={<Setup />} />
-          <Route path="docs" element={<Docs />} />
         </Route>
       </Routes>
     </AnimatePresence>

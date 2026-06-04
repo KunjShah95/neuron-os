@@ -340,6 +340,12 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
     }, config, req)
   }
 
+  // ── WebSocket Health ─────────────────────────────────────────────
+
+  if (pathname === "/api/v1/ws/health" && method === "GET") {
+    return jsonResponse(200, getWsHealth(), config, req)
+  }
+
   if (pathname === "/api/v1/types" && method === "GET") {
     const { getAllAgentTypes } = await import("../agent/agent-types")
     return jsonResponse(200, { types: getAllAgentTypes() }, config, req)
@@ -371,11 +377,60 @@ interface WsClient {
   socket: import("bun").ServerWebSocket<undefined>
   id: string
   subscribed: boolean
+  connectedAt: number
 }
 
 const wsClients = new Map<string, WsClient>()
 let wsIdCounter = 0
 let unsubWsRef: (() => void) | null = null
+
+// ── WS Health tracking ───────────────────────────────────────────────
+
+interface WsHealthStats {
+  /** Total connections ever accepted */
+  totalConnections: number
+  /** Messages broadcast to clients */
+  messagesBroadcast: number
+  /** When the WS bridge started */
+  bridgeStartedAt: number | null
+  /** When the last connection was made */
+  lastConnectionAt: number | null
+  /** Peak concurrent clients */
+  peakConcurrent: number
+}
+
+const wsHealth: WsHealthStats = {
+  totalConnections: 0,
+  messagesBroadcast: 0,
+  bridgeStartedAt: null,
+  lastConnectionAt: null,
+  peakConcurrent: 0,
+}
+
+/**
+ * Get current WebSocket server health information.
+ * Returns connection statistics and the list of connected clients.
+ */
+export function getWsHealth() {
+  const now = Date.now()
+  return {
+    status: unsubWsRef ? "running" : "stopped",
+    clients: {
+      connected: wsClients.size,
+      subscribed: [...wsClients.values()].filter((c) => c.subscribed).length,
+      peak: wsHealth.peakConcurrent,
+    },
+    uptime: wsHealth.bridgeStartedAt ? Math.floor((now - wsHealth.bridgeStartedAt) / 1000) : 0,
+    totalConnections: wsHealth.totalConnections,
+    messagesBroadcast: wsHealth.messagesBroadcast,
+    lastConnectionAt: wsHealth.lastConnectionAt,
+    clientsList: [...wsClients.entries()].map(([id, client]) => ({
+      id,
+      subscribed: client.subscribed,
+      connectedFor: Math.floor((now - client.connectedAt) / 1000),
+    })),
+  }
+}
 
 function broadcastWsEvent(event: string, data: Record<string, unknown>) {
   const msg = JSON.stringify({ event, data, timestamp: Date.now() })
@@ -383,6 +438,7 @@ function broadcastWsEvent(event: string, data: Record<string, unknown>) {
     if (client.subscribed) {
       try {
         client.socket.send(msg)
+        wsHealth.messagesBroadcast++
       } catch {
         wsClients.delete(id)
       }
@@ -396,6 +452,8 @@ function broadcastWsEvent(event: string, data: Record<string, unknown>) {
  */
 export function startWsEventBridge() {
   if (unsubWsRef) return // already started
+
+  wsHealth.bridgeStartedAt = Date.now()
 
   const handler = (event: any) => {
     broadcastWsEvent(event.type || "agent:event", {
@@ -441,8 +499,14 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
     websocket: {
       async open(ws: import("bun").ServerWebSocket<undefined>) {
         const id = `ws-${++wsIdCounter}`
-        wsClients.set(id, { socket: ws, id, subscribed: true })
-        log.info("WebSocket client connected", { clientId: id })
+        wsClients.set(id, { socket: ws, id, subscribed: true, connectedAt: Date.now() })
+
+        // Track health stats
+        wsHealth.totalConnections++
+        wsHealth.lastConnectionAt = Date.now()
+        wsHealth.peakConcurrent = Math.max(wsHealth.peakConcurrent, wsClients.size)
+
+        log.info("WebSocket client connected", { clientId: id, totalConnections: wsHealth.totalConnections, concurrent: wsClients.size })
 
         // Send initial state snapshot
         const agents = agentManager.list().map((a) => ({

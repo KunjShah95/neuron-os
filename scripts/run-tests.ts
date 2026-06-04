@@ -83,6 +83,18 @@ async function main() {
   await run("Harness Reporter Tests", ["bun", "run", "src/harness/test-reporter.ts"])
   await run("Harness Module Tests", ["bun", "run", "src/harness/test-index.ts"])
 
+  // ── 6.5 MCP Module Tests ──────────────────────────────────────────
+  await run("MCP Module Tests", ["bun", "run", "src/mcp/test-mcp.ts"])
+
+  // ── 6.6 Cron Module Tests ─────────────────────────────────────────
+  await run("Cron Module Tests", ["bun", "run", "src/cron/test-cron.ts"])
+
+  // ── 6.7 Vault Module Tests ────────────────────────────────────────
+  await run("Vault Module Tests", ["bun", "run", "src/vault/test-vault.ts"])
+
+  // ── 6.8 Agent Runtime Extended Tests ──────────────────────────────
+  await run("Agent Runtime Extended Tests", ["bun", "run", "src/agent/test-runtime-extended.ts"])
+
   // ── 7. TypeScript Typecheck ───────────────────────────────────────
   await run("TypeScript Typecheck", ["bun", "run", "--bun", "tsc", "--noEmit"])
 

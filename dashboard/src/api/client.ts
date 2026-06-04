@@ -1,6 +1,16 @@
-import type { Agent, MemoryEntry } from "./types"
+import type { Agent, MemoryEntry, WsEventPayload } from "./types"
 
 const BASE = "/api/v1"
+
+/** WebSocket URL for real-time updates (derived from current origin). */
+export function getWsUrl(): string {
+  return "/api/v1/ws"
+}
+
+/** SSE fallback URL for environments without WebSocket support. */
+export function getSseUrl(): string {
+  return "/api/v1/events"
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(BASE + path, {
