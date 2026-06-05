@@ -1,5 +1,7 @@
 import { createOpenAI } from "@ai-sdk/openai"
 import { createAnthropic } from "@ai-sdk/anthropic"
+import { createMistral } from "@ai-sdk/mistral"
+import { createAzure } from "@ai-sdk/azure"
 import type { LanguageModel } from "ai"
 import type { AIConfig } from "./provider"
 
@@ -54,6 +56,27 @@ registerProvider("groq", (config: AIConfig) => {
 registerProvider("openrouter", (config: AIConfig) => {
   const { apiKey, baseUrl } = config
   return createOpenAI({ apiKey, baseURL: baseUrl ?? "https://openrouter.ai/api/v1" }).chat(config.model)
+})
+
+registerProvider("mistral", (config: AIConfig) => {
+  const { apiKey, baseUrl } = config
+  return createMistral({ apiKey, baseURL: baseUrl ?? undefined })(config.model)
+})
+
+registerProvider("azure", (config: AIConfig) => {
+  const { apiKey, baseUrl } = config
+  // Azure requires: resourceName, apiKey, and optionally apiVersion
+  // The baseUrl is the full resource URL like https://{resource}.openai.azure.com
+  // We parse the resource name from the URL or use it directly
+  return createAzure({
+    apiKey,
+    baseURL: baseUrl ?? undefined,
+  })(config.model)
+})
+
+registerProvider("togetherai", (config: AIConfig) => {
+  const { apiKey, baseUrl } = config
+  return createOpenAI({ apiKey, baseURL: baseUrl ?? "https://api.together.ai/v1" }).chat(config.model)
 })
 
 registerProvider("custom", (config: AIConfig) => {

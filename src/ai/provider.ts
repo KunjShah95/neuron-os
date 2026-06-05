@@ -40,6 +40,8 @@ export function resolveApiKey(provider: string): string | undefined {
     groq: "GROQ_API_KEY",
     gemini: "GOOGLE_GENERATIVE_AI_API_KEY",
     mistral: "MISTRAL_API_KEY",
+    azure: "AZURE_OPENAI_API_KEY",
+    togetherai: "TOGETHERAI_API_KEY",
     openrouter: "OPENROUTER_API_KEY",
   }
   return process.env[envMap[provider] || ""] || process.env.AEGIS_AI_API_KEY

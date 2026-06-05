@@ -20,6 +20,9 @@ function providerLabel(p: AIProviderType): string {
     case "groq": return "Groq"
     case "openrouter": return "OpenRouter"
     case "ollama": return "Ollama"
+    case "mistral": return "Mistral AI"
+    case "azure": return "Azure OpenAI"
+    case "togetherai": return "Together AI"
     case "custom": return "Custom endpoint"
   }
 }
@@ -29,7 +32,7 @@ function needsApiKey(p: AIProviderType): boolean {
 }
 
 function needsBaseUrl(p: AIProviderType): boolean {
-  return p === "custom"
+  return p === "custom" || p === "azure"
 }
 
 export async function runSetupFlow(prompter: WizardPrompter): Promise<SetupConfig> {
@@ -59,6 +62,9 @@ export async function runSetupFlow(prompter: WizardPrompter): Promise<SetupConfi
         { value: "groq", label: "Groq", hint: "Ultra-fast inference (Llama, Mixtral)" },
         { value: "openrouter", label: "OpenRouter", hint: "Multi-model gateway" },
         { value: "ollama", label: "Ollama", hint: "Local models (no API key)" },
+        { value: "mistral", label: "Mistral AI", hint: "Mistral Large / Small / Codestral" },
+        { value: "azure", label: "Azure OpenAI", hint: "Azure OpenAI Service" },
+        { value: "togetherai", label: "Together AI", hint: "Llama, Mixtral, DeepSeek hosts" },
         { value: "custom", label: "Custom endpoint", hint: "OpenAI-compatible API" },
       ],
       initialValue: "anthropic",
