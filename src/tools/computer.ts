@@ -10,8 +10,8 @@ function takeScreenshot(): string {
   if (platform === "darwin") {
     execSync(`screencapture -x -C "${tmp}"`, { timeout: 10000 })
   } else if (platform === "linux") {
-    try { execSync(`import -window root "${tmp}"`, { timeout: 10000 }) }
-    catch { try { execSync(`maim "${tmp}"`, { timeout: 10000 }) } catch { return "" } }
+    try { execSync(`import -window root "${tmp}" 2>/dev/null`, { timeout: 10000 }) }
+    catch { try { execSync(`maim "${tmp}" 2>/dev/null`, { timeout: 10000 }) } catch { return "" } }
   } else if (platform === "win32") {
     execSync(`powershell -Command "Add-Type -AssemblyName System.Windows.Forms; $bmp = [Drawing.Bitmap]::new([System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width, [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Height); $gfx = [Drawing.Graphics]::FromImage($bmp); $gfx.CopyFromScreen(0, 0, 0, 0, $bmp.Size); $bmp.Save('${tmp}')"`, { timeout: 15000 })
   }

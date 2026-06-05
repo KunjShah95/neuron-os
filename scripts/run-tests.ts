@@ -120,7 +120,7 @@ async function main() {
   await run("Telemetry Tests", ["bun", "test", "src/telemetry/telemetry.test.ts"])
 
   // ── 6.14 Dashboard Unit Tests ──────────────────────────────────────
-  await run("Dashboard Unit Tests", ["bun", "run", "--cwd", "dashboard", "vitest", "run"])
+  await run("Dashboard Unit Tests", ["bun", "run", "--cwd", "dashboard", "test"])
 
   // ── 6.15 Self-Improving Runtime Tests ───────────────────────────────
   await run("Memory Embedding Tests", ["bun", "run", "src/memory/test-embedding.ts"])
