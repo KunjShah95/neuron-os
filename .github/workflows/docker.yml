@@ -36,10 +36,13 @@ jobs:
       - name: Determine image tags
         id: meta
         run: |
-          TAGS="ghcr.io/${{ github.repository }}:latest"
+          # Lowercase the repo for OCI compliance (Docker/GHCR require lowercase tags)
+          REPO="${{ github.repository }}"
+          REPO_LOWER="${REPO,,}"
+          TAGS="ghcr.io/${REPO_LOWER}:latest"
           if [[ "${{ github.ref }}" =~ ^refs/tags/v ]]; then
             TAG_NAME="${GITHUB_REF#refs/tags/}"
-            TAGS="${TAGS},ghcr.io/${{ github.repository }}:${TAG_NAME}"
+            TAGS="${TAGS},ghcr.io/${REPO_LOWER}:${TAG_NAME}"
           fi
           echo "tags=${TAGS}" >> $GITHUB_OUTPUT
 
