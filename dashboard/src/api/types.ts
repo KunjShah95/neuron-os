@@ -18,6 +18,8 @@ export interface MemoryEntry {
   content: string
   timestamp: string
   score?: number
+  source?: string
+  category?: string
 }
 
 export interface Skill {

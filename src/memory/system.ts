@@ -5,6 +5,7 @@ import type { MemoryEntry, MemoryContext, ExtractedFact, UserProfile } from "./t
 import type { AgentMemoryConnector } from "./agentmemory"
 import { agentMemory } from "./agentmemory"
 import { createLogger } from "../cli/logger"
+import { getProjectMemoryDir } from "../project/context"
 
 const log = createLogger("memory:system")
 
@@ -60,9 +61,18 @@ export class MemorySystem {
     }
   }
 
-  constructor(cwd: string = process.cwd(), agentMemory?: AgentMemoryConnector) {
-    this.memoryDir = resolve(cwd, ".aegis/memory")
+  /**
+   * @param cwd - The project root directory
+   * @param agentMemory - Optional agent memory connector
+   * @param project - Optional project name for project-scoped memory storage
+   */
+  constructor(cwd: string = process.cwd(), agentMemory?: AgentMemoryConnector, project?: string) {
+    // When a project is specified, use ~/.aegis/projects/<name>/memory/ instead of cwd/.aegis/memory/
+    this.memoryDir = project
+      ? getProjectMemoryDir(project)
+      : resolve(cwd, ".aegis/memory")
     this.userFile = resolve(cwd, "user.md")
+    // For project-scoped mode, MEMORY.md and user.md still come from the project root
     this.memoryFile = resolve(cwd, "MEMORY.md")
     this.dailyDir = resolve(this.memoryDir, "daily")
     this.autoMemoryDir = resolve(this.memoryDir, "auto")
@@ -507,3 +517,13 @@ export class MemorySystem {
 }
 
 export const memorySystem = new MemorySystem(process.cwd(), agentMemory)
+
+/**
+ * Get a project-scoped memory system.
+ * Memory data is isolated per project under ~/.aegis/projects/<name>/memory/.
+ * Falls back to the default singleton when project is null/undefined.
+ */
+export function getProjectMemorySystem(project?: string | null): MemorySystem {
+  if (!project) return memorySystem
+  return new MemorySystem(process.cwd(), agentMemory, project)
+}

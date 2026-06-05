@@ -7,7 +7,7 @@
  */
 
 import { createAgentRuntime } from "../agent/runtime"
-import { AIProviderManager, type AIConfig } from "../ai"
+import { AIProviderManager, type AIConfig, resolveApiKey } from "../ai"
 import { AgentEngine } from "../agent/engine"
 import type { AIProviderType } from "../ai/models"
 import { ActionTracker, type ActionLog } from "../agent/action-tracker"
@@ -18,10 +18,11 @@ interface AgentOrchestratorCallbacks {
 }
 
 function buildAIConfig(): AIConfig {
+  const provider = (process.env.AEGIS_AI_PROVIDER ?? "openai") as AIProviderType
   return {
-    provider: (process.env.AEGIS_AI_PROVIDER ?? "openai") as AIProviderType,
+    provider,
     model: process.env.AEGIS_AI_MODEL ?? "gpt-4o",
-    apiKey: process.env.AEGIS_AI_API_KEY,
+    apiKey: process.env.AEGIS_AI_API_KEY || resolveApiKey(provider),
     baseUrl: process.env.AEGIS_AI_BASE_URL,
     temperature: 0.7,
   }
@@ -37,13 +38,22 @@ function buildAIConfig(): AIConfig {
 export async function runAgentOrchestrator(
   goal: string,
   callbacks?: AgentOrchestratorCallbacks,
+  project?: string,
 ): Promise<string> {
   const tracker = new ActionTracker()
   const executor = new AgentToolExecutor(tracker)
   const runtime = createAgentRuntime("agent-run-mode", "build", process.cwd())
   const ai = new AIProviderManager(buildAIConfig())
-  const engine = new AgentEngine(runtime, ai, { maxSteps: 25 })
+  const sessionId = `agent-${Date.now().toString(36)}`
+  const engine = new AgentEngine(runtime, ai, {
+    maxSteps: 25,
+    sessionId,
+    sessionName: goal.slice(0, 60),
+    goal,
+    project,
+  })
 
+  try {
   // Phase 1: AI explores and plans (result is used implicitly for context)
   await engine.chat([
     {
@@ -88,6 +98,7 @@ IMPORTANT SAFETY RULES:
   const pending = tracker.getPendingMutations()
 
   if (pending.length === 0) {
+    engine.completeSession("completed")
     return executionResult.text || "Goal complete. No file changes were needed."
   }
 
@@ -96,6 +107,7 @@ IMPORTANT SAFETY RULES:
     const approved = await callbacks.onStaged(pending)
     if (!approved) {
       tracker.rejectAll()
+      engine.completeSession("completed")
       return "Changes were rejected. No files were modified."
     }
   } else {
@@ -111,8 +123,11 @@ IMPORTANT SAFETY RULES:
   const { errors } = executor.applyApproved()
 
   if (errors.length > 0) {
+    engine.completeSession("failed")
     return `Changes applied with ${errors.length} error(s):\n${errors.join("\n")}`
   }
+
+  engine.completeSession("completed")
 
   const summary = [
     `✅ Changes applied successfully.`,
@@ -125,4 +140,8 @@ IMPORTANT SAFETY RULES:
   ].join("\n")
 
   return summary
+  } catch (err) {
+    engine.completeSession("failed")
+    throw err
+  }
 }

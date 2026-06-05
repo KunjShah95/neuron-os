@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { agentManager } from "../agent/manager"
-import { memorySystem } from "../memory"
 import { createLogger } from "../cli/logger"
 import type { AgentTypeName } from "../agent/agent-types"
 import { z } from "zod"
@@ -63,6 +62,7 @@ interface ApiRequest {
   pathname: string
   headers: Record<string, string>
   body?: unknown
+  searchParams?: URLSearchParams
 }
 
 // ── Rate Limiter ──────────────────────────────────────────────────────
@@ -268,8 +268,10 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
   // ── Memory ──────────────────────────────────────────────────────────
 
   if (pathname === "/api/v1/memory" && method === "GET") {
-    const memory = await memorySystem.loadMemory()
-    return jsonResponse(200, { memory }, config, req)
+    const { memorySystem, getProjectMemorySystem } = await import("../memory/system")
+    const project = req.searchParams?.get("project") || undefined
+    const memory = project ? getProjectMemorySystem(project).loadMemory() : memorySystem.loadMemory()
+    return jsonResponse(200, { memory: await memory }, config, req)
   }
 
   if (pathname === "/api/v1/memory" && method === "POST") {
@@ -278,7 +280,10 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
       return jsonResponse(400, { error: memResult.error.issues.map(i => i.message).join("; ") }, config, req)
     }
     const payload = memResult.data
-    await memorySystem.appendToMemory(payload.content)
+    const { memorySystem, getProjectMemorySystem } = await import("../memory/system")
+    const project = req.searchParams?.get("project") || undefined
+    const ms = project ? getProjectMemorySystem(project) : memorySystem
+    await ms.appendToMemory(payload.content)
     return jsonResponse(201, { status: "saved" }, config, req)
   }
 
@@ -288,7 +293,10 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
       return jsonResponse(400, { error: queryResult.error.issues.map(i => i.message).join("; ") }, config, req)
     }
     const payload = queryResult.data
-    const results = await memorySystem.search(payload.query)
+    const { memorySystem, getProjectMemorySystem } = await import("../memory/system")
+    const project = req.searchParams?.get("project") || undefined
+    const ms = project ? getProjectMemorySystem(project) : memorySystem
+    const results = await ms.search(payload.query)
     return jsonResponse(200, { results }, config, req)
   }
 
@@ -306,6 +314,14 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
     }, config, req)
   }
 
+  // ── Projects ─────────────────────────────────────────────────────
+
+  if (pathname === "/api/v1/projects" && method === "GET") {
+    const { listProjects } = await import("../project/context")
+    const projects = listProjects()
+    return jsonResponse(200, { projects }, config, req)
+  }
+
   // ── WebSocket Health ─────────────────────────────────────────────
 
   if (pathname === "/api/v1/ws/health" && method === "GET") {
@@ -320,31 +336,39 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
   // ── Sessions (when sessionDb enabled) ─────────────────────────
 
   if (config.sessionDb && pathname === "/api/v1/sessions" && method === "GET") {
-    const { sessionStore } = await import("../memory/session-persistence")
-    const sessions = sessionStore.restoreRecentSessions(50)
+    const { sessionStore, getProjectSessionStore } = await import("../memory/session-persistence")
+    const project = req.searchParams?.get("project") || undefined
+    const store = project ? getProjectSessionStore(project) : sessionStore
+    const sessions = store.restoreRecentSessions(50)
     return jsonResponse(200, { sessions }, config, req)
   }
 
   if (config.sessionDb && pathname === "/api/v1/sessions/stats" && method === "GET") {
-    const { sessionStore } = await import("../memory/session-persistence")
-    const stats = sessionStore.getStats()
+    const { sessionStore, getProjectSessionStore } = await import("../memory/session-persistence")
+    const project = req.searchParams?.get("project") || undefined
+    const store = project ? getProjectSessionStore(project) : sessionStore
+    const stats = store.getStats()
     return jsonResponse(200, stats, config, req)
   }
 
   const sessionMatch = pathname.match(/^\/api\/v1\/sessions\/([^/]+)$/)
   if (config.sessionDb && sessionMatch && method === "GET") {
-    const { sessionStore } = await import("../memory/session-persistence")
+    const { sessionStore, getProjectSessionStore } = await import("../memory/session-persistence")
+    const project = req.searchParams?.get("project") || undefined
+    const store = project ? getProjectSessionStore(project) : sessionStore
     const sessionId = sessionMatch[1]!
-    const session = sessionStore.getSession(sessionId)
+    const session = store.getSession(sessionId)
     if (!session) return jsonResponse(404, { error: "Session not found" }, config, req)
 
-    const messages = sessionStore.getMessages(sessionId, 100)
+    const messages = store.getMessages(sessionId, 100)
     return jsonResponse(200, { session, messages }, config, req)
   }
 
   if (config.sessionDb && sessionMatch && method === "DELETE") {
-    const { sessionStore } = await import("../memory/session-persistence")
-    sessionStore.deleteSession(sessionMatch[1]!)
+    const { sessionStore, getProjectSessionStore } = await import("../memory/session-persistence")
+    const project = req.searchParams?.get("project") || undefined
+    const store = project ? getProjectSessionStore(project) : sessionStore
+    store.deleteSession(sessionMatch[1]!)
     return jsonResponse(200, { status: "deleted" }, config, req)
   }
 
@@ -658,6 +682,7 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
         method: request.method,
         pathname: url.pathname,
         headers: Object.fromEntries(request.headers.entries()),
+        searchParams: url.searchParams,
         body:
           request.method === "POST" || request.method === "PUT"
             ? await request.json().catch(() => ({}))

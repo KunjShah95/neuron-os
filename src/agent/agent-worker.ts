@@ -31,18 +31,9 @@ function replyTo(msg: AgentIpcMessage, type: string, payload?: unknown): void {
 // The Agent worker will use the central AgentRuntime/AgentEngine when available,
 // falling back to the original builtin tool set for standalone usage.
 import { createAgentRuntime } from "./runtime"
-import { AIProviderManager, type AIConfig } from "../ai"
+import { AIProviderManager, type AIConfig, resolveApiKey } from "../ai"
 import { getDefaultModel } from "../ai/models"
 
-/** Resolve the API key for a given provider from known env vars. */
-function resolveApiKey(provider: string): string | undefined {
-  const envMap: Record<string, string> = {
-    anthropic: "ANTHROPIC_API_KEY",
-    openai: "OPENAI_API_KEY",
-    deepseek: "DEEPSEEK_API_KEY",
-  }
-  return process.env[envMap[provider] || ""] || process.env.AEGIS_AI_API_KEY
-}
 import { AgentEngine } from "./engine"
 
 let engine: AgentEngine | null = null
@@ -65,7 +56,12 @@ async function ensureEngine(): Promise<AgentEngine> {
   if (engine) return engine
   const runtime = createAgentRuntime(AGENT_ID, AGENT_TYPE, process.cwd())
   const ai = new AIProviderManager(buildAIConfig())
-  engine = new AgentEngine(runtime, ai, { maxSteps: parseInt(process.env.AEGIS_MAX_TURNS ?? "20", 10) })
+  engine = new AgentEngine(runtime, ai, {
+    maxSteps: parseInt(process.env.AEGIS_MAX_TURNS ?? "20", 10),
+    sessionId: AGENT_ID,
+    sessionName: AGENT_NAME,
+    goal: `Worker agent ${AGENT_NAME}`,
+  })
   return engine
 }
 

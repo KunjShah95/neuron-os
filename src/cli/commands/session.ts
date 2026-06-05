@@ -1,0 +1,329 @@
+/**
+ * session — SQLite session store CLI commands.
+ *
+ * Manage persisted agent sessions: list recent, view messages, resume.
+ */
+
+import type { Command } from "commander"
+import { theme } from "../theme"
+
+export function registerSession(program: Command) {
+  const session = program
+    .command("session")
+    .description("Manage persisted agent sessions from the SQLite store")
+
+  // ── list ──────────────────────────────────────────────────────────
+  session
+    .command("list")
+    .alias("ls")
+    .description("List recent sessions")
+    .option("-n, --count <n>", "Number of sessions to show", "10")
+    .option("--status <status>", "Filter by status (active, completed, failed, paused)")
+    .action(async (opts: { count?: string; status?: string }) => {
+      const { sessionStore } = await import("../../memory/session-persistence")
+
+      const count = parseInt(opts.count ?? "10", 10)
+      const status = opts.status as any
+      const sessions = status
+        ? sessionStore.listSessions(status)
+        : sessionStore.restoreRecentSessions(count)
+
+      if (sessions.length === 0) {
+        console.log(theme.dim("  No sessions found."))
+        console.log(theme.dim("  Sessions are created automatically when agents run."))
+        return
+      }
+
+      console.log(theme.heading(`  Sessions (${sessions.length})`))
+      console.log()
+
+      for (const s of sessions) {
+        const statusEmoji =
+          s.status === "active" ? "🟢" :
+          s.status === "completed" ? "✅" :
+          s.status === "failed" ? "🔴" :
+          s.status === "paused" ? "⏸️" : "⚪"
+
+        const date = new Date(s.updatedAt).toLocaleString().slice(0, 16)
+        const goal = s.goal.slice(0, 60) || "(no goal)"
+        const name = s.name.slice(0, 40)
+
+        console.log(`  ${statusEmoji} ${theme.bold(s.id.slice(0, 24))}`)
+        console.log(`    name:    ${theme.dim(name)}`)
+        console.log(`    goal:    ${theme.dim(goal)}`)
+        console.log(`    status:  ${statusEmoji} ${s.status} · ${theme.dim(date)}`)
+        console.log()
+      }
+
+      console.log(theme.dim("  Use `aegis session view <id>` to see messages"))
+      console.log(theme.dim("  Use `aegis session resume <id>` to mark as active"))
+    })
+
+  // ── search ────────────────────────────────────────────────────────
+  session
+    .command("search <query>")
+    .description("Search messages across all sessions")
+    .option("-n, --limit <n>", "Max results", "20")
+    .option("--role <role>", "Filter by role (user, assistant, system, tool)")
+    .action(async (query: string, opts: { limit?: string; role?: string }) => {
+      if (!query || query.trim().length === 0) {
+        console.log(theme.error("  Search query cannot be empty."))
+        return
+      }
+
+      const { sessionStore } = await import("../../memory/session-persistence")
+
+      const limit = parseInt(opts.limit ?? "20", 10)
+      const role = opts.role as any
+      const results = sessionStore.searchMessages(query, limit, role)
+
+      if (results.length === 0) {
+        console.log(theme.dim(`  No messages matching "${query}" found.`))
+        return
+      }
+
+      console.log(theme.heading(`  Search results for "${query}" (${results.length})`))
+      console.log()
+
+      for (const { message, session: sess } of results) {
+        const roleEmoji =
+          message.role === "user" ? "👤" :
+          message.role === "assistant" ? "🤖" :
+          message.role === "system" ? "⚙️" : "🔧"
+
+        const time = new Date(message.timestamp).toLocaleString().slice(0, 16)
+        const statusEmoji =
+          sess.status === "active" ? "🟢" :
+          sess.status === "completed" ? "✅" :
+          sess.status === "failed" ? "🔴" : "⏸️"
+
+        // Show context around the match
+        const content = message.content
+        const idx = content.toLowerCase().indexOf(query.toLowerCase())
+        let preview: string
+        if (idx >= 0) {
+          const start = Math.max(0, idx - 30)
+          const end = Math.min(content.length, idx + query.length + 60)
+          preview = (start > 0 ? "…" : "") + content.slice(start, end) + (end < content.length ? "…" : "")
+        } else {
+          preview = content.slice(0, 120) + (content.length > 120 ? "…" : "")
+        }
+
+        console.log(`  ${roleEmoji} ${theme.bold(message.role)} · ${theme.dim(time)}`)
+        console.log(`    session: ${statusEmoji} ${theme.dim(sess.name || sess.id.slice(0, 24))}  (${sess.id.slice(0, 16)}…)`)
+        console.log(`    match:   ${preview}`)
+        console.log()
+      }
+
+      console.log(theme.dim(`  Use \`aegis session view <id>\` to see full context`))
+    })
+
+  // ── view ──────────────────────────────────────────────────────────
+  session
+    .command("view <sessionId>")
+    .description("Show session details and messages")
+    .option("-n, --limit <n>", "Number of messages to show", "30")
+    .action(async (sessionId: string, opts: { limit?: string }) => {
+      const { sessionStore } = await import("../../memory/session-persistence")
+
+      const session = sessionStore.getSession(sessionId)
+      if (!session) {
+        console.log(theme.error(`  Session \"${sessionId}\" not found.`))
+        console.log(theme.dim("  Use `aegis session list` to see available sessions."))
+        process.exit(1)
+      }
+
+      const limit = parseInt(opts.limit ?? "30", 10)
+      const messages = sessionStore.getMessages(sessionId, limit)
+      const stats = sessionStore.getStats()
+
+      const statusEmoji =
+        session.status === "active" ? "🟢" :
+        session.status === "completed" ? "✅" :
+        session.status === "failed" ? "🔴" : "⏸️"
+
+      console.log(theme.heading(`  Session: ${session.name}`))
+      console.log()
+      console.log(`  ${theme.bold("ID:")}       ${session.id}`)
+      console.log(`  ${theme.bold("Status:")}   ${statusEmoji} ${session.status}`)
+      console.log(`  ${theme.bold("Type:")}     ${session.agentType}`)
+      console.log(`  ${theme.bold("Goal:")}     ${session.goal || "(no goal)"}`)
+      console.log(`  ${theme.bold("Created:")}  ${new Date(session.createdAt).toLocaleString()}`)
+      console.log(`  ${theme.bold("Updated:")}  ${new Date(session.updatedAt).toLocaleString()}`)
+      console.log(`  ${theme.bold("Msgs:")}     ${messages.length} (of ${stats.totalMessages} total in DB)`)
+      console.log()
+
+      if (messages.length === 0) {
+        console.log(theme.dim("  No messages in this session."))
+        return
+      }
+
+      console.log(theme.heading(`  Messages (last ${messages.length})`))
+      console.log()
+
+      for (const msg of messages) {
+        const roleEmoji =
+          msg.role === "user" ? "👤" :
+          msg.role === "assistant" ? "🤖" :
+          msg.role === "system" ? "⚙️" : "🔧"
+        const time = new Date(msg.timestamp).toLocaleTimeString().slice(0, 8)
+        const content = msg.content.slice(0, 300)
+        const lines = content.split("\n")
+
+        console.log(`  ${roleEmoji} ${theme.bold(msg.role)} · ${theme.dim(time)}`)
+        for (const line of lines.slice(0, 6)) {
+          console.log(`    ${line.slice(0, 120)}`)
+        }
+        if (lines.length > 6 || content.length > 300) {
+          console.log(`    ${theme.dim("… (truncated)")}`)
+        }
+        console.log()
+      }
+    })
+
+  // ── resume ────────────────────────────────────────────────────────
+  session
+    .command("resume <sessionId>")
+    .description("Mark a session as active (useful for restoring paused sessions)")
+    .action(async (sessionId: string) => {
+      const { sessionStore } = await import("../../memory/session-persistence")
+
+      const result = sessionStore.resumeSession(sessionId)
+      if (!result) {
+        console.log(theme.error(`  Session \"${sessionId}\" not found.`))
+        console.log(theme.dim("  Use `aegis session list` to see available sessions."))
+        process.exit(1)
+      }
+
+      console.log(theme.success(`  ✓ Session \"${result.session.name}\" resumed`))
+      console.log(`    id:       ${theme.dim(result.session.id)}`)
+      console.log(`    status:   🟢 active`)
+      console.log(`    messages: ${result.messages.length} available`)
+      console.log()
+      console.log(theme.dim("  This session will now appear as active in the store."))
+      console.log(theme.dim("  Use `aegis session view <id>` to see messages."))
+    })
+
+  // ── export ────────────────────────────────────────────────────────
+  session
+    .command("export <sessionId>")
+    .description("Export session messages as JSON for analysis")
+    .option("-f, --format <format>", "Output format", "json")
+    .action(async (sessionId: string, opts: { format?: string }) => {
+      if (opts.format && opts.format !== "json") {
+        console.log(theme.error(`  Unsupported format: "${opts.format}". Only "json" is supported.`))
+        process.exit(1)
+      }
+
+      const { sessionStore } = await import("../../memory/session-persistence")
+
+      const session = sessionStore.getSession(sessionId)
+      if (!session) {
+        console.log(theme.error(`  Session "${sessionId}" not found.`))
+        console.log(theme.dim("  Use `aegis session list` to see available sessions."))
+        process.exit(1)
+      }
+
+      const messages = sessionStore.getMessages(sessionId, 10000)
+
+      function safeParseJson(raw: string): unknown {
+        try { return JSON.parse(raw) } catch { return raw }
+      }
+
+      const output = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        session: {
+          id: session.id,
+          name: session.name,
+          agentType: session.agentType,
+          goal: session.goal,
+          status: session.status,
+          createdAt: session.createdAt,
+          updatedAt: session.updatedAt,
+          metadata: session.metadata,
+        },
+        messages: messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+          timestamp: m.timestamp,
+          toolCalls: m.toolCalls ? safeParseJson(m.toolCalls) : undefined,
+        })),
+        messageCount: messages.length,
+      }
+
+      console.log(JSON.stringify(output, null, 2))
+    })
+
+  // ── prune ────────────────────────────────────────────────────────
+  session
+    .command("prune")
+    .description("Delete old sessions from the store")
+    .requiredOption("--older-than <duration>", "Age threshold (e.g. 7d, 30d, 24h, 90m)")
+    .option("--dry-run", "Show what would be deleted without actually deleting")
+    .action(async (opts: { olderThan: string; dryRun?: boolean }) => {
+      const match = opts.olderThan.match(/^(\d+)([dhms])$/)
+      if (!match) {
+        console.log(theme.error(`  Invalid duration: "${opts.olderThan}". Use format like 7d, 30d, 24h, 90m.`))
+        process.exit(1)
+      }
+
+      const value = parseInt(match[1]!, 10)
+      const unit = match[2]!
+      const multipliers: Record<string, number> = {
+        d: 86_400_000,
+        h: 3_600_000,
+        m: 60_000,
+        s: 1_000,
+      }
+      const olderThanMs = value * multipliers[unit]!
+
+      const { sessionStore } = await import("../../memory/session-persistence")
+
+      // Count candidates first
+      const cutoff = Date.now() - olderThanMs
+      const toDelete = sessionStore.listSessions().filter((s) => s.updatedAt < cutoff)
+
+      if (toDelete.length === 0) {
+        console.log(theme.dim("  No sessions older than that threshold."))
+        return
+      }
+
+      console.log(theme.warn(`  ${toDelete.length} session(s) to ${opts.dryRun ? "prune (dry-run)" : "delete"}:`))
+      console.log()
+
+      for (const s of toDelete) {
+        const date = new Date(s.updatedAt).toLocaleString().slice(0, 16)
+        const goal = s.goal.slice(0, 60) || "(no goal)"
+        console.log(`    ╳ ${theme.dim(s.id.slice(0, 24))}  ${theme.dim(date)}  ${goal}`)
+      }
+
+      console.log()
+
+      if (opts.dryRun) {
+        console.log(theme.dim("  Run without --dry-run to actually delete these sessions."))
+        return
+      }
+
+      const deleted = sessionStore.pruneSessions(olderThanMs)
+      console.log(theme.success(`  ✓ ${deleted} session(s) pruned.`))
+    })
+
+  // ── delete ────────────────────────────────────────────────────────
+  session
+    .command("delete <sessionId>")
+    .description("Delete a session and all its messages from the store")
+    .action(async (sessionId: string) => {
+      const { sessionStore } = await import("../../memory/session-persistence")
+
+      const existing = sessionStore.getSession(sessionId)
+      if (!existing) {
+        console.log(theme.error(`  Session \"${sessionId}\" not found.`))
+        process.exit(1)
+      }
+
+      sessionStore.deleteSession(sessionId)
+      console.log(theme.warn(`  ✗ Session \"${existing.name}\" deleted`))
+      console.log(`    id: ${theme.dim(sessionId)}`)
+    })
+}

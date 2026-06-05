@@ -103,6 +103,9 @@ export async function applyAndReport(
   }
 }
 
+/** Alias for promptApproval — used by plan orchestrator */
+export const runApprovalFlow = promptApproval
+
 function groupByFile(actions: ActionLog[]): Map<string, ActionLog[]> {
   const groups = new Map<string, ActionLog[]>()
   for (const a of actions) {

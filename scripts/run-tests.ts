@@ -7,6 +7,12 @@
 
 let exitCode = 0
 
+/** Resolve command array for the current platform (Windows needs .cmd). */
+function resolveCmd(cmd: string[]): string[] {
+  if (process.platform !== "win32") return cmd
+  return cmd.map((part) => (part === "bun" ? "bun.cmd" : part))
+}
+
 function time<T>(_label: string, fn: () => Promise<T>): Promise<T> {
   const start = performance.now()
   return fn().finally(() => {
@@ -22,7 +28,7 @@ async function run(label: string, cmd: string[]): Promise<boolean> {
   console.log(`══════════════════════════════════════════════════════════\n`)
 
   try {
-    const result = await time(label, () => Bun.spawn(cmd, {
+    const result = await time(label, () => Bun.spawn(resolveCmd(cmd), {
       stdio: ["inherit", "inherit", "inherit"],
       env: { ...process.env },
     }).exited)
@@ -98,19 +104,22 @@ async function main() {
   // ── 6.8 Agent Runtime Extended Tests ──────────────────────────────
   await run("Agent Runtime Extended Tests", ["bun", "run", "src/agent/test-runtime-extended.ts"])
 
-  // ── 6.9 Skills CLI Tests ───────────────────────────────────────────
+  // ── 6.9 Session Persistence Smoke Tests ────────────────────────────
+  await run("Session Persistence Smoke Tests", ["bun", "run", "src/memory/test-session-persistence.ts"])
+
+  // ── 6.10 Skills CLI Tests ───────────────────────────────────────────
   await run("Skills CLI Tests", ["bun", "test", "src/modes/skills.test.ts"])
 
-  // ── 6.10 Rate Limiter Tests ───────────────────────────────────────
+  // ── 6.11 Rate Limiter Tests ───────────────────────────────────────
   await run("Rate Limiter Tests", ["bun", "test", "src/api/rate-limiter.test.ts"])
 
-  // ── 6.11 MCP HTTP Tests ───────────────────────────────────────────
+  // ── 6.12 MCP HTTP Tests ───────────────────────────────────────────
   await run("MCP HTTP Tests", ["bun", "test", "src/mcp/mcp-http.test.ts"])
 
-  // ── 6.12 Telemetry Tests ───────────────────────────────────────────
+  // ── 6.13 Telemetry Tests ───────────────────────────────────────────
   await run("Telemetry Tests", ["bun", "test", "src/telemetry/telemetry.test.ts"])
 
-  // ── 6.13 Dashboard Unit Tests ──────────────────────────────────────
+  // ── 6.14 Dashboard Unit Tests ──────────────────────────────────────
   await run("Dashboard Unit Tests", ["bun", "run", "--cwd", "dashboard", "vitest", "run"])
 
   // ── 7. TypeScript Typecheck ───────────────────────────────────────

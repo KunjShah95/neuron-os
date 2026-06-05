@@ -6,15 +6,16 @@
  */
 
 import { createAgentRuntime } from "../agent/runtime"
-import { AIProviderManager, type AIConfig } from "../ai"
+import { AIProviderManager, type AIConfig, resolveApiKey } from "../ai"
 import { AgentEngine } from "../agent/engine"
 import type { AIProviderType } from "../ai/models"
 
 function buildAIConfig(): AIConfig {
+  const provider = (process.env.AEGIS_AI_PROVIDER ?? "openai") as AIProviderType
   return {
-    provider: (process.env.AEGIS_AI_PROVIDER ?? "openai") as AIProviderType,
+    provider,
     model: process.env.AEGIS_AI_MODEL ?? "gpt-4o",
-    apiKey: process.env.AEGIS_AI_API_KEY,
+    apiKey: process.env.AEGIS_AI_API_KEY || resolveApiKey(provider),
     baseUrl: process.env.AEGIS_AI_BASE_URL,
     temperature: 0.5,
   }
@@ -24,16 +25,30 @@ function buildAIConfig(): AIConfig {
  * Generate a step-by-step implementation plan for a given goal.
  * Explores the codebase first, then produces a structured plan.
  * Returns the plan as a formatted markdown string.
+ *
+ * @param goal - The goal to plan for
+ * @param sessionDb - If true, persist to SQLite session store (default: false)
  */
-export async function runPlanOrchestrator(goal: string): Promise<string> {
+export async function runPlanOrchestrator(goal: string, sessionDb?: boolean, project?: string): Promise<string> {
   const runtime = createAgentRuntime("plan-mode", "plan", process.cwd())
   const ai = new AIProviderManager(buildAIConfig())
-  const engine = new AgentEngine(runtime, ai, { maxSteps: 12 })
+  const engine = new AgentEngine(runtime, ai, {
+    maxSteps: 12,
+    ...(sessionDb
+      ? {
+          sessionId: `plan-${Date.now().toString(36)}`,
+          sessionName: `plan-${goal.slice(0, 40)}`,
+          goal,
+          project,
+        }
+      : {}),
+  })
 
-  const result = await engine.chat([
-    {
-      role: "user",
-      content: `You are a senior software architect. Create a detailed, step-by-step implementation plan for the following goal. First, explore the codebase to understand the existing structure and patterns. Then produce a plan that includes:
+  try {
+    const result = await engine.chat([
+      {
+        role: "user",
+        content: `You are a senior software architect. Create a detailed, step-by-step implementation plan for the following goal. First, explore the codebase to understand the existing structure and patterns. Then produce a plan that includes:
 
 1. **Summary** — Brief overview of what needs to be done
 2. **Files to modify** — List of files that need changes, with specific sections
@@ -44,8 +59,12 @@ export async function runPlanOrchestrator(goal: string): Promise<string> {
 Be specific and actionable. Reference existing patterns and conventions in the codebase.
 
 Goal: ${goal}`,
-    },
-  ])
-
-  return result.text
+      },
+    ])
+    if (sessionDb) engine.completeSession("completed")
+    return result.text
+  } catch (err) {
+    if (sessionDb) engine.completeSession("failed")
+    throw err
+  }
 }

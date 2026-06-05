@@ -17,6 +17,9 @@ function resolveApiKey(provider: string): string | undefined {
     anthropic: "ANTHROPIC_API_KEY",
     openai: "OPENAI_API_KEY",
     deepseek: "DEEPSEEK_API_KEY",
+    gemini: "GEMINI_API_KEY",
+    groq: "GROQ_API_KEY",
+    openrouter: "OPENROUTER_API_KEY",
   }
   return process.env[envMap[provider] || ""] || process.env.AEGIS_AI_API_KEY
 }
@@ -36,18 +39,36 @@ function buildAIConfig(): AIConfig {
 /**
  * Ask a question about the codebase (read-only).
  * Returns the AI's text response.
+ *
+ * @param question - The question to research
+ * @param sessionDb - If true, persist to SQLite session store (default: false)
  */
-export async function runAskOrchestrator(question: string): Promise<string> {
+export async function runAskOrchestrator(question: string, sessionDb?: boolean, project?: string): Promise<string> {
   const runtime = createAgentRuntime("ask-mode", "read", process.cwd())
   const ai = new AIProviderManager(buildAIConfig())
-  const engine = new AgentEngine(runtime, ai, { maxSteps: 8 })
+  const engine = new AgentEngine(runtime, ai, {
+    maxSteps: 8,
+    ...(sessionDb
+      ? {
+          sessionId: `ask-${Date.now().toString(36)}`,
+          sessionName: `ask-${question.slice(0, 40)}`,
+          goal: question,
+          project,
+        }
+      : {}),
+  })
 
-  const result = await engine.chat([
-    {
-      role: "user",
-      content: `You are a codebase research assistant. Answer the following question by exploring the codebase using the available tools. Be thorough and cite specific files and line numbers where relevant.\n\nQuestion: ${question}`,
-    },
-  ])
-
-  return result.text
+  try {
+    const result = await engine.chat([
+      {
+        role: "user",
+        content: `You are a codebase research assistant. Answer the following question by exploring the codebase using the available tools. Be thorough and cite specific files and line numbers where relevant.\n\nQuestion: ${question}`,
+      },
+    ])
+    if (sessionDb) engine.completeSession("completed")
+    return result.text
+  } catch (err) {
+    if (sessionDb) engine.completeSession("failed")
+    throw err
+  }
 }

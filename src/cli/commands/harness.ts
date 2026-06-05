@@ -22,6 +22,11 @@ export function registerHarness(program: Command) {
     .description("Export last test run report")
     .action(handleReport)
 
+  harness
+    .command("status")
+    .description("Show harness status (tests found, etc.)")
+    .action(handleStatus)
+
   // Default: show status
   harness.action(handleStatus)
 }

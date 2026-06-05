@@ -18,11 +18,13 @@ import SiteFeatures from "./site/Features"
 import SiteDemo from "./site/Demo"
 import SiteAbout from "./site/About"
 import ErrorBoundary from "./components/ErrorBoundary"
+import { ProjectProvider } from "./contexts/ProjectContext"
 
 export default function App() {
   const location = useLocation()
 
   return (
+    <ProjectProvider>
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route element={<Layout />}>
@@ -47,5 +49,6 @@ export default function App() {
         </Route>
       </Routes>
     </AnimatePresence>
+    </ProjectProvider>
   )
 }

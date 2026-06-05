@@ -14,12 +14,12 @@ function countInstalledSkills(): number {
 }
 
 
-export function showBanner(opts?: { version?: string; tagline?: string }) {
+export function showBanner(opts?: { version?: string; tagline?: string; title?: string }) {
   if (bannerEmitted) return
   bannerEmitted = true
 
   if (process.stdout.isTTY && !process.argv.includes("--plain") && !process.argv.includes("--json")) {
-    const text = figlet.textSync("AEGIS", { font: "Big" })
+    const text = figlet.textSync(opts?.title ?? "Neuron OS", { font: "Big" })
     const colored = text.split("\n").map((l) => theme.accent(l)).join("\n")
     console.log(colored)
     const version = opts?.version ?? `v${getVersion()}`

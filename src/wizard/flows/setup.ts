@@ -16,6 +16,9 @@ function providerLabel(p: AIProviderType): string {
     case "anthropic": return "Anthropic"
     case "openai": return "OpenAI"
     case "deepseek": return "DeepSeek"
+    case "gemini": return "Gemini"
+    case "groq": return "Groq"
+    case "openrouter": return "OpenRouter"
     case "ollama": return "Ollama"
     case "custom": return "Custom endpoint"
   }
@@ -52,6 +55,9 @@ export async function runSetupFlow(prompter: WizardPrompter): Promise<SetupConfi
         { value: "anthropic", label: "Anthropic", hint: "Claude models" },
         { value: "openai", label: "OpenAI", hint: "GPT / o-series models" },
         { value: "deepseek", label: "DeepSeek", hint: "DeepSeek Chat / Reasoner" },
+        { value: "gemini", label: "Gemini", hint: "Google Gemini models" },
+        { value: "groq", label: "Groq", hint: "Ultra-fast inference (Llama, Mixtral)" },
+        { value: "openrouter", label: "OpenRouter", hint: "Multi-model gateway" },
         { value: "ollama", label: "Ollama", hint: "Local models (no API key)" },
         { value: "custom", label: "Custom endpoint", hint: "OpenAI-compatible API" },
       ],

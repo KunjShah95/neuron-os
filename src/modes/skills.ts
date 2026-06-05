@@ -76,13 +76,8 @@ export const skillsMode: Mode = {
       }
     }
 
-    let remote: any[] = []
-    try {
-      remote = await fetchTopSkills(5)
-    } catch {
-      // fetchTopSkills returns empty array on failure, remote stays empty
-    }
-    const stats = await fetchRegistryStats().catch(() => null)
+    const remote = await fetchTopSkills(5)
+    const stats = await fetchRegistryStats()
 
     if (remote.length > 0) {
       lines.push(`  ${theme.heading("Trending on skills.sh")}`)
@@ -99,6 +94,11 @@ export const skillsMode: Mode = {
     if (stats) {
       lines.push(`  ${theme.muted(`${stats.totalSkills.toLocaleString()} skills in registry`)}`)
     }
+
+    if (remote.length === 0) {
+      lines.push(`  ${theme.muted("Remote registry unavailable. Set SKILLS_API_URL to self-host.")}`)
+    }
+
     lines.push(`  ${theme.muted("Browse all: https://skills.sh")}`)
     lines.push("")
 

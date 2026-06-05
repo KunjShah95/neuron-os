@@ -5,6 +5,8 @@ export type { AgentContext } from "./runtime"
 export { loadSoul } from "./soul"
 export { AgentEngine } from "./engine"
 export type { AgentEngineConfig } from "./engine"
+export { sessionStore, SessionStore } from "../memory/session-persistence"
+export type { SessionRecord, SessionMessage } from "../memory/session-persistence"
 export {
   AGENT_TYPES,
   getAgentType,

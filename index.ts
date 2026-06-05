@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
-import { readFileSync, existsSync } from "node:fs"
-import { resolve } from "node:path"
+import { readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs"
+import { resolve, join } from "node:path"
 
 // ── Auto-load .env file ─────────────────────────────────────────────
 // Loads .env from project root if it exists (before any other imports).
@@ -44,8 +44,36 @@ import { registerErrorBoundaries } from "./src/cli/guard"
 import { createLogger } from "./src/cli/logger"
 import { agentManager } from "./src/agent/manager"
 import { recordCommand, flushOnExit } from "./src/telemetry"
+import { sessionStore, getProjectSessionStore } from "./src/memory/session-persistence"
+import { getActiveProject } from "./src/project/context"
 
 const log = createLogger("cli")
+
+// Track whether we've already restored sessions (avoid spam on every command)
+let sessionsRestored = false
+
+// ── Restore sessions from SQLite on startup ───────────────────────
+function restoreRecentSessions(): void {
+  try {
+    const project = getActiveProject()
+    const store = project ? getProjectSessionStore(project) : sessionStore
+    const recent = store.restoreRecentSessions(5)
+    if (recent.length > 0) {
+      const active = recent.filter((s) => s.status === "active")
+      const lines = [`📂 Restored ${recent.length} session(s) from database`]
+      for (const s of recent) {
+        const status = s.status === "active" ? "🟢" : s.status === "failed" ? "🔴" : "⚪"
+        lines.push(`  ${status} ${s.name.slice(0, 40)} — ${s.goal.slice(0, 60) || "(no goal)"}`)
+      }
+      if (active.length > 0) {
+        lines.push(`  ${active.length} session(s) still active — use \`aegis session resume <id>\` to continue`)
+      }
+      log.info(lines.join("\n"))
+    }
+  } catch {
+    // Session restoration is best-effort
+  }
+}
 
 // ── Graceful Shutdown ─────────────────────────────────────────────────
 
@@ -115,6 +143,11 @@ program.hook("preAction", () => {
     !args.includes("-V")
   ) {
     showBanner()
+    // Restore recent sessions from SQLite once per process invocation
+    if (!sessionsRestored) {
+      sessionsRestored = true
+      restoreRecentSessions()
+    }
   }
 })
 
@@ -136,13 +169,13 @@ if (noArgs) {
       }
     })
 
-  // ── Record telemetry for the command ────────────────────────────────
-  // Sanitize: only capture the command path (e.g. "config set"), not argument values
+  // ── Record command history ──────────────────────────────────────────
+  // Writes to ~/.aegis/command-history.json for the /history command
   const rawArgs = process.argv.slice(2)
   const commandName = rawArgs
-    .filter((a) => !a.startsWith("-")) // skip flags
-    .slice(0, 2)                        // only command + 1 subcommand maximum
-    .map((a) => a.replace(/[^a-zA-Z0-9_-]/g, "")) // strip special chars
+    .filter((a) => !a.startsWith("-"))
+    .slice(0, 2)
+    .map((a) => a.replace(/[^a-zA-Z0-9_-]/g, ""))
     .filter(Boolean)
     .join(" ") || "(interactive)"
   const startTime = Date.now()
@@ -157,5 +190,33 @@ if (noArgs) {
   } finally {
     const duration = Date.now() - startTime
     recordCommand(commandName, exitCode === 0, duration)
+
+    // Write to command history file for /history Telegram command
+    try {
+      const historyDir = join(process.env.HOME || process.env.USERPROFILE || "~", ".aegis")
+      const historyFile = join(historyDir, "command-history.json")
+      mkdirSync(historyDir, { recursive: true })
+
+      let history: Array<{ command: string; timestamp: string; args?: string }> = []
+      if (existsSync(historyFile)) {
+        try {
+          history = JSON.parse(readFileSync(historyFile, "utf-8"))
+        } catch {
+          history = []
+        }
+      }
+
+      history.push({
+        command: commandName,
+        timestamp: new Date().toISOString(),
+        args: rawArgs.length > 1 ? rawArgs.slice(1).join(" ").slice(0, 100) : undefined,
+      })
+
+      // Keep last 100 entries
+      if (history.length > 100) history = history.slice(-100)
+      writeFileSync(historyFile, JSON.stringify(history, null, 2), "utf-8")
+    } catch {
+      // History recording is best-effort
+    }
   }
 }

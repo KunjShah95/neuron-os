@@ -241,6 +241,184 @@ export class AgentToolExecutor {
     return { errors }
   }
 
+  /** List files and directories under a path. */
+  listFiles(rel: string, recursive: boolean): string {
+    this.assertNotExcluded(rel, "list_files")
+    const abs = this.resolveSafe(rel)
+    if (!fs.existsSync(abs)) throw new Error(`list_files: not found: ${rel}`)
+
+    const lines: string[] = []
+    const walk = (dir: string, prefix: string) => {
+      const entries = fs.readdirSync(dir, { withFileTypes: true })
+      for (const ent of entries) {
+        const full = path.join(dir, ent.name)
+        const relP = path.relative(this.config.codebasePath, full)
+        if (this.excluded(relP)) continue
+        if (ent.isDirectory()) {
+          lines.push(`${prefix}${ent.name}/`)
+          if (recursive) walk(full, `${prefix}${ent.name}/`)
+        } else {
+          lines.push(`${prefix}${ent.name}`)
+        }
+      }
+    }
+
+    if (fs.statSync(abs).isDirectory()) walk(abs, "")
+    else lines.push(path.relative(this.config.codebasePath, abs))
+
+    const out = lines.sort().join("\n")
+    this.tracker.log({
+      type: "code_analysis",
+      path: this.norm(rel),
+      details: { after: out, toolName: "list_files" },
+    })
+    return out || "(empty)"
+  }
+
+  /** Search files matching a glob pattern with optional content filter. */
+  searchFiles(rootRel: string, globPattern: string, contentQuery?: string): string {
+    this.assertNotExcluded(rootRel, "search_files")
+    const rootAbs = this.resolveSafe(rootRel)
+    if (!fs.existsSync(rootAbs)) throw new Error(`search_files: root not found: ${rootRel}`)
+
+    const results: string[] = []
+
+    const regexFromGlob = (g: string): RegExp => {
+      const escaped = g
+        .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+        .replace(/\*\*/g, "§§")
+        .replace(/\*/g, "[^/\\\\]*")
+        .replace(/§§/g, ".*")
+        .replace(/\?/g, ".")
+      return new RegExp(`^${escaped}$`, "i")
+    }
+
+    const nameRe = regexFromGlob(globPattern.replace(/\\/g, "/"))
+    const walk = (dir: string) => {
+      for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, ent.name)
+        const relP = path.relative(this.config.codebasePath, full).split(path.sep).join("/")
+        if (this.excluded(relP)) continue
+        if (ent.isDirectory()) walk(full)
+        else if (nameRe.test(relP) || nameRe.test(ent.name)) {
+          if (contentQuery) {
+            const text = fs.readFileSync(full, "utf8")
+            if (!text.includes(contentQuery)) continue
+          }
+          results.push(relP)
+        }
+      }
+    }
+
+    if (fs.statSync(rootAbs).isDirectory()) walk(rootAbs)
+    else results.push(path.relative(this.config.codebasePath, rootAbs))
+
+    const out = [...new Set(results)].sort().join("\n")
+    this.tracker.log({
+      type: "code_analysis",
+      path: this.norm(rootRel),
+      details: { after: out || "(no matches)", toolName: "search_files" },
+    })
+    return out || "(no matches)"
+  }
+
+  /** Analyze codebase structure: file counts, size, extensions. */
+  analyzeCodebase(rootRel: string): string {
+    const rootAbs = this.resolveSafe(rootRel)
+    if (!fs.existsSync(rootAbs)) throw new Error(`analyze_codebase: not found: ${rootRel}`)
+
+    let files = 0
+    let dirs = 0
+    const extCounts = new Map<string, number>()
+
+    const walk = (dir: string) => {
+      for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, ent.name)
+        const relP = path.relative(this.config.codebasePath, full)
+        if (this.excluded(relP)) continue
+        if (ent.isDirectory()) {
+          dirs++
+          walk(full)
+        } else {
+          files++
+          const ext = path.extname(ent.name).toLowerCase() || "(no ext)"
+          extCounts.set(ext, (extCounts.get(ext) ?? 0) + 1)
+        }
+      }
+    }
+
+    if (fs.statSync(rootAbs).isDirectory()) walk(rootAbs)
+    else files = 1
+
+    const extSummary = [...extCounts.entries()]
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 10)
+      .map(([ext, count]) => `${ext}: ${count}`)
+      .join(", ")
+
+    const summary = `Files: ${files} | Directories: ${dirs} | Extensions: ${extSummary}`
+    this.tracker.log({
+      type: "code_analysis",
+      path: this.norm(rootRel),
+      details: { after: summary, toolName: "analyze_codebase" },
+    })
+    return summary
+  }
+
+  /** Get skill root directories. */
+  private skillRoots(): string[] {
+    const extra = process.env.SKILLS_DIRS?.split(/[;]/).map((s) => s.trim()).filter(Boolean) ?? []
+    return [
+      ...extra,
+      path.join(process.cwd(), "skills"),
+      path.join(process.env.HOME || process.env.USERPROFILE || "~", ".aegis/skills"),
+    ]
+  }
+
+  /** List all SKILL.md files under skill roots. */
+  listSkills(): string {
+    const lines: string[] = []
+    for (const root of this.skillRoots()) {
+      if (!fs.existsSync(root)) continue
+      const walk = (dir: string) => {
+        for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+          const full = path.join(dir, ent.name)
+          if (ent.isDirectory()) walk(full)
+          else if (ent.name === "SKILL.md") lines.push(full)
+        }
+      }
+      walk(root)
+    }
+    const out = lines.sort().join("\n")
+    this.tracker.log({
+      type: "code_analysis",
+      path: "skills",
+      details: { after: out || "(none)", toolName: "list_skills" },
+    })
+    return out || "(none)"
+  }
+
+  /** Read a SKILL.md file. Path must be under skill roots. */
+  readSkill(skillPath: string): string {
+    const abs = path.isAbsolute(skillPath)
+      ? path.normalize(skillPath)
+      : path.normalize(path.resolve(this.config.codebasePath, skillPath))
+
+    const allowed = this.skillRoots().some((root) => {
+      const r = path.resolve(root)
+      return abs === r || abs.startsWith(r + path.sep)
+    })
+    if (!allowed) throw new Error("read_skill: outside skill roots")
+
+    const text = fs.readFileSync(abs, "utf8")
+    this.tracker.log({
+      type: "code_analysis",
+      path: abs,
+      details: { after: text, toolName: "read_skill" },
+    })
+    return text
+  }
+
   /** Clear staging overlays. */
   clearStaging(): void {
     this.overlay.clear()

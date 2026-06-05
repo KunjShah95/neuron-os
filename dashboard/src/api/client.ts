@@ -106,6 +106,13 @@ export async function apiRequest<T>(
   return requestWithRetry<T>(path, init, opts.retries)
 }
 
+/** Append ?project= to a path if a project is given. */
+function withProject(path: string, project?: string | null): string {
+  if (!project) return path
+  const sep = path.includes("?") ? "&" : "?"
+  return `${path}${sep}project=${encodeURIComponent(project)}`
+}
+
 export const api = {
   /** Server health check with no retry (fast fail). */
   health: () =>
@@ -135,20 +142,37 @@ export const api = {
       body: JSON.stringify({ goal }),
     }),
 
-  getMemory: () =>
-    requestWithRetry<{ memory: string }>("/memory").then((r) => r.memory),
+  getMemory: (project?: string | null) =>
+    requestWithRetry<{ memory: string }>(withProject("/memory", project)).then((r) => r.memory),
 
-  appendMemory: (content: string) =>
-    requestWithRetry<{ status: string }>("/memory", {
+  appendMemory: (content: string, project?: string | null) =>
+    requestWithRetry<{ status: string }>(withProject("/memory", project), {
       method: "POST",
       body: JSON.stringify({ content }),
     }),
 
-  searchMemory: (query: string) =>
-    requestWithRetry<{ results: MemoryEntry[] }>("/memory/search", {
+  searchMemory: (query: string, project?: string | null) =>
+    requestWithRetry<{ results: MemoryEntry[] }>(withProject("/memory/search", project), {
       method: "POST",
       body: JSON.stringify({ query }),
     }).then((r) => r.results),
+
+  getSessions: (project?: string | null) =>
+    requestWithRetry<{ sessions: any[] }>(withProject("/sessions", project)).then((r) => r.sessions),
+
+  getSessionStats: (project?: string | null) =>
+    requestWithRetry<{ totalSessions: number; activeSessions: number; totalMessages: number }>(
+      withProject("/sessions/stats", project),
+    ),
+
+  getSession: (id: string, project?: string | null) =>
+    requestWithRetry<{ session: any; messages: any[] }>(withProject(`/sessions/${id}`, project)),
+
+  deleteSession: (id: string, project?: string | null) =>
+    requestWithRetry<{ status: string }>(withProject(`/sessions/${id}`, project), { method: "DELETE" }),
+
+  listProjects: () =>
+    requestWithRetry<{ projects: Array<{ name: string; root: string; createdAt: number }> }>("/projects").then((r) => r.projects),
 
   getTypes: () => requestWithRetry<{ types: any[] }>("/types").then((r) => r.types),
 }

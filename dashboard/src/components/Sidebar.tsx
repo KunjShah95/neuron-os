@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom"
 import { motion } from "framer-motion"
 import type { NavItem } from "../api/types"
+import ProjectSelector from "./ProjectSelector"
 
 const navItems: NavItem[] = [
   { path: "/", label: "Console", icon: "◈" },
@@ -59,12 +60,7 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="px-5 py-4 border-t border-surface-700/30">
-        <div className="flex items-center gap-2 text-[10px] text-surface-600 uppercase tracking-wider">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]" />
-          System Active
-        </div>
-      </div>
+      <ProjectSelector />
     </aside>
   )
 }

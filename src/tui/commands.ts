@@ -143,7 +143,7 @@ async function spawnAgent(state: AppState, args: string[]): Promise<void> {
   const name = args[0]!
   let agentType: AgentTypeName | undefined
   let script = "src/agent/agent-worker.ts"
-  let tags: string[] = []
+  const tags: string[] = []
 
   let i = 1
   while (i < args.length) {

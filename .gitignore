@@ -39,5 +39,11 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Ignore persisted session data (local only)
 data/sessions/
 
+# Ignore leftover test temp directories
+tmp-*
+
+# Ignore Qodo / AI agent config artifacts
+.qodo/
+
 # Ignore docs (design specs, plans, etc.)
-docs/
+# docs/

@@ -103,6 +103,82 @@ const PROVIDERS: ProviderConfig[] = [
     },
   },
   {
+    key: "gemini",
+    label: "Gemini (Google)",
+    envVar: "GEMINI_API_KEY",
+    defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+    needsBaseUrl: false,
+    testKey: async (apiKey) => {
+      const url = "https://generativelanguage.googleapis.com/v1beta/openai/models"
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 10000)
+      try {
+        const res = await fetch(url, {
+          headers: { authorization: `Bearer ${apiKey}` },
+          signal: controller.signal,
+        })
+        if (res.ok) return { ok: true }
+        return { ok: false, error: `HTTP ${res.status}` }
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : String(err) }
+      } finally {
+        clearTimeout(timeout)
+      }
+    },
+  },
+  {
+    key: "groq",
+    label: "Groq (Fast inference)",
+    envVar: "GROQ_API_KEY",
+    defaultBaseUrl: "https://api.groq.com/openai/v1",
+    needsBaseUrl: false,
+    testKey: async (apiKey) => {
+      const url = "https://api.groq.com/openai/v1/models"
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 10000)
+      try {
+        const res = await fetch(url, {
+          headers: { authorization: `Bearer ${apiKey}` },
+          signal: controller.signal,
+        })
+        if (res.ok) return { ok: true }
+        const body = await res.json().catch(() => ({}))
+        const err = (body as any).error?.message || `HTTP ${res.status}`
+        return { ok: false, error: err }
+      } finally {
+        clearTimeout(timeout)
+      }
+    },
+  },
+  {
+    key: "openrouter",
+    label: "OpenRouter (Multi-model)",
+    envVar: "OPENROUTER_API_KEY",
+    defaultBaseUrl: "https://openrouter.ai/api/v1",
+    needsBaseUrl: false,
+    testKey: async (apiKey) => {
+      const url = "https://openrouter.ai/api/v1/models"
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 10000)
+      try {
+        const res = await fetch(url, {
+          headers: {
+            authorization: `Bearer ${apiKey}`,
+            "HTTP-Referer": "https://neuron-os.local",
+            "X-Title": "Neuron OS",
+          },
+          signal: controller.signal,
+        })
+        if (res.ok) return { ok: true }
+        const body = await res.json().catch(() => ({}))
+        const err = (body as any).error?.message || `HTTP ${res.status}`
+        return { ok: false, error: err }
+      } finally {
+        clearTimeout(timeout)
+      }
+    },
+  },
+  {
     key: "ollama",
     label: "Ollama (Local)",
     envVar: "OLLAMA_URL",
@@ -128,11 +204,103 @@ const PROVIDERS: ProviderConfig[] = [
   },
 ]
 
+// ── Telegram Bot Setup ────────────────────────────────────────────────
+
+async function setupTelegramBot(): Promise<void> {
+  const configure = guardCancel(
+    await p.confirm({
+      message: "Configure Telegram bot?",
+      initialValue: false,
+    }),
+  )
+
+  if (!configure) return
+
+  p.note(
+    "To get a Telegram bot token:\n"
+    + "1. Open Telegram and search for @BotFather\n"
+    + "2. Send /newbot and follow the prompts\n"
+    + "3. Copy the API token BotFather gives you\n"
+    + "4. Optionally set /setprivacy to Disabled (so the bot can read all messages)\n"
+    + "\nThe token looks like: 1234567890:ABCdefGHIjklMNOpqrsTUVwxyz",
+    "Getting a Bot Token from @BotFather",
+  )
+
+  let botToken = ""
+  let shouldRetry = true
+  while (shouldRetry) {
+    botToken = guardCancel(
+      await p.password({
+        message: "Telegram bot token",
+        validate: (val) => (val?.trim() ? undefined : "Bot token is required"),
+      }),
+    )
+    botToken = String(botToken ?? "").trim()
+
+    if (!botToken) {
+      shouldRetry = false
+      continue
+    }
+
+    // Basic sanity check: tokens look like "123456:ABCdef"
+    const tokenPattern = /^\d+:\S+$/
+    if (!tokenPattern.test(botToken)) {
+      const fix = guardCancel(
+        await p.confirm({
+          message: "This doesn't look like a valid Telegram bot token (expected format: 123456:ABCdef). Save anyway?",
+          initialValue: false,
+        }),
+      )
+      if (!fix) continue
+    }
+
+    shouldRetry = false
+  }
+
+  if (!botToken) return
+
+  // ── Allowed users (optional) ───────────────────────────────────────
+  const restrictUsers = guardCancel(
+    await p.confirm({
+      message: "Restrict access to specific Telegram user IDs?",
+      initialValue: false,
+    }),
+  )
+
+  let allowedUsers = ""
+  if (restrictUsers) {
+    allowedUsers = guardCancel(
+      await p.text({
+        message: "Allowed Telegram user IDs (comma-separated)",
+        placeholder: "123456789, 987654321",
+        validate: (val) => (val?.trim() ? undefined : "At least one user ID is required"),
+      }),
+    )
+  }
+
+  // ── Save ────────────────────────────────────────────────────────────
+  const saveSpinner = p.spinner()
+  saveSpinner.start("Saving Telegram credentials…")
+
+  try {
+    await credentialVault.set("TELEGRAM_BOT_TOKEN", botToken, "global")
+    process.env.TELEGRAM_BOT_TOKEN = botToken
+
+    if (allowedUsers.trim()) {
+      await credentialVault.set("TELEGRAM_ALLOWED_USERS", allowedUsers, "global")
+    }
+
+    saveSpinner.stop("✓ Telegram bot credentials saved (AES-256-GCM encrypted)")
+  } catch (err) {
+    saveSpinner.stop("✗ Failed to save Telegram credentials")
+  }
+}
+
 // ── Wizard ────────────────────────────────────────────────────────────
 
 async function runSetupKeysWizard(): Promise<void> {
   try {
-    p.intro("API Key Setup")
+    p.intro("🔑 API Key Setup")
 
     await credentialVault.initialize()
 
@@ -280,11 +448,15 @@ async function runSetupKeysWizard(): Promise<void> {
       }
     }
 
+    // ── Telegram Bot Setup ───────────────────────────────────────────
+    await setupTelegramBot()
+
     // ── Next steps ─────────────────────────────────────────────────────
     p.outro(
-      "API keys configured! They're encrypted with AES-256-GCM in ~/.aegis/vault.enc.\n"
-        + "Use `aegis config list` to see stored credentials.\n"
-        + "Use `aegis setup-keys` to reconfigure anytime.",
+      "All keys configured! They're encrypted with AES-256-GCM in ~/.aegis/vault.enc.\n"
+        + "Start the Telegram bot: `aegis telegram`\n"
+        + "View stored credentials: `aegis config list`\n"
+        + "Reconfigure anytime: `aegis setup-keys`",
     )
   } catch (err) {
     if (err instanceof WizardCancelledError) {
@@ -300,7 +472,7 @@ async function runSetupKeysWizard(): Promise<void> {
 export function registerSetupKeys(program: Command) {
   program
     .command("setup-keys")
-    .description("Interactive API key configuration for AI providers (Anthropic, OpenAI, DeepSeek, Ollama)")
+    .description("Interactive API key configuration for AI providers and Telegram bot integration")
     .action(async () => {
       await runSetupKeysWizard()
     })

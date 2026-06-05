@@ -130,6 +130,34 @@ export function registerMemory(program: Command) {
   })
 
   mem
+    .command("stats")
+    .description("Show memory system stats")
+    .action(async () => {
+      showBanner()
+      const content = await memorySystem.loadMemory()
+      await vectorMemory.initialize()
+      const vecStats = await vectorMemory.getStats()
+      const { sessionStore } = await import("../../memory/session-persistence")
+
+      const lines = content.split("\n").filter(Boolean)
+      const sessionCount = sessionStore.listSessions().length
+
+      console.log(theme.heading("  Memory System Statistics"))
+      console.log()
+      console.log(`  ${theme.bold("MEMORY.md:")}    ${lines.length} lines`)
+      console.log(`  ${theme.bold("Vector:")}       ${vecStats.total} entries`)
+      console.log(`  ${theme.bold("Sessions:")}     ${sessionCount} total`)
+      if (vecStats.total > 0) {
+        console.log()
+        console.log(theme.dim("  By category:"))
+        for (const [cat, count] of Object.entries(vecStats.byCategory)) {
+          console.log(`    ${theme.accent(cat.padEnd(20))} ${count}`)
+        }
+      }
+      console.log()
+    })
+
+  mem
     .command("vector")
     .description("Vector memory (semantic search) stats")
     .action(async () => {

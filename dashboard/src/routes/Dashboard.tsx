@@ -6,6 +6,7 @@ import SoundToggle from "../components/SoundToggle"
 import { api, getWsUrl, getSseUrl } from "../api/client"
 import { useWebSocket } from "../hooks/useWebSocket"
 import { useNotificationSounds } from "../hooks/useNotificationSounds"
+import { useProject } from "../contexts/ProjectContext"
 import type { Agent } from "../api/types"
 
 function formatUptime(s: number) {
@@ -35,6 +36,8 @@ function getQuote() {
 export default function Dashboard() {
   const [agents, setAgents] = useState<Agent[]>([])
   const [health, setHealth] = useState<{ status: string; agents: number; uptime: number } | null>(null)
+  const [sessionStats, setSessionStats] = useState<{ totalSessions: number; activeSessions: number; totalMessages: number } | null>(null)
+  const { currentProject, hasProject } = useProject()
 
   // ── Notification sounds ───────────────────────────────────────
   const { handleEvent: handleSoundEvent } = useNotificationSounds()
@@ -64,15 +67,17 @@ export default function Dashboard() {
   useEffect(() => {
     api.health().then(setHealth)
     api.listAgents().then(setAgents)
+    api.getSessionStats(currentProject).then(setSessionStats).catch(() => {})
     const id = setInterval(() => {
       api.health().then(setHealth)
+      api.getSessionStats(currentProject).then(setSessionStats).catch(() => {})
       // Only poll agents list if WebSocket isn't connected
       if (wsStatus !== "connected") {
         api.listAgents().then(setAgents)
       }
     }, 30000)
     return () => clearInterval(id)
-  }, [wsStatus])
+  }, [wsStatus, currentProject])
 
   const running = agents.filter((a) => a.status === "running" || a.status === "idle").length
   const agentTypes = [...new Set(agents.filter((a) => a.type).map((a) => a.type!))]
@@ -105,6 +110,14 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Project indicator */}
+            {hasProject && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-400 uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                {currentProject}
+              </div>
+            )}
+
             {/* Sound toggle */}
             <SoundToggle />
 
@@ -140,9 +153,12 @@ export default function Dashboard() {
       >
         <MetricCard label="Agents" value={agents.length} sub={running > 0 ? `${running} active` : "idle"} icon="⬡" />
         <MetricCard label="Uptime" value={health ? formatUptime(health.uptime) : "—"} sub="since last restart" icon="◎" />
-        <MetricCard label="Types" value={agentTypes.length || "—"} sub={agentTypes.join(", ") || "none deployed"} icon="◇" />
-        <MetricCard
-          label="Status"
+        <MetricCard label="Types" value={agentTypes.length || "—"} sub={agentTypes.join(", ") || "none deployed"} icon="◇" />        <MetricCard label="Sessions"
+          value={sessionStats ? sessionStats.totalSessions : "…"}
+          sub={sessionStats ? `${sessionStats.activeSessions} active · ${sessionStats.totalMessages} msgs` : "loading"}
+          icon="◇"
+        />
+        <MetricCard label="Status"
           value={isLive ? "Real-time" : health?.status === "ok" ? "Online" : "—"}
           sub={isLive ? "WebSocket" : health ? "polling 30s" : "offline"}
           icon="✦"

@@ -320,26 +320,26 @@ export async function handleSkills(opts: SkillsOptions) {
     console.log(`  ${theme.info("Skill hot-reload active. Press Ctrl+C to stop.")}`)    }
 
   if (opts.search) {
-    try {
-      const remote = await searchSkills(opts.search)
-      renderSkills(local, remote, `Skills matching "${opts.search}"`)
-    } catch (err) {
-      log.warn("Failed to search skills", { query: opts.search, error: String(err) })
-      renderSkills(local, [], `Skills matching "${opts.search}"`)
+    const remote = await searchSkills(opts.search)
+    if (remote.length === 0) {
+      console.log(`  ${theme.muted("Remote skill registry unavailable. Searched locally only.")}`)
     }
+    renderSkills(local, remote, `Skills matching "${opts.search}"`)
   } else {
-    let remote: any[] = []
-    try {
-      const top = await fetchTopSkills(5)
-      remote = top
-    } catch (err) {
-      log.warn("Failed to fetch top skills", { error: String(err) })
+    const remote = await fetchTopSkills(5)
+    const stats = await fetchRegistryStats()
+
+    renderSkills(local, remote, "Skills")
+
+    if (remote.length === 0 && local.length === 0) {
+      console.log(`  ${theme.muted("Remote registry unavailable. Only local skills are shown.")}`)
     }
 
-    const stats = await fetchRegistryStats().catch(() => null)
-    renderSkills(local, remote, "Skills")
     if (stats) {
       console.log(`\n  ${theme.muted(`${stats.totalSkills.toLocaleString()} skills in registry`)}`)
+    } else if (remote.length === 0) {
+      console.log(`  ${theme.muted("Set SKILLS_API_URL env var to a self-hosted mastra/skills-api instance.")}`)
+      console.log(`  ${theme.muted("https://github.com/mastra-ai/skills-api")}`)
     }
   }
 

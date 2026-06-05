@@ -22,8 +22,21 @@ import { registerAgentRun } from "./agent-run"
 import { registerOpenApi } from "./openapi"
 import { registerTelemetry } from "./telemetry"
 import { registerSetupKeys } from "./setup-keys"
+import { registerPool } from "./pool"
+import { registerResearch } from "./research"
+import { registerOrchestrate } from "./orchestrate"
+import { registerWebhook } from "./webhook"
+import { registerSession } from "./session"
+import { registerProject } from "./project"
+import { registerExperience } from "./experience"
+import { registerAudit } from "./audit"
+import { registerMesh } from "./mesh"
 
 export function registerAllCommands(program: Command) {
+  registerProject(program)
+  registerExperience(program)
+  registerAudit(program)
+  registerMesh(program)
   registerWakeup(program)
   registerSetup(program)
   registerDashboard(program)
@@ -47,4 +60,9 @@ export function registerAllCommands(program: Command) {
   registerOpenApi(program)
   registerTelemetry(program)
   registerSetupKeys(program)
+  registerPool(program)
+  registerResearch(program)
+  registerOrchestrate(program)
+  registerWebhook(program)
+  registerSession(program)
 }

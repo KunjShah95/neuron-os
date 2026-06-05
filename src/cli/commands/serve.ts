@@ -9,7 +9,12 @@ export function registerServe(program: Command) {
     .option("--host <host>", "Host to bind to", "0.0.0.0")
     .option("--key <key>", "API key for authentication")
     .option("--cron", "Also start the cron engine", false)
-    .action(async (opts: { port?: string; host?: string; key?: string; cron?: boolean }) => {
+    .option("--webhook-secret <secret>", "Enable webhook routes at /api/v1/webhook/* with HMAC verification")
+    .option("--session-db", "Enable session store endpoints at /api/v1/sessions/*")
+    .action(async (opts: {
+      port?: string; host?: string; key?: string; cron?: boolean
+      webhookSecret?: string; sessionDb?: boolean
+    }) => {
       const { startApiServer } = await import("../../api")
       const port = parseInt(opts.port ?? "8080", 10)
 
@@ -20,6 +25,10 @@ export function registerServe(program: Command) {
         port,
         host: opts.host ?? "0.0.0.0",
         apiKey: opts.key,
+        webhookConfig: opts.webhookSecret
+          ? { secret: opts.webhookSecret, autoReviewPRs: true, autoFixOnPush: true }
+          : undefined,
+        sessionDb: opts.sessionDb ?? false,
       })
 
       if (opts.cron) {
@@ -27,6 +36,14 @@ export function registerServe(program: Command) {
         await ensureHeartbeatFile()
         startCronEngine()
         console.log(theme.info("  ⏰ Cron engine started"))
+      }
+
+      if (opts.webhookSecret) {
+        console.log(theme.info(`  🌐 Webhook routes enabled (secret: ${opts.webhookSecret.slice(0, 4)}…)`))
+      }
+
+      if (opts.sessionDb) {
+        console.log(theme.info("  📂 Session store endpoints enabled at /api/v1/sessions/*"))
       }
 
       console.log()

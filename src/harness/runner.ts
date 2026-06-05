@@ -13,6 +13,7 @@ export interface HarnessRunnerConfig {
 
 export async function runTest(test: TestCase, config?: HarnessRunnerConfig): Promise<EvalResult> {
   const start = Date.now()
+  const sessionId = `harness-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
 
   try {
     const runtime = createAgentRuntime("harness", "build")
@@ -23,7 +24,12 @@ export async function runTest(test: TestCase, config?: HarnessRunnerConfig): Pro
       temperature: 0.5,
       ...config?.aiConfig,
     })
-    const engine = new AgentEngine(runtime, ai, { maxSteps: 20 })
+    const engine = new AgentEngine(runtime, ai, {
+      maxSteps: 20,
+      sessionId,
+      sessionName: test.name ?? `harness-${sessionId}`,
+      goal: test.prompt.slice(0, 200),
+    })
 
     const traces: ToolTrace[] = []
     const originalExecute = runtime.executeTool.bind(runtime)
@@ -42,6 +48,7 @@ export async function runTest(test: TestCase, config?: HarnessRunnerConfig): Pro
     clearTimeout(timer)
 
     const passed = test.expected ? output.text.includes(test.expected) : true
+    engine.completeSession(passed ? "completed" : "failed")
 
     return {
       test,

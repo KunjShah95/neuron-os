@@ -15,6 +15,7 @@ export function registerTelemetry(program: Command) {
 
   telemetry
     .command("status")
+    .alias("stats")
     .description("Show current telemetry configuration")
     .action(async () => {
       const { getTelemetryStats } = await import("../../telemetry/index")

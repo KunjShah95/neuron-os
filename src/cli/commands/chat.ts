@@ -23,10 +23,32 @@ export function registerChat(program: Command) {
 
 function loadAIConfig(overrideProvider?: string, overrideModel?: string): AIConfig {
   const cfg = loadConfig()
+  const provider = (overrideProvider
+    || process.env.AEGIS_AI_PROVIDER
+    || process.env.AEGIS_DEFAULT_PROVIDER
+    || process.env.DEFAULT_AI_PROVIDER
+    || process.env.AI_PROVIDER
+    || cfg.provider
+    || "anthropic") as AIProviderType
+  const model = overrideModel
+    || process.env.AEGIS_AI_MODEL
+    || process.env.AEGIS_DEFAULT_MODEL
+    || process.env.DEFAULT_AI_MODEL
+    || process.env.AI_MODEL
+    || cfg.model
+    || "claude-sonnet-4-20250514"
   return {
-    provider: (overrideProvider || cfg.provider || "anthropic") as AIProviderType,
-    model: overrideModel || cfg.model || "claude-sonnet-4-20250514",
-    apiKey: process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || cfg.apiKey,
+    provider,
+    model,
+    apiKey: process.env.AEGIS_AI_API_KEY
+      || process.env.ANTHROPIC_API_KEY
+      || process.env.OPENAI_API_KEY
+      || process.env.OPENROUTER_API_KEY
+      || process.env.GOOGLE_GENERATIVE_AI_API_KEY
+      || process.env.GROQ_API_KEY
+      || process.env.MISTRAL_API_KEY
+      || process.env.DEEPSEEK_API_KEY
+      || cfg.apiKey,
     baseUrl: process.env.AI_BASE_URL || cfg.baseUrl,
     temperature: cfg.temperature ?? 0.7,
     maxTokens: cfg.maxTokens ?? 8192,
@@ -48,9 +70,22 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
   }
 
   const agentType = opts.type
+  const cfg = loadConfig()
   const chatConfig: ChatConfig = {
-    provider: opts.provider || loadConfig().provider || "anthropic",
-    model: opts.model || loadConfig().model || "claude-sonnet-4-20250514",
+    provider: opts.provider
+      || process.env.AEGIS_AI_PROVIDER
+      || process.env.AEGIS_DEFAULT_PROVIDER
+      || process.env.DEFAULT_AI_PROVIDER
+      || process.env.AI_PROVIDER
+      || cfg.provider
+      || "anthropic",
+    model: opts.model
+      || process.env.AEGIS_AI_MODEL
+      || process.env.AEGIS_DEFAULT_MODEL
+      || process.env.DEFAULT_AI_MODEL
+      || process.env.AI_MODEL
+      || cfg.model
+      || "claude-sonnet-4-20250514",
   }
 
   console.log(`  ${theme.info("Chat session started")}`)
@@ -58,11 +93,19 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
   console.log(`  ${theme.muted("Type /help for commands, Ctrl+C to quit")}`)
   console.log()
 
+  let cliSessionCounter = 0
+
   function buildEngine(config: ChatConfig): { ai: AIProviderManager; engine: AgentEngine } {
     const aiConfig = loadAIConfig(config.provider, config.model)
     const ai = new AIProviderManager(aiConfig)
     const runtime = createAgentRuntime("chat-cli", agentType)
-    const engine = new AgentEngine(runtime, ai, { maxSteps: 10 })
+    const sessionId = `cli-chat-${++cliSessionCounter}-${Date.now().toString(36)}`
+    const engine = new AgentEngine(runtime, ai, {
+      maxSteps: 10,
+      sessionId,
+      sessionName: `cli-chat-${agentType ?? "default"}`,
+      goal: "CLI interactive chat session",
+    })
     return { ai, engine }
   }
 
@@ -82,7 +125,7 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
       return
     }
 
-    // ── Slash commands ──
+    // Slash commands
     if (text.startsWith("/")) {
       const parts = text.split(/\s+/)
       const cmd = parts[0]?.toLowerCase()
@@ -160,7 +203,7 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
       }
     }
 
-    // ── Normal message ──
+    // Normal message
     messages.push({ role: "user", content: text })
 
     process.stdout.write(`  ${theme.info("AI > ")}`)
@@ -195,7 +238,9 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
 
   rl.on("close", () => {
     console.log(`\n  ${theme.muted("Chat ended.")}\n`)
-    process.exit(0)
+    // Don't call process.exit() here - let the control flow return naturally
+    // to avoid InteractiveExit error in wakeup mode
+    rl.removeAllListeners()
   })
 
   rl.prompt()
