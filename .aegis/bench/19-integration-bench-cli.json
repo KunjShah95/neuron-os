@@ -1,0 +1,8 @@
+{
+  "id": "integration-bench-cli",
+  "name": "Wire bench CLI into commands index",
+  "goal": "Confirm `aegis bench list`, `aegis bench run`, `aegis bench history`, and `aegis bench baseline` are all registered and produce output without throwing.",
+  "criteria": ["typecheck"],
+  "tags": ["integration", "cli", "bench"],
+  "timeout": 300000
+}

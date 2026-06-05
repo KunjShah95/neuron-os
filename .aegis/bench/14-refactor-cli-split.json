@@ -1,0 +1,8 @@
+{
+  "id": "refactor-cli-split",
+  "name": "Split CLI commands by domain",
+  "goal": "Confirm each command module in src/cli/commands/ has a single registerXxx function with no hidden coupling between unrelated commands.",
+  "criteria": ["typecheck", "lint-clean"],
+  "tags": ["refactor", "cli"],
+  "timeout": 300000
+}

@@ -1,0 +1,8 @@
+{
+  "id": "typecheck-cli",
+  "name": "Typecheck CLI commands",
+  "goal": "Ensure src/cli/commands/ passes typecheck with no errors. Do not change the public CLI surface.",
+  "criteria": ["typecheck"],
+  "tags": ["typescript", "cli"],
+  "timeout": 300000
+}

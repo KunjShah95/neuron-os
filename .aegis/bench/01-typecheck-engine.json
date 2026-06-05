@@ -1,0 +1,8 @@
+{
+  "id": "typecheck-engine",
+  "name": "Typecheck agent engine",
+  "goal": "Ensure src/agent/engine.ts has no TypeScript errors. Fix any that exist without changing the public API of AgentEngine.",
+  "criteria": ["typecheck"],
+  "tags": ["typescript", "agent"],
+  "timeout": 300000
+}

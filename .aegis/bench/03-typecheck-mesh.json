@@ -1,0 +1,8 @@
+{
+  "id": "typecheck-mesh",
+  "name": "Typecheck mesh module",
+  "goal": "Ensure src/mesh/ passes typecheck (evaluator.ts, types.ts, orchestrator.ts) without errors.",
+  "criteria": ["typecheck"],
+  "tags": ["typescript", "mesh"],
+  "timeout": 300000
+}

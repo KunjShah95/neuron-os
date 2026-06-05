@@ -1,0 +1,8 @@
+{
+  "id": "refactor-embedding-extract",
+  "name": "Extract shared embedding utilities",
+  "goal": "Confirm src/memory/embedding.ts exports computeEmbedding() and cosineSimilarity(), and that src/memory/vector.ts imports from it (no duplicate hash logic).",
+  "criteria": ["typecheck", "lint-clean"],
+  "tags": ["refactor", "memory"],
+  "timeout": 300000
+}

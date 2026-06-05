@@ -1,0 +1,8 @@
+{
+  "id": "refactor-ratchet-shared",
+  "name": "Share RatchetRuntime between modes",
+  "goal": "Confirm src/modes/research.ts and src/agent/engine.ts both delegate to src/agent/ratchet.ts (no duplicated git stash/measure/revert code).",
+  "criteria": ["typecheck"],
+  "tags": ["refactor", "agent"],
+  "timeout": 300000
+}

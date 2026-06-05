@@ -1,0 +1,8 @@
+{
+  "id": "lint-clean-bench",
+  "name": "Lint bench module",
+  "goal": "Ensure `eslint src/bench/` reports zero errors and zero warnings.",
+  "criteria": ["lint-clean"],
+  "tags": ["lint", "bench"],
+  "timeout": 300000
+}

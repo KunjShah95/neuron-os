@@ -1,0 +1,8 @@
+{
+  "id": "typecheck-experience",
+  "name": "Typecheck experience store",
+  "goal": "Ensure src/experience/store.ts passes typecheck with no errors.",
+  "criteria": ["typecheck"],
+  "tags": ["typescript", "experience"],
+  "timeout": 300000
+}

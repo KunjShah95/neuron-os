@@ -1,0 +1,8 @@
+{
+  "id": "integration-test-runner",
+  "name": "Wire test suites into run-tests.ts",
+  "goal": "Confirm scripts/run-tests.ts invokes the new test suites: test-embedding.ts, test-ratchet.ts, test-retrieval.ts, and test-bench.ts.",
+  "criteria": ["typecheck"],
+  "tags": ["integration", "tests"],
+  "timeout": 300000
+}
