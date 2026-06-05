@@ -11,8 +11,7 @@ let ready = false
 function ensureMarked(): void {
   if (ready) return
   const w = Math.max(40, Math.min(process.stdout.columns || 80, 120))
-  // @ts-expect-error — marked-terminal types are loose
-  marked.use(markedTerminal({ width: w, reflowText: true }))
+  void marked.use((markedTerminal as any)({ width: w, reflowText: true }))
   ready = true
 }
 

@@ -12,8 +12,8 @@ interface EnvInfo {
 export default function Config() {
   const [health, setHealth] = useState<{ status: string; version: string; agents: number; uptime: number } | null>(null)
   const [envVars] = useState<EnvInfo[]>([
-    { key: "AEGIS_DEFAULT_PROVIDER", value: import.meta.env.VITE_AEGIS_DEFAULT_PROVIDER || process.env.AEGIS_DEFAULT_PROVIDER || "not set", source: "env" },
-    { key: "AEGIS_LOG_LEVEL", value: import.meta.env.VITE_AEGIS_LOG_LEVEL || process.env.AEGIS_LOG_LEVEL || "not set", source: "env" },
+    { key: "AEGIS_DEFAULT_PROVIDER", value: import.meta.env.VITE_AEGIS_DEFAULT_PROVIDER || "not set (use VITE_AEGIS_DEFAULT_PROVIDER)", source: "env" },
+    { key: "AEGIS_LOG_LEVEL", value: import.meta.env.VITE_AEGIS_LOG_LEVEL || "not set (use VITE_AEGIS_LOG_LEVEL)", source: "env" },
     { key: "WS Connection", value: `${window.location.host}/api/v1/ws`, source: "runtime" },
     { key: "API Endpoint", value: "/api/v1", source: "runtime" },
   ])
