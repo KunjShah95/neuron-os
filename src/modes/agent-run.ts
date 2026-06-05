@@ -12,9 +12,19 @@ import { AgentEngine } from "../agent/engine"
 import type { AIProviderType } from "../ai/models"
 import { ActionTracker, type ActionLog } from "../agent/action-tracker"
 import { AgentToolExecutor } from "../agent/agent-tools"
+import type { EvaluationCriteria } from "../mesh/types"
 
 interface AgentOrchestratorCallbacks {
   onStaged?: (pending: ActionLog[]) => Promise<boolean>
+}
+
+export interface AgentOrchestratorOptions {
+  /** Enable git ratchet (boolean) or pass a custom RatchetConfig */
+  ratchet?: boolean
+  /** Evaluation criteria to compute scalar reward on completion */
+  evaluation?: EvaluationCriteria[]
+  /** Legacy: raw test command for ratchet heuristic */
+  testCommand?: string
 }
 
 function buildAIConfig(): AIConfig {
@@ -39,18 +49,36 @@ export async function runAgentOrchestrator(
   goal: string,
   callbacks?: AgentOrchestratorCallbacks,
   project?: string,
+  options?: AgentOrchestratorOptions,
 ): Promise<string> {
   const tracker = new ActionTracker()
   const executor = new AgentToolExecutor(tracker)
   const runtime = createAgentRuntime("agent-run-mode", "build", process.cwd())
   const ai = new AIProviderManager(buildAIConfig())
   const sessionId = `agent-${Date.now().toString(36)}`
+
+  // Build ratchet config: ratchet boolean with optional testCommand override
+  const ratchetConfig = options?.ratchet
+    ? options.testCommand
+      ? { cwd: process.cwd(), testCommand: options.testCommand }
+      : { cwd: process.cwd() }
+    : false
+
+  // Default eval to typecheck when ratchet is on (gives a real signal)
+  const evaluation =
+    options?.evaluation ??
+    (options?.ratchet ? [{ metric: "typecheck" as const }] : undefined)
+
   const engine = new AgentEngine(runtime, ai, {
     maxSteps: 25,
     sessionId,
     sessionName: goal.slice(0, 60),
     goal,
     project,
+    experience: true,
+    audit: true,
+    evaluation,
+    ratchet: ratchetConfig,
   })
 
   try {
