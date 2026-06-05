@@ -20,6 +20,7 @@ import { Database } from "bun:sqlite"
 import { join } from "node:path"
 import { mkdirSync, existsSync } from "node:fs"
 import { createLogger } from "../cli/logger"
+import { computeEmbedding, cosineSimilarity } from "../memory/embedding"
 
 const log = createLogger("experience")
 
@@ -208,6 +209,46 @@ export class ExperienceStore {
 
   getRecentSuccesses(limit = 20): ExperienceRecord[] {
     return this.getByOutcome("success", limit)
+  }
+
+  /**
+   * Search experiences by goal similarity. Loads the most recent 200
+   * candidates, embeds the query + each goal+summary, ranks by cosine
+   * similarity weighted by outcome and reward.
+   *
+   * Sufficient until the buffer exceeds ~10k rows. Beyond that, swap
+   * in a vector index (sqlite-vss or external).
+   */
+  searchByGoalSimilarity(
+    query: string,
+    limit = 5,
+    project?: string,
+  ): Array<ExperienceRecord & { similarity: number }> {
+    const candidates = this.listRecent(200, project)
+    if (candidates.length === 0) return []
+
+    const queryEmbed = computeEmbedding(query)
+
+    const scored = candidates
+      .map((record) => {
+        const text = `${record.goal} ${record.summary}`.trim()
+        const sim = cosineSimilarity(queryEmbed, computeEmbedding(text))
+        // Outcome boost: success gets 1.2, partial 0.9, failed 0.8, reverted 0.7
+        const outcomeBoost =
+          record.outcome === "success" ? 1.2 :
+          record.outcome === "partial" ? 0.9 :
+          record.outcome === "failed" ? 0.8 :
+          0.7 // reverted
+        // Reward boost: rewards above 0 get a 0.5–1.0 multiplier
+        const rewardBoost = 0.5 + Math.max(0, Math.min(1, record.reward)) * 0.5
+        const adjusted = sim * outcomeBoost * rewardBoost
+        return { record, similarity: adjusted }
+      })
+      .filter((r) => r.similarity >= 0.15)
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, limit)
+
+    return scored.map((r) => ({ ...r.record, similarity: r.similarity }))
   }
 
   getActionsForExperience(id: string): ExperienceAction[] {
