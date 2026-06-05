@@ -122,6 +122,12 @@ async function main() {
   // ── 6.14 Dashboard Unit Tests ──────────────────────────────────────
   await run("Dashboard Unit Tests", ["bun", "run", "--cwd", "dashboard", "vitest", "run"])
 
+  // ── 6.15 Self-Improving Runtime Tests ───────────────────────────────
+  await run("Memory Embedding Tests", ["bun", "run", "src/memory/test-embedding.ts"])
+  await run("RatchetRuntime Tests", ["bun", "run", "src/agent/test-ratchet.ts"])
+  await run("Experience Retriever Tests", ["bun", "run", "src/experience/test-retrieval.ts"])
+  await run("Bench History Tests", ["bun", "run", "src/bench/test-bench.ts"])
+
   // ── 7. TypeScript Typecheck ───────────────────────────────────────
   await run("TypeScript Typecheck", ["bun", "run", "--bun", "tsc", "--noEmit"])
 

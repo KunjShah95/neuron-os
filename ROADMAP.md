@@ -96,6 +96,15 @@ Build a local-first, extensible platform for running autonomous AI agents with a
 - **Task Evaluator** — Automated quality measurement via test runs, lint checks, typechecks, and custom scripts
 - **CLI Commands:** `aegis experience`, `aegis audit`, `aegis mesh` with subcommands
 
+### v0.4.1 — Self-Improving Runtime (closes the loop)
+- **RatchetRuntime kernel** — Shared `src/agent/ratchet.ts` primitive for stash / measure / revert. `src/modes/research.ts` is a thin wrapper; `AgentEngine.completeSession()` reverts on regression when `--ratchet` is set.
+- **Scalar rewards** — `ExperienceRecord.reward` is always `Evaluator.overallScore` (0.0–1.0) when criteria are present; never binary.
+- **Experience retrieval at inference** — Top-5 similar past experiences (boosted by outcome + reward) are injected into the system prompt before the first model call, with a "Known failure patterns" hint section for failed/reverted runs.
+- **`aegis bench` north-star eval suite** — Function-based discovery (`discoverBenchTasks` / `getBenchTask`), append-only `history.json` (last 100 runs), and `runBenchTask` / `runBenchSuite` runners. 20 starter dogfood tasks under `.aegis/bench/` covering typecheck, tests, CLI help, refactor verification, JSDoc, lint, and integration wiring.
+- **CLI flags** — `aegis agent-run --ratchet`, `--eval typecheck,tests-pass,...`, `--test-cmd`. `aegis bench list|run|history|baseline`.
+- **Shared embedding utilities** — `src/memory/embedding.ts` (hash + cosine) is the single source; `src/memory/vector.ts` imports from it.
+- **Test surface** — `test-embedding`, `test-ratchet`, `test-retrieval`, `test-bench` registered in `scripts/run-tests.ts`.
+
 ### v0.5.0 — Plugin system
 - Plugins API, simple registry, and sample plugins (lint, format, deploy)
 - Skill marketplace integration for community-contributed plugins
