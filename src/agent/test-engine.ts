@@ -740,6 +740,54 @@ function testEngineDefaultMaxSteps() {
 }
 
 // ================================================================
+//  AGENTENGINE — ratchet + evaluation config propagation
+// ================================================================
+
+console.log("\n=== AgentEngine Ratchet + Evaluation Tests ===\n")
+
+async function testEngineRatchetConfigPropagates() {
+  const runtime = new AgentRuntime({ agentId: "engine-ratchet", cwd: "." })
+  const engine = new AgentEngine(runtime, {} as any, {
+    sessionId: "ratchet-test-1",
+    sessionName: "ratchet-test",
+    goal: "verify ratchet config propagation",
+    project: "demo-project",
+    experience: true,
+    audit: false,
+    ratchet: { testCommand: "echo test" },
+    evaluation: [{ metric: "typecheck" }],
+  })
+
+  // Internal fields populated from config — verify the engine accepted them
+  const engineAny = engine as any
+  assert(engineAny.ratchetRuntime !== undefined, "ratchet:true creates RatchetRuntime instance")
+  assert(engineAny.ratchetConfig !== undefined, "ratchet config is stored")
+  assertEqual(engineAny.ratchetConfig.testCommand, "echo test", "ratchet config preserves overrides")
+  assertEqual(engineAny.ratchetConfig.cwd, ".", "ratchet config has cwd from runtime")
+  assert(engineAny.evaluationCriteria !== undefined, "evaluation criteria are stored")
+  assertEqual(engineAny.evaluationCriteria.length, 1, "evaluation criteria array has 1 entry")
+  assertEqual(engineAny.evaluationCriteria[0].metric, "typecheck", "evaluation criteria entry has correct metric")
+  assertEqual(engineAny.projectName, "demo-project", "project name is stored")
+
+  // Calling completeSession is now async and returns a Promise
+  const result = engine.completeSession("completed")
+  assert(result instanceof Promise, "completeSession returns a Promise (async)")
+  await result
+  assert(true, "await completeSession resolves without throwing")
+}
+
+async function testEngineRatchetBooleanEnabled() {
+  const runtime = new AgentRuntime({ agentId: "engine-ratchet-bool", cwd: "." })
+  const engine = new AgentEngine(runtime, {} as any, {
+    ratchet: true,
+  })
+  const engineAny = engine as any
+  assert(engineAny.ratchetRuntime !== undefined, "ratchet:true (boolean) creates RatchetRuntime")
+  assertEqual(engineAny.ratchetConfig.testCommand, undefined, "boolean ratchet has no testCommand by default")
+  assertEqual(engineAny.ratchetConfig.cwd, ".", "boolean ratchet still gets cwd")
+}
+
+// ================================================================
 //  RUNNER
 // ================================================================
 
@@ -812,6 +860,10 @@ async function runAll() {
   // AgentEngine (sync)
   testEngineConstructor()
   testEngineDefaultMaxSteps()
+
+  // Ratchet + evaluation config (async — completeSession returns a Promise)
+  await testEngineRatchetConfigPropagates()
+  await testEngineRatchetBooleanEnabled()
 
   // Summary
   console.log(`\n══ Results: ${passed} passed, ${failed} failed ══\n`)

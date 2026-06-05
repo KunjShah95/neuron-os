@@ -39,6 +39,7 @@ export type AuditEventType =
   | "session_end"      // Session ended
   | "policy_check"     // Policy was evaluated
   | "policy_violation" // Policy was violated
+  | "ratchet_revert"   // Git ratchet reverted files due to regression
 
 export interface AuditEntry {
   id: number

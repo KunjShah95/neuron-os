@@ -101,7 +101,7 @@ async function testCompleteSessionSetsStatus() {
     { sessionId: "complete-test-ok", sessionStore: store, maxSteps: 1 },
   )
   await engineCompleted.chat([{ role: "user", content: "Run task" }] as any)
-  engineCompleted.completeSession("completed")
+  await engineCompleted.completeSession("completed")
 
   const sessionOk = store.getSession("complete-test-ok")
   assert(sessionOk !== null, "completed session record exists")
@@ -115,7 +115,7 @@ async function testCompleteSessionSetsStatus() {
     { sessionId: "complete-test-fail", sessionStore: store, maxSteps: 1 },
   )
   await engineFailed.chat([{ role: "user", content: "Do risky thing" }] as any)
-  engineFailed.completeSession("failed")
+  await engineFailed.completeSession("failed")
 
   const sessionFail = store.getSession("complete-test-fail")
   assert(sessionFail !== null, "failed session record exists")

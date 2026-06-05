@@ -98,7 +98,7 @@ IMPORTANT SAFETY RULES:
   const pending = tracker.getPendingMutations()
 
   if (pending.length === 0) {
-    engine.completeSession("completed")
+    await engine.completeSession("completed")
     return executionResult.text || "Goal complete. No file changes were needed."
   }
 
@@ -107,7 +107,7 @@ IMPORTANT SAFETY RULES:
     const approved = await callbacks.onStaged(pending)
     if (!approved) {
       tracker.rejectAll()
-      engine.completeSession("completed")
+      await engine.completeSession("completed")
       return "Changes were rejected. No files were modified."
     }
   } else {
@@ -123,11 +123,11 @@ IMPORTANT SAFETY RULES:
   const { errors } = executor.applyApproved()
 
   if (errors.length > 0) {
-    engine.completeSession("failed")
+    await engine.completeSession("failed")
     return `Changes applied with ${errors.length} error(s):\n${errors.join("\n")}`
   }
 
-  engine.completeSession("completed")
+  await engine.completeSession("completed")
 
   const summary = [
     `✅ Changes applied successfully.`,
@@ -141,7 +141,7 @@ IMPORTANT SAFETY RULES:
 
   return summary
   } catch (err) {
-    engine.completeSession("failed")
+    await engine.completeSession("failed")
     throw err
   }
 }

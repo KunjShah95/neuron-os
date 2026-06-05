@@ -227,4 +227,31 @@ export class AuditRecorder {
       timestamp: new Date().toISOString(),
     })
   }
+
+  recordRatchetRevert(details: {
+    files: string[]
+    previousScore: number
+    newScore: number
+    reason: string
+  }): void {
+    auditStore.record({
+      sessionId: this.sessionId,
+      project: this.project,
+      stepIndex: this.nextStep(),
+      eventType: "ratchet_revert",
+      summary: `Ratchet revert: ${details.files.length} file(s) — ${details.reason}`,
+      detail: JSON.stringify({
+        files: details.files,
+        previousScore: details.previousScore,
+        newScore: details.newScore,
+      }),
+      context: JSON.stringify({
+        reason: details.reason,
+        fileCount: details.files.length,
+      }),
+      agentThought: this.lastThought,
+      durationMs: 0,
+      timestamp: new Date().toISOString(),
+    })
+  }
 }
