@@ -1,0 +1,10 @@
+# Bun configuration for test runner behavior.
+# Custom test runner files (test-*.ts) use process.exit() and are not
+# compatible with bun test format. Dashboard files use vitest (not bun test).
+[test]
+exclude = [
+  "src/**/test-*.ts",
+  "src/**/test-*/**",
+  "dashboard/**",
+  "node_modules/**"
+]

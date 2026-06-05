@@ -74,3 +74,65 @@ jobs:
           name: dashboard-dist
           path: dashboard/dist/
           if-no-files-found: warn
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.x'
+
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: bun-
+
+      - name: Install root dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install dashboard dependencies
+        run: bun install --frozen-lockfile
+        working-directory: dashboard
+
+      - name: Run coverage (bun test files)
+        run: bun test --coverage --coverage-reporter=lcov --coverage-reporter=text 2>&1
+
+      - name: Run dashboard coverage (vitest)
+        continue-on-error: true
+        run: |
+          cd dashboard && bunx vitest run --coverage 2>&1 || echo "⚠️ Dashboard coverage skipped (separate report)"
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: |
+            coverage/
+            dashboard/coverage/
+          if-no-files-found: warn
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          echo "📊 Coverage Summary"
+          if [ -f coverage/lcov.info ]; then
+            FILES=$(grep -c '^SF:' coverage/lcov.info)
+            echo "  • Bun test files covered: $FILES source files"
+          else
+            echo "  • Bun test: ⚠️ No lcov.info generated"
+          fi
+          if [ -f dashboard/coverage/lcov.info ]; then
+            DFILES=$(grep -c '^SF:' dashboard/coverage/lcov.info)
+            echo "  • Dashboard (vitest): $DFILES source files covered"
+          else
+            echo "  • Dashboard (vitest): ⚠️ No coverage generated"
+          fi
+          echo "  • Note: Custom test scripts (bun run <file.ts>) are not covered by bun test --coverage"
