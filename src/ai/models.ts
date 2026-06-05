@@ -3,7 +3,7 @@ export interface ModelOption {
   label: string
 }
 
-export type AIProviderType = "anthropic" | "openai" | "deepseek" | "ollama" | "custom" | "gemini" | "groq" | "openrouter"
+export type AIProviderType = "anthropic" | "openai" | "deepseek" | "ollama" | "custom" | "gemini" | "groq" | "openrouter" | "mistral" | "azure" | "togetherai"
 
 export const MODEL_REFERENCES: Record<AIProviderType, ModelOption[]> = {
   anthropic: [
@@ -49,6 +49,24 @@ export const MODEL_REFERENCES: Record<AIProviderType, ModelOption[]> = {
     { id: "meta-llama/llama-3.3-70b-instruct", label: "Llama 3.3 70B" },
     { id: "mistralai/mistral-7b-instruct", label: "Mistral 7B" },
   ],
+  mistral: [
+    { id: "mistral-large-latest", label: "Mistral Large" },
+    { id: "mistral-small-latest", label: "Mistral Small" },
+    { id: "codestral-latest", label: "Codestral" },
+    { id: "open-mistral-nemo", label: "Open Mistral Nemo" },
+  ],
+  azure: [
+    { id: "gpt-4o", label: "GPT-4o" },
+    { id: "gpt-4o-mini", label: "GPT-4o Mini" },
+    { id: "gpt-4-turbo", label: "GPT-4 Turbo" },
+    { id: "o3-mini", label: "o3 Mini" },
+  ],
+  togetherai: [
+    { id: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", label: "Llama 3.1 8B Turbo" },
+    { id: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", label: "Llama 3.1 70B Turbo" },
+    { id: "mistralai/Mixtral-8x7B-Instruct-v0.1", label: "Mixtral 8x7B" },
+    { id: "deepseek-ai/deepseek-coder-33b-instruct", label: "DeepSeek Coder 33B" },
+  ],
 }
 
 export function getDefaultModel(provider: AIProviderType): string {
@@ -64,6 +82,9 @@ export function getProviderBaseUrl(provider: AIProviderType, userBaseUrl?: strin
     case "gemini": return "https://generativelanguage.googleapis.com/v1beta/openai"
     case "groq": return "https://api.groq.com/openai/v1"
     case "openrouter": return "https://openrouter.ai/api/v1"
+    case "mistral": return "https://api.mistral.ai/v1"
+    case "azure": return userBaseUrl
+    case "togetherai": return "https://api.together.ai/v1"
     case "custom": return userBaseUrl
   }
 }

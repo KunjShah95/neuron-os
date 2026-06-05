@@ -202,6 +202,80 @@ const PROVIDERS: ProviderConfig[] = [
       }
     },
   },
+  {
+    key: "mistral",
+    label: "Mistral AI",
+    envVar: "MISTRAL_API_KEY",
+    defaultBaseUrl: "https://api.mistral.ai/v1",
+    needsBaseUrl: false,
+    testKey: async (apiKey) => {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 10000)
+      try {
+        const res = await fetch("https://api.mistral.ai/v1/models", {
+          headers: { authorization: `Bearer ${apiKey}` },
+          signal: controller.signal,
+        })
+        if (res.ok) return { ok: true }
+        const body = await res.json().catch(() => ({}))
+        const err = (body as any).error?.message || `HTTP ${res.status}`
+        return { ok: false, error: err }
+      } finally {
+        clearTimeout(timeout)
+      }
+    },
+  },
+  {
+    key: "azure",
+    label: "Azure OpenAI",
+    envVar: "AZURE_OPENAI_API_KEY",
+    defaultBaseUrl: "https://{resource}.openai.azure.com",
+    needsBaseUrl: true,
+    baseUrlLabel: "Azure resource endpoint (replace {resource} with your resource name)",
+    testKey: async (apiKey, baseUrl) => {
+      const url = baseUrl
+        ? `${baseUrl.replace(/\/+$/, "")}/openai/models?api-version=2024-02-15-preview`
+        : ""
+      if (!url) return { ok: false, error: "Azure endpoint URL is required" }
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 10000)
+      try {
+        const res = await fetch(url, {
+          headers: { "api-key": apiKey },
+          signal: controller.signal,
+        })
+        if (res.ok) return { ok: true }
+        const body = await res.json().catch(() => ({}))
+        const err = (body as any).error?.message || `HTTP ${res.status}`
+        return { ok: false, error: err }
+      } finally {
+        clearTimeout(timeout)
+      }
+    },
+  },
+  {
+    key: "togetherai",
+    label: "Together AI",
+    envVar: "TOGETHERAI_API_KEY",
+    defaultBaseUrl: "https://api.together.ai/v1",
+    needsBaseUrl: false,
+    testKey: async (apiKey) => {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 10000)
+      try {
+        const res = await fetch("https://api.together.ai/v1/models", {
+          headers: { authorization: `Bearer ${apiKey}` },
+          signal: controller.signal,
+        })
+        if (res.ok) return { ok: true }
+        const body = await res.json().catch(() => ({}))
+        const err = (body as any).error?.message || `HTTP ${res.status}`
+        return { ok: false, error: err }
+      } finally {
+        clearTimeout(timeout)
+      }
+    },
+  },
 ]
 
 // ── Telegram Bot Setup ────────────────────────────────────────────────
