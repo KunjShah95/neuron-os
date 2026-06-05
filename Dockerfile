@@ -24,9 +24,12 @@ LABEL org.opencontainers.image.description="The Operating System for Autonomous 
 LABEL org.opencontainers.image.version="0.1.0"
 LABEL org.opencontainers.image.licenses="MIT"
 
-# Create non-root user for security
-RUN addgroup --system --gid 1001 aegis \
-    && adduser --system --uid 1001 --ingroup aegis --home /home/aegis aegis
+# Create non-root user for security (low-level, no adduser/addgroup dependency)
+RUN mkdir -p /home/aegis \
+    && echo "aegis:x:1001:1001::/home/aegis:/bin/sh" >> /etc/passwd \
+    && echo "aegis:x:1001:" >> /etc/group \
+    && chown -R 1001:1001 /home/aegis \
+    && chmod 700 /home/aegis
 
 WORKDIR /app
 
