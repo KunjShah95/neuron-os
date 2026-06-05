@@ -21,15 +21,17 @@ function time<T>(_label: string, fn: () => Promise<T>): Promise<T> {
   })
 }
 
-async function run(label: string, cmd: string[]): Promise<boolean> {
+async function run(label: string, cmd: string[], options?: { cwd?: string }): Promise<boolean> {
   console.log(`\n══════════════════════════════════════════════════════════`)
   console.log(`  ${label}`)
   console.log(`  $ ${cmd.join(" ")}`)
+  if (options?.cwd) console.log(`  (cwd: ${options.cwd})`)
   console.log(`══════════════════════════════════════════════════════════\n`)
 
   try {
     const result = await time(label, () => Bun.spawn(resolveCmd(cmd), {
       stdio: ["inherit", "inherit", "inherit"],
+      cwd: options?.cwd,
       env: { ...process.env },
     }).exited)
 
@@ -119,8 +121,9 @@ async function main() {
   // ── 6.13 Telemetry Tests ───────────────────────────────────────────
   await run("Telemetry Tests", ["bun", "test", "src/telemetry/telemetry.test.ts"])
 
-  // ── 6.14 Dashboard Unit Tests ──────────────────────────────────────
-  await run("Dashboard Unit Tests", ["bun", "run", "--cwd", "dashboard", "test"])
+  // ── 6.14 Dashboard Dependencies & Unit Tests ─────────────────────
+  await run("Dashboard Dependencies Install", ["bun", "install", "--frozen-lockfile"], { cwd: "dashboard" })
+  await run("Dashboard Unit Tests", ["bun", "run", "test"], { cwd: "dashboard" })
 
   // ── 6.15 Self-Improving Runtime Tests ───────────────────────────────
   await run("Memory Embedding Tests", ["bun", "run", "src/memory/test-embedding.ts"])
