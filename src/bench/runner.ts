@@ -1,10 +1,9 @@
 /**
  * bench/runner — Execute bench tasks and produce run records.
  *
- * Per plan: function-based API (runBenchTask, runBenchSuite) over a
- * function-based discovery + history layer. Each task is dispatched
- * through runAgentOrchestrator with evaluation criteria, then
- * re-evaluated to compute the scalar reward for the history record.
+ * Each task is dispatched through runAgentOrchestrator with evaluation
+ * criteria, then re-evaluated to compute the scalar reward for the
+ * history record.
  */
 
 import { randomUUID } from "node:crypto"
@@ -21,6 +20,8 @@ export interface BenchRunnerConfig {
   cwd?: string
   ratchet?: boolean
   onProgress?: (msg: string) => void
+  /** Skip actual agent execution (for testing) */
+  dryRun?: boolean
 }
 
 export async function runBenchTask(
@@ -32,27 +33,34 @@ export async function runBenchTask(
   const log = (msg: string) => config?.onProgress?.(msg)
 
   try {
-    log(`Running bench task: ${task.name}`)
+    log(`▶ ${task.id}: ${task.name}`)
 
     const criteria: EvaluationCriteria[] = task.criteria.map((m) => ({ metric: m }))
     const sessionId = `bench-${task.id}-${randomUUID().slice(0, 8)}`
 
-    await runAgentOrchestrator(task.goal, undefined, {
-      ratchet: config?.ratchet ?? true,
-      evaluation: criteria,
-    })
+    if (!config?.dryRun) {
+      await runAgentOrchestrator(task.goal, undefined, undefined, {
+        ratchet: config?.ratchet ?? true,
+        evaluation: criteria,
+      })
+    }
 
     const evaluator = new Evaluator(cwd)
     const evalResult = await evaluator.evaluate(sessionId, task.goal, criteria)
 
-    return {
+    const result: BenchTaskResult = {
       taskId: task.id,
       score: evalResult.overallScore,
       passed: evalResult.overallPass,
       durationMs: Date.now() - start,
       sessionId,
     }
+    log(
+      `  ${result.passed ? "✅" : "❌"} score=${result.score.toFixed(2)} in ${(result.durationMs / 1000).toFixed(1)}s`,
+    )
+    return result
   } catch (err: any) {
+    log(`  ❌ error: ${err.message ?? String(err)}`)
     return {
       taskId: task.id,
       score: 0,

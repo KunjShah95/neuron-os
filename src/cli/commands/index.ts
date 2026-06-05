@@ -31,12 +31,14 @@ import { registerProject } from "./project"
 import { registerExperience } from "./experience"
 import { registerAudit } from "./audit"
 import { registerMesh } from "./mesh"
+import { registerBench } from "./bench"
 
 export function registerAllCommands(program: Command) {
   registerProject(program)
   registerExperience(program)
   registerAudit(program)
   registerMesh(program)
+  registerBench(program)
   registerWakeup(program)
   registerSetup(program)
   registerDashboard(program)
