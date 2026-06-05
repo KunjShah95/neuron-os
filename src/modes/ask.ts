@@ -65,10 +65,10 @@ export async function runAskOrchestrator(question: string, sessionDb?: boolean, 
         content: `You are a codebase research assistant. Answer the following question by exploring the codebase using the available tools. Be thorough and cite specific files and line numbers where relevant.\n\nQuestion: ${question}`,
       },
     ])
-    if (sessionDb) engine.completeSession("completed")
+    if (sessionDb) await engine.completeSession("completed")
     return result.text
   } catch (err) {
-    if (sessionDb) engine.completeSession("failed")
+    if (sessionDb) await engine.completeSession("failed")
     throw err
   }
 }

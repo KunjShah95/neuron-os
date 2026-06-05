@@ -48,7 +48,7 @@ export async function runTest(test: TestCase, config?: HarnessRunnerConfig): Pro
     clearTimeout(timer)
 
     const passed = test.expected ? output.text.includes(test.expected) : true
-    engine.completeSession(passed ? "completed" : "failed")
+    await engine.completeSession(passed ? "completed" : "failed")
 
     return {
       test,

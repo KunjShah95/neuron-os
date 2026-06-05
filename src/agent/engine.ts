@@ -7,6 +7,9 @@ import type { ToolPermission } from "./agent-types"
 import { sessionStore, getProjectSessionStore, type SessionStore } from "../memory/session-persistence"
 import { AuditRecorder } from "../audit/recorder"
 import { experienceStore, type Outcome } from "../experience/store"
+import { RatchetRuntime, type RatchetConfig } from "./ratchet"
+import { Evaluator } from "../mesh/evaluator"
+import type { EvaluationCriteria } from "../mesh/types"
 import { createLogger } from "../cli/logger"
 
 const log = createLogger("agent-engine")
@@ -59,6 +62,18 @@ export interface AgentEngineConfig {
    * Stores trajectories for skill distillation and failure analysis.
    */
   experience?: boolean
+  /**
+   * Enable git-aware ratchet: measure a metric after the session and revert
+   * files when the outcome is "degraded". Pass `true` for defaults, or a
+   * partial RatchetConfig (e.g., `{ testCommand: "npm test" }` or
+   * `{ criteria: [{ metric: "typecheck" }] }`) to override.
+   */
+  ratchet?: boolean | Partial<RatchetConfig>
+  /**
+   * Evaluation criteria to compute a real scalar reward (0.0–1.0) for
+   * experience recording. Falls back to neutral 0.5 when omitted.
+   */
+  evaluation?: EvaluationCriteria[]
 }
 
 export class AgentEngine {
@@ -74,6 +89,11 @@ export class AgentEngine {
   private experienceEnabled = false
   private experienceStartedAt = ""
   private experienceActionCount = 0
+  private ratchetRuntime?: RatchetRuntime
+  private ratchetConfig?: RatchetConfig
+  private evaluationCriteria?: EvaluationCriteria[]
+  private sessionStartFiles: string[] = []
+  private projectName = ""
 
   constructor(runtime: AgentRuntime, ai: AIProviderManager, config?: AgentEngineConfig) {
     this.runtime = runtime
@@ -82,6 +102,7 @@ export class AgentEngine {
     this.sessionId = config?.sessionId
     this.sessionName = config?.sessionName
     this.sessionGoal = config?.goal
+    this.projectName = config?.project ?? ""
     // Use project-scoped session store when project is specified
     this.sessionStore = config?.project
       ? getProjectSessionStore(config.project)
@@ -100,6 +121,26 @@ export class AgentEngine {
     if (config?.experience && config?.sessionId) {
       this.experienceEnabled = true
       this.experienceStartedAt = new Date().toISOString()
+    }
+
+    // Stash evaluation criteria for completeSession()
+    if (config?.evaluation) {
+      this.evaluationCriteria = config.evaluation
+    }
+
+    // Initialize ratchet runtime (git-aware measure/revert kernel)
+    if (config?.ratchet) {
+      this.ratchetRuntime = new RatchetRuntime()
+      const cwd = this.runtime.context.cwd
+      const base: RatchetConfig = { cwd }
+      if (typeof config.ratchet === "object") {
+        this.ratchetConfig = { ...base, ...config.ratchet }
+      } else {
+        this.ratchetConfig = base
+      }
+      if (this.ratchetRuntime.isGitRepo(cwd)) {
+        this.sessionStartFiles = this.ratchetRuntime.getChangedFiles(cwd)
+      }
     }
   }
 
@@ -157,41 +198,115 @@ export class AgentEngine {
 
   /**
    * Complete or fail the session.
-   * Records the experience trajectory if experience tracking is enabled.
+   *
+   * Wires the session-completion kernel:
+   *  1. Evaluator (if `evaluation` criteria provided) → real scalar reward 0–1
+   *  2. RatchetRuntime (if `ratchet` enabled) → measure, revert on regression
+   *  3. Persist outcome + reward to experience store (if `experience` enabled)
+   *  4. Record audit + session status updates
+   *
+   * Failure-safe: evaluator + ratchet each wrapped in try/catch with neutral
+   * fallback so a faulty kernel never breaks session teardown.
    */
-  completeSession(status: "completed" | "failed" = "completed"): void {
+  async completeSession(status: "completed" | "failed" = "completed"): Promise<void> {
     if (!this.sessionId) return
 
     const store = this.sessionStore ?? sessionStore
+    const cwd = this.runtime.context.cwd
+
+    // Default: neutral reward when no signal (amendment ΔG5)
+    let reward = 0.5
+    let outcome: Outcome = "partial"
+    const metrics: Record<string, unknown> = { steps: this.experienceActionCount }
+
+    // ── Evaluator path (amendment ΔG1 failure-safe) ──────────────────
+    if (this.evaluationCriteria && this.evaluationCriteria.length > 0) {
+      try {
+        const evaluator = new Evaluator(cwd)
+        const evalResult = await evaluator.evaluate(
+          this.sessionId,
+          this.sessionGoal ?? "untitled",
+          this.evaluationCriteria,
+        )
+        reward = evalResult.overallScore
+        outcome = evalResult.overallPass
+          ? "success"
+          : evalResult.overallScore > 0
+            ? "partial"
+            : "failed"
+        metrics.evaluation = evalResult
+      } catch (err) {
+        log.warn("Evaluator failed, falling back to neutral reward", { error: String(err) })
+        outcome = "partial"
+        reward = 0.5
+        metrics.evaluationError = String(err)
+      }
+    } else if (status === "completed") {
+      // No criteria + successful chat = still partial (we don't know the result)
+      outcome = "partial"
+      reward = 0.5
+    } else {
+      outcome = "failed"
+      reward = 0
+    }
+
+    // ── Ratchet path ─────────────────────────────────────────────────
+    if (this.ratchetRuntime && this.ratchetConfig) {
+      try {
+        const measure = await this.ratchetRuntime.measure(this.ratchetConfig)
+        const newFiles = measure.filesChanged.filter((f) => !this.sessionStartFiles.includes(f))
+        if (measure.outcome === "degraded" && newFiles.length > 0) {
+          this.ratchetRuntime.revertFiles(cwd, newFiles)
+          outcome = "reverted"
+          reward = Math.min(reward, measure.score)
+          if (this.auditRecorder) {
+            this.auditRecorder.recordRatchetRevert({
+              files: newFiles,
+              previousScore: -1,
+              newScore: measure.score,
+              reason: measure.outcome,
+            })
+          }
+        } else if (this.evaluationCriteria) {
+          reward = measure.score
+        }
+        metrics.ratchet = measure
+      } catch (err) {
+        log.warn("Ratchet measure failed", { error: String(err) })
+      }
+    }
+
+    // ── Persist session status ───────────────────────────────────────
     try {
-      store.updateSession(this.sessionId, { status })
+      store.updateSession(this.sessionId, {
+        status: outcome === "success" || outcome === "partial" ? "completed" : "failed",
+      })
     } catch (err) {
       log.warn("Failed to update session status", { error: String(err) })
     }
 
-    // Record audit end
+    // ── Audit end ────────────────────────────────────────────────────
     if (this.auditRecorder) {
-      this.auditRecorder.recordSessionEnd(status)
+      this.auditRecorder.recordSessionEnd(outcome === "success" ? "completed" : "failed")
     }
 
-    // Record experience trajectory
+    // ── Experience recording ─────────────────────────────────────────
     if (this.experienceEnabled && this.sessionGoal) {
       try {
-        const outcome: Outcome = status === "completed" ? "success" : "failed"
         experienceStore.recordExperience({
           id: this.sessionId,
-          project: "",
+          project: this.projectName,
           sessionId: this.sessionId,
           goal: this.sessionGoal,
-          agentType: "agent",
+          agentType: this.runtime.context.agentType ?? "agent",
           outcome,
-          reward: outcome === "success" ? 1.0 : 0.0,
+          reward,
           actionCount: this.experienceActionCount,
           startedAt: this.experienceStartedAt,
           completedAt: new Date().toISOString(),
-          summary: `Session ${status}: ${this.sessionGoal.slice(0, 100)}`,
+          summary: `Session ${outcome} (r=${reward.toFixed(2)}): ${this.sessionGoal.slice(0, 100)}`,
           tags: [],
-          metrics: JSON.stringify({ steps: this.experienceActionCount }),
+          metrics: JSON.stringify(metrics),
         })
       } catch (err) {
         log.warn("Failed to record experience", { error: String(err) })

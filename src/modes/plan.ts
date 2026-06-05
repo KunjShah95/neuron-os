@@ -61,10 +61,10 @@ Be specific and actionable. Reference existing patterns and conventions in the c
 Goal: ${goal}`,
       },
     ])
-    if (sessionDb) engine.completeSession("completed")
+    if (sessionDb) await engine.completeSession("completed")
     return result.text
   } catch (err) {
-    if (sessionDb) engine.completeSession("failed")
+    if (sessionDb) await engine.completeSession("failed")
     throw err
   }
 }
