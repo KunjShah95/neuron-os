@@ -23,6 +23,7 @@ const FULL_TOOL_PERMISSIONS: ToolPermission[] = [
   { name: "bash", allow: true },
   { name: "grep", allow: true },
   { name: "glob", allow: true },
+  { name: "ask_agent", allow: true },
 ]
 
 export interface AgentEngineConfig {

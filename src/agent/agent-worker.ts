@@ -65,6 +65,8 @@ async function ensureEngine(): Promise<AgentEngine> {
   return engine
 }
 
+import { episodicMemory } from "../memory/store"
+
 // ── ReAct Loop ─────────────────────────────────────────────────────────
 
 async function runReActLoop(goal: string, taskId: number): Promise<string> {
@@ -73,7 +75,16 @@ async function runReActLoop(goal: string, taskId: number): Promise<string> {
 
   // Use AgentEngine + AgentRuntime so tool permissioning and skill loading are centralized.
   const engine = await ensureEngine()
-  const messages: any[] = [{ role: "user", content: goal }]
+  
+  // Load previous context to survive crashes
+  const history = episodicMemory.loadContext(AGENT_ID)
+  const messages: any[] = history.length > 0 ? history : []
+  
+  // Only add the goal if we're not resuming an identical goal
+  const lastMsg = messages[messages.length - 1]
+  if (!lastMsg || lastMsg.content !== goal) {
+     messages.push({ role: "user", content: goal })
+  }
 
   let stepCount = 0
   let finalText = ""
@@ -210,13 +221,39 @@ function startHeartbeat(): void {
   }, HEARTBEAT_MS)
 }
 
+import { taskQueue } from "./queue"
+
+async function pollQueue(): Promise<void> {
+  log("info", `Agent worker started in queue polling mode. Waiting for tasks...`)
+  while (running) {
+    const task = taskQueue.pull(AGENT_ID)
+    if (task) {
+      log("info", `Pulled task: ${task.id} (priority: ${task.priority})`)
+      try {
+        const output = await runReActLoop(task.goal, ++taskCount)
+        taskQueue.complete(task.id, true, output)
+      } catch (err: any) {
+        taskQueue.complete(task.id, false, String(err))
+      }
+    } else {
+      // Sleep briefly if no task
+      await new Promise(r => setTimeout(r, 2000))
+    }
+  }
+}
+
 // ── Startup ───────────────────────────────────────────────────────────
 
 log("info", `Agent "${AGENT_NAME}" (${AGENT_ID}) type=${AGENT_TYPE ?? "default"} starting…`)
 send({ type: "result", payload: { status: "ready", name: AGENT_NAME, id: AGENT_ID, type: AGENT_TYPE } })
 
 startHeartbeat()
-await readStdin()
+
+if (process.env.AEGIS_WORKER_MODE === "true") {
+  await pollQueue()
+} else {
+  await readStdin()
+}
 
 log("info", "Agent worker exiting")
 process.exit(0)

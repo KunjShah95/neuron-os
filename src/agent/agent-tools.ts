@@ -9,6 +9,7 @@ import type { ActionTracker } from "./action-tracker"
 import fs from "node:fs"
 import path from "node:path"
 import { spawnSync } from "node:child_process"
+import { policyEngine } from "../sandbox/policy"
 
 export interface AgentToolConfig {
   codebasePath: string
@@ -83,6 +84,7 @@ export class AgentToolExecutor {
 
   /** Read a file's content (read-only, logged as code_analysis). */
   readFile(rel: string): string {
+    policyEngine.enforce("read", rel)
     this.assertNotExcluded(rel, "read_file")
     const abs = this.resolveSafe(rel)
     if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) {
@@ -103,6 +105,7 @@ export class AgentToolExecutor {
 
   /** Stage a new file creation. */
   createFile(rel: string, content: string): string {
+    policyEngine.enforce("write", rel)
     if (!this.config.allowFileCreation) throw new Error("File creation disabled")
     this.assertNotExcluded(rel, "create_file")
     const key = this.norm(rel)
@@ -122,6 +125,7 @@ export class AgentToolExecutor {
 
   /** Stage a file modification. */
   modifyFile(rel: string, content: string): string {
+    policyEngine.enforce("write", rel)
     if (!this.config.allowFileModification) throw new Error("File modification disabled")
     this.assertNotExcluded(rel, "modify_file")
     const before = this.getEffectiveText(rel)
@@ -138,6 +142,7 @@ export class AgentToolExecutor {
 
   /** Stage a file deletion. */
   deleteFile(rel: string): string {
+    policyEngine.enforce("write", rel)
     if (!this.config.allowFileModification) throw new Error("File deletion disabled")
     this.assertNotExcluded(rel, "delete_file")
     const before = this.getEffectiveText(rel)
@@ -168,6 +173,7 @@ export class AgentToolExecutor {
 
   /** Stage a shell command for later execution. */
   queueShell(command: string): string {
+    policyEngine.enforce("execute", command)
     if (!this.config.allowShellExecution) throw new Error("Shell execution disabled")
     this.tracker.log({
       type: "tool_execute",

@@ -1,5 +1,6 @@
 {
   "name": "neuron-os",
+  "version": "0.1.0",
   "module": "index.ts",
   "type": "module",
   "private": true,
@@ -31,7 +32,15 @@
     "prepare": "husky",
     "lint": "eslint src/",
     "format": "prettier --write 'src/**/*.ts'",
-    "openapi": "bun run scripts/generate-openapi.ts"
+    "openapi": "bun run scripts/generate-openapi.ts",
+    "build:binary": "bun build index.ts --compile --target=bun-windows-x64 --outfile=dist/aegis.exe",
+    "build:binary:linux": "bun build index.ts --compile --target=bun-linux-x64 --outfile=dist/aegis-linux-x64",
+    "build:binary:mac": "bun build index.ts --compile --target=bun-darwin-x64 --outfile=dist/aegis-darwin-x64",
+    "docker:build": "docker build -t neuron-os/aegis:latest .",
+    "docker:push": "docker push neuron-os/aegis:latest",
+    "docker:up": "docker compose up -d",
+    "docker:up:dev": "docker compose --profile dev up -d",
+    "postinstall": "cd dashboard && bun install 2>/dev/null || true"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.81",

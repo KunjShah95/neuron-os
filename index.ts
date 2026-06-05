@@ -38,6 +38,7 @@ loadDotEnv()
 
 import { Command } from "commander"
 import { showBanner } from "./src/cli/banner"
+import { getVersion } from "./src/version"
 import { registerAllCommands } from "./src/cli/commands"
 import { runWakeup } from "./src/cli/wakeup"
 import { registerErrorBoundaries } from "./src/cli/guard"
@@ -128,7 +129,7 @@ const program = new Command()
 program
   .name("Aegis")
   .description("The Operating System for Autonomous AI Agents")
-  .version("0.1.0")
+  .version(getVersion())
 
 registerAllCommands(program)
 

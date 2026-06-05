@@ -14,10 +14,12 @@ import { readSkillTool } from "./read-skill"
 import { webFetchTool } from "./web-fetch"
 import { webSearchTool } from "./web-search"
 import { computerTool } from "./computer"
+import { askAgentTool } from "./ask-agent"
 
 // Register all built-in tools
 export function registerBuiltinTools(): void {
   toolRegistry.register(bashTool)
+  toolRegistry.register(askAgentTool)
   toolRegistry.register(readTool)
   toolRegistry.register(readSkillTool)
   toolRegistry.register(writeTool)
