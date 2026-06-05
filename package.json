@@ -30,7 +30,6 @@
     "bench:update": "bun run scripts/bench-memory-system.ts --update-baseline",
     "test:dashboard": "bun run src/test-dashboard.ts",
     "test:chat": "bun run src/chat/test-chat.ts",
-    "prepare": "husky",
     "lint": "eslint src/",
     "format": "prettier --write 'src/**/*.ts'",
     "openapi": "bun run scripts/generate-openapi.ts",
@@ -40,8 +39,7 @@
     "docker:build": "docker build -t neuron-os/aegis:latest .",
     "docker:push": "docker push neuron-os/aegis:latest",
     "docker:up": "docker compose up -d",
-    "docker:up:dev": "docker compose --profile dev up -d",
-    "postinstall": "cd dashboard && bun install 2>/dev/null; exit 0"
+    "docker:up:dev": "docker compose --profile dev up -d"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.81",
