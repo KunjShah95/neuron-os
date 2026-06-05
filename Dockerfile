@@ -23,9 +23,9 @@ LABEL org.opencontainers.image.description="The Operating System for Autonomous 
 LABEL org.opencontainers.image.version="0.1.0"
 LABEL org.opencontainers.image.licenses="MIT"
 
-# Create non-root user for security
-RUN addgroup --system --gid 1001 aegis \
-    && adduser --system --uid 1001 --ingroup aegis --home /home/aegis aegis
+# Create non-root user for security (Alpine-compatible syntax)
+RUN addgroup -S -g 1001 aegis \
+    && adduser -S -u 1001 -G aegis -h /home/aegis aegis
 
 WORKDIR /app
 
