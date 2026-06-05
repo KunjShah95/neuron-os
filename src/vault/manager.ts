@@ -112,6 +112,7 @@ export class CredentialVault {
     // Also write scoped .env
     if (scope !== "global") {
       const scopedFile = resolve(SCOPED_ENV_DIR, `${scope}.env`)
+      await mkdir(SCOPED_ENV_DIR, { recursive: true })
       const scopeEntries = this.entries.filter((e) => e.scope === scope)
       const lines = scopeEntries.map((e) => `${e.key}=${e.value}`)
       await writeFile(scopedFile, lines.join("\n") + "\n", "utf-8")
