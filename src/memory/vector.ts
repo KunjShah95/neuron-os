@@ -1,6 +1,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises"
 import { resolve } from "node:path"
 import { existsSync } from "node:fs"
+import { computeEmbedding, cosineSimilarity } from "./embedding"
 
 export interface VectorEntry {
   id: string
@@ -32,46 +33,6 @@ export class VectorMemory {
 
   // ── Simple character-level embedding (no external deps) ────────────
 
-  private computeEmbedding(text: string): number[] {
-    const dim = 128
-    const vec = new Array(dim).fill(0)
-    const lower = text.toLowerCase().replace(/[^a-z0-9\s]/g, "")
-    const words = lower.split(/\s+/).filter(Boolean)
-
-    for (const word of words) {
-      let hash = 0
-      for (let i = 0; i < word.length; i++) {
-        hash = ((hash << 5) - hash) + word.charCodeAt(i)
-        hash = hash & hash
-      }
-      const idx = Math.abs(hash) % dim
-      vec[idx] = (vec[idx] || 0) + 1
-    }
-
-    // Normalize
-    const norm = Math.sqrt(vec.reduce((s, v) => s + v * v, 0))
-    if (norm > 0) {
-      for (let i = 0; i < dim; i++) {
-        vec[i] = vec[i]! / norm
-      }
-    }
-
-    return vec
-  }
-
-  private cosineSimilarity(a: number[], b: number[]): number {
-    let dot = 0
-    let na = 0
-    let nb = 0
-    for (let i = 0; i < a.length; i++) {
-      dot += (a[i] || 0) * (b[i] || 0)
-      na += (a[i] || 0) * (a[i] || 0)
-      nb += (b[i] || 0) * (b[i] || 0)
-    }
-    const denom = Math.sqrt(na) * Math.sqrt(nb)
-    return denom === 0 ? 0 : dot / denom
-  }
-
   // ── API ────────────────────────────────────────────────────────────
 
   async add(content: string, source: string, category?: string): Promise<string> {
@@ -79,7 +40,7 @@ export class VectorMemory {
     const entry: VectorEntry = {
       id,
       content,
-      embedding: this.computeEmbedding(content),
+      embedding: computeEmbedding(content),
       source,
       timestamp: new Date().toISOString(),
       category,
@@ -90,10 +51,10 @@ export class VectorMemory {
   }
 
   async search(query: string, limit = 5, minSimilarity = 0.1): Promise<VectorEntry[]> {
-    const queryEmbed = this.computeEmbedding(query)
+    const queryEmbed = computeEmbedding(query)
 
     const scored = this.entries
-      .map((e) => ({ entry: e, score: this.cosineSimilarity(queryEmbed, e.embedding) }))
+      .map((e) => ({ entry: e, score: cosineSimilarity(queryEmbed, e.embedding) }))
       .filter((s) => s.score >= minSimilarity)
       .sort((a, b) => b.score - a.score)
       .slice(0, limit)
