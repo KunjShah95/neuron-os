@@ -121,7 +121,7 @@ export class SessionStore {
     `)
 
     this.initialized = true
-    log.info("Session store initialized")
+    log.debug("Session store initialized")
   }
 
   // ── Session CRUD ──────────────────────────────────────────────────
@@ -410,12 +410,32 @@ export class SessionStore {
 /** Singleton instance */
 export const sessionStore = new SessionStore()
 
+// Cache of project-scoped session stores to avoid duplicate init logs and DB connections
+const projectStores = new Map<string, SessionStore>()
+
 /**
  * Get a project-scoped session store.
  * Sessions are isolated per project under ~/.aegis/projects/<name>/sessions.db.
  * Falls back to the default singleton when project is null.
+ * Caches project-scoped stores to avoid duplicate DB connections / init logs.
  */
 export function getProjectSessionStore(project?: string | null): SessionStore {
   if (!project) return sessionStore
-  return new SessionStore(undefined, project)
+  const existing = projectStores.get(project)
+  if (existing) return existing
+  const store = new SessionStore(undefined, project)
+  projectStores.set(project, store)
+  return store
+}
+
+/**
+ * Remove a cached project store and close its database connection.
+ * Called when a project is removed to prevent resource leaks.
+ */
+export function removeProjectStore(project: string): void {
+  const store = projectStores.get(project)
+  if (store) {
+    try { store.close() } catch { /* best effort */ }
+    projectStores.delete(project)
+  }
 }

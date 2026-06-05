@@ -123,7 +123,7 @@ export class AuditStore {
     `)
 
     this.initialized = true
-    log.info("Audit store initialized")
+    log.debug("Audit store initialized")
   }
 
   // ── Record (append-only) ────────────────────────────────────────────

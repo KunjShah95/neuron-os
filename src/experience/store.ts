@@ -138,7 +138,7 @@ export class ExperienceStore {
     `)
 
     this.initialized = true
-    log.info("Experience store initialized")
+    log.debug("Experience store initialized")
   }
 
   // ── Record ──────────────────────────────────────────────────────────
