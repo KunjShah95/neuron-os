@@ -7,6 +7,7 @@ import type { ToolPermission } from "./agent-types"
 import { sessionStore, getProjectSessionStore, type SessionStore } from "../memory/session-persistence"
 import { AuditRecorder } from "../audit/recorder"
 import { experienceStore, type Outcome } from "../experience/store"
+import { ExperienceRetriever } from "../experience/retrieval"
 import { RatchetRuntime, type RatchetConfig } from "./ratchet"
 import { Evaluator } from "../mesh/evaluator"
 import type { EvaluationCriteria } from "../mesh/types"
@@ -410,6 +411,21 @@ export class AgentEngine {
     return lines.join("\n")
   }
 
+  private buildExperienceContext(): string {
+    if (!this.experienceEnabled || !this.sessionGoal) return ""
+    try {
+      const retriever = new ExperienceRetriever(experienceStore)
+      const similar = retriever.searchSimilar(this.sessionGoal, {
+        project: this.projectName || undefined,
+        limit: 5,
+      })
+      return retriever.formatContext(similar)
+    } catch (err) {
+      log.warn("Failed to build experience context", { error: String(err) })
+      return ""
+    }
+  }
+
   async streamChat(
     messages: ModelMessage[],
     callbacks?: {
@@ -419,7 +435,11 @@ export class AgentEngine {
   ): Promise<string> {
     const base = await this.runtime.buildSystemPrompt()
     const toolDesc = this.buildToolDescription()
-    const systemPrompt = base.trim() ? `${base}\n\n---\n\n${toolDesc}` : toolDesc
+    const experienceCtx = this.buildExperienceContext()
+    let systemPrompt = base.trim() ? `${base}\n\n---\n\n${toolDesc}` : toolDesc
+    if (experienceCtx) {
+      systemPrompt = `${experienceCtx}\n\n---\n\n${systemPrompt}`
+    }
 
     const tools = this.buildVercelTools()
     const toolKeys = Object.keys(tools)
@@ -458,7 +478,11 @@ export class AgentEngine {
   async chat(messages: ModelMessage[]): Promise<{ text: string }> {
     const base = await this.runtime.buildSystemPrompt()
     const toolDesc = this.buildToolDescription()
-    const systemPrompt = base.trim() ? `${base}\n\n---\n\n${toolDesc}` : toolDesc
+    const experienceCtx = this.buildExperienceContext()
+    let systemPrompt = base.trim() ? `${base}\n\n---\n\n${toolDesc}` : toolDesc
+    if (experienceCtx) {
+      systemPrompt = `${experienceCtx}\n\n---\n\n${systemPrompt}`
+    }
 
     const tools = this.buildVercelTools()
     const toolKeys = Object.keys(tools)
