@@ -4,19 +4,20 @@
  * Implements a "ratchet" loop where an AI agent iterates on a codebase
  * autonomously, keeping only changes that improve a measurable outcome.
  *
- * Uses safe git operations — stashes user WIP before starting and
- * only reverts agent-made changes per iteration.
+ * Uses the shared RatchetRuntime kernel (src/agent/ratchet.ts) for all
+ * git operations. Research-specific prompts and the iteration loop live here;
+ * stash/measure/revert mechanics are delegated.
  *
  * Inspired by: https://github.com/karpathy/autoresearch
  */
 
 import chalk from "chalk"
 import { generateText, stepCountIs } from "ai"
-import { execSync } from "node:child_process"
 import { AIProviderManager } from "../ai"
 import type { AIConfig } from "../ai"
 import { AgentToolExecutor } from "../agent/agent-tools"
 import { ActionTracker } from "../agent/action-tracker"
+import { RatchetRuntime } from "../agent/ratchet"
 
 export interface ResearchConfig {
   goal: string
@@ -31,6 +32,7 @@ export interface ResearchIteration {
   hypothesis: string
   approach: string
   outcome: "improved" | "degraded" | "neutral" | "error"
+  score?: number
   metric?: string
   summary: string
 }
@@ -40,8 +42,8 @@ export interface ResearchIteration {
  *
  * 1. Stashes any user WIP before starting (restored on completion)
  * 2. Agent proposes and implements changes each iteration
- * 3. Changes are measured against the test command
- * 4. If metric degrades, only the agent's changes are reverted (git checkout on tracked files)
+ * 3. Changes are measured via RatchetRuntime (typecheck by default, or testCommand)
+ * 4. If metric degrades, only the agent's changes are reverted
  * 5. Ratchet: improvements are kept, regressions are discarded
  */
 export async function runResearchLoop(
@@ -62,6 +64,8 @@ export async function runResearchLoop(
   })
   const cwd = config.workspacePath || process.cwd()
 
+  const ratchet = new RatchetRuntime()
+
   const ai = new AIProviderManager({
     provider: (process.env.AEGIS_AI_PROVIDER ?? "openai") as any,
     model: process.env.AEGIS_AI_MODEL ?? "gpt-4o",
@@ -71,25 +75,20 @@ export async function runResearchLoop(
   } as AIConfig)
 
   let converged = false
-  let previousMetric = ""
+  let previousScore: number | undefined
+  let lastMetricText = ""
 
   const log = (msg: string) => {
     if (onProgress) onProgress(msg)
     else console.log(chalk.dim(`  ${msg}`))
   }
 
-  // ── Stash user's WIP before starting ───────────────────────────
+  // ── Stash user's WIP before starting ───────────────────────────────
   log(chalk.yellow("📦 Stashing any uncommitted user changes for safety..."))
-  let hadStash = false
-  try {
-    execSync("git stash push -m 'auto-research-session' --include-untracked", {
-      cwd,
-      encoding: "utf8",
-      stdio: "pipe",
-    })
-    hadStash = true
+  const hadStash = ratchet.stash(cwd)
+  if (hadStash) {
     log(chalk.green("  Stashed. Will restore on completion."))
-  } catch {
+  } else {
     log(chalk.dim("  No changes to stash or not a git repo."))
   }
 
@@ -105,7 +104,8 @@ export async function runResearchLoop(
         `SUCCESS CRITERIA: ${config.successCriteria}`,
         ``,
         `You have made ${i} iteration(s) so far.`,
-        previousMetric ? `PREVIOUS METRIC: "${previousMetric}"` : "No previous metric recorded.",
+        previousScore !== undefined ? `PREVIOUS SCORE: ${previousScore.toFixed(2)}` : "No previous score recorded.",
+        lastMetricText ? `PREVIOUS METRIC: "${lastMetricText}"` : "",
         ``,
         `Your task: Explore the codebase and propose a SINGLE, targeted change to try next.`,
         `Be specific about:`,
@@ -115,7 +115,7 @@ export async function runResearchLoop(
         `4. How to verify/measure the result`,
         ``,
         `Keep changes small and focused — one hypothesis per iteration.`,
-      ].join("\n")
+      ].filter(Boolean).join("\n")
 
       const exploration = await generateText({
         model: ai.getModel(),
@@ -145,7 +145,7 @@ export async function runResearchLoop(
         temperature: 0.3,
       })
 
-      // Phase 3: Apply staged changes and test
+      // Phase 3: Apply staged changes and measure
       const pending = tracker.getPendingMutations()
 
       if (pending.length > 0) {
@@ -165,77 +165,43 @@ export async function runResearchLoop(
           continue
         }
 
-        // Phase 4: Run test command to measure outcome
-        let outcome: ResearchIteration["outcome"] = "improved"
-        let metric = "Changes applied, testing required"
-        let filesChanged: string[] = []
+        // Phase 4: Measure via RatchetRuntime
+        const measure = await ratchet.measure(
+          config.testCommand
+            ? { cwd, testCommand: config.testCommand }
+            : { cwd, criteria: [{ metric: "typecheck" }] },
+          previousScore,
+        )
 
-        // Track which files the agent changed for targeted revert
-        try {
-          const diffOutput = execSync("git diff --name-only", { cwd, encoding: "utf8" }).trim()
-          filesChanged = diffOutput ? diffOutput.split("\n").filter(Boolean) : []
-        } catch {
-          // Not a git repo or no changes
-        }
+        lastMetricText = measure.output
+        previousScore = measure.score
 
-        if (config.testCommand) {
-          log(`Running test: ${config.testCommand}`)
+        log(`Measure: outcome=${measure.outcome}, score=${measure.score.toFixed(2)}`)
 
-          try {
-            const testResult = execSync(config.testCommand, {
-              cwd,
-              encoding: "utf8",
-              timeout: 120_000,
-            })
-
-            metric = testResult.trim().slice(0, 500)
-            log(`Test output: ${metric.slice(0, 200)}`)
-
-            if (testResult.includes("FAIL") || testResult.includes("error") || testResult.includes("Error")) {
-              outcome = "degraded"
-            } else if (previousMetric && metric === previousMetric) {
-              outcome = "neutral"
-            } else {
-              outcome = "improved"
-            }
-
-            previousMetric = metric
-          } catch (err: any) {
-            outcome = "degraded"
-            metric = `Test failed: ${err.message?.slice(0, 200) || String(err)}`
-            log(`⚠️  Test failed: ${metric}`)
-          }
-        } else {
-          metric = "No test command provided — marking as improved"
-          outcome = "improved"
-        }
-
-        // Phase 5: RATCHET — if degraded, revert only the agent's changes
-        if (outcome === "degraded" && filesChanged.length > 0) {
-          log(chalk.yellow(`↩️  Metric degraded — reverting ${filesChanged.length} file(s)`))
-          for (const file of filesChanged) {
-            try {
-              execSync(`git checkout -- "${file}"`, { cwd, encoding: "utf8" })
-              log(chalk.dim(`  Reverted: ${file}`))
-            } catch {
-              log(chalk.red(`  Could not revert: ${file}`))
-            }
-          }
-        } else if (outcome === "improved") {
-          log(chalk.green(`✅ Iteration ${i + 1} outcome: ${outcome}`))
+        // Phase 5: RATCHET — if degraded, revert via RatchetRuntime
+        if (measure.outcome === "degraded" && measure.filesChanged.length > 0) {
+          log(chalk.yellow(`↩️  Metric degraded — reverting ${measure.filesChanged.length} file(s)`))
+          ratchet.revertFiles(cwd, measure.filesChanged)
+        } else if (measure.outcome === "improved") {
+          log(chalk.green(`✅ Iteration ${i + 1} outcome: improved`))
+        } else if (measure.outcome === "neutral") {
+          log(chalk.dim(`➖ Iteration ${i + 1} outcome: neutral`))
         }
 
         iterations.push({
           iteration: i + 1,
           hypothesis: approach.slice(0, 200),
-          approach: "apply+test",
-          outcome,
-          metric: metric.slice(0, 300),
-          summary: outcome === "improved"
+          approach: "apply+measure",
+          outcome: measure.outcome,
+          score: measure.score,
+          metric: measure.output.slice(0, 300),
+          summary: measure.outcome === "improved"
             ? "Changes improved the metric"
-            : outcome === "neutral"
+            : measure.outcome === "neutral"
               ? "No measurable change"
-              : "Metric degraded, files reverted",
+              : measure.outcome === "degraded"
+                ? "Metric degraded, files reverted"
+                : "Evaluator error",
         })
       } else {
         iterations.push({
@@ -251,12 +217,7 @@ export async function runResearchLoop(
     // ── Restore user's stashed work ───────────────────────────────
     if (hadStash) {
       log(chalk.yellow("\n📦 Restoring user's stashed changes..."))
-      try {
-        execSync("git stash pop", { cwd, encoding: "utf8", stdio: "pipe" })
-        log(chalk.green("  Stash restored."))
-      } catch {
-        log(chalk.yellow("  Stash could not be auto-restored. Run `git stash pop` manually."))
-      }
+      ratchet.restore(cwd)
     }
   }
 
@@ -273,12 +234,12 @@ export async function runResearchLoop(
     ``,
     ...iterations.map(
       (it) =>
-        `- **Iteration ${it.iteration}:** ${it.outcome === "improved" ? "✅" : it.outcome === "degraded" ? "↩️" : "➖"} ${it.outcome} — ${it.summary.slice(0, 120)}`,
+        `- **Iteration ${it.iteration}:** ${it.outcome === "improved" ? "✅" : it.outcome === "degraded" ? "↩️" : it.outcome === "error" ? "❌" : "➖"} ${it.outcome}${it.score !== undefined ? ` (score ${it.score.toFixed(2)})` : ""} — ${it.summary.slice(0, 120)}`,
     ),
     ``,
     `### Final Metric`,
     ``,
-    `\`${previousMetric || "(no metric recorded)"}\``,
+    `\`${lastMetricText || "(no metric recorded)"}\``,
   ].join("\n")
 
   return {
