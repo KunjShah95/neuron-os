@@ -41,7 +41,7 @@
     "docker:push": "docker push neuron-os/aegis:latest",
     "docker:up": "docker compose up -d",
     "docker:up:dev": "docker compose --profile dev up -d",
-    "postinstall": "cd dashboard && bun install 2>/dev/null || true"
+    "postinstall": "cd dashboard && bun install 2>/dev/null; exit 0"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.81",
