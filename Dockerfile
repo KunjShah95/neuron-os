@@ -16,7 +16,8 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --production
 
 # ── Stage 3: Production runtime ───────────────────────────────────────
-FROM oven/bun:1-slim AS production
+# Stage 3: Production runtime — uses standard oven/bun:1 (Debian-based) for full tooling
+FROM oven/bun:1 AS production
 
 LABEL org.opencontainers.image.title="Neuron OS (Aegis)"
 LABEL org.opencontainers.image.description="The Operating System for Autonomous AI Agents"
