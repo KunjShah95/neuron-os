@@ -249,10 +249,13 @@ send({ type: "result", payload: { status: "ready", name: AGENT_NAME, id: AGENT_I
 
 startHeartbeat()
 
-if (process.env.AEGIS_WORKER_MODE === "true") {
-  await pollQueue()
-} else {
+// Default: poll the task queue for work AND listen on stdin for direct IPC.
+// This wires the queue into the default lifecycle — agents always pull
+// from the queue unless started with AEGIS_STDIN_MODE=true (direct IPC).
+if (process.env.AEGIS_STDIN_MODE === "true") {
   await readStdin()
+} else {
+  await pollQueue()
 }
 
 log("info", "Agent worker exiting")

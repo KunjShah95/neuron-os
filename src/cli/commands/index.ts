@@ -34,10 +34,14 @@ import { registerMesh } from "./mesh"
 import { registerBench } from "./bench"
 import { registerDoctor } from "./doctor"
 import { registerCompletion } from "./completion"
+import { registerSupervise } from "./supervise"
+import { registerReflect } from "./reflect"
 
 export function registerAllCommands(program: Command) {
   registerDoctor(program)
   registerCompletion(program)
+  registerSupervise(program)
+  registerReflect(program)
   registerProject(program)
   registerExperience(program)
   registerAudit(program)

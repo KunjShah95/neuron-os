@@ -7,6 +7,7 @@ import { theme, box } from "../theme"
 import { showBanner } from "../banner"
 import { searchSkills, fetchTopSkills, fetchRegistryStats } from "../../skills/remote"
 import { skillRegistry } from "../../skills/registry"
+import { qualityGate } from "../../skills/quality-gate"
 
 const log = createLogger("cli:skills")
 
@@ -179,6 +180,17 @@ author: ${remote[0]?.owner || "unknown"}
 ${remote[0]?.description || "Imported from skills.sh"}
 `
     await writeFile(join(targetDir, "SKILL.md"), skillContent, "utf-8")
+
+    // Run quality gate on the newly installed skill
+    const gatePassed = await qualityGate.evaluateSkill({
+      name,
+      description: remote[0]?.description || "",
+      content: skillContent,
+    })
+    if (!gatePassed) {
+      console.log(`  ${theme.warn(`⚠ Skill "${name}" passed basic install but quality gate flagged issues.`)}`)
+      console.log(`  ${theme.muted("Edit the skill at:")} ${targetDir}`)
+    }
 
     console.log(`  ✅ ${theme.success(`Skill "${name}" installed`)}`)
     log.info("Skill installed", { name, path: targetDir })
