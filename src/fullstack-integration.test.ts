@@ -89,11 +89,10 @@ it("should full stack ws event flow", async () => {
   const spawnedIds: string[] = []
 
   try {
-    // ── Step 1: Connect WebSocket ──────────────────────────────────
+    // ── Step 1: Connect WebSocket and collect initial events ────────
     const ws = new WebSocket(`ws://127.0.0.1:${port}/api/v1/ws`)
-    await waitForOpen(ws, 15_000)
 
-    // ── Step 2: Wait for the "connected" event ─────────────────────
+    // Start collecting BEFORE waiting for open — server sends "connected" immediately
     const allEvents = await collectWsMessages(
       ws,
       (msg) => msg.event === "connected",
