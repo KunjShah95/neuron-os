@@ -6,11 +6,21 @@
 // Or:    bun run test
 
 let exitCode = 0
+const coverageMode = process.argv.includes("--coverage") || process.env.COVERAGE === "1"
 
 /** Resolve command array for the current platform (Windows needs .cmd). */
 function resolveCmd(cmd: string[]): string[] {
   if (process.platform !== "win32") return cmd
   return cmd.map((part) => (part === "bun" ? "bun.cmd" : part))
+}
+
+/** Inject coverage flags into bun test commands when in coverage mode. */
+function withCoverage(cmd: string[]): string[] {
+  if (!coverageMode) return cmd
+  if (cmd[0] !== "bun" || cmd[1] !== "test") return cmd
+  const out = [...cmd]
+  out.splice(2, 0, "--coverage", "--coverage-reporter=lcov")
+  return out
 }
 
 function time<T>(_label: string, fn: () => Promise<T>): Promise<T> {
@@ -22,14 +32,15 @@ function time<T>(_label: string, fn: () => Promise<T>): Promise<T> {
 }
 
 async function run(label: string, cmd: string[], options?: { cwd?: string }): Promise<boolean> {
+  const effectiveCmd = withCoverage(cmd)
   console.log(`\n══════════════════════════════════════════════════════════`)
   console.log(`  ${label}`)
-  console.log(`  $ ${cmd.join(" ")}`)
+  console.log(`  $ ${effectiveCmd.join(" ")}`)
   if (options?.cwd) console.log(`  (cwd: ${options.cwd})`)
   console.log(`══════════════════════════════════════════════════════════\n`)
 
   try {
-    const result = await time(label, () => Bun.spawn(resolveCmd(cmd), {
+    const result = await time(label, () => Bun.spawn(resolveCmd(effectiveCmd), {
       stdio: ["inherit", "inherit", "inherit"],
       cwd: options?.cwd,
       env: { ...process.env },
