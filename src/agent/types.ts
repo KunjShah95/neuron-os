@@ -1,5 +1,6 @@
 import type { Subprocess } from "bun"
 import type { AgentTypeName, ToolPermission } from "./agent-types"
+import type { IsolationLevel } from "../sandbox/types"
 
 // ── Lifecycle states ──────────────────────────────────────────────────
 export type AgentStatus =
@@ -32,6 +33,8 @@ export interface AgentDef {
   tags?: string[]
   /** Auto-recovery config (empty = no recovery) */
   recovery?: RecoveryConfig
+  /** Zero-trust isolation level (overrides agent type default) */
+  isolationLevel?: IsolationLevel
 }
 
 // ── Auto-recovery ─────────────────────────────────────────────────────
@@ -119,6 +122,7 @@ export type HookPoint =
   | "message"
   | "error"
   | "exit"
+  | "result"
 
 export type HookFn = (ctx: HookContext) => void | Promise<void>
 

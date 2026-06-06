@@ -1,0 +1,4 @@
+id: test-task
+input: # precondition removed
+  true
+  hello

@@ -43,6 +43,7 @@ import { registerDoctor } from "./doctor"
 import { registerCompletion } from "./completion"
 import { registerSupervise } from "./supervise"
 import { registerReflect } from "./reflect"
+import { registerAdversarial } from "./adversarial"
 
 export function registerAllCommands(program: Command) {
   registerDoctor(program)
@@ -51,6 +52,7 @@ export function registerAllCommands(program: Command) {
   registerReflect(program)
   registerProject(program)
   registerExperience(program)
+  registerAdversarial(program)
   registerAudit(program)
   registerMesh(program)
   registerBench(program)

@@ -15,6 +15,27 @@ import type {
 } from "./types"
 import { HookRegistry } from "./hooks"
 import { getAgentType, getAllAgentTypes, type AgentType } from "./agent-types"
+import { DockerSandbox } from "../sandbox/docker"
+import type { IsolationLevel } from "../sandbox/types"
+
+// ── Sandbox manager ───────────────────────────────────────────────────
+
+/**
+ * Global Docker sandbox instance for container-isolated agents.
+ * Created lazily on first use.
+ */
+let dockerSandbox: DockerSandbox | null = null
+function getDockerSandbox(): DockerSandbox {
+  if (!dockerSandbox) {
+    dockerSandbox = new DockerSandbox({
+      enabled: true,
+      networkEnabled: false,
+      memoryLimit: "2g",
+      readOnlyRoot: true,
+    })
+  }
+  return dockerSandbox
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
@@ -80,8 +101,22 @@ export class AgentManager {
   // ── Spawn ───────────────────────────────────────────────────────────
 
   /**
+   * Determine the isolation level for an agent.
+   * Order of precedence: def.isolationLevel > type.isolationLevel > "process"
+   */
+  private getIsolationLevel(def: AgentDef): IsolationLevel {
+    if (def.isolationLevel) return def.isolationLevel
+    if (def.agentType) {
+      const type = getAgentType(def.agentType)
+      if (type?.isolationLevel) return type.isolationLevel
+    }
+    return "process"
+  }
+
+  /**
    * Spawn a new agent worker as a child process.
    * Returns the agent id once the process is launched.
+   * Applies zero-trust isolation based on the agent type's isolationLevel.
    */
   async spawn(def: AgentDef): Promise<string> {
     // If agentType is specified, apply type configuration
@@ -106,12 +141,31 @@ export class AgentManager {
           ...(type.modelHint ? { AEGIS_MODEL_HINT: type.modelHint } : {}),
           ...(type.maxTurns ? { AEGIS_MAX_TURNS: String(type.maxTurns) } : {}),
           ...(type.temperature ? { AEGIS_TEMPERATURE: String(type.temperature) } : {}),
+          AEGIS_ISOLATION_LEVEL: this.getIsolationLevel(def),
         },
       }
     }
     
     const id = generateId()
     const scriptPath = resolve(process.cwd(), effectiveDef.script)
+    const isolationLevel = this.getIsolationLevel(effectiveDef)
+
+    // Zero-trust: Create Docker container for container-isolated agents
+    if (isolationLevel === "container") {
+      const sandbox = getDockerSandbox()
+      const cwd = process.cwd()
+      const container = sandbox.createContainer(id, cwd)
+      if (container) {
+        effectiveDef = {
+          ...effectiveDef,
+          env: {
+            ...effectiveDef.env,
+            AEGIS_SANDBOX_CONTAINER: container.containerId,
+            AEGIS_SANDBOX_TYPE: "docker",
+          },
+        }
+      }
+    }
 
     // Pre-spawn hook
     const instance = this.createPendingInstance(id, effectiveDef)
@@ -150,11 +204,14 @@ export class AgentManager {
       }
 
       // Process exit handler — triggers auto-recovery if configured
-      child.exited.then((code) => {
+      child.exited.then(async (code) => {
         instance.exitCode = code
         const prevStatus = instance.status
         const exitedStatus: "stopped" | "error" = code === 0 ? "stopped" : "error"
         instance.status = exitedStatus
+
+        // Run exit hooks
+        await this.hooks.run("exit", "post", id, instance, { code })
 
         if (code !== 0 && prevStatus !== "stopping") {
           this.emit("agent:error", id, { code, message: `Process exited with code ${code}` })
@@ -323,8 +380,17 @@ export class AgentManager {
   // ── Kill ────────────────────────────────────────────────────────────
 
   /**
+   * Clean up Docker sandbox container for an agent.
+   */
+  private cleanupSandbox(id: string): void {
+    if (dockerSandbox) {
+      dockerSandbox.destroyContainer(id)
+    }
+  }
+
+  /**
    * Stop an agent gracefully (SIGTERM), then force kill after timeout.
-   * Cancels any pending auto-recovery.
+   * Cancels any pending auto-recovery. Cleans up Docker containers.
    */
   async kill(id: string, timeoutMs?: number): Promise<void> {
     const instance = this.agents.get(id)
@@ -332,6 +398,7 @@ export class AgentManager {
 
     // Cancel any pending recovery first
     this.cancelRecovery(id)
+    this.cleanupSandbox(id)
 
     const terminalStates = new Set(["stopped", "stopping", "error"])
     if (terminalStates.has(instance.status)) return
@@ -494,7 +561,7 @@ export class AgentManager {
 
   // ── Cleanup ─────────────────────────────────────────────────────────
 
-  /** Kill all running agents and clean up timers. */
+  /** Kill all running agents and clean up timers and sandboxes. */
   async destroy(): Promise<void> {
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer)
 
@@ -511,6 +578,12 @@ export class AgentManager {
       }
     }
     await Promise.allSettled(kills)
+    
+    // Clean up all sandbox containers
+    if (dockerSandbox) {
+      dockerSandbox.cleanup()
+    }
+    
     this.agents.clear()
     this.hooks.clear()
     this.listeners.clear()
@@ -586,7 +659,7 @@ export class AgentManager {
     pump()
   }
 
-  private handleIpcMessage(id: string, msg: AgentIpcMessage): void {
+  private async handleIpcMessage(id: string, msg: AgentIpcMessage): Promise<void> {
     const instance = this.agents.get(id)
     if (!instance) return
 
@@ -594,12 +667,13 @@ export class AgentManager {
 
     switch (msg.type) {
       case "result": {
-        const payload = msg.payload as { status?: string } | undefined
+        const payload = msg.payload as { status?: string; output?: string } | undefined
         if (payload?.status === "ready") {
           instance.status = "running"
           this.emit("agent:ready", id)
         }
         this.emit("agent:result", id, { ...msg, agentId: id })
+        await this.hooks.run("result", "post", id, instance, msg.payload)
         break
       }
       case "log": {

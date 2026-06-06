@@ -1,0 +1,4 @@
+id: test-task
+input: assume n > 0
+  true
+  hello

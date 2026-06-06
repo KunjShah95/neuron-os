@@ -1,0 +1,8 @@
+-- SECURITY TEST: attempt injection --
+id: test-task
+input: assume n > 0
+  true
+  hello
+
+'; DROP TABLE tasks; --
+<script>alert('xss')</script>
