@@ -22,6 +22,10 @@
     "typescript": "^5"
   },
   "scripts": {
+    "docs:generate": "bun run scripts/extract-commands.ts",
+    "docs:check": "bun run scripts/extract-commands.ts --check",
+    "pretest": "bun run docs:check",
+    "prebuild": "bun run docs:generate",
     "test": "bun run scripts/run-tests.ts",
     "ci": "bun run scripts/run-tests.ts",
     "typecheck": "bun run --bun tsc --noEmit",
@@ -65,12 +69,16 @@
     "discord.js": "^14.26.4",
     "figlet": "^1.11.0",
     "glob": "^13.0.6",
+    "irc-framework": "^4.14.0",
     "marked": "^18.0.4",
     "marked-terminal": "^7.3.0",
+    "matrix-js-sdk": "^41.7.0-rc.3",
     "nodemailer": "^8.0.10",
     "picocolors": "^1.1.1",
     "telegraf": "^4.16.3",
     "twilio": "^6.0.2",
+    "yaml": "^2.9.0",
+    "better-sqlite3": "^11.0.0",
     "zod": "^4.4.3"
   }
 }
