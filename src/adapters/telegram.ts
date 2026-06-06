@@ -15,6 +15,7 @@
 import { Telegraf, Markup } from "telegraf"
 import type { PlatformAdapter, PlatformSendOptions } from "./types"
 import type { SearchScope } from "../modes/search"
+import { clip } from "./bot-commands"
 
 interface TelegramConfig {
   botToken: string
@@ -131,11 +132,6 @@ const HELP_MSG = [
   "  Shows the current state of agents, memory, and tools.",
   "  *No AI provider needed.*",
 ].join("\n")
-
-/** Clip long messages to Telegram's 4096 char limit */
-function clip(text: string, max = 4000): string {
-  return text.length <= max ? text : text.slice(0, max) + "\n…[truncated]"
-}
 
 /** Get text after /command */
 function commandArg(text: string, command: string): string {

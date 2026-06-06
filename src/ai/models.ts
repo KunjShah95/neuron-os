@@ -3,7 +3,7 @@ export interface ModelOption {
   label: string
 }
 
-export type AIProviderType = "anthropic" | "openai" | "deepseek" | "ollama" | "custom" | "gemini" | "groq" | "openrouter" | "mistral" | "azure" | "togetherai"
+export type AIProviderType = "anthropic" | "openai" | "deepseek" | "ollama" | "custom" | "gemini" | "groq" | "openrouter" | "mistral" | "azure" | "togetherai" | "xai" | "cohere" | "perplexity"
 
 export const MODEL_REFERENCES: Record<AIProviderType, ModelOption[]> = {
   anthropic: [
@@ -67,6 +67,21 @@ export const MODEL_REFERENCES: Record<AIProviderType, ModelOption[]> = {
     { id: "mistralai/Mixtral-8x7B-Instruct-v0.1", label: "Mixtral 8x7B" },
     { id: "deepseek-ai/deepseek-coder-33b-instruct", label: "DeepSeek Coder 33B" },
   ],
+  xai: [
+    { id: "grok-3", label: "Grok 3" },
+    { id: "grok-3-mini", label: "Grok 3 Mini" },
+    { id: "grok-2", label: "Grok 2" },
+  ],
+  cohere: [
+    { id: "command-r-plus", label: "Command R+" },
+    { id: "command-r", label: "Command R" },
+    { id: "command-r7b", label: "Command R7B" },
+  ],
+  perplexity: [
+    { id: "sonar-pro", label: "Sonar Pro" },
+    { id: "sonar", label: "Sonar" },
+    { id: "sonar-deep-research", label: "Sonar Deep Research" },
+  ],
 }
 
 export function getDefaultModel(provider: AIProviderType): string {
@@ -85,6 +100,9 @@ export function getProviderBaseUrl(provider: AIProviderType, userBaseUrl?: strin
     case "mistral": return "https://api.mistral.ai/v1"
     case "azure": return userBaseUrl
     case "togetherai": return "https://api.together.ai/v1"
+    case "xai": return "https://api.x.ai/v1"
+    case "cohere": return "https://api.cohere.com/v1"
+    case "perplexity": return "https://api.perplexity.ai"
     case "custom": return userBaseUrl
   }
 }

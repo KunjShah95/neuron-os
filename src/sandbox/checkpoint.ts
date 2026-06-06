@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync } from "node:fs"
+import { cpSync, existsSync, mkdirSync, readdirSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { createLogger } from "../cli/logger"
 
@@ -48,8 +48,20 @@ export class CheckpointManager {
   }
 
   public listCheckpoints(): string[] {
-    // Basic listing (could read dir in real implementation)
-    return []
+    if (!existsSync(this.checkpointsDir)) return []
+
+    try {
+      return readdirSync(this.checkpointsDir)
+        .filter((name) => {
+          // Only return directories (each checkpoint is a directory)
+          return statSync(join(this.checkpointsDir, name)).isDirectory()
+        })
+        .sort()
+        .reverse() // newest first
+    } catch (err) {
+      log.error(`Failed to list checkpoints: ${err}`)
+      return []
+    }
   }
 }
 

@@ -43,6 +43,9 @@ export function resolveApiKey(provider: string): string | undefined {
     azure: "AZURE_OPENAI_API_KEY",
     togetherai: "TOGETHERAI_API_KEY",
     openrouter: "OPENROUTER_API_KEY",
+    xai: "XAI_API_KEY",
+    cohere: "COHERE_API_KEY",
+    perplexity: "PERPLEXITY_API_KEY",
   }
   return process.env[envMap[provider] || ""] || process.env.AEGIS_AI_API_KEY
 }

@@ -2,6 +2,7 @@ import { auditStore } from "../audit/store"
 import { createLogger } from "../cli/logger"
 
 import { join } from "path"
+import { mkdirSync, existsSync, writeFileSync } from "node:fs"
 
 const log = createLogger("rl-distillation")
 
@@ -47,11 +48,14 @@ export class DistillationPipeline {
     const filePath = join(process.cwd(), this.outputDir, fileName)
 
     try {
+      // Ensure output directory exists
+      if (!existsSync(this.outputDir)) {
+        mkdirSync(this.outputDir, { recursive: true })
+      }
+
       const jsonlStr = dataset.map(d => JSON.stringify(d)).join("\n")
-      
-      // Note: we'd ideally mkdirp this output dir
-      // await Bun.write(filePath, jsonlStr) 
-      log.info(`Distilled ${dataset.length} examples into fine-tuning dataset: ${fileName}. Output path: ${filePath}, bytes: ${jsonlStr.length}`)
+      writeFileSync(filePath, jsonlStr, "utf-8")
+      log.info(`Distilled ${dataset.length} examples into fine-tuning dataset: ${fileName} (${jsonlStr.length} bytes)`)
     } catch (err) {
       log.error(`Failed to write distillation dataset: ${err}`)
     }

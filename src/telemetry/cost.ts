@@ -6,28 +6,36 @@ const log = createLogger("cost-telemetry")
 
 export class CostBenchmarking {
   /**
-   * Aggregates spend by agent type by correlating sessions in the audit store
-   * with the billing tracker records.
+   * Generates a cost attribution report from the billing tracker's SQLite DB.
+   * Reports real spend broken down by model, session, and daily history.
    */
   public generateReport() {
     log.info("Generating Cost Attribution & Benchmarking Report...")
     
-    // In a full implementation, we would query the actual SQLite tables.
-    // For MVP, we fetch the total spend from billingTracker.
     const totalSpend = billingTracker.getTotalSpend()
     const limit = billingTracker.getBudgetLimit()
+    const byModel = billingTracker.getCostByModel()
+    const bySession = billingTracker.getCostBySession()
+    const history = billingTracker.getCostHistory(7)
 
     log.info(`Total Spend: $${totalSpend.toFixed(4)} / $${limit.toFixed(2)}`)
-    
-    // Naive mock breakdown
+
+    if (byModel.length > 0) {
+      log.info(`Models: ${byModel.map(m => `${m.model}=$${m.totalCost.toFixed(4)}`).join(", ")}`)
+    }
+
+    if (bySession.length > 0) {
+      log.info(`Sessions: ${bySession.length} sessions with recorded costs`)
+    }
+
     return {
       totalSpend,
       budgetLimit: limit,
-      byAgentType: {
-        "developer": totalSpend * 0.7,
-        "researcher": totalSpend * 0.2,
-        "system": totalSpend * 0.1
-      }
+      byModel,
+      bySession,
+      history,
+      remainingBudget: Math.max(0, limit - totalSpend),
+      budgetExceeded: totalSpend >= limit,
     }
   }
 

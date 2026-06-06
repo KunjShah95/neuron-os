@@ -66,7 +66,7 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
   if (opts.type && !isValidAgentType(opts.type)) {
     console.error(theme.error(`\n  Unknown agent type: ${opts.type}`))
     console.error(theme.muted(`  Available types: build, plan, read, write, test, validate, review, debug, document, refactor, deploy, monitor, explore\n`))
-    process.exit(1)
+    return
   }
 
   const agentType = opts.type

@@ -78,6 +78,9 @@ jobs:
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -109,7 +112,32 @@ jobs:
         run: |
           cd dashboard && bunx vitest run --coverage 2>&1 || echo "⚠️ Dashboard coverage skipped (separate report)"
 
-      - name: Upload coverage report
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: bun-test-coverage
+          fail_ci_if_error: false
+
+      - name: Upload dashboard coverage to Codecov
+        if: always()
+        continue-on-error: true
+        uses: codecov/codecov-action@v4
+        with:
+          directory: dashboard/coverage
+          flags: dashboard
+          name: dashboard-coverage
+          fail_ci_if_error: false
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          echo "📊 Coverage uploaded to Codecov"
+          [ -f coverage/lcov.info ] && echo "  • $(grep -c '^SF:' coverage/lcov.info) source files in bun test report"
+          [ -f dashboard/coverage/lcov.info ] && echo "  • $(grep -c '^SF:' dashboard/coverage/lcov.info) source files in dashboard report"
+
+      - name: Upload coverage report (artifact backup)
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -118,21 +146,3 @@ jobs:
             coverage/
             dashboard/coverage/
           if-no-files-found: warn
-
-      - name: Coverage summary
-        if: always()
-        run: |
-          echo "📊 Coverage Summary"
-          if [ -f coverage/lcov.info ]; then
-            FILES=$(grep -c '^SF:' coverage/lcov.info)
-            echo "  • Bun test files covered: $FILES source files"
-          else
-            echo "  • Bun test: ⚠️ No lcov.info generated"
-          fi
-          if [ -f dashboard/coverage/lcov.info ]; then
-            DFILES=$(grep -c '^SF:' dashboard/coverage/lcov.info)
-            echo "  • Dashboard (vitest): $DFILES source files covered"
-          else
-            echo "  • Dashboard (vitest): ⚠️ No coverage generated"
-          fi
-          echo "  • Note: Custom test scripts (bun run <file.ts>) are not covered by bun test --coverage"

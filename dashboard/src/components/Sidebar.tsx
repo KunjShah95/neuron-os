@@ -16,51 +16,66 @@ const navItems: NavItem[] = [
   { path: "/serve", label: "Server", icon: "↗" },
   { path: "/setup", label: "Setup", icon: "⚡" },
   { path: "/docs", label: "Docs", icon: "?" },
-  { path: "/site", label: "Website", icon: "🌐" },
 ]
 
 export default function Sidebar() {
   return (
-    <aside className="w-56 h-screen fixed left-0 top-0 glass border-r border-surface-700/50 flex flex-col z-50">
-      <div className="px-5 pt-6 pb-4 border-b border-surface-700/30">
-        <h1 className="font-display text-xl tracking-tight">
-          <span className="text-amber-400">Aegis</span>
-          <span className="text-surface-400 font-body text-xs ml-2">v0.1</span>
-        </h1>
-        <p className="text-[10px] text-surface-500 uppercase tracking-[0.2em] mt-1">Command Center</p>
+    <aside className="w-60 h-screen fixed left-0 top-0 z-50 flex flex-col">
+      <div className="absolute inset-0 glass" />
+      <div className="absolute inset-y-0 right-0 w-px bg-white/[0.05]" />
+
+      <div className="relative z-10 flex flex-col h-full">
+        <div className="px-5 pt-7 pb-5 hairline-b">
+          <h1 className="font-display text-[15px] tracking-tight text-white">
+            Neuron OS
+            <sup className="text-[8px] ml-0.5 align-super text-white/40">™</sup>
+          </h1>
+          <p className="text-[9px] text-white/30 uppercase tracking-[0.2em] mt-1.5 font-mono">
+            Command Center · v0.1
+          </p>
+        </div>
+
+        <nav className="flex-1 py-3 overflow-y-auto">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.path === "/"}
+              className={({ isActive }) =>
+                `relative flex items-center gap-3 px-5 py-2.5 text-[13px] transition-all duration-200 group ${
+                  isActive
+                    ? "text-white"
+                    : "text-ink-300 hover:text-white"
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  {isActive && (
+                    <motion.span
+                      layoutId="active-nav"
+                      className="absolute inset-0 my-1.5 mx-3 rounded-lg bg-white/[0.04] border border-white/[0.06]"
+                      transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                    />
+                  )}
+                  <motion.span
+                    initial={false}
+                    animate={isActive ? { scale: 1.05 } : { scale: 1 }}
+                    className={`relative w-5 text-center text-[14px] ${
+                      isActive ? "text-white" : "text-ink-400 group-hover:text-ink-200"
+                    }`}
+                  >
+                    {item.icon}
+                  </motion.span>
+                  <span className="relative font-medium tracking-[-0.005em]">{item.label}</span>
+                </>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+
+        <ProjectSelector />
       </div>
-
-      <nav className="flex-1 py-3 overflow-y-auto">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            end={item.path === "/"}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-5 py-2.5 text-sm transition-all duration-200 ${
-                isActive
-                  ? "text-amber-400 bg-amber-400/5 border-r-2 border-amber-400"
-                  : "text-surface-400 hover:text-surface-100 hover:bg-surface-800/40"
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <motion.span
-                  initial={false}
-                  animate={isActive ? { scale: 1.1, rotate: 0 } : { scale: 1, rotate: 0 }}
-                  className={`w-5 text-center text-sm ${isActive ? "text-amber-400" : "text-surface-500"}`}
-                >
-                  {item.icon}
-                </motion.span>
-                <span>{item.label}</span>
-              </>
-            )}
-          </NavLink>
-        ))}
-      </nav>
-
-      <ProjectSelector />
     </aside>
   )
 }

@@ -1,0 +1,59 @@
+# Codecov configuration
+# https://docs.codecov.com/docs/codecovyml-reference
+
+codecov:
+  require_ci_to_pass: true
+  notify:
+    wait_for_ci: true
+
+coverage:
+  precision: 2
+  round: down
+  range: "50...90"
+
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 2%
+        base: auto
+        if_ci_failed: error
+        informational: false
+        only_pulls: false
+      minimum:
+        target: 50%
+        threshold: 0%
+        base: auto
+        if_ci_failed: error
+        informational: false
+        only_pulls: false
+    patch:
+      default:
+        target: auto
+        threshold: 2%
+        base: auto
+        informational: false
+
+comment:
+  layout: "header, diff, flags, components, files, footer"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+  hide_project_coverage: false
+  show_carryforward_flags: true
+  after_n_builds: 1
+
+flag_management:
+  default_rules:
+    carryforward: true
+    statuses:
+      - type: project
+        target: auto
+        threshold: 2%
+      - type: patch
+        target: auto
+        threshold: 2%
+
+github_checks:
+  annotations: true

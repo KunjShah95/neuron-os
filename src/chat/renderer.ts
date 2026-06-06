@@ -448,7 +448,7 @@ export async function startChat(agentType?: AgentTypeName) {
     saveChatSession(state)
     process.stdout.write(ansiEscapes.exitAlternativeScreen)
     process.stdout.write(ansiEscapes.cursorShow)
-    process.exit(0)
+    // Don't call process.exit - let the caller decide what to do
   }
 
   process.on("SIGINT", cleanup)

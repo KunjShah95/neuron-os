@@ -79,6 +79,21 @@ registerProvider("togetherai", (config: AIConfig) => {
   return createOpenAI({ apiKey, baseURL: baseUrl ?? "https://api.together.ai/v1" }).chat(config.model)
 })
 
+registerProvider("xai", (config: AIConfig) => {
+  const { apiKey, baseUrl } = config
+  return createOpenAI({ apiKey, baseURL: baseUrl ?? "https://api.x.ai/v1" }).chat(config.model)
+})
+
+registerProvider("cohere", (config: AIConfig) => {
+  const { apiKey, baseUrl } = config
+  return createOpenAI({ apiKey, baseURL: baseUrl ?? "https://api.cohere.com/v1" }).chat(config.model)
+})
+
+registerProvider("perplexity", (config: AIConfig) => {
+  const { apiKey, baseUrl } = config
+  return createOpenAI({ apiKey, baseURL: baseUrl ?? "https://api.perplexity.ai" }).chat(config.model)
+})
+
 registerProvider("custom", (config: AIConfig) => {
   if (!config.baseUrl) throw new Error("baseUrl is required for custom provider")
   return createOpenAI({ apiKey: config.apiKey, baseURL: config.baseUrl }).chat(config.model)

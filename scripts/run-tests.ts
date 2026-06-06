@@ -55,59 +55,59 @@ async function main() {
   console.log(`  ╚══════════════════════════════════════════╝\n`)
 
   // ── 0. Full-Stack Integration Tests ───────────────────────────────
-  await run("Full-Stack Integration Tests", ["bun", "run", "src/test-fullstack-integration.ts"])
+  await run("Full-Stack Integration Tests", ["bun", "test", "src/fullstack-integration.test.ts"])
 
   // ── 1. Dashboard TUI Smoke Tests ──────────────────────────────────
-  await run("Dashboard TUI Tests", ["bun", "run", "src/test-dashboard.ts"])
+  await run("Dashboard TUI Tests", ["bun", "test", "src/dashboard.test.ts"])
 
   // ── 2. Chat TUI Unit Tests ────────────────────────────────────────
-  await run("Chat TUI Tests", ["bun", "run", "src/chat/test-chat.ts"])
+  await run("Chat TUI Tests", ["bun", "test", "src/chat/chat.test.ts"])
 
   // ── 2.1 Chat Integration Tests ────────────────────────────────────
-  await run("Chat Integration Tests", ["bun", "run", "src/chat/test-chat-integration.ts"])
+  await run("Chat Integration Tests", ["bun", "test", "src/chat/chat-integration.test.ts"])
 
   // ── 2.5 TUI Providers & Sessions Tests ───────────────────────────
-  await run("TUI Providers/Sessions Tests", ["bun", "run", "src/test-tui-sessions.ts"])
+  await run("TUI Providers/Sessions Tests", ["bun", "test", "src/tui-sessions.test.ts"])
 
   // ── 3. Agent Manager Unit Tests ───────────────────────────────────
-  await run("Agent Manager Tests", ["bun", "run", "src/agent/test-manager.ts"])
+  await run("Agent Manager Tests", ["bun", "test", "src/agent/manager.test.ts"])
 
   // ── 3.5 Agent Runtime Prompt / Skill Tests ───────────────────────
-  await run("Agent Runtime Prompt Tests", ["bun", "run", "src/agent/test-runtime.ts"])
+  await run("Agent Runtime Prompt Tests", ["bun", "test", "src/agent/runtime.test.ts"])
 
   // ── 3.6 Agent Lifecycle Integration Tests ────────────────────────
-  await run("Agent Lifecycle Integration Tests", ["bun", "run", "src/agent/test-lifecycle-integration.ts"])
+  await run("Agent Lifecycle Integration Tests", ["bun", "test", "src/agent/lifecycle-integration.test.ts"])
 
   // ── 3.6 AgentMemory Connector Tests ──────────────────────────────
-  await run("AgentMemory Connector Tests", ["bun", "run", "src/memory/test-agentmemory.ts"])
+  await run("AgentMemory Connector Tests", ["bun", "test", "src/memory/agentmemory.test.ts"])
 
   // ── 4. Sandbox Tests ───────────────────────────────────────────────
-  await run("Sandbox Filesystem Tests", ["bun", "run", "src/sandbox/test-filesystem.ts"])
-  await run("Sandbox Process Tests", ["bun", "run", "src/sandbox/test-process.ts"])
-  await run("Sandbox Module Tests", ["bun", "run", "src/sandbox/test-index.ts"])
+  await run("Sandbox Filesystem Tests", ["bun", "test", "src/sandbox/filesystem.test.ts"])
+  await run("Sandbox Process Tests", ["bun", "test", "src/sandbox/process.test.ts"])
+  await run("Sandbox Module Tests", ["bun", "test", "src/sandbox/index.test.ts"])
 
   // ── 5. Computer Use Tests ──────────────────────────────────────────
-  await run("Computer Tool Tests", ["bun", "run", "src/tools/test-computer.ts"])
+  await run("Computer Tool Tests", ["bun", "test", "src/tools/computer.test.ts"])
 
   // ── 6. Harness Tests ───────────────────────────────────────────────
-  await run("Harness Runner Tests", ["bun", "run", "src/harness/test-runner.ts"])
-  await run("Harness Reporter Tests", ["bun", "run", "src/harness/test-reporter.ts"])
-  await run("Harness Module Tests", ["bun", "run", "src/harness/test-index.ts"])
+  await run("Harness Runner Tests", ["bun", "test", "src/harness/runner.test.ts"])
+  await run("Harness Reporter Tests", ["bun", "test", "src/harness/reporter.test.ts"])
+  await run("Harness Module Tests", ["bun", "test", "src/harness/index.test.ts"])
 
   // ── 6.5 MCP Module Tests ──────────────────────────────────────────
-  await run("MCP Module Tests", ["bun", "run", "src/mcp/test-mcp.ts"])
+  await run("MCP Module Tests", ["bun", "test", "src/mcp/mcp.test.ts"])
 
   // ── 6.6 Cron Module Tests ─────────────────────────────────────────
-  await run("Cron Module Tests", ["bun", "run", "src/cron/test-cron.ts"])
+  await run("Cron Module Tests", ["bun", "test", "src/cron/cron.test.ts"])
 
   // ── 6.7 Vault Module Tests ────────────────────────────────────────
-  await run("Vault Module Tests", ["bun", "run", "src/vault/test-vault.ts"])
+  await run("Vault Module Tests", ["bun", "test", "src/vault/vault.test.ts"])
 
   // ── 6.8 Agent Runtime Extended Tests ──────────────────────────────
-  await run("Agent Runtime Extended Tests", ["bun", "run", "src/agent/test-runtime-extended.ts"])
+  await run("Agent Runtime Extended Tests", ["bun", "test", "src/agent/runtime-extended.test.ts"])
 
-  // ── 6.9 Session Persistence Smoke Tests ────────────────────────────
-  await run("Session Persistence Smoke Tests", ["bun", "run", "src/memory/test-session-persistence.ts"])
+  // ── 6.9 Session Persistence Tests ─────────────────────────────────
+  await run("Session Persistence Tests", ["bun", "test", "src/memory/session-persistence.test.ts"])
 
   // ── 6.10 Skills CLI Tests ───────────────────────────────────────────
   await run("Skills CLI Tests", ["bun", "test", "src/modes/skills.test.ts"])
@@ -126,10 +126,10 @@ async function main() {
   await run("Dashboard Unit Tests", ["bun", "run", "test"], { cwd: "dashboard" })
 
   // ── 6.15 Self-Improving Runtime Tests ───────────────────────────────
-  await run("Memory Embedding Tests", ["bun", "run", "src/memory/test-embedding.ts"])
-  await run("RatchetRuntime Tests", ["bun", "run", "src/agent/test-ratchet.ts"])
-  await run("Experience Retriever Tests", ["bun", "run", "src/experience/test-retrieval.ts"])
-  await run("Bench History Tests", ["bun", "run", "src/bench/test-bench.ts"])
+  await run("Memory Embedding Tests", ["bun", "test", "src/memory/embedding.test.ts"])
+  await run("RatchetRuntime Tests", ["bun", "test", "src/agent/ratchet.test.ts"])
+  await run("Experience Retriever Tests", ["bun", "test", "src/experience/retrieval.test.ts"])
+  await run("Bench History Tests", ["bun", "test", "src/bench/bench.test.ts"])
 
   // ── 7. TypeScript Typecheck ───────────────────────────────────────
   await run("TypeScript Typecheck", ["bun", "run", "--bun", "tsc", "--noEmit"])

@@ -23,6 +23,9 @@ function providerLabel(p: AIProviderType): string {
     case "mistral": return "Mistral AI"
     case "azure": return "Azure OpenAI"
     case "togetherai": return "Together AI"
+    case "xai": return "xAI"
+    case "cohere": return "Cohere"
+    case "perplexity": return "Perplexity"
     case "custom": return "Custom endpoint"
   }
 }

@@ -13,10 +13,6 @@ import MCP from "./routes/MCP"
 import Serve from "./routes/Serve"
 import Setup from "./routes/Setup"
 import Docs from "./routes/Docs"
-import SiteHome from "./site/Home"
-import SiteFeatures from "./site/Features"
-import SiteDemo from "./site/Demo"
-import SiteAbout from "./site/About"
 import ErrorBoundary from "./components/ErrorBoundary"
 import { ProjectProvider } from "./contexts/ProjectContext"
 
@@ -40,12 +36,6 @@ export default function App() {
           <Route path="serve" element={<ErrorBoundary><Serve /></ErrorBoundary>} />
           <Route path="setup" element={<ErrorBoundary><Setup /></ErrorBoundary>} />
           <Route path="docs" element={<ErrorBoundary><Docs /></ErrorBoundary>} />
-          <Route path="site">
-            <Route index element={<SiteHome />} />
-            <Route path="features" element={<SiteFeatures />} />
-            <Route path="demo" element={<SiteDemo />} />
-            <Route path="about" element={<SiteAbout />} />
-          </Route>
         </Route>
       </Routes>
     </AnimatePresence>

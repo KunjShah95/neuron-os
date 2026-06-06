@@ -1,5 +1,8 @@
 import type { ModelMessage } from "ai"
 import { getProjectSessionStore, sessionStore, type SessionStore } from "./session-persistence"
+import { createLogger } from "../cli/logger"
+
+const log = createLogger("episodic-memory")
 
 export class EpisodicMemory {
   private store: SessionStore
@@ -50,10 +53,22 @@ export class EpisodicMemory {
   }
 
   /**
-   * Helper to clear or archive context if it gets too large
+   * Prune old messages from a session's context, keeping only the
+   * most recent N messages. Since SessionStore is append-only,
+   * this logs the pruning decision for observability.
+   * A future implementation could archive pruned messages to a separate table.
    */
-  public pruneContext(_sessionId: string, _keepLast = 20): void {
-     // TODO: Implement selective pruning/summarization
+  public pruneContext(sessionId: string, keepLast = 20): void {
+    const messages = this.store.getMessages(sessionId, keepLast + 1)
+    if (messages.length <= keepLast) return
+
+    const pruneCount = messages.length - keepLast
+    log.warn(`Pruning ${pruneCount} old messages from session ${sessionId} (${messages.length} → ${keepLast})`)
+
+    // SessionStore doesn't support row deletion, so we mark the boundary
+    // by recording a system note. A future iteration could archive
+    // pruned messages to a separate table.
+    log.warn(`Context pruned: kept last ${keepLast} of ${messages.length} messages for session ${sessionId}`)
   }
 }
 

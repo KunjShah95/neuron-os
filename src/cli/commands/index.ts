@@ -32,6 +32,12 @@ import { registerExperience } from "./experience"
 import { registerAudit } from "./audit"
 import { registerMesh } from "./mesh"
 import { registerBench } from "./bench"
+import { registerEmail } from "./email"
+import { registerDiscord } from "./discord"
+import { registerSlack } from "./slack"
+import { registerWhatsApp } from "./whatsapp"
+import { registerSMS } from "./sms"
+import { registerVoice } from "./voice"
 import { registerDoctor } from "./doctor"
 import { registerCompletion } from "./completion"
 import { registerSupervise } from "./supervise"
@@ -47,6 +53,12 @@ export function registerAllCommands(program: Command) {
   registerAudit(program)
   registerMesh(program)
   registerBench(program)
+  registerEmail(program)
+  registerDiscord(program)
+  registerSlack(program)
+  registerWhatsApp(program)
+  registerSMS(program)
+  registerVoice(program)
   registerWakeup(program)
   registerSetup(program)
   registerDashboard(program)

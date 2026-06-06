@@ -14,6 +14,7 @@
 
 import { agentPool } from "../agent/agent-pool"
 import { createLogger } from "../cli/logger"
+import { verifyHmac } from "./hmac"
 
 const log = createLogger("webhook")
 
@@ -36,51 +37,6 @@ export interface WebhookEvent {
   payload: Record<string, unknown>
   deliveryId?: string
   signature?: string
-}
-
-// ── Signature Verification ────────────────────────────────────────────
-
-/**
- * Verify HMAC-SHA256 signature of a webhook payload.
- * Uses Bun's Web Crypto API (subtle.crypto).
- * Returns true if the signature matches, false if verification is disabled or fails.
- */
-async function verifySignature(payload: string, signature: string, secret: string): Promise<boolean> {
-  try {
-    const encoder = new TextEncoder()
-    const keyData = encoder.encode(secret)
-    const msgData = encoder.encode(payload)
-
-    const cryptoKey = await crypto.subtle.importKey(
-      "raw",
-      keyData,
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"],
-    )
-
-    const hmacResult = await crypto.subtle.sign("HMAC", cryptoKey, msgData)
-
-    // Convert to hex string
-    const hexBytes = Array.from(new Uint8Array(hmacResult))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("")
-
-    const expected = `sha256=${hexBytes}`
-    return timingSafeEqual(expected, signature)
-  } catch (err) {
-    log.warn("Signature verification failed", { error: String(err) })
-    return false
-  }
-}
-
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false
-  let result = 0
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i)
-  }
-  return result === 0
 }
 
 // ── Event Parsing ─────────────────────────────────────────────────────
@@ -156,7 +112,7 @@ export async function handleWebhookEvent(
   // Verify signature if configured
   if (config.secret && signature) {
     const rawPayload = JSON.stringify(payload)
-    const valid = await verifySignature(rawPayload, signature, config.secret)
+    const valid = await verifyHmac(rawPayload, config.secret, signature)
     if (!valid) {
       log.warn("Webhook signature verification failed", { source, event })
       return { status: 401, body: { error: "Invalid signature" } }
