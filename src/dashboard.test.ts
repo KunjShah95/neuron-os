@@ -40,8 +40,10 @@ describe("Dashboard Tests", () => {
     expect(layout.log.height).toBe(contentHeight)
 
     const expectedAgentsWidth = Math.min(30, Math.max(10, Math.floor(100 * 0.25)))
+    const expectedA2uiWidth = Math.min(30, Math.max(10, Math.floor(100 * 0.20)))
     expect(layout.agents.width).toBe(expectedAgentsWidth)
-    expect(layout.log.width).toBe(100 - expectedAgentsWidth - 1)
+    expect(layout.a2ui.width).toBe(expectedA2uiWidth)
+    expect(layout.log.width).toBe(100 - expectedAgentsWidth - 1 - expectedA2uiWidth - 1)
 
     // Small terminal
     const smallLayout = calculateLayout(10, 40)
