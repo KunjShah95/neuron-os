@@ -45,6 +45,7 @@ import { registerSupervise } from "./supervise"
 import { registerReflect } from "./reflect"
 import { registerAdversarial } from "./adversarial"
 import { registerCi } from "./ci"
+import { registerPricing } from "./pricing"
 
 export function registerAllCommands(program: Command) {
   registerDoctor(program)
@@ -55,6 +56,7 @@ export function registerAllCommands(program: Command) {
   registerExperience(program)
   registerAdversarial(program)
   registerCi(program)
+  registerPricing(program)
   registerAudit(program)
   registerMesh(program)
   registerBench(program)
