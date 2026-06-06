@@ -171,7 +171,7 @@ jobs:
         working-directory: dashboard
 
       - name: Run coverage (bun test files)
-        run: bun test --coverage --coverage-reporter=lcov --coverage-reporter=text --path-ignore-patterns="tmp*/**" 2>&1
+        run: bun test --coverage --coverage-reporter=lcov --coverage-reporter=text --path-ignore-patterns="tmp*/**,dashboard/**" 2>&1
 
       - name: Run dashboard coverage (vitest)
         run: |

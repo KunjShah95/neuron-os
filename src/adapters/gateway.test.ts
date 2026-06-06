@@ -118,7 +118,7 @@ describe("MultiPlatformGateway", () => {
 
     // Should have sent a reply queuing the task
     expect(adapter.messages.length).toBe(1)
-    expect(adapter.messages[0]!).toContain("Task queued")
+    expect(adapter.messages[0]!).toContain("Queued task")
     expect(adapter.messages[0]!).toContain("ch-1")
   })
 
