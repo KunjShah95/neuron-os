@@ -1,0 +1,10 @@
+id: web-research-002
+category: web-research
+description: "Research the current price of Bitcoin in USD"
+input: |
+  Search the web to find the current price of Bitcoin (BTC) in USD.
+  Report the price and the source of the information.
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if a current BTC price is reported with a source, 0.0 otherwise.
+  Output ONLY the score.

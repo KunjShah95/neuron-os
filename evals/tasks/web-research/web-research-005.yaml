@@ -1,0 +1,10 @@
+id: web-research-005
+category: web-research
+description: "Find the latest news about Anthropic Claude AI models"
+input: |
+  Search the web to find the latest news about Anthropic's Claude AI models
+  released in the past month. Summarize the key announcements.
+timeout_ms: 180000
+judge_prompt: |
+  Score 1.0 if recent Claude-related news is found and summarized, 0.0 otherwise.
+  Output ONLY the score.

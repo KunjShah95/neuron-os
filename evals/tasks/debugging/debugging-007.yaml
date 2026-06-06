@@ -1,0 +1,20 @@
+id: debugging-007
+category: debugging
+description: "Fix a floating-point precision bug"
+input: |
+  The following currency calculation has floating-point precision issues:
+  ```
+  function calculateTotal(items: {price: number, qty: number}[]): number {
+    return items.reduce((sum, item) => sum + item.price * item.qty, 0)
+  }
+  ```
+  Fix it to handle money correctly (to 2 decimal places).
+  Save to /tmp/debug-float.ts.
+expected_files:
+  - /tmp/debug-float.ts
+verification:
+  - command: "bun run /tmp/debug-float.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if the precision issue is fixed, 0.0 otherwise. Output ONLY the score.

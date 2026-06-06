@@ -1,0 +1,17 @@
+id: coding-007
+category: coding
+description: "Implement a debounce function with leading/trailing options"
+input: |
+  Write a TypeScript debounce function that supports leading and trailing edge
+  invocation. Save to /tmp/debounce.ts.
+  - `debounce<T extends (...args: any[]) => any>(fn: T, wait: number, options?: {leading?: boolean, trailing?: boolean}): T`
+  - Return a debounced function with a .cancel() method
+expected_files:
+  - /tmp/debounce.ts
+verification:
+  - command: "bun run /tmp/debounce.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if debounce works with leading/trailing/cancel, 0.0 otherwise.
+  Output ONLY the score.

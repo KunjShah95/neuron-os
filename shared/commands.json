@@ -1,0 +1,1733 @@
+{
+  "generatedAt": "2026-06-06T14:06:05.583Z",
+  "commands": [
+    {
+      "name": "adversarial",
+      "options": [],
+      "sourceFile": "src/cli/commands/adversarial.ts",
+      "description": "Red-team adversarial self-play",
+      "alias": "adv"
+    },
+    {
+      "name": "adversarial disable",
+      "options": [],
+      "sourceFile": "src/cli/commands/adversarial.ts",
+      "description": "Disable adversarial self-play in config",
+      "parent": "adversarial"
+    },
+    {
+      "name": "adversarial enable",
+      "options": [],
+      "sourceFile": "src/cli/commands/adversarial.ts",
+      "description": "Enable adversarial self-play in config",
+      "parent": "adversarial"
+    },
+    {
+      "name": "adversarial findings",
+      "options": [
+        {
+          "flag": "--since <days>",
+          "description": "Filter by recency (days)",
+          "required": false,
+          "defaultValue": "7"
+        },
+        {
+          "flag": "--severity <level>",
+          "description": "Filter by minimum severity (low|medium|high|critical)",
+          "required": false
+        },
+        {
+          "flag": "--task <id>",
+          "description": "Filter by task ID",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/adversarial.ts",
+      "description": "List adversarial findings",
+      "parent": "adversarial"
+    },
+    {
+      "name": "adversarial ratchet",
+      "options": [],
+      "sourceFile": "src/cli/commands/adversarial.ts",
+      "description": "Manage ratcheted regression cases",
+      "parent": "adversarial"
+    },
+    {
+      "name": "adversarial status",
+      "options": [],
+      "sourceFile": "src/cli/commands/adversarial.ts",
+      "description": "Show recent adversarial findings summary",
+      "parent": "adversarial"
+    },
+    {
+      "name": "agent",
+      "options": [],
+      "sourceFile": "src/cli/commands/agent.ts",
+      "description": "Manage AI agents",
+      "alias": "a"
+    },
+    {
+      "name": "agent inspect <name>",
+      "options": [],
+      "sourceFile": "src/cli/commands/agent.ts",
+      "description": "Show detailed agent info",
+      "parent": "agent"
+    },
+    {
+      "name": "agent kill <name>",
+      "options": [
+        {
+          "flag": "-f, --force",
+          "description": "Skip graceful shutdown, send SIGKILL immediately",
+          "required": false
+        },
+        {
+          "flag": "--timeout <ms>",
+          "description": "Graceful shutdown timeout before force kill",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/agent.ts",
+      "description": "Kill a running agent",
+      "parent": "agent"
+    },
+    {
+      "name": "agent list",
+      "options": [
+        {
+          "flag": "-s, --status <status>",
+          "description": "Filter by status (running, idle, stopped, error)",
+          "required": false
+        },
+        {
+          "flag": "--tag <tag>",
+          "description": "Filter by tag",
+          "required": false
+        },
+        {
+          "flag": "--type <type>",
+          "description": "Filter by agent type",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/agent.ts",
+      "description": "List all agents",
+      "parent": "agent",
+      "alias": "ls"
+    },
+    {
+      "name": "agent logs <name>",
+      "options": [
+        {
+          "flag": "-n, --tail <count>",
+          "description": "Number of recent lines to show",
+          "required": false,
+          "defaultValue": "50"
+        },
+        {
+          "flag": "--level <level>",
+          "description": "Filter by level (info, warn, error, debug)",
+          "required": false
+        },
+        {
+          "flag": "-f, --follow",
+          "description": "Follow new log entries (polling)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/agent.ts",
+      "description": "Show agent logs",
+      "parent": "agent"
+    },
+    {
+      "name": "agent spawn <name>",
+      "options": [
+        {
+          "flag": "--type <type>",
+          "description": "Agent type (build, plan, read, write, test, validate, review, debug, document, refactor, deploy, monitor, explore)",
+          "required": false
+        },
+        {
+          "flag": "--script <path>",
+          "description": "Path to worker script",
+          "required": false,
+          "defaultValue": "src/agent/agent-worker.ts"
+        },
+        {
+          "flag": "--tag <tags...>",
+          "description": "Tags to assign",
+          "required": false
+        },
+        {
+          "flag": "--timeout <ms>",
+          "description": "Stop timeout in ms",
+          "required": false
+        },
+        {
+          "flag": "--retries <n>",
+          "description": "Auto-recovery max retries (0 to disable)",
+          "required": false,
+          "defaultValue": "5"
+        },
+        {
+          "flag": "--backoff <ms>",
+          "description": "Auto-recovery base backoff in ms",
+          "required": false,
+          "defaultValue": "1000"
+        }
+      ],
+      "sourceFile": "src/cli/commands/agent.ts",
+      "description": "Spawn a new agent",
+      "parent": "agent"
+    },
+    {
+      "name": "agent types",
+      "options": [],
+      "sourceFile": "src/cli/commands/agent.ts",
+      "description": "List all available agent types",
+      "parent": "agent"
+    },
+    {
+      "name": "agent-run",
+      "options": [
+        {
+          "flag": "--project <name>",
+          "description": "Use a specific project workspace (sessions, memory)",
+          "required": false
+        },
+        {
+          "flag": "--ratchet",
+          "description": "Enable git ratchet — revert agent changes on regression",
+          "required": false
+        },
+        {
+          "flag": "--eval <metrics>",
+          "description": "Comma-separated eval metrics: typecheck,tests-pass,lint-clean,build",
+          "required": false
+        },
+        {
+          "flag": "--test-cmd <command>",
+          "description": "Raw shell command used by ratchet (legacy heuristic mode)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/agent-run.ts",
+      "description": "Run the approval-based agent orchestrator",
+      "alias": "ar"
+    },
+    {
+      "name": "agentmemory",
+      "options": [],
+      "sourceFile": "src/cli/commands/agentmemory.ts",
+      "description": "Manage agentmemory sidecar connection",
+      "alias": "am"
+    },
+    {
+      "name": "agentmemory connect",
+      "options": [],
+      "sourceFile": "src/cli/commands/agentmemory.ts",
+      "description": "Test connection to agentmemory server",
+      "parent": "agentmemory"
+    },
+    {
+      "name": "agentmemory search <query>",
+      "options": [
+        {
+          "flag": "-l, --limit <n>",
+          "description": "Max results",
+          "required": false,
+          "defaultValue": "5"
+        }
+      ],
+      "sourceFile": "src/cli/commands/agentmemory.ts",
+      "description": "Search agentmemory with semantic query",
+      "parent": "agentmemory"
+    },
+    {
+      "name": "agentmemory status",
+      "options": [],
+      "sourceFile": "src/cli/commands/agentmemory.ts",
+      "description": "Show agentmemory connection status and stats",
+      "parent": "agentmemory"
+    },
+    {
+      "name": "ask",
+      "options": [
+        {
+          "flag": "--session-db",
+          "description": "Persist this session to the SQLite session store",
+          "required": false
+        },
+        {
+          "flag": "--project <name>",
+          "description": "Use a specific project workspace (sessions, memory)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/ask.ts",
+      "description": "Ask a question about the codebase (read-only)"
+    },
+    {
+      "name": "audit",
+      "options": [],
+      "sourceFile": "src/cli/commands/audit.ts",
+      "description": "Audit trail — record and replay agent decisions"
+    },
+    {
+      "name": "audit policy",
+      "options": [],
+      "sourceFile": "src/cli/commands/audit.ts",
+      "description": "List registered policies",
+      "parent": "audit"
+    },
+    {
+      "name": "audit recent",
+      "options": [
+        {
+          "flag": "-l, --limit <number>",
+          "description": "Number of entries to show",
+          "required": false,
+          "defaultValue": "20"
+        },
+        {
+          "flag": "--project <name>",
+          "description": "Filter by project",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/audit.ts",
+      "description": "Show recent audit entries",
+      "parent": "audit"
+    },
+    {
+      "name": "audit replay <sessionId>",
+      "options": [],
+      "sourceFile": "src/cli/commands/audit.ts",
+      "description": "Replay a session step-by-step from the audit log",
+      "parent": "audit"
+    },
+    {
+      "name": "audit stats",
+      "options": [],
+      "sourceFile": "src/cli/commands/audit.ts",
+      "description": "Show audit store statistics",
+      "parent": "audit",
+      "alias": "types"
+    },
+    {
+      "name": "audit timeline <sessionId>",
+      "options": [],
+      "sourceFile": "src/cli/commands/audit.ts",
+      "description": "Show compact timeline of a session",
+      "parent": "audit"
+    },
+    {
+      "name": "bench",
+      "options": [],
+      "sourceFile": "src/cli/commands/bench.ts",
+      "description": "North-star agent benchmark suite"
+    },
+    {
+      "name": "bench baseline",
+      "options": [],
+      "sourceFile": "src/cli/commands/bench.ts",
+      "description": "Print the latest scores (use for regression baseline)",
+      "parent": "bench"
+    },
+    {
+      "name": "bench history",
+      "options": [],
+      "sourceFile": "src/cli/commands/bench.ts",
+      "description": "Show bench run history (most recent 10)",
+      "parent": "bench"
+    },
+    {
+      "name": "bench list",
+      "options": [],
+      "sourceFile": "src/cli/commands/bench.ts",
+      "description": "List bench tasks with latest scores",
+      "parent": "bench"
+    },
+    {
+      "name": "bench run [taskId]",
+      "options": [
+        {
+          "flag": "--no-ratchet",
+          "description": "Disable git ratchet for this run",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/bench.ts",
+      "description": "Run one or all bench tasks",
+      "parent": "bench"
+    },
+    {
+      "name": "browse",
+      "options": [
+        {
+          "flag": "-l, --limit <number>",
+          "description": "Max results",
+          "required": false,
+          "defaultValue": "10"
+        }
+      ],
+      "sourceFile": "src/cli/commands/skills.ts",
+      "description": "Browse trending skills on agentskills.io"
+    },
+    {
+      "name": "chat",
+      "options": [
+        {
+          "flag": "-t, --type <type>",
+          "description": "Agent type (build, plan, read, write, test, validate, review, debug, document, refactor, deploy, monitor, explore)",
+          "required": false
+        },
+        {
+          "flag": "--provider <provider>",
+          "description": "AI provider to use",
+          "required": false
+        },
+        {
+          "flag": "--model <model>",
+          "description": "AI model to use",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/chat.ts",
+      "description": "Start an interactive CLI chat session",
+      "alias": "c"
+    },
+    {
+      "name": "completion",
+      "options": [],
+      "sourceFile": "src/cli/commands/completion.ts",
+      "description": "Generate shell completion scripts (bash, zsh, fish)"
+    },
+    {
+      "name": "completion bash",
+      "options": [],
+      "sourceFile": "src/cli/commands/completion.ts",
+      "description": "Generate bash completion script",
+      "parent": "completion"
+    },
+    {
+      "name": "completion fish",
+      "options": [],
+      "sourceFile": "src/cli/commands/completion.ts",
+      "description": "Generate fish completion script",
+      "parent": "completion"
+    },
+    {
+      "name": "completion zsh",
+      "options": [],
+      "sourceFile": "src/cli/commands/completion.ts",
+      "description": "Generate zsh completion script",
+      "parent": "completion"
+    },
+    {
+      "name": "computer",
+      "options": [],
+      "sourceFile": "src/cli/commands/computer.ts",
+      "description": "Computer use status and control",
+      "alias": "pc"
+    },
+    {
+      "name": "config",
+      "options": [],
+      "sourceFile": "src/cli/commands/config.ts",
+      "description": "Manage credentials and configuration",
+      "alias": "cfg"
+    },
+    {
+      "name": "config delete <key>",
+      "options": [
+        {
+          "flag": "--scope <scope>",
+          "description": "Scope",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/config.ts",
+      "description": "Delete a stored credential",
+      "parent": "config"
+    },
+    {
+      "name": "config get <key>",
+      "options": [
+        {
+          "flag": "--scope <scope>",
+          "description": "Scope",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/config.ts",
+      "description": "Retrieve a stored credential",
+      "parent": "config"
+    },
+    {
+      "name": "config list",
+      "options": [
+        {
+          "flag": "--scope <scope>",
+          "description": "Filter by scope",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/config.ts",
+      "description": "List stored credential keys",
+      "parent": "config"
+    },
+    {
+      "name": "config set <key> <value>",
+      "options": [
+        {
+          "flag": "--scope <scope>",
+          "description": "Scope: global (default) or agent type name",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/config.ts",
+      "description": "Store a credential (e.g. API key)",
+      "parent": "config"
+    },
+    {
+      "name": "config validate",
+      "options": [],
+      "sourceFile": "src/cli/commands/config.ts",
+      "description": "Validate config file against schema",
+      "parent": "config"
+    },
+    {
+      "name": "cron",
+      "options": [],
+      "sourceFile": "src/cli/commands/cron.ts",
+      "description": "Manage scheduled jobs and heartbeat"
+    },
+    {
+      "name": "cron add <name> <schedule> <goal>",
+      "options": [
+        {
+          "flag": "--type <type>",
+          "description": "Agent type to use",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/cron.ts",
+      "description": "Add a cron job (schedule: 30m, 1h, 6h, 12h, 1d)",
+      "parent": "cron"
+    },
+    {
+      "name": "cron heartbeat",
+      "options": [],
+      "sourceFile": "src/cli/commands/cron.ts",
+      "description": "Show heartbeat checklist",
+      "parent": "cron"
+    },
+    {
+      "name": "cron list",
+      "options": [],
+      "sourceFile": "src/cli/commands/cron.ts",
+      "description": "List scheduled cron jobs",
+      "parent": "cron",
+      "alias": "ls"
+    },
+    {
+      "name": "cron remove <name>",
+      "options": [],
+      "sourceFile": "src/cli/commands/cron.ts",
+      "description": "Remove a cron job",
+      "parent": "cron"
+    },
+    {
+      "name": "dashboard",
+      "options": [
+        {
+          "flag": "--json",
+          "description": "JSON output",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/dashboard.ts",
+      "description": "Show live system overview",
+      "alias": "dash"
+    },
+    {
+      "name": "discord",
+      "options": [
+        {
+          "flag": "-t, --token <token>",
+          "description": "Discord bot token (overrides config)",
+          "required": false
+        },
+        {
+          "flag": "--project <name>",
+          "description": "Use a specific project workspace",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/discord.ts",
+      "description": "Start the Discord bot adapter"
+    },
+    {
+      "name": "doctor",
+      "options": [
+        {
+          "flag": "--json",
+          "description": "JSON output",
+          "required": false
+        },
+        {
+          "flag": "--verbose",
+          "description": "Show detailed information for each check",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/doctor.ts",
+      "description": "Run system health diagnostics"
+    },
+    {
+      "name": "email",
+      "options": [
+        {
+          "flag": "--host <host>",
+          "description": "SMTP host (overrides config)",
+          "required": false
+        },
+        {
+          "flag": "--port <port>",
+          "description": "SMTP port",
+          "required": false,
+          "defaultValue": "587"
+        },
+        {
+          "flag": "--secure",
+          "description": "Use TLS (default: false for port 587)",
+          "required": false,
+          "defaultValue": false
+        },
+        {
+          "flag": "--user <user>",
+          "description": "SMTP user (overrides config)",
+          "required": false
+        },
+        {
+          "flag": "--pass <pass>",
+          "description": "SMTP password (overrides config)",
+          "required": false
+        },
+        {
+          "flag": "--from <from>",
+          "description": "From email address (overrides config)",
+          "required": false
+        },
+        {
+          "flag": "--project <name>",
+          "description": "Use a specific project workspace",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/email.ts",
+      "description": "Start the Email adapter (SMTP)"
+    },
+    {
+      "name": "experience",
+      "options": [],
+      "sourceFile": "src/cli/commands/experience.ts",
+      "description": "Experience replay buffer — track agent trajectories for skill learning",
+      "alias": "exp"
+    },
+    {
+      "name": "experience candidates",
+      "options": [
+        {
+          "flag": "--min-reps <number>",
+          "description": "Minimum repetitions for skill extraction",
+          "required": false,
+          "defaultValue": "3"
+        }
+      ],
+      "sourceFile": "src/cli/commands/experience.ts",
+      "description": "Find skill candidates from successful experiences",
+      "parent": "experience"
+    },
+    {
+      "name": "experience cluster",
+      "options": [
+        {
+          "flag": "--min-size <number>",
+          "description": "Minimum cluster size",
+          "required": false,
+          "defaultValue": "2"
+        }
+      ],
+      "sourceFile": "src/cli/commands/experience.ts",
+      "description": "Analyze failure clusters and surface insights",
+      "parent": "experience"
+    },
+    {
+      "name": "experience failures",
+      "options": [
+        {
+          "flag": "-l, --limit <number>",
+          "description": "Number to show",
+          "required": false,
+          "defaultValue": "10"
+        }
+      ],
+      "sourceFile": "src/cli/commands/experience.ts",
+      "description": "List recent failure experiences",
+      "parent": "experience"
+    },
+    {
+      "name": "experience list",
+      "options": [
+        {
+          "flag": "-l, --limit <number>",
+          "description": "Number of experiences to show",
+          "required": false,
+          "defaultValue": "10"
+        },
+        {
+          "flag": "--project <name>",
+          "description": "Filter by project",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/experience.ts",
+      "description": "List recent experiences",
+      "parent": "experience"
+    },
+    {
+      "name": "experience stats",
+      "options": [],
+      "sourceFile": "src/cli/commands/experience.ts",
+      "description": "Show experience store statistics",
+      "parent": "experience"
+    },
+    {
+      "name": "harness",
+      "options": [],
+      "sourceFile": "src/cli/commands/harness.ts",
+      "description": "Agent evaluation harness",
+      "alias": "h"
+    },
+    {
+      "name": "harness report",
+      "options": [],
+      "sourceFile": "src/cli/commands/harness.ts",
+      "description": "Export last test run report",
+      "parent": "harness"
+    },
+    {
+      "name": "harness run",
+      "options": [
+        {
+          "flag": "--name <pattern>",
+          "description": "Only run tests matching name pattern",
+          "required": false
+        },
+        {
+          "flag": "--tag <tag>",
+          "description": "Only run tests with this tag",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/harness.ts",
+      "description": "Run all test cases",
+      "parent": "harness"
+    },
+    {
+      "name": "harness status",
+      "options": [],
+      "sourceFile": "src/cli/commands/harness.ts",
+      "description": "Show harness status (tests found, etc.)",
+      "parent": "harness"
+    },
+    {
+      "name": "mcp",
+      "options": [],
+      "sourceFile": "src/cli/commands/mcp.ts",
+      "description": "Manage MCP (Model Context Protocol) servers"
+    },
+    {
+      "name": "mcp connect",
+      "options": [],
+      "sourceFile": "src/cli/commands/mcp.ts",
+      "description": "Connect to external MCP servers (configured in aegis.config.json)",
+      "parent": "mcp"
+    },
+    {
+      "name": "mcp list",
+      "options": [],
+      "sourceFile": "src/cli/commands/mcp.ts",
+      "description": "List configured MCP servers and registered tools",
+      "parent": "mcp",
+      "alias": "ls"
+    },
+    {
+      "name": "mcp serve",
+      "options": [
+        {
+          "flag": "-p, --port <port>",
+          "description": "HTTP port",
+          "required": false,
+          "defaultValue": "3100"
+        },
+        {
+          "flag": "--host <host>",
+          "description": "Host to bind to",
+          "required": false,
+          "defaultValue": "0.0.0.0"
+        },
+        {
+          "flag": "--key <key>",
+          "description": "API key",
+          "required": false
+        },
+        {
+          "flag": "--stdio",
+          "description": "Use stdio transport instead of HTTP",
+          "required": false,
+          "defaultValue": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/mcp.ts",
+      "description": "Start MCP server (expose neuron-os as MCP)",
+      "parent": "mcp"
+    },
+    {
+      "name": "memory",
+      "options": [],
+      "sourceFile": "src/cli/commands/memory.ts",
+      "description": "Manage memory and vector search"
+    },
+    {
+      "name": "memory add <content>",
+      "options": [],
+      "sourceFile": "src/cli/commands/memory.ts",
+      "description": "Append content to long-term memory",
+      "parent": "memory"
+    },
+    {
+      "name": "memory facts",
+      "options": [
+        {
+          "flag": "--category <cat>",
+          "description": "Filter by category: preference, project, identity, etc",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/memory.ts",
+      "description": "Show extracted facts from conversations",
+      "parent": "memory"
+    },
+    {
+      "name": "memory search <query>",
+      "options": [
+        {
+          "flag": "--vector",
+          "description": "Also search vector memory",
+          "required": false,
+          "defaultValue": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/memory.ts",
+      "description": "Search memory and daily logs",
+      "parent": "memory"
+    },
+    {
+      "name": "memory show",
+      "options": [],
+      "sourceFile": "src/cli/commands/memory.ts",
+      "description": "Show current MEMORY.md content",
+      "parent": "memory"
+    },
+    {
+      "name": "memory stats",
+      "options": [],
+      "sourceFile": "src/cli/commands/memory.ts",
+      "description": "Show memory system stats",
+      "parent": "memory"
+    },
+    {
+      "name": "memory vector",
+      "options": [],
+      "sourceFile": "src/cli/commands/memory.ts",
+      "description": "Vector memory (semantic search) stats",
+      "parent": "memory"
+    },
+    {
+      "name": "mesh",
+      "options": [],
+      "sourceFile": "src/cli/commands/mesh.ts",
+      "description": "Multi-agent mesh — coordinate agent swarms"
+    },
+    {
+      "name": "mesh cancel <runId>",
+      "options": [],
+      "sourceFile": "src/cli/commands/mesh.ts",
+      "description": "Cancel a running mesh",
+      "parent": "mesh"
+    },
+    {
+      "name": "mesh eval",
+      "options": [],
+      "sourceFile": "src/cli/commands/mesh.ts",
+      "description": "Evaluate a completed mesh run",
+      "parent": "mesh"
+    },
+    {
+      "name": "mesh list",
+      "options": [],
+      "sourceFile": "src/cli/commands/mesh.ts",
+      "description": "List running meshes",
+      "parent": "mesh"
+    },
+    {
+      "name": "mesh run",
+      "options": [
+        {
+          "flag": "--agents <number>",
+          "description": "Number of agents in the mesh",
+          "required": false,
+          "defaultValue": "3"
+        },
+        {
+          "flag": "--model <model>",
+          "description": "Model override for all agents",
+          "required": false
+        },
+        {
+          "flag": "--timeout <ms>",
+          "description": "Timeout per agent in ms",
+          "required": false,
+          "defaultValue": "300000"
+        }
+      ],
+      "sourceFile": "src/cli/commands/mesh.ts",
+      "description": "Run a mesh topology",
+      "parent": "mesh"
+    },
+    {
+      "name": "openapi",
+      "options": [],
+      "sourceFile": "src/cli/commands/openapi.ts",
+      "description": "Generate or serve the OpenAPI 3.0 specification"
+    },
+    {
+      "name": "openapi generate",
+      "options": [
+        {
+          "flag": "-o, --output <file>",
+          "description": "Write to file instead of stdout",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/openapi.ts",
+      "description": "Generate OpenAPI spec as JSON to stdout or file",
+      "parent": "openapi"
+    },
+    {
+      "name": "openapi serve",
+      "options": [
+        {
+          "flag": "-p, --port <port>",
+          "description": "Port to listen on",
+          "required": false,
+          "defaultValue": "8081"
+        },
+        {
+          "flag": "--host <host>",
+          "description": "Host to bind to",
+          "required": false,
+          "defaultValue": "localhost"
+        }
+      ],
+      "sourceFile": "src/cli/commands/openapi.ts",
+      "description": "Serve OpenAPI spec as JSON via HTTP",
+      "parent": "openapi"
+    },
+    {
+      "name": "orchestrate",
+      "options": [
+        {
+          "flag": "--dry-run",
+          "description": "Show the decomposition plan without executing",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/orchestrate.ts",
+      "description": "Decompose and execute a complex goal using multiple agents in parallel",
+      "alias": "orch"
+    },
+    {
+      "name": "plan",
+      "options": [
+        {
+          "flag": "--session-db",
+          "description": "Persist this session to the SQLite session store",
+          "required": false
+        },
+        {
+          "flag": "--project <name>",
+          "description": "Use a specific project workspace (sessions, memory)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/plan.ts",
+      "description": "Generate a step-by-step implementation plan"
+    },
+    {
+      "name": "pool",
+      "options": [],
+      "sourceFile": "src/cli/commands/pool.ts",
+      "description": "Manage the agent execution pool"
+    },
+    {
+      "name": "pool cancel <taskId>",
+      "options": [],
+      "sourceFile": "src/cli/commands/pool.ts",
+      "description": "Cancel a queued or running task",
+      "parent": "pool"
+    },
+    {
+      "name": "pool stats",
+      "options": [],
+      "sourceFile": "src/cli/commands/pool.ts",
+      "description": "Detailed pool statistics",
+      "parent": "pool"
+    },
+    {
+      "name": "pool status [taskId]",
+      "options": [],
+      "sourceFile": "src/cli/commands/pool.ts",
+      "description": "Show pool status or specific task status",
+      "parent": "pool"
+    },
+    {
+      "name": "pool submit <goal>",
+      "options": [
+        {
+          "flag": "-n, --name <name>",
+          "description": "Task name (defaults to auto-generated)",
+          "required": false
+        },
+        {
+          "flag": "--priority <priority>",
+          "description": "Task priority: low, normal, high, critical",
+          "required": false,
+          "defaultValue": "normal"
+        },
+        {
+          "flag": "--timeout <ms>",
+          "description": "Task timeout in milliseconds",
+          "required": false,
+          "defaultValue": "300000"
+        },
+        {
+          "flag": "--tag <tags...>",
+          "description": "Tags for the task",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/pool.ts",
+      "description": "Submit a task to the agent pool",
+      "parent": "pool"
+    },
+    {
+      "name": "project",
+      "options": [],
+      "sourceFile": "src/cli/commands/project.ts",
+      "description": "Manage project workspaces (isolated sessions, memory, config)",
+      "alias": "proj"
+    },
+    {
+      "name": "project init <name>",
+      "options": [
+        {
+          "flag": "--root <path>",
+          "description": "Project root directory",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/project.ts",
+      "description": "Initialize a new project workspace",
+      "parent": "project"
+    },
+    {
+      "name": "project list",
+      "options": [],
+      "sourceFile": "src/cli/commands/project.ts",
+      "description": "List all registered projects",
+      "parent": "project",
+      "alias": "ls"
+    },
+    {
+      "name": "project remove <name>",
+      "options": [],
+      "sourceFile": "src/cli/commands/project.ts",
+      "description": "Remove a project and all its data",
+      "parent": "project",
+      "alias": "rm"
+    },
+    {
+      "name": "project switch <name>",
+      "options": [],
+      "sourceFile": "src/cli/commands/project.ts",
+      "description": "Switch the active project",
+      "parent": "project",
+      "alias": "use"
+    },
+    {
+      "name": "publish <name>",
+      "options": [
+        {
+          "flag": "--version <version>",
+          "description": "Version for publish",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/skills.ts",
+      "description": "Publish a skill to agentskills.io"
+    },
+    {
+      "name": "reflect <session-id>",
+      "options": [
+        {
+          "flag": "-g, --goal <goal>",
+          "description": "The original goal for context",
+          "required": false
+        },
+        {
+          "flag": "-p, --provider <provider>",
+          "description": "AI provider (openai, anthropic, etc.)",
+          "required": false
+        },
+        {
+          "flag": "-m, --model <model>",
+          "description": "AI model name",
+          "required": false
+        },
+        {
+          "flag": "--json",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/reflect.ts",
+      "description": "Reflect on an agent session — score progress and suggest next steps"
+    },
+    {
+      "name": "research",
+      "options": [
+        {
+          "flag": "-m, --max-iterations <number>",
+          "description": "Maximum research iterations",
+          "required": false,
+          "defaultValue": "10"
+        },
+        {
+          "flag": "--project <name>",
+          "description": "Use a specific project workspace (sessions, memory)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/research.ts",
+      "description": "Run an autonomous research loop with safe ratchet mechanism",
+      "alias": "rs"
+    },
+    {
+      "name": "sandbox",
+      "options": [],
+      "sourceFile": "src/cli/commands/sandbox.ts",
+      "description": "Sandbox status and controls",
+      "alias": "sb"
+    },
+    {
+      "name": "serve",
+      "options": [
+        {
+          "flag": "-p, --port <port>",
+          "description": "Port to listen on",
+          "required": false,
+          "defaultValue": "8080"
+        },
+        {
+          "flag": "--host <host>",
+          "description": "Host to bind to",
+          "required": false,
+          "defaultValue": "0.0.0.0"
+        },
+        {
+          "flag": "--key <key>",
+          "description": "API key for authentication",
+          "required": false
+        },
+        {
+          "flag": "--cron",
+          "description": "Also start the cron engine",
+          "required": false,
+          "defaultValue": false
+        },
+        {
+          "flag": "--webhook-secret <secret>",
+          "description": "Enable webhook routes at /api/v1/webhook/* with HMAC verification",
+          "required": false
+        },
+        {
+          "flag": "--session-db",
+          "description": "Enable session store endpoints at /api/v1/sessions/*",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/serve.ts",
+      "description": "Start the HTTP API server"
+    },
+    {
+      "name": "session",
+      "options": [],
+      "sourceFile": "src/cli/commands/session.ts",
+      "description": "Manage persisted agent sessions from the SQLite store"
+    },
+    {
+      "name": "session delete <sessionId>",
+      "options": [],
+      "sourceFile": "src/cli/commands/session.ts",
+      "description": "Delete a session and all its messages from the store",
+      "parent": "session"
+    },
+    {
+      "name": "session export <sessionId>",
+      "options": [
+        {
+          "flag": "-f, --format <format>",
+          "description": "Output format",
+          "required": false,
+          "defaultValue": "json"
+        }
+      ],
+      "sourceFile": "src/cli/commands/session.ts",
+      "description": "Export session messages as JSON for analysis",
+      "parent": "session"
+    },
+    {
+      "name": "session list",
+      "options": [
+        {
+          "flag": "-n, --count <n>",
+          "description": "Number of sessions to show",
+          "required": false,
+          "defaultValue": "10"
+        },
+        {
+          "flag": "--status <status>",
+          "description": "Filter by status (active, completed, failed, paused)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/session.ts",
+      "description": "List recent sessions",
+      "parent": "session",
+      "alias": "ls"
+    },
+    {
+      "name": "session prune",
+      "options": [
+        {
+          "flag": "--older-than <duration>",
+          "description": "Age threshold (e.g. 7d, 30d, 24h, 90m)",
+          "required": true
+        },
+        {
+          "flag": "--dry-run",
+          "description": "Show what would be deleted without actually deleting",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/session.ts",
+      "description": "Delete old sessions from the store",
+      "parent": "session"
+    },
+    {
+      "name": "session resume <sessionId>",
+      "options": [],
+      "sourceFile": "src/cli/commands/session.ts",
+      "description": "Mark a session as active (useful for restoring paused sessions)",
+      "parent": "session"
+    },
+    {
+      "name": "session search <query>",
+      "options": [
+        {
+          "flag": "-n, --limit <n>",
+          "description": "Max results",
+          "required": false,
+          "defaultValue": "20"
+        },
+        {
+          "flag": "--role <role>",
+          "description": "Filter by role (user, assistant, system, tool)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/session.ts",
+      "description": "Search messages across all sessions",
+      "parent": "session"
+    },
+    {
+      "name": "session view <sessionId>",
+      "options": [
+        {
+          "flag": "-n, --limit <n>",
+          "description": "Number of messages to show",
+          "required": false,
+          "defaultValue": "30"
+        }
+      ],
+      "sourceFile": "src/cli/commands/session.ts",
+      "description": "Show session details and messages",
+      "parent": "session"
+    },
+    {
+      "name": "setup",
+      "options": [],
+      "sourceFile": "src/cli/commands/setup.ts",
+      "description": "Configure and initialize Aegis workspace"
+    },
+    {
+      "name": "setup-keys",
+      "options": [],
+      "sourceFile": "src/cli/commands/setup-keys.ts",
+      "description": "Interactive API key configuration for AI providers and Telegram bot integration"
+    },
+    {
+      "name": "skills",
+      "options": [],
+      "sourceFile": "src/cli/commands/skills.ts",
+      "description": "Manage skills and browse the marketplace (also: evolution, publish, hub)"
+    },
+    {
+      "name": "skills browse",
+      "options": [
+        {
+          "flag": "-l, --limit <number>",
+          "description": "Max results",
+          "required": false,
+          "defaultValue": "20"
+        }
+      ],
+      "sourceFile": "src/cli/commands/skills.ts",
+      "description": "Browse trending skills in the marketplace",
+      "parent": "skills"
+    },
+    {
+      "name": "skills evolution",
+      "options": [
+        {
+          "flag": "-s, --since <hours>",
+          "description": "Look back N hours for episodes",
+          "required": false,
+          "defaultValue": "24"
+        },
+        {
+          "flag": "--reason <text>",
+          "description": "Reason for rejection",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/skills.ts",
+      "description": "Self-evolving skills loop — distiller, quality gate, and retirement",
+      "parent": "skills"
+    },
+    {
+      "name": "skills hub",
+      "options": [],
+      "sourceFile": "src/cli/commands/skills.ts",
+      "description": "Browse and publish skills on agentskills.io",
+      "parent": "skills"
+    },
+    {
+      "name": "skills install",
+      "options": [
+        {
+          "flag": "-f, --force",
+          "description": "Overwrite existing skill",
+          "required": false,
+          "defaultValue": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/skills.ts",
+      "description": "Install a skill from the marketplace",
+      "parent": "skills"
+    },
+    {
+      "name": "skills list",
+      "options": [],
+      "sourceFile": "src/cli/commands/skills.ts",
+      "description": "List installed skills",
+      "parent": "skills"
+    },
+    {
+      "name": "skills retire",
+      "options": [
+        {
+          "flag": "-n, --dry-run",
+          "description": "Show what would be retired without doing it",
+          "required": false
+        },
+        {
+          "flag": "-d, --days <number>",
+          "description": "Failure window in days",
+          "required": false,
+          "defaultValue": "7"
+        }
+      ],
+      "sourceFile": "src/cli/commands/skills.ts",
+      "description": "Retire underperforming skills (move to archive)",
+      "parent": "skills"
+    },
+    {
+      "name": "skills search",
+      "options": [
+        {
+          "flag": "-l, --limit <number>",
+          "description": "Max results",
+          "required": false,
+          "defaultValue": "10"
+        }
+      ],
+      "sourceFile": "src/cli/commands/skills.ts",
+      "description": "Search the skills marketplace",
+      "parent": "skills"
+    },
+    {
+      "name": "slack",
+      "options": [
+        {
+          "flag": "-t, --token <token>",
+          "description": "Slack bot token (overrides config)",
+          "required": false
+        },
+        {
+          "flag": "--app-token <token>",
+          "description": "Slack app token for Socket Mode (overrides config)",
+          "required": false
+        },
+        {
+          "flag": "--project <name>",
+          "description": "Use a specific project workspace",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/slack.ts",
+      "description": "Start the Slack bot adapter"
+    },
+    {
+      "name": "sms",
+      "options": [
+        {
+          "flag": "--account-sid <sid>",
+          "description": "Twilio account SID (overrides config)",
+          "required": false
+        },
+        {
+          "flag": "--auth-token <token>",
+          "description": "Twilio auth token (overrides config)",
+          "required": false
+        },
+        {
+          "flag": "--from <number>",
+          "description": "Twilio phone number (overrides config)",
+          "required": false
+        },
+        {
+          "flag": "--webhook-port <port>",
+          "description": "Port for incoming SMS webhook",
+          "required": false,
+          "defaultValue": "8082"
+        },
+        {
+          "flag": "--project <name>",
+          "description": "Use a specific project workspace",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/sms.ts",
+      "description": "Start the SMS adapter (Twilio)"
+    },
+    {
+      "name": "status",
+      "options": [
+        {
+          "flag": "--json",
+          "description": "JSON output",
+          "required": false
+        },
+        {
+          "flag": "--watch",
+          "description": "Live-updating status every 2s",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/status.ts",
+      "description": "System status overview — agents, memory, runtime",
+      "alias": "st"
+    },
+    {
+      "name": "supervise <goal>",
+      "options": [
+        {
+          "flag": "-t, --agent-type <type>",
+          "description": "Agent type (build, test, review, etc.)",
+          "required": false,
+          "defaultValue": "default"
+        },
+        {
+          "flag": "-r, --max-restarts <n>",
+          "description": "Max restarts before giving up",
+          "required": false,
+          "defaultValue": "3"
+        }
+      ],
+      "sourceFile": "src/cli/commands/supervise.ts",
+      "description": "Spawn an agent and supervise it — auto-restart on failure"
+    },
+    {
+      "name": "telegram",
+      "options": [
+        {
+          "flag": "-t, --token <token>",
+          "description": "Telegram bot token (overrides config)",
+          "required": false
+        },
+        {
+          "flag": "--project <name>",
+          "description": "Use a specific project workspace (sessions, memory)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/telegram.ts",
+      "description": "Start the Telegram bot adapter",
+      "alias": "tg"
+    },
+    {
+      "name": "telemetry",
+      "options": [],
+      "sourceFile": "src/cli/commands/telemetry.ts",
+      "description": "Manage opt-in usage telemetry (no PII)",
+      "alias": "tel"
+    },
+    {
+      "name": "telemetry flush",
+      "options": [],
+      "sourceFile": "src/cli/commands/telemetry.ts",
+      "description": "Send any queued telemetry events now",
+      "parent": "telemetry"
+    },
+    {
+      "name": "telemetry opt-in",
+      "options": [],
+      "sourceFile": "src/cli/commands/telemetry.ts",
+      "description": "Enable usage telemetry",
+      "parent": "telemetry"
+    },
+    {
+      "name": "telemetry opt-out",
+      "options": [],
+      "sourceFile": "src/cli/commands/telemetry.ts",
+      "description": "Disable usage telemetry",
+      "parent": "telemetry"
+    },
+    {
+      "name": "telemetry status",
+      "options": [],
+      "sourceFile": "src/cli/commands/telemetry.ts",
+      "description": "Show current telemetry configuration",
+      "parent": "telemetry",
+      "alias": "stats"
+    },
+    {
+      "name": "toolset",
+      "options": [],
+      "sourceFile": "src/cli/commands/toolset.ts",
+      "description": "Manage composable tool groups",
+      "alias": "ts"
+    },
+    {
+      "name": "toolset list",
+      "options": [],
+      "sourceFile": "src/cli/commands/toolset.ts",
+      "description": "List all available toolsets",
+      "parent": "toolset"
+    },
+    {
+      "name": "toolset new <name>",
+      "options": [
+        {
+          "flag": "-d, --description <desc>",
+          "description": "Toolset description",
+          "required": false,
+          "defaultValue": ""
+        },
+        {
+          "flag": "-t, --tools <tools>",
+          "description": "Comma-separated tool names",
+          "required": false
+        },
+        {
+          "flag": "-i, --includes <includes>",
+          "description": "Comma-separated toolset includes",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/toolset.ts",
+      "description": "Create a new custom toolset",
+      "parent": "toolset"
+    },
+    {
+      "name": "toolset show <name>",
+      "options": [],
+      "sourceFile": "src/cli/commands/toolset.ts",
+      "description": "Show details for a specific toolset",
+      "parent": "toolset"
+    },
+    {
+      "name": "voice",
+      "options": [
+        {
+          "flag": "--account-sid <sid>",
+          "description": "Twilio account SID (overrides config)",
+          "required": false
+        },
+        {
+          "flag": "--auth-token <token>",
+          "description": "Twilio auth token (overrides config)",
+          "required": false
+        },
+        {
+          "flag": "--from <number>",
+          "description": "Twilio voice-enabled phone number (overrides config)",
+          "required": false
+        },
+        {
+          "flag": "--voice <voice>",
+          "description": "TTS voice: man, woman, alice",
+          "required": false
+        },
+        {
+          "flag": "--language <lang>",
+          "description": "TTS language code (e.g. en-US)",
+          "required": false
+        },
+        {
+          "flag": "--max-duration <seconds>",
+          "description": "Max call duration",
+          "required": false,
+          "defaultValue": "30"
+        },
+        {
+          "flag": "--project <name>",
+          "description": "Use a specific project workspace",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/voice.ts",
+      "description": "Start the Voice call adapter (Twilio TTS)"
+    },
+    {
+      "name": "wakeup",
+      "options": [],
+      "sourceFile": "src/cli/commands/wakeup.ts",
+      "description": "Show the banner and available commands",
+      "alias": "w"
+    },
+    {
+      "name": "webhook",
+      "options": [
+        {
+          "flag": "-p, --port <port>",
+          "description": "Port to listen on",
+          "required": false,
+          "defaultValue": "9090"
+        },
+        {
+          "flag": "--host <host>",
+          "description": "Host to bind to",
+          "required": false,
+          "defaultValue": "0.0.0.0"
+        },
+        {
+          "flag": "--secret <secret>",
+          "description": "Webhook secret for payload verification",
+          "required": false
+        },
+        {
+          "flag": "--github-token <token>",
+          "description": "GitHub token for posting PR comments",
+          "required": false
+        },
+        {
+          "flag": "--no-review",
+          "description": "Disable auto PR review",
+          "required": false
+        },
+        {
+          "flag": "--no-fix",
+          "description": "Disable auto fix on push",
+          "required": false
+        },
+        {
+          "flag": "--twilio",
+          "description": "Enable Twilio SMS/WhatsApp webhook endpoints",
+          "required": false
+        },
+        {
+          "flag": "--generic",
+          "description": "Enable generic JSON webhook endpoint",
+          "required": false
+        },
+        {
+          "flag": "--generic-secret <secret>",
+          "description": "HMAC secret for generic webhook verification",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/webhook.ts",
+      "description": "Start the multi-platform webhook receiver (GitHub, Twilio, generic)"
+    },
+    {
+      "name": "whatsapp",
+      "options": [
+        {
+          "flag": "--account-sid <sid>",
+          "description": "Twilio account SID (overrides config)",
+          "required": false
+        },
+        {
+          "flag": "--auth-token <token>",
+          "description": "Twilio auth token (overrides config)",
+          "required": false
+        },
+        {
+          "flag": "--from <number>",
+          "description": "Twilio WhatsApp number (overrides config)",
+          "required": false
+        },
+        {
+          "flag": "--webhook-port <port>",
+          "description": "Port for incoming message webhook",
+          "required": false,
+          "defaultValue": "8081"
+        },
+        {
+          "flag": "--project <name>",
+          "description": "Use a specific project workspace",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/whatsapp.ts",
+      "description": "Start the WhatsApp bot adapter (Twilio)"
+    }
+  ]
+}

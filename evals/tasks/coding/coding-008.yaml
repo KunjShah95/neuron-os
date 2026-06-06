@@ -1,0 +1,17 @@
+id: coding-008
+category: coding
+description: "Implement a trie (prefix tree) with autocomplete"
+input: |
+  Implement a Trie data structure with autocomplete in TypeScript.
+  Save to /tmp/trie.ts.
+  - Methods: insert(word), search(word), startsWith(prefix), autocomplete(prefix): string[]
+  - autocomplete returns all words starting with the given prefix
+expected_files:
+  - /tmp/trie.ts
+verification:
+  - command: "bun run /tmp/trie.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if the trie supports all operations and autocomplete, 0.0 otherwise.
+  Output ONLY the score.

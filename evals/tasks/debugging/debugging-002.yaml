@@ -1,0 +1,28 @@
+id: debugging-002
+category: debugging
+description: "Fix an off-by-one error in array partition"
+input: |
+  The following function has an off-by-one error:
+  ```
+  function partition(arr: number[], low: number, high: number): number {
+    const pivot = arr[high]
+    let i = low
+    for (let j = low; j <= high; j++) {
+      if (arr[j] < pivot) {
+        [arr[i], arr[j]] = [arr[j], arr[i]]
+        i++
+      }
+    }
+    [arr[i], arr[high]] = [arr[high], arr[i]]
+    return i
+  }
+  ```
+  Find and fix the bug. Save the fix to /tmp/debug-partition.ts.
+expected_files:
+  - /tmp/debug-partition.ts
+verification:
+  - command: "bun run /tmp/debug-partition.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if the off-by-one error is fixed, 0.0 otherwise. Output ONLY the score.

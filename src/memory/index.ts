@@ -6,3 +6,13 @@ export type { MemoryEntry, MemoryContext, ExtractedFact, UserProfile } from "./t
 export type { VectorEntry } from "./vector"
 export { sessionStore, SessionStore } from "./session-persistence"
 export type { SessionRecord, SessionMessage } from "./session-persistence"
+
+// FTS5 recall module
+export { FTS5Indexer, FTS5Retriever, Summarizer, ensureFTS5Schema, DEFAULT_RECALL_CONFIG } from "./recall"
+export type { RecallHit, RecallQuery, RecallConfig } from "./recall"
+
+// Dialectic user model
+export { DialecticEngine, dialecticEngine } from "./user-model/dialectic"
+export { HonchoAdapter, honchoAdapter } from "./user-model/honcho-adapter"
+export type { UserModel, DialecticProposal, DialecticResult, HonchoSyncResult, UserPreference, RecurringTopic, AuditEntry } from "./user-model/types"
+export { EMPTY_USER_MODEL } from "./user-model/types"

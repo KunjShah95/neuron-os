@@ -1,0 +1,23 @@
+id: refactoring-003
+category: refactoring
+description: "Extract a reusable class from repeated utility functions"
+input: |
+  These utility functions share state and should be a class:
+  ```
+  let cache = new Map()
+  function cachedFetch(url: string) {
+    if (cache.has(url)) return cache.get(url)
+    return fetch(url).then(r => r.json()).then(d => { cache.set(url, d); return d })
+  }
+  function clearCache() { cache.clear() }
+  function cacheSize() { return cache.size }
+  ```
+  Refactor into a CachedFetcher class. Save to /tmp/refactor-class.ts.
+expected_files:
+  - /tmp/refactor-class.ts
+verification:
+  - command: "bun run /tmp/refactor-class.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if refactored into a proper class, 0.0 otherwise. Output ONLY the score.

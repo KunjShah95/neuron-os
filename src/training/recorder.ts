@@ -7,7 +7,7 @@
  */
 
 import { createLogger } from "../cli/logger"
-import { existsSync, mkdirSync, appendFileSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, appendFileSync, readdirSync, statSync, renameSync } from "node:fs"
 import { join, resolve } from "node:path"
 
 const log = createLogger("training:recorder")
@@ -141,7 +141,6 @@ export class TrajectoryRecorder {
 
   /** Get stats about recorded trajectories. */
   getStats(): { totalSessions: number; totalEvents: number; diskUsageBytes: number } {
-    const { readdirSync, statSync } = require("node:fs") as typeof import("node:fs")
     try {
       if (!existsSync(this.baseDir)) return { totalSessions: 0, totalEvents: 0, diskUsageBytes: 0 }
 
@@ -172,8 +171,6 @@ export class TrajectoryRecorder {
 
   /** Rotate old trajectories (archive files older than N days). */
   rotate(maxAgeDays = 30): number {
-    const { readdirSync, renameSync } = require("node:fs") as typeof import("node:fs")
-    const { join: pathJoin } = require("node:path") as typeof import("node:path")
     const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000
     let rotated = 0
 
@@ -185,10 +182,10 @@ export class TrajectoryRecorder {
 
       const files = readdirSync(this.baseDir).filter((f) => f.endsWith(".jsonl"))
       for (const file of files) {
-        const filePath = pathJoin(this.baseDir, file)
-        const stats = require("node:fs").statSync(filePath)
+        const filePath = join(this.baseDir, file)
+        const stats = statSync(filePath)
         if (stats.mtimeMs < cutoff) {
-          renameSync(filePath, pathJoin(archiveDir, file))
+          renameSync(filePath, join(archiveDir, file))
           rotated++
         }
       }

@@ -1,0 +1,24 @@
+id: debugging-004
+category: debugging
+description: "Fix a memory leak from unclosed event listeners"
+input: |
+  The following EventEmitter usage leaks memory. Fix it:
+  ```
+  class DataStream {
+    private emitter = new EventEmitter()
+    onData(callback: (data: any) => void) {
+      this.emitter.on('data', callback)
+    }
+    start() { setInterval(() => this.emitter.emit('data', {}), 1000) }
+  }
+  ```
+  Add a return value that lets callers unsubscribe. Save to /tmp/debug-leak.ts.
+expected_files:
+  - /tmp/debug-leak.ts
+verification:
+  - command: "bun run /tmp/debug-leak.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if the leak is fixed with proper cleanup, 0.0 otherwise.
+  Output ONLY the score.

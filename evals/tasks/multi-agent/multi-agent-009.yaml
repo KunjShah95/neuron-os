@@ -1,0 +1,13 @@
+id: multi-agent-009
+category: multi-agent
+description: "Research framework options, build a recommendation"
+input: |
+  Use ask_agent to:
+  1. Research: "Pros and cons of Next.js App Router vs Pages Router"
+  2. Research: "Pros and cons of Astro vs Next.js for content-heavy sites"
+  3. Build: Create a comparison table in TypeScript that outputs structured data.
+  Save to /tmp/framework-compare.ts.
+timeout_ms: 300000
+judge_prompt: |
+  Score 1.0 if research is synthesized into a structured comparison, 0.0 otherwise.
+  Output ONLY the score.

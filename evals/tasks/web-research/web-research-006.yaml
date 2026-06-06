@@ -1,0 +1,11 @@
+id: web-research-006
+category: web-research
+description: "Research the differences between tRPC and GraphQL"
+input: |
+  Search the web to research the key differences between tRPC and GraphQL
+  for building APIs. Provide a comparison of their approach, type safety,
+  performance characteristics, and use cases.
+timeout_ms: 180000
+judge_prompt: |
+  Score 1.0 if a meaningful comparison of 3+ differences is provided, 0.0 otherwise.
+  Output ONLY the score.

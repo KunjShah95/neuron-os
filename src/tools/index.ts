@@ -3,6 +3,12 @@ export type { Tool, ToolContext, ToolResult, ToolParameter } from "./registry"
 export { readSkillTool } from "./read-skill"
 export { computerTool } from "./computer"
 export { executeCodeTool } from "./execute-code"
+export { webExtractTool } from "./web-extract"
+export { visionAnalyzeTool } from "./vision-analyze"
+export { delegateTaskTool } from "./delegate-task"
+export { memoryReadTool } from "./memory-read"
+export { memoryWriteTool } from "./memory-write"
+export { memorySearchTool } from "./memory-search"
 
 import { toolRegistry } from "./registry"
 import { bashTool } from "./bash"
@@ -14,6 +20,12 @@ import { globTool } from "./glob"
 import { readSkillTool } from "./read-skill"
 import { webFetchTool } from "./web-fetch"
 import { webSearchTool } from "./web-search"
+import { webExtractTool } from "./web-extract"
+import { visionAnalyzeTool } from "./vision-analyze"
+import { delegateTaskTool } from "./delegate-task"
+import { memoryReadTool } from "./memory-read"
+import { memoryWriteTool } from "./memory-write"
+import { memorySearchTool } from "./memory-search"
 import { computerTool } from "./computer"
 import { askAgentTool } from "./ask-agent"
 import { executeCodeTool } from "./execute-code"
@@ -33,6 +45,12 @@ export function registerBuiltinTools(): void {
   toolRegistry.register(globTool)
   toolRegistry.register(webFetchTool)
   toolRegistry.register(webSearchTool)
+  toolRegistry.register(webExtractTool)
+  toolRegistry.register(visionAnalyzeTool)
+  toolRegistry.register(delegateTaskTool)
+  toolRegistry.register(memoryReadTool)
+  toolRegistry.register(memoryWriteTool)
+  toolRegistry.register(memorySearchTool)
   toolRegistry.register(computerTool)
   toolRegistry.register(executeCodeTool)
 }

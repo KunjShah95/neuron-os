@@ -1,0 +1,17 @@
+id: coding-010
+category: coding
+description: "Implement a simple JSON validator with detailed error messages"
+input: |
+  Write a TypeScript function `validateJSON(input: string): {valid: boolean, errors: string[]}`
+  that validates JSON strings and provides detailed error messages for common
+  issues (unclosed braces, trailing commas, invalid numbers, unexpected tokens).
+  Save to /tmp/json-validator.ts.
+expected_files:
+  - /tmp/json-validator.ts
+verification:
+  - command: "bun run /tmp/json-validator.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if the validator catches at least 5 different error types, 0.0 otherwise.
+  Output ONLY the score.

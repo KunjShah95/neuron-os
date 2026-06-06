@@ -1,0 +1,29 @@
+id: refactoring-002
+category: refactoring
+description: "Replace callback hell with async/await"
+input: |
+  Refactor the following callback-based code to use async/await:
+  ```
+  function loadData(cb: (err: Error | null, data?: any) => void) {
+    getUser(function(err, user) {
+      if (err) return cb(err)
+      getPosts(user.id, function(err, posts) {
+        if (err) return cb(err)
+        getComments(posts[0].id, function(err, comments) {
+          if (err) return cb(err)
+          cb(null, { user, posts, comments })
+        })
+      })
+    })
+  }
+  ```
+  Save to /tmp/refactor-async.ts.
+expected_files:
+  - /tmp/refactor-async.ts
+verification:
+  - command: "bun run /tmp/refactor-async.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if refactored to proper async/await with error handling, 0.0 otherwise.
+  Output ONLY the score.

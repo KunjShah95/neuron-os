@@ -1,0 +1,13 @@
+id: multi-agent-006
+category: multi-agent
+description: "Spy agent monitors and reports on another agent"
+input: |
+  Use ask_agent to:
+  1. Spawn a build agent to implement a CSV parser in TypeScript. Save to /tmp/csv-parser.ts.
+  2. Spawn a 'review' agent to analyze the build agent's output and provide
+     a code quality report with specific recommendations.
+  Return both the implementation and the review.
+timeout_ms: 300000
+judge_prompt: |
+  Score 1.0 if both outputs are present and the review references specific code, 0.0 otherwise.
+  Output ONLY the score.

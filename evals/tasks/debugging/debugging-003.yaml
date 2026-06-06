@@ -1,0 +1,26 @@
+id: debugging-003
+category: debugging
+description: "Fix undefined variable access in async chain"
+input: |
+  Fix the following code that crashes with undefined access:
+  ```
+  async function process(data: any) {
+    const result = await fetchData(data.id)
+    return result.items.map(item => item.value)
+  }
+  async function fetchData(id: string) {
+    const res = await fetch(`/api/${id}`)
+    return res.json()
+  }
+  ```
+  The issue is that `result.items` could be undefined. Fix it.
+  Save to /tmp/debug-undefined.ts.
+expected_files:
+  - /tmp/debug-undefined.ts
+verification:
+  - command: "bun run /tmp/debug-undefined.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if the undefined access is properly guarded, 0.0 otherwise.
+  Output ONLY the score.

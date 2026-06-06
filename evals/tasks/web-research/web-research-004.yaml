@@ -1,0 +1,10 @@
+id: web-research-004
+category: web-research
+description: "Research recent weather in Tokyo, Japan"
+input: |
+  Search the web to find the current weather conditions in Tokyo, Japan.
+  Report temperature, humidity, and weather conditions.
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if current weather data for Tokyo is provided, 0.0 otherwise.
+  Output ONLY the score.

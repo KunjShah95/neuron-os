@@ -1,0 +1,24 @@
+id: debugging-008
+category: debugging
+description: "Fix a deadlock from nested async locks"
+input: |
+  The following code has a potential deadlock:
+  ```
+  async function transfer(from: Account, to: Account, amount: number) {
+    await from.lock()
+    await to.lock()
+    from.balance -= amount
+    to.balance += amount
+    to.unlock()
+    from.unlock()
+  }
+  ```
+  Fix it to prevent deadlocks. Save to /tmp/debug-deadlock.ts.
+expected_files:
+  - /tmp/debug-deadlock.ts
+verification:
+  - command: "bun run /tmp/debug-deadlock.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if the deadlock is fixed, 0.0 otherwise. Output ONLY the score.

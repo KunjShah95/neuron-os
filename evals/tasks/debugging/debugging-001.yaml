@@ -1,0 +1,21 @@
+id: debugging-001
+category: debugging
+description: "Fix a race condition in a concurrent counter"
+input: |
+  The following TypeScript code has a race condition:
+  ```
+  let counter = 0
+  for (let i = 0; i < 100; i++) {
+    Promise.resolve().then(() => counter++)
+  }
+  // counter should be 100 but sometimes isn't
+  ```
+  Fix the code so the counter always reaches 100. Save to /tmp/debug-race.ts.
+expected_files:
+  - /tmp/debug-race.ts
+verification:
+  - command: "bun run /tmp/debug-race.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if the race condition is fixed, 0.0 otherwise. Output ONLY the score.

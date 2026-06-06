@@ -1,0 +1,11 @@
+id: web-research-007
+category: web-research
+description: "Find the documentation for Bun's built-in SQLite support"
+input: |
+  Search the web to find the official documentation for Bun's built-in SQLite
+  support. Summarize how to use `Bun.sqlite` or `bun:sqlite` to create
+  tables, insert data, and query it.
+timeout_ms: 180000
+judge_prompt: |
+  Score 1.0 if Bun SQLite API usage is correctly documented, 0.0 otherwise.
+  Output ONLY the score.

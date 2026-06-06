@@ -1,0 +1,17 @@
+id: multi-agent-008
+category: multi-agent
+description: "Find bugs, fix them, verify the fix"
+input: |
+  Use ask_agent to coordinate:
+  1. Debug agent: Find bugs in the following code:
+     ```
+     function divide(a: number, b: number) { return a / b }
+     function parseJSON(s: string) { return JSON.parse(s) }
+     function access(arr: number[], i: number) { return arr[i] }
+     ```
+  2. Build agent: Fix all the bugs found. Save to /tmp/bug-fixed.ts.
+  3. Test agent: Write tests verifying the fixes.
+timeout_ms: 300000
+judge_prompt: |
+  Score 1.0 if bugs were found, fixed, AND verified with tests, 0.0 otherwise.
+  Output ONLY the score.

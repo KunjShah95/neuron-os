@@ -1,0 +1,10 @@
+id: web-research-001
+category: web-research
+description: "Find the latest version of Bun and its release date"
+input: |
+  Search the web to find the latest stable version of Bun (the JavaScript runtime)
+  and its release date. Report the version number and date.
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if the answer includes a valid Bun version and date, 0.0 otherwise.
+  Output ONLY the score.

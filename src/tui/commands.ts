@@ -41,6 +41,14 @@ export async function executeCommand(state: AppState, input: string): Promise<vo
       showStatus(state)
       break
 
+    case "a2ui":
+      showA2ui(state)
+      break
+
+    case "distill":
+      await runDistill(state)
+      break
+
     case "help":
     case "h":
       showHelp(state)
@@ -302,8 +310,63 @@ function showHelp(state: AppState): void {
   addLogEntry(state, { text: "  session delete <id>           Delete a saved session", type: "info" })
   addLogEntry(state, { text: "  session rename <id> <new>     Rename a session", type: "info" })
   addLogEntry(state, { text: "  session export <id> <path>    Export a session to file", type: "info" })
+  addLogEntry(state, { text: "  a2ui                          List A2UI widgets by scope", type: "info" })
+  addLogEntry(state, { text: "  distill                       Run self-improvement pipeline (extract skills from sessions)", type: "info" })
   addLogEntry(state, { text: "  help                          Show this help", type: "info" })
   addLogEntry(state, { text: "  Ctrl+Q                        Quit dashboard", type: "info" })
+}
+
+// ── A2UI ──────────────────────────────────────────────────────────────
+
+async function showA2ui(state: AppState): Promise<void> {
+  const { a2uiManager } = await import("../tools/a2ui")
+  const scopes = a2uiManager.getScopes()
+
+  if (scopes.length === 0) {
+    addLogEntry(state, { text: "No A2UI widgets. Agents can emit widgets using the a2ui_emit tool.", type: "info" })
+    return
+  }
+
+  addLogEntry(state, { text: `A2UI Scopes (${scopes.length}):`, type: "event" })
+  for (const scope of scopes) {
+    const widgets = a2uiManager.getScopeWidgets(scope)
+    addLogEntry(state, { text: `  ${scope}: ${widgets.length} widget(s)`, type: "info" })
+    for (const w of widgets) {
+      addLogEntry(state, { text: `    [${w.type}] ${w.title ?? ""}`, type: "info" })
+    }
+  }
+}
+
+// ── Distill ─────────────────────────────────────────────────────────────
+
+async function runDistill(state: AppState): Promise<void> {
+  addLogEntry(state, { text: "Starting self-improvement pipeline...", type: "event" })
+
+  try {
+    const { runDistillationPipeline } = await import("../cron/distillation")
+    const result = await runDistillationPipeline({
+      minRepetitions: 3,
+      minConfidence: 70,
+      maxSkills: 5,
+      pruneThreshold: 0.3,
+    })
+
+    addLogEntry(state, { text: "Pipeline complete:", type: "success" })
+    addLogEntry(state, { text: `  Experiences analyzed: ${result.totalExperiences}`, type: "info" })
+    addLogEntry(state, { text: `  Skills extracted: ${result.skillsExtracted.length}`, type: "success" })
+    for (const skill of result.skillsExtracted) {
+      addLogEntry(state, { text: `    ✓ ${skill.name} (${skill.confidence}% confidence)`, type: "info" })
+    }
+    addLogEntry(state, { text: `  Skills pruned: ${result.skillsPruned}`, type: "info" })
+    if (result.clusters.length > 0) {
+      addLogEntry(state, { text: `  Failure clusters: ${result.clusters.length}`, type: "warn" })
+      for (const c of result.clusters.slice(0, 3)) {
+        addLogEntry(state, { text: `    ${c.clusterKey} (${c.count} occurrences)`, type: "warn" })
+      }
+    }
+  } catch (err: any) {
+    addLogEntry(state, { text: `Distillation error: ${err.message ?? String(err)}`, type: "error" })
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────

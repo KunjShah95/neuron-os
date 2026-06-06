@@ -1,0 +1,21 @@
+id: debugging-005
+category: debugging
+description: "Fix a stack overflow from infinite recursion"
+input: |
+  The following binary tree traversal causes a stack overflow on deep trees:
+  ```
+  function traverse(node: TreeNode | null): number[] {
+    if (!node) return []
+    return [...traverse(node.left), node.val, ...traverse(node.right)]
+  }
+  ```
+  Fix it to use iterative traversal. Save to /tmp/debug-stack.ts.
+expected_files:
+  - /tmp/debug-stack.ts
+verification:
+  - command: "bun run /tmp/debug-stack.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if the traversal is iterative and correct, 0.0 otherwise.
+  Output ONLY the score.

@@ -10,8 +10,6 @@ import { createLogger } from "../cli/logger"
 import type { TrajectoryEvent } from "./recorder"
 import { readFileSync, existsSync, readdirSync, writeFileSync, mkdirSync } from "node:fs"
 import { join, resolve } from "node:path"
-import { trajectoryRecorder } from "./recorder"
-
 const log = createLogger("training:exporter")
 
 export interface AtroposRecord {

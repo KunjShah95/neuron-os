@@ -57,6 +57,9 @@ async function main() {
   // ── 0. Full-Stack Integration Tests ───────────────────────────────
   await run("Full-Stack Integration Tests", ["bun", "test", "src/fullstack-integration.test.ts"])
 
+  // ── 0.1 Docs Generator Tests ──────────────────────────────────────
+  await run("Docs Generator Tests", ["bun", "test", "scripts/__tests__/extract-commands.test.ts"])
+
   // ── 1. Dashboard TUI Smoke Tests ──────────────────────────────────
   await run("Dashboard TUI Tests", ["bun", "test", "src/dashboard.test.ts"])
 

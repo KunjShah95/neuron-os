@@ -1,0 +1,13 @@
+id: multi-agent-001
+category: multi-agent
+description: "Spawn a research agent to investigate parallel processing and a build agent to implement a parallel map function"
+input: |
+  Use ask_agent to delegate two tasks:
+  1. Research: "Find best practices for parallel processing in TypeScript with Bun"
+  2. Build: "Implement a parallelMap function that transforms array items concurrently
+     with a configurable concurrency limit"
+  Combine the research findings into the implementation as comments.
+timeout_ms: 300000
+judge_prompt: |
+  Score 1.0 if both agents were invoked and the result is coherent, 0.0 otherwise.
+  Output ONLY the score.

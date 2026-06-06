@@ -7,7 +7,6 @@
 
 import { createLogger } from "../../cli/logger"
 import type { EvalTask } from "./suite"
-import type { TrajectoryEvent } from "../recorder"
 
 const log = createLogger("eval:runner")
 
@@ -150,7 +149,7 @@ export class EvalRunner {
     const regressions: Regression[] = []
     if (config.baseline) {
       try {
-        const { readFileSync, existsSync } = require("node:fs") as typeof import("node:fs")
+        const { readFileSync, existsSync } = await import("node:fs")
         if (existsSync(config.baseline)) {
           const baselineReport = JSON.parse(readFileSync(config.baseline, "utf-8")) as EvalReport
           for (const baseline of baselineReport.results) {

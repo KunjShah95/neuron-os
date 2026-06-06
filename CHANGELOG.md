@@ -32,6 +32,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Auto-generated docs source** — `scripts/extract-commands.ts` parses `src/cli/commands/*.ts` via the TypeScript Compiler API and emits `shared/commands.json` (128 commands as of this write). The dashboard and website docs sections now consume this file as a single source of truth instead of hand-maintained command arrays. New scripts: `bun run docs:generate` / `bun run docs:check`. `pretest` runs `docs:check` to fail CI on drift.
+- **Generator test suite** — `scripts/__tests__/extract-commands.test.ts` with 3 fixture files (`simple.ts`, `with-options.ts`, `with-subcommands.ts`) covering simple chains, alias/description/options/defaults, and parent+subcommand extraction. All 3 tests pass; the test is registered in `scripts/run-tests.ts`.
+- **Dashboard docs layer** — `dashboard/src/data/commandGroups.ts` derives 11 hand-curated groups (system, setup, agents, orchestration, memory, knowledge, schedule, serve, adapters, sessions, runtime) from `shared/commands.json` and adds icon/tag metadata. `dashboard/src/routes/Docs.tsx` now imports this layer; the hand-maintained `commandGroups` array is gone.
+- **Website docs layer** — `website/src/data/docTopics.ts` exposes `navGroups`, `docTopics`, and `defaultTopic` (15 curated topics) sourced from `shared/commands.json` via a `row(name)` helper that resolves command descriptions from the JSON. `website/src/sections/DocsSection.tsx` now imports this layer; the hand-maintained `navGroups` / `docContent` / `defaultContent` constants are gone.
+- **Design spec** — `docs/superpowers/specs/2026-06-06-docs-section-update-design.md` captures the contract: schema, file layout, CI wiring, risks, migration plan.
 - Multi-stage Dockerfile with `oven/bun:1-slim` production image, HEALTHCHECK, non-root user
 - `docker-compose.yml` with named volume, env passthrough, and dashboard-dev profile (Vite HMR)
 - `.dockerignore` with comprehensive exclusion rules
@@ -52,6 +57,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `CHANGELOG.md` and `SECURITY.md` files
 
 ### Changed
+- `dashboard/src/routes/Docs.tsx` — no longer hardcodes 13 stale command groups; renders directly from the generated JSON via `dashboard/src/data/commandGroups.ts`.
+- `website/src/sections/DocsSection.tsx` — no longer hand-maintains 16 marketing copy blocks; renders from `website/src/data/docTopics.ts`. The "Reflection loop" topic no longer references the non-existent `aegis agent-run --ratchet` flag; "Provenance" topic is gone (no `provenance` command exists).
+- `dashboard/tsconfig.json` and `website/tsconfig.app.json` — added `resolveJsonModule: true` so both can import `shared/commands.json`.
+- `scripts/run-tests.ts` — registers the new docs generator test before the integration tests.
 - `src/vault/manager.ts` — vault serialized as encrypted blob (`vault.enc`), auto-migrates from legacy `vault.json`, removes stale plaintext
 - `src/cli/commands/config.ts` — shows `vault.enc` path and "AES-256-GCM encrypted" in status
 - `README.md` — added Docker usage section with build/run/compose commands and security notes

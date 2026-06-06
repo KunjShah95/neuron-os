@@ -1,0 +1,10 @@
+id: web-research-008
+category: web-research
+description: "Research the Tailwind CSS v4 new features"
+input: |
+  Search the web to find the new features in Tailwind CSS v4 compared to v3.
+  List at least 3 major changes or additions.
+timeout_ms: 180000
+judge_prompt: |
+  Score 1.0 if 3+ real new features in Tailwind v4 are listed, 0.0 otherwise.
+  Output ONLY the score.

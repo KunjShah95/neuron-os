@@ -1,0 +1,17 @@
+id: coding-006
+category: coding
+description: "Implement a publish/subscribe event emitter"
+input: |
+  Implement a typed event emitter in TypeScript. Save to /tmp/event-emitter.ts.
+  - Class `EventEmitter<Events>` where Events is a map of event name → payload type
+  - Methods: on(event, listener), off(event, listener), emit(event, payload), once(event, listener)
+  - Must support unsubscribe
+expected_files:
+  - /tmp/event-emitter.ts
+verification:
+  - command: "bun run /tmp/event-emitter.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if the emitter supports all operations with types, 0.0 otherwise.
+  Output ONLY the score.

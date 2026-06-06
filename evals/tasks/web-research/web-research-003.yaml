@@ -1,0 +1,11 @@
+id: web-research-003
+category: web-research
+description: "Find the top 3 articles about FTS5 full-text search in SQLite"
+input: |
+  Search the web to find the top 3 most relevant articles about using FTS5
+  full-text search in SQLite. For each article, provide the title, URL,
+  and a 1-sentence summary.
+timeout_ms: 180000
+judge_prompt: |
+  Score 1.0 if 3 real articles with titles, URLs, and summaries are found, 0.0 otherwise.
+  Output ONLY the score.

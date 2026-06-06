@@ -1,0 +1,22 @@
+id: debugging-006
+category: debugging
+description: "Fix incorrect modulo operation for negative numbers"
+input: |
+  JavaScript's % operator gives incorrect results for negative numbers in
+  some mathematical contexts. Fix the following to use proper modular arithmetic:
+  ```
+  function mod(n: number, m: number): number {
+    return n % m
+  }
+  ```
+  Ensure it returns a non-negative result for all inputs.
+  Save to /tmp/debug-mod.ts.
+expected_files:
+  - /tmp/debug-mod.ts
+verification:
+  - command: "bun run /tmp/debug-mod.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if the modulo function is correct for negative numbers, 0.0 otherwise.
+  Output ONLY the score.

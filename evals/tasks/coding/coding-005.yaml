@@ -1,0 +1,15 @@
+id: coding-005
+category: coding
+description: "Write a function that merges overlapping intervals"
+input: |
+  Write a TypeScript function `mergeIntervals(intervals: [number, number][]): [number, number][]`
+  that merges all overlapping intervals. Save to /tmp/merge-intervals.ts.
+  Example: [[1,3],[2,6],[8,10],[15,18]] → [[1,6],[8,10],[15,18]]
+expected_files:
+  - /tmp/merge-intervals.ts
+verification:
+  - command: "bun run /tmp/merge-intervals.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if intervals are correctly merged, 0.0 otherwise. Output ONLY the score.

@@ -3,7 +3,10 @@ import { resolve } from "node:path"
 import { agentManager } from "../agent/manager"
 import { createLogger } from "../cli/logger"
 import type { AgentTypeName } from "../agent/agent-types"
+import { a2uiManager, type A2uiEvent } from "../tools/a2ui"
 import { z } from "zod"
+import { mkdirSync, writeFileSync, existsSync, readdirSync, readFileSync as fsReadFile } from "node:fs"
+import { join } from "node:path"
 
 const log = createLogger("api")
 
@@ -25,6 +28,14 @@ const MemoryContentSchema = z.object({
 
 const MemoryQuerySchema = z.object({
   query: z.string().min(1, "Query is required").max(1000, "Query too long"),
+})
+
+const SaveSkillSchema = z.object({
+  name: z.string().min(1, "Name is required").max(64, "Name too long").regex(/^[a-zA-Z0-9_-]+$/, "Name must be alphanumeric with -_"),
+  description: z.string().min(1, "Description is required").max(200, "Description too long"),
+  tags: z.array(z.string()).max(10, "Too many tags").default([]),
+  type: z.string().min(1, "Widget type is required"),
+  widgetJson: z.record(z.string(), z.unknown()),
 })
 
 /** Read package version once at module load time. */
@@ -372,6 +383,126 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
     return jsonResponse(200, { status: "deleted" }, config, req)
   }
 
+  // ── Skills ─────────────────────────────────────────────────────────
+
+  if (pathname === "/api/v1/skills" && method === "POST") {
+    const skillResult = SaveSkillSchema.safeParse(body)
+    if (!skillResult.success) {
+      return jsonResponse(400, { error: skillResult.error.issues.map((i: any) => i.message).join("; ") }, config, req)
+    }
+
+    const payload = skillResult.data
+    try {
+      const skillsDir = join(process.cwd(), "skills", payload.name)
+      if (!existsSync(skillsDir)) mkdirSync(skillsDir, { recursive: true })
+
+      const tagsYaml = payload.tags.length > 0 ? `tags: [${payload.tags.join(", ")}]` : ""
+      const widgetTitle = (payload.widgetJson as any)?.title || payload.name
+      const skillContent = [
+        "---",
+        `name: ${payload.name}`,
+        `description: ${payload.description}`,
+        tagsYaml,
+        "---",
+        "",
+        `# A2UI Widget: ${widgetTitle}`,
+        "",
+        `Emits an A2UI **${payload.type}** widget via WebSocket.`,
+        "",
+        "## Widget JSON",
+        "",
+        "```json",
+        JSON.stringify(payload.widgetJson, null, 2),
+        "```",
+        "",
+        "## Usage",
+        "",
+        "Call `emitWidget` with the JSON above to render this widget in the A2UI dashboard.",
+        "",
+      ].filter(Boolean).join("\n")
+
+      writeFileSync(join(skillsDir, "SKILL.md"), skillContent, "utf-8")
+      // Save widget JSON separately for fast loading
+      writeFileSync(join(skillsDir, "widget.json"), JSON.stringify({
+        name: payload.name,
+        description: payload.description,
+        tags: payload.tags,
+        type: payload.type,
+        widgetJson: payload.widgetJson,
+      }, null, 2), "utf-8")
+      log.info("Skill saved from A2UI playground", { name: payload.name, type: payload.type })
+      return jsonResponse(201, { status: "saved", path: join(skillsDir, "SKILL.md") }, config, req)
+    } catch (err: any) {
+      log.error("Failed to save skill", { error: err.message })
+      return jsonResponse(500, { error: err.message }, config, req)
+    }
+  }
+
+  if (pathname === "/api/v1/skills" && method === "GET") {
+    try {
+      const skillsBase = join(process.cwd(), "skills")
+      if (!existsSync(skillsBase)) {
+        return jsonResponse(200, { skills: [] }, config, req)
+      }
+
+      const entries = readdirSync(skillsBase, { withFileTypes: true })
+      const skills: Array<{
+        name: string
+        description: string
+        tags: string[]
+        type: string
+        widgetJson: Record<string, unknown>
+      }> = []
+
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue
+        const dirPath = join(skillsBase, entry.name)
+
+        // Prefer widget.json for fast loading
+        const widgetJsonPath = join(dirPath, "widget.json")
+        if (existsSync(widgetJsonPath)) {
+          try {
+            const data = JSON.parse(fsReadFile(widgetJsonPath, "utf-8"))
+            skills.push({
+              name: data.name || entry.name,
+              description: data.description || "",
+              tags: data.tags || [],
+              type: data.type || "unknown",
+              widgetJson: data.widgetJson || {},
+            })
+          } catch {
+            log.warn("Failed to parse widget.json for skill", { name: entry.name })
+          }
+          continue
+        }
+
+        // Fallback: parse SKILL.md
+        const skillPath = join(dirPath, "SKILL.md")
+        if (!existsSync(skillPath)) continue
+        try {
+          const content = fsReadFile(skillPath, "utf-8")
+          // Extract JSON from ```json block
+          const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/)
+          const widgetJson = jsonMatch ? JSON.parse(jsonMatch[1]!) : {}
+          skills.push({
+            name: entry.name,
+            description: "",
+            tags: [],
+            type: (widgetJson as any)?.type || "unknown",
+            widgetJson,
+          })
+        } catch {
+          log.warn("Failed to parse SKILL.md for skill", { name: entry.name })
+        }
+      }
+
+      return jsonResponse(200, { skills }, config, req)
+    } catch (err: any) {
+      log.error("Failed to list skills", { error: err.message })
+      return jsonResponse(500, { error: err.message }, config, req)
+    }
+  }
+
   return jsonResponse(404, { error: "Not found" }, config, req)
 }
 
@@ -489,6 +620,28 @@ export function startWsEventBridge() {
 }
 
 /**
+ * Bridge A2UI widget events to WebSocket clients.
+ * When an agent emits an A2UI widget, it gets broadcast to all dashboard clients.
+ */
+export function startA2uiWsBridge(): () => void {
+  const handler = (event: A2uiEvent) => {
+    broadcastWsEvent("a2ui:widget", {
+      scope: event.scope,
+      widget: event.widget as unknown as Record<string, unknown>,
+      replace: event.replace,
+    })
+  }
+
+  a2uiManager.onEvent(handler)
+  log.info("A2UI WebSocket bridge started")
+
+  return () => {
+    a2uiManager.offEvent(handler)
+    log.info("A2UI WebSocket bridge stopped")
+  }
+}
+
+/**
  * Stop forwarding AgentManager events to WebSocket clients.
  */
 export function stopWsEventBridge() {
@@ -563,6 +716,20 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
                 break
               }
             }
+          }
+
+          // ── A2UI action from dashboard ──────────────────────────
+          if (parsed.type === "a2ui:action") {
+            const { action, scope, widgetId, payload } = parsed
+            // Forward to registered action handlers
+            a2uiManager.triggerAction({
+              action: String(action || ""),
+              widgetId: String(widgetId || ""),
+              scope: String(scope || "default"),
+              payload: payload || {},
+              timestamp: Date.now(),
+            })
+            log.info("A2UI action triggered", { action, scope, widgetId })
           }          } catch (err) {
             log.warn("WS message parse failed", { error: String(err) })
           }
@@ -693,14 +860,15 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
     },
   })
 
-  // Start WebSocket event bridge for any reconnecting clients
-  startWsEventBridge()
+  // Start A2UI WebSocket bridge — forward A2UI widget events to dashboard clients
+  const unsubA2ui = startA2uiWsBridge()
 
   log.info("API server listening", { url: `http://${config.host}:${config.port}` })
 
   return {
     stop: () => {
       stopWsEventBridge()
+      if (unsubA2ui) unsubA2ui()
       wsClients.clear()
       server.stop()
       log.info("API server stopped")

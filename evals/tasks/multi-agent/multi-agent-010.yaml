@@ -1,0 +1,14 @@
+id: multi-agent-010
+category: multi-agent
+description: "Full-stack feature: research API design, build endpoint, review"
+input: |
+  Use ask_agent to delegate:
+  1. Research: "Best practices for designing RESTful pagination APIs"
+  2. Build: Implement a pagination helper class in TypeScript that supports
+     cursor-based and offset-based pagination. Save to /tmp/pagination.ts.
+  3. Review: Review the implementation against the research findings.
+  Return all outputs.
+timeout_ms: 300000
+judge_prompt: |
+  Score 1.0 if all 3 steps complete with coherent results, 0.0 otherwise.
+  Output ONLY the score.

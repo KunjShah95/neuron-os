@@ -1,0 +1,22 @@
+id: refactoring-005
+category: refactoring
+description: "Remove duplicated code with a higher-order function"
+input: |
+  These functions are nearly identical. Eliminate the duplication:
+  ```
+  function filterActive(users: User[]) { return users.filter(u => u.status === 'active') }
+  function filterInactive(users: User[]) { return users.filter(u => u.status === 'inactive') }
+  function filterPremium(users: User[]) { return users.filter(u => u.plan === 'premium') }
+  function filterFree(users: User[]) { return users.filter(u => u.plan === 'free') }
+  ```
+  Create a single higher-order function.
+  Save to /tmp/refactor-dup.ts.
+expected_files:
+  - /tmp/refactor-dup.ts
+verification:
+  - command: "bun run /tmp/refactor-dup.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if duplication is removed with a higher-order function, 0.0 otherwise.
+  Output ONLY the score.

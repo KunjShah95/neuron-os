@@ -1,0 +1,14 @@
+id: multi-agent-007
+category: multi-agent
+description: "Three agents collaborate on a documentation generator"
+input: |
+  Use ask_agent to orchestrate 3 agents:
+  1. Research: "Best practices for JSDoc/TSDoc comments in TypeScript"
+  2. Build: Implement a function that generates TSDoc comments for a given
+     function signature (as a string). Save to /tmp/doc-generator.ts.
+  3. Review: Review the implementation for completeness.
+  Return the research summary, implementation, and review.
+timeout_ms: 300000
+judge_prompt: |
+  Score 1.0 if all 3 agents complete and outputs are combined, 0.0 otherwise.
+  Output ONLY the score.

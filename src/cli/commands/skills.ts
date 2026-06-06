@@ -1,378 +1,301 @@
-import type { Command } from "commander"
-import { existsSync, watch } from "fs"
-import { readdir, readFile, writeFile, mkdir, rm } from "fs/promises"
-import { join } from "path"
-import { createLogger } from "../logger"
-import { theme, box } from "../theme"
-import { showBanner } from "../banner"
-import { searchSkills, fetchTopSkills, fetchRegistryStats } from "../../skills/remote"
+import { Command } from "commander"
+import { fetchTopSkills, searchSkills, fetchSkillDetail } from "../../skills/remote"
 import { skillRegistry } from "../../skills/registry"
-import { qualityGate } from "../../skills/quality-gate"
+import { theme } from "../theme"
+import { createLogger } from "../logger"
+import { distill, loadRecentEpisodes, gate, checkRetirementEligibility, retireSkill, publishToHub, browseHub } from "../../skills/evolution"
+import { existsSync, readdirSync } from "node:fs"
+import { join } from "node:path"
 
 const log = createLogger("cli:skills")
 
-// ── Hot-reload support ───────────────────────────────────────────────
-
-let skillWatcher: ReturnType<typeof watch> | null = null
-let watchCallbacks: Array<() => void> = []
-
 /**
- * Start watching the skills directory for changes.
- * When a SKILL.md file is added/removed/modified, the registry is reloaded.
+ * Register `aegis skills` commands — marketplace, evolution, and management.
  */
-export function startSkillHotReload(onChange?: () => void) {
-  if (skillWatcher) return // already watching
-
-  const skillsDir = join(process.cwd(), "skills")
-  if (!existsSync(skillsDir)) {
-    log.info("Skills directory not found, hot-reload not started")
-    return
-  }
-
-  if (onChange) watchCallbacks.push(onChange)
-
-  skillWatcher = watch(skillsDir, { recursive: true }, async (eventType, filename) => {
-    if (filename && (filename.endsWith("SKILL.md") || filename.endsWith(".md"))) {
-      log.info("Skill file changed, reloading registry", { file: filename, event: eventType })
-      try {
-        await skillRegistry.loadAll()
-        for (const cb of watchCallbacks) {
-          try { cb() } catch (err) {
-            log.warn("Skill hot-reload callback failed", { error: String(err) })
-          }
-        }
-      } catch (err) {
-        log.error("Failed to reload skill registry", { error: String(err) })
-      }
-    }
-  })
-
-  log.info("Skill hot-reload started", { dir: skillsDir })
-}
-
-/**
- * Stop watching the skills directory.
- */
-export function stopSkillHotReload() {
-  if (skillWatcher) {
-    skillWatcher.close()
-    skillWatcher = null
-    watchCallbacks = []
-    log.info("Skill hot-reload stopped")
-  }
-}
-
-interface LocalSkill {
-  name: string
-  description: string
-  tags: string[]
-  path: string
-  version?: string
-  author?: string
-  dependencies?: string[]
-}
-
-async function listLocalSkills(): Promise<LocalSkill[]> {
-  const skillsDir = join(process.cwd(), "skills")
-  if (!existsSync(skillsDir)) return []
-
-  const entries = await readdir(skillsDir, { withFileTypes: true })
-  const skills: LocalSkill[] = []
-
-  for (const entry of entries) {
-    const skillDir = join(skillsDir, entry.name)
-    if (!entry.isDirectory()) continue
-    const skillMd = join(skillDir, "SKILL.md")
-    if (!existsSync(skillMd)) continue
-
-    const content = await readFile(skillMd, "utf-8")
-    const match = content.match(/^---\n([\s\S]*?)\n---/)
-    if (!match) continue
-
-    const raw = match[1]
-    if (!raw) continue
-
-    const meta: Record<string, any> = { tags: [] }
-    for (const line of raw.split("\n")) {
-      const idx = line.indexOf(":")
-      if (idx === -1) continue
-      const key = line.slice(0, idx).trim()
-      const val = line.slice(idx + 1).trim().replace(/^\[|\]$/g, "")
-      if (!key) continue
-      if (key === "tags") meta.tags = val.split(",").map((s) => s.trim()).filter(Boolean)
-      else meta[key] = val
-    }
-
-    skills.push({
-      name: meta.name || entry.name,
-      description: meta.description || "",
-      tags: meta.tags || [],
-      path: skillDir,
-      version: meta.version || undefined,
-      author: meta.author || undefined,
-      dependencies: meta.dependencies || undefined,
-    })
-  }
-
-  return skills.sort((a, b) => a.name.localeCompare(b.name))
-}
-
-function renderSkills(local: LocalSkill[], remote: any[], title: string): void {
-  console.log(`\n  ${theme.heading(title)}`)
-
-  if (local.length > 0) {
-    console.log(`\n  ${theme.bold("Installed")} ${theme.muted(`(${local.length})`)}`)
-    for (const s of local) {
-      const versionStr = s.version ? ` ${theme.muted(`v${s.version}`)}` : ""
-      const authorStr = s.author ? ` ${theme.muted(`by ${s.author}`)}` : ""
-      const depsStr = s.dependencies?.length ? ` ${theme.muted(`deps: ${s.dependencies.join(", ")}`)}` : ""
-      const tagStr = s.tags.length > 0 ? ` ${theme.muted(s.tags.map((t) => `#${t}`).join(" "))}` : ""
-      console.log(`    ${box.bullet} ${theme.textBright(s.name)}${versionStr}${authorStr}${depsStr}${tagStr}`)
-      if (s.description) console.log(`      ${theme.muted(s.description)}`)
-    }
-  }
-
-  if (remote.length > 0) {
-    console.log(`\n  ${theme.bold("From skills.sh")} ${theme.muted(`(${remote.length})`)}`)
-    for (const s of remote) {
-      const tagStr = s.tags?.length > 0 ? ` ${theme.muted(s.tags.map((t: string) => `#${t}`).join(" "))}` : ""
-      const installs = s.installs ? ` ${theme.muted(`${s.installs}k installs`)}` : ""
-      console.log(`    ${box.bullet} ${theme.textBright(s.name)}${installs}${tagStr}`)
-      if (s.description) console.log(`      ${theme.muted(s.description)}`)
-    }
-  }
-
-  if (local.length === 0 && remote.length === 0) {
-    console.log(`    ${theme.muted("No skills found.")}`)
-  }
-}
-
-// ── Install skill ────────────────────────────────────────────────────
-
-async function handleInstall(name: string) {
-  const skillsDir = join(process.cwd(), "skills")
-  if (!existsSync(skillsDir)) await mkdir(skillsDir, { recursive: true })
-
-  const targetDir = join(skillsDir, name)
-  if (existsSync(targetDir)) {
-    console.log(`  ${theme.error(`Skill "${name}" is already installed. Use "skills update ${name}" to update.`)}`)
-    return
-  }
-
-  try {
-    const remote = await searchSkills(name, 1)
-    if (remote.length === 0) {
-      console.log(`  ${theme.error(`Skill "${name}" not found on skills.sh`)}`)
-      return
-    }
-
-    await mkdir(targetDir, { recursive: true })
-    const skillContent = `---
-name: ${name}
-description: ${remote[0]?.description || ""}
-tags: []
-version: 1.0.0
-author: ${remote[0]?.owner || "unknown"}
----
-
-# ${name}
-
-${remote[0]?.description || "Imported from skills.sh"}
-`
-    await writeFile(join(targetDir, "SKILL.md"), skillContent, "utf-8")
-
-    // Run quality gate on the newly installed skill
-    const gatePassed = await qualityGate.evaluateSkill({
-      name,
-      description: remote[0]?.description || "",
-      content: skillContent,
-    })
-    if (!gatePassed) {
-      console.log(`  ${theme.warn(`⚠ Skill "${name}" passed basic install but quality gate flagged issues.`)}`)
-      console.log(`  ${theme.muted("Edit the skill at:")} ${targetDir}`)
-    }
-
-    console.log(`  ✅ ${theme.success(`Skill "${name}" installed`)}`)
-    log.info("Skill installed", { name, path: targetDir })
-  } catch (err: any) {
-    console.log(`  ${theme.error(`Failed to install skill: ${err.message}`)}`)
-  }
-}
-
-// ── Update skill ─────────────────────────────────────────────────────
-
-async function handleUpdate(name?: string) {
-  const skillsDir = join(process.cwd(), "skills")
-  if (!existsSync(skillsDir)) {
-    console.log(`  ${theme.muted("No skills directory found.")}`)
-    return
-  }
-
-  const entries = await readdir(skillsDir, { withFileTypes: true })
-  const skillDirs = name
-    ? [name]
-    : entries.filter((e) => e.isDirectory()).map((e) => e.name)
-
-  if (skillDirs.length === 0) {
-    console.log(`  ${theme.muted("No skills installed to update.")}`)
-    return
-  }
-
-  let updated = 0
-  let failed = 0
-
-  for (const skillName of skillDirs) {
-    const skillDir = join(skillsDir, skillName)
-    const skillMd = join(skillDir, "SKILL.md")
-    if (!existsSync(skillMd)) {
-      console.log(`  ${theme.muted(`Skill "${skillName}" has no SKILL.md, skipping`)}`)
-      continue
-    }
-
-    try {
-      // Search skills.sh for latest version
-      const remote = await searchSkills(skillName, 1)
-      if (remote.length === 0) {
-        console.log(`  ${theme.muted(`"${skillName}": not found on skills.sh, keeping local version`)}`)
-        continue
-      }
-
-      const remoteSkill = remote[0]!
-
-      // Read current local skill to preserve any customizations
-      const currentContent = await readFile(skillMd, "utf-8")
-      const currentBody = currentContent.replace(/^---\n[\s\S]*?\n---\n/, "").trim()
-
-      // Build updated SKILL.md with fresh description but preserve local body
-      const updatedContent = `---
-name: ${skillName}
-description: ${remoteSkill.description || ""}
-tags: ${JSON.stringify(remoteSkill.tags || [])}
-version: 1.0.0
-author: ${remoteSkill.owner || "unknown"}
-updated: ${new Date().toISOString()}
----
-
-${currentBody || `# ${skillName}\n\n${remoteSkill.description || ""}`}
-`
-      await writeFile(skillMd, updatedContent, "utf-8")
-      updated++
-      console.log(`  ✅ ${theme.success(`"${skillName}": updated successfully`)}`)
-      log.info("Skill updated", { name: skillName })
-    } catch (err: any) {
-      failed++
-      console.log(`  ${theme.error(`"${skillName}": update failed — ${err.message}`)}`)
-    }
-  }
-
-  console.log(`\n  ${theme.info(`Updated ${updated} skill(s)`)}${failed > 0 ? `, ${failed} failed` : ""}`)
-}
-
-// ── Uninstall skill ──────────────────────────────────────────────────
-
-async function handleUninstall(name: string) {
-  const skillsDir = join(process.cwd(), "skills")
-  const targetDir = join(skillsDir, name)
-
-  if (!existsSync(targetDir)) {
-    console.log(`  ${theme.error(`Skill "${name}" is not installed.`)}`)
-    return
-  }
-
-  try {
-    await rm(targetDir, { recursive: true, force: true })
-    console.log(`  ✅ ${theme.success(`Skill "${name}" uninstalled`)}`)
-    log.info("Skill uninstalled", { name })
-  } catch (err: any) {
-    console.log(`  ${theme.error(`Failed to uninstall skill: ${err.message}`)}`)
-  }
-}
-
-// ── Main handler ─────────────────────────────────────────────────────
-
-interface SkillsOptions {
-  search?: string
-  json?: boolean
-  install?: string
-  update?: string
-  uninstall?: string
-  watch?: boolean
-}
-
-export async function handleSkills(opts: SkillsOptions) {
-  if (opts.install) {
-    await handleInstall(opts.install)
-    return
-  }
-
-  if (opts.uninstall) {
-    await handleUninstall(opts.uninstall)
-    return
-  }
-
-  if (opts.update !== undefined) {
-    await handleUpdate(opts.update || undefined)
-    return
-  }
-
-  showBanner()
-
-  const local = await listLocalSkills()
-
-  if (opts.json) {
-    console.log(JSON.stringify({ local, remote: [] }, null, 2))
-    return
-  }
-
-  // Start hot-reload if --watch is passed
-  if (opts.watch) {
-    startSkillHotReload(() => {
-      console.log(`  ${theme.info("Skills reloaded")}`)
-    })
-    console.log(`  ${theme.info("Skill hot-reload active. Press Ctrl+C to stop.")}`)    }
-
-  if (opts.search) {
-    const remote = await searchSkills(opts.search)
-    if (remote.length === 0) {
-      console.log(`  ${theme.muted("Remote skill registry unavailable. Searched locally only.")}`)
-    }
-    renderSkills(local, remote, `Skills matching "${opts.search}"`)
-  } else {
-    const remote = await fetchTopSkills(5)
-    const stats = await fetchRegistryStats()
-
-    renderSkills(local, remote, "Skills")
-
-    if (remote.length === 0 && local.length === 0) {
-      console.log(`  ${theme.muted("Remote registry unavailable. Only local skills are shown.")}`)
-    }
-
-    if (stats) {
-      console.log(`\n  ${theme.muted(`${stats.totalSkills.toLocaleString()} skills in registry`)}`)
-    } else if (remote.length === 0) {
-      console.log(`  ${theme.muted("Set SKILLS_API_URL env var to a self-hosted mastra/skills-api instance.")}`)
-      console.log(`  ${theme.muted("https://github.com/mastra-ai/skills-api")}`)
-    }
-  }
-
-  console.log(`\n  ${theme.muted("Use --search <query> to search skills.sh")}`)
-  console.log(`  ${theme.muted("Use --install <name> to install a skill")}`)
-  console.log(`  ${theme.muted("Use --update [name] to update skills")}`)
-  console.log(`  ${theme.muted("Use --uninstall <name> to remove a skill")}`)
-  console.log(`  ${theme.muted("Use --watch for hot-reload")}`)
-  console.log(`  ${theme.muted("Browse all skills at")} ${theme.info("https://skills.sh")}\n`)
-}
-
-export function registerSkills(program: Command) {
-  program
+export function registerSkills(program: Command): void {
+  const skillsCmd = program
     .command("skills")
-    .alias("sk")
-    .description("Manage and browse skills — list, install, update, uninstall, search")
-    .option("-s, --search <query>", "Search skills.sh registry")
-    .option("--json", "JSON output")
-    .option("-i, --install <name>", "Install a skill from skills.sh")
-    .option("-u, --update [name]", "Update all skills or a specific skill")
-    .option("-r, --uninstall <name>", "Remove a skill")
-    .option("-w, --watch", "Enable skill hot-reload")
-    .action(handleSkills)
+    .description("Manage skills and browse the marketplace (also: evolution, publish, hub)")
+
+  // ── skills search <query> ──────────────────────────────────────────
+
+  skillsCmd
+    .command("search")
+    .description("Search the skills marketplace")
+    .argument("<query>", "Search query")
+    .option("-l, --limit <number>", "Max results", "10")
+    .action(async (query: string, options: { limit?: string }) => {
+      const limit = parseInt(options.limit || "10", 10) || 10
+      console.log(`\n  ${theme.heading("Searching skills.sh for:")} ${query}\n`)
+
+      const results = await searchSkills(query, limit)
+      if (results.length === 0) {
+        console.log(`  ${theme.muted("No results found. Try a different query.")}\n`)
+        return
+      }
+
+      for (const skill of results) {
+        const tagStr = skill.tags?.length > 0
+          ? ` ${theme.muted(skill.tags.map((t: string) => `#${t}`).join(" "))}`
+          : ""
+        const installs = skill.installs
+          ? ` ${theme.muted(`${skill.installs.toLocaleString()} installs`)}`
+          : ""
+        console.log(`  ${theme.textBright(skill.name)}${installs}${tagStr}`)
+        if (skill.description) {
+          console.log(`    ${theme.muted(skill.description)}`)
+        }
+        console.log("")
+      }
+    })
+
+  // ── skills browse ──────────────────────────────────────────────────
+
+  skillsCmd
+    .command("browse")
+    .description("Browse trending skills in the marketplace")
+    .option("-l, --limit <number>", "Max results", "20")
+    .action(async (options: { limit?: string }) => {
+      const limit = parseInt(options.limit || "20", 10) || 20
+      console.log(`\n  ${theme.heading("Trending Skills on skills.sh")}\n`)
+
+      const results = await fetchTopSkills(limit)
+      if (results.length === 0) {
+        console.log(`  ${theme.muted("Marketplace unavailable. Set SKILLS_API_URL or try again later.")}\n`)
+        return
+      }
+
+      for (let i = 0; i < results.length; i++) {
+        const skill = results[i]!
+        const tagStr = skill.tags?.length > 0
+          ? ` ${theme.muted(skill.tags.map((t: string) => `#${t}`).join(" "))}`
+          : ""
+        const installs = skill.installs
+          ? ` ${theme.muted(`${skill.installs.toLocaleString()} installs`)}`
+          : ""
+        console.log(`  ${(i + 1).toString().padStart(2, " ")}. ${theme.textBright(skill.name)}${installs}${tagStr}`)
+        if (skill.description) {
+          console.log(`     ${theme.muted(skill.description)}`)
+        }
+        console.log("")
+      }
+      console.log(`  ${theme.muted("Install with: aegis skills install <name>")}\n`)
+    })
+
+  // ── skills install <name> ──────────────────────────────────────────
+
+  skillsCmd
+    .command("install")
+    .description("Install a skill from the marketplace")
+    .argument("<name>", "Skill name to install")
+    .option("-f, --force", "Overwrite existing skill", false)
+    .action(async (name: string, options: { force?: boolean }) => {
+      console.log(`\n  ${theme.heading(`Installing skill: ${name}`)}\n`)
+
+      // Check if already installed
+      const existing = skillRegistry.get(name)
+      if (existing && !options.force) {
+        console.log(`  ${theme.muted(`Skill "${name}" is already installed. Use --force to overwrite.`)}\n`)
+        return
+      }
+
+      // Look up skill detail
+      const detail = await fetchSkillDetail(name)
+      if (!detail) {
+        console.log(`  ${theme.muted(`Skill "${name}" not found in marketplace.`)}\n`)
+        console.log(`  ${theme.muted(`Try 'aegis skills search ${name}' to find it.`)}\n`)
+        return
+      }
+
+      const installUrl = `https://skills.sh/skills/${detail.id || detail.name}`
+      console.log(`  ${theme.textBright("Found:")} ${detail.name}`)
+      console.log(`  ${theme.textBright("By:")} ${detail.owner}`)
+      console.log(`  ${theme.textBright("Description:")} ${detail.description}`)
+      console.log("")
+      console.log(`  ${theme.muted("To install, visit:")}`)
+      console.log(`  ${theme.accent(installUrl)}`)
+      console.log("")
+      console.log(`  ${theme.muted("Follow the instructions on the page to copy the SKILL.md into:")}`)
+      console.log(`  ${theme.muted(`  skills/${detail.name}/SKILL.md`)}`)
+      console.log("")
+
+      log.info("Skill install requested", { name, detail: detail.id })
+    })
+
+  // ── skills list ────────────────────────────────────────────────────
+
+  skillsCmd
+    .command("list")
+    .description("List installed skills")
+    .action(async () => {
+      await skillRegistry.loadAll()
+      const skills = skillRegistry.list()
+
+      console.log(`\n  ${theme.heading("Installed Skills")}`)
+      console.log(`  ${theme.muted(`(${skills.length} total)`)}\n`)
+
+      if (skills.length === 0) {
+        console.log(`  ${theme.muted("No skills installed.")}`)
+        console.log(`  ${theme.muted("Browse the marketplace: aegis skills browse")}\n`)
+        return
+      }
+
+      for (const skill of skills) {
+        const tags = skill.metadata.tags
+        const tagStr = tags && tags.length > 0
+          ? ` ${theme.muted(tags.map((t) => `#${t}`).join(" "))}`
+          : ""
+        console.log(`  ${theme.textBright(skill.metadata.name)}${tagStr}`)
+        if (skill.metadata.description) {
+          console.log(`    ${theme.muted(skill.metadata.description)}`)
+        }
+        console.log("")
+      }
+    })
+
+  // ── skills evolution status ────────────────────────────────────────
+
+  skillsCmd
+    .command("evolution")
+    .description("Self-evolving skills loop — distiller, quality gate, and retirement")
+    .argument("[subcommand]", "status | run | inspect <candidate> | approve <id> | reject <id>")
+    .option("-s, --since <hours>", "Look back N hours for episodes", "24")
+    .option("--reason <text>", "Reason for rejection")
+    .action(async (subcommand: string | undefined, options: { since?: string; reason?: string; args?: string[] }) => {
+      if (!subcommand || subcommand === "status") {
+        console.log(`\n  ${theme.heading("Evolution Status")}\n`)
+        console.log(`  ${theme.muted("Run 'aegis skills evolution run' to trigger the distiller")}`)
+        console.log(`  ${theme.muted("Distiller schedule: nightly (3am default)")}\n`)
+        return
+      }
+
+      if (subcommand === "run") {
+        console.log(`\n  ${theme.heading("Running Evolution Distiller")}\n`)
+        const sinceMs = Date.now() - (parseInt(options.since || "24", 10) * 60 * 60 * 1000)
+        const episodes = loadRecentEpisodes(sinceMs)
+        console.log(`  ${theme.muted(`Loaded ${episodes.length} episodes since ${new Date(sinceMs).toISOString().slice(0, 10)}`)}`)
+
+        const result = await distill(episodes)
+        console.log(`  ${theme.muted(`Found ${result.clustersFound} clusters, ${result.candidates.length} candidates`)}`)
+        console.log(`  ${theme.muted(`Duration: ${result.durationMs}ms`)}\n`)
+
+        if (result.candidates.length === 0) {
+          console.log(`  ${theme.textBright("No candidates generated. Try adjusting the --since window.")}\n`)
+          return
+        }
+
+        // Run quality gate on each candidate
+        for (const candidate of result.candidates) {
+          console.log(`  ${theme.textBright("Candidate:")} ${candidate.name} (${candidate.evidence.length} evidence episodes)`)
+          const decision = await gate(candidate)
+          if (decision.passed) {
+            console.log(`  ${theme.accent("✅ Approved")} — judge: ${decision.judge.verdict}, regression: ${Math.round(decision.regression.passRate * 100)}%`)
+          } else {
+            console.log(`  ${theme.dim("❌ Rejected")} — judge: ${decision.judge.verdict}, regression: ${Math.round(decision.regression.passRate * 100)}%`)
+          }
+          console.log("")
+        }
+        return
+      }
+
+      console.log(`  ${theme.muted("Unknown subcommand. Use: status | run")}\n`)
+    })
+
+  // ── skills hub browse ─────────────────────────────────────────────
+
+  const hubCmd = skillsCmd
+    .command("hub")
+    .description("Browse and publish skills on agentskills.io")
+
+  hubCmd
+    .command("browse")
+    .description("Browse trending skills on agentskills.io")
+    .option("-l, --limit <number>", "Max results", "10")
+    .action(async (options: { limit?: string }) => {
+      const limit = parseInt(options.limit || "10", 10) || 10
+      console.log(`\n  ${theme.heading("agentskills.io — Trending Skills")}\n`)
+      const skills = await browseHub(limit)
+      if (skills.length === 0) {
+        console.log(`  ${theme.muted("No skills found or hub unavailable.")}\n`)
+        return
+      }
+      for (const skill of skills) {
+        console.log(`  ${theme.textBright(skill.name)} v${skill.version || "?"} — ${skill.description.slice(0, 60)}`)
+        console.log(`    ${theme.muted(`${skill.installs} installs · score: ${skill.quality_score}`)}\n`)
+      }
+    })
+
+  hubCmd
+    .command("publish <name>")
+    .description("Publish a skill to agentskills.io")
+    .option("--version <version>", "Version for publish")
+    .action(async (name: string, options: { version?: string }) => {
+      console.log(`\n  ${theme.heading(`Publishing "${name}" to agentskills.io`)}`)
+      await skillRegistry.loadAll()
+      const skill = skillRegistry.get(name)
+      if (!skill) {
+        console.log(`  ${theme.dim(`Skill "${name}" not found locally`)}\n`)
+        return
+      }
+      const result = await publishToHub({
+        name,
+        description: skill.metadata.description,
+        tags: skill.metadata.tags,
+        version: options.version || skill.metadata.version || "1.0.0",
+        author: skill.metadata.author,
+        provenance: {
+          quality_score: 1.0,
+          evidence_count: 0,
+          judge_verdict: "pass",
+        },
+      })
+      if (result.success) {
+        console.log(`  ${theme.accent(`✅ Published: ${result.url}`)}\n`)
+      } else {
+        console.log(`  ${theme.dim(`❌ Failed: ${result.error}`)}\n`)
+      }
+    })
+
+  // ── skills retire ──────────────────────────────────────────────────
+
+  skillsCmd
+    .command("retire")
+    .description("Retire underperforming skills (move to archive)")
+    .option("-n, --dry-run", "Show what would be retired without doing it")
+    .option("-d, --days <number>", "Failure window in days", "7")
+    .action(async (options: { dryRun?: boolean; days?: string }) => {
+      const days = parseInt(options.days || "7", 10)
+      console.log(`\n  ${theme.heading("Retirement Check")}\n`)
+      if (options.dryRun) {
+        console.log(`  ${theme.muted("(dry run — no skills will be moved)")}\n`)
+      }
+
+      const skillsBase = join(process.cwd(), "skills")
+
+      if (!existsSync(skillsBase)) {
+        console.log(`  ${theme.muted("No skills directory found.")}\n`)
+        return
+      }
+
+      const entries = readdirSync(skillsBase, { withFileTypes: true })
+      const retired: string[] = []
+
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue
+        const check = checkRetirementEligibility(entry.name, days)
+        if (!check.shouldRetire) continue
+        console.log(`  ${theme.dim(`⚠ ${entry.name}: ${check.reason}`)}`)
+        if (!options.dryRun) {
+          const ok = await retireSkill(entry.name, check.reason)
+          if (ok) retired.push(entry.name)
+        }
+      }
+
+      if (retired.length > 0) {
+        console.log(`\n  ${theme.accent(`✅ Retired ${retired.length} skills`)}`)
+      } else if (!options.dryRun) {
+        console.log(`  ${theme.muted("No skills eligible for retirement.")}\n`)
+      }
+      console.log("")
+    })
 }

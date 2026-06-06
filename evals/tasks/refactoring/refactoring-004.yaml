@@ -1,0 +1,26 @@
+id: refactoring-004
+category: refactoring
+description: "Replace switch statement with polymorphic dispatch"
+input: |
+  Replace this switch statement with a polymorphic approach:
+  ```
+  function calculateShipping(weight: number, type: string): number {
+    switch(type) {
+      case 'standard': return weight * 0.5
+      case 'express': return weight * 1.5 + 5
+      case 'overnight': return weight * 3 + 10
+      case 'international': return weight * 5 + 20
+      default: return weight * 2
+    }
+  }
+  ```
+  Save to /tmp/refactor-polymorph.ts.
+expected_files:
+  - /tmp/refactor-polymorph.ts
+verification:
+  - command: "bun run /tmp/refactor-polymorph.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if switch is replaced with a polymorphic solution, 0.0 otherwise.
+  Output ONLY the score.

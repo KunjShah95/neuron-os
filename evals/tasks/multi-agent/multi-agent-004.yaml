@@ -1,0 +1,13 @@
+id: multi-agent-004
+category: multi-agent
+description: "Orchestrate a build-test-review pipeline"
+input: |
+  Use ask_agent to orchestrate:
+  1. Build agent: Implement a function that checks if a string is a palindrome.
+  2. Test agent: Write tests for the palindrome function using Bun's test runner.
+  3. Review agent: Review both the implementation and tests.
+  Return all outputs.
+timeout_ms: 300000
+judge_prompt: |
+  Score 1.0 if all 3 steps complete with valid outputs, 0.0 otherwise.
+  Output ONLY the score.

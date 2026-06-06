@@ -1,0 +1,15 @@
+id: coding-004
+category: coding
+description: "Implement a simple rate limiter with token bucket algorithm"
+input: |
+  Implement a token bucket rate limiter in TypeScript. Save to /tmp/rate-limiter.ts.
+  - Class `TokenBucket` with constructor(capacity, fillRate)
+  - Method `tryConsume(tokens): boolean`
+  - Method `waitForTokens(tokens): Promise<void>`
+verification:
+  - command: "bun run /tmp/rate-limiter.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if the rate limiter correctly implements token bucket, 0.0 otherwise.
+  Output ONLY the score.

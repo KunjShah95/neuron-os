@@ -23,12 +23,7 @@ export const DEFAULT_RECALL_CONFIG = {
   summarizerTimeoutMs: 5000,
 }
 
-import { readFileSync, existsSync, writeFileSync } from "node:fs"
-import { join, resolve } from "node:path"
-
-const SCHEMA_PATH = resolve(import.meta.dir ?? __dirname, "schema.sql")
-
-export function ensureFTS5Schema(db: import("better-sqlite3").Database): void {
+export function ensureFTS5Schema(db: any): void {
   db.exec(`
     CREATE VIRTUAL TABLE IF NOT EXISTS recall_index USING fts5(
       session_id UNINDEXED,

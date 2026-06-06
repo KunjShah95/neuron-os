@@ -1,0 +1,24 @@
+id: debugging-009
+category: debugging
+description: "Fix TypeScript type narrowing bug"
+input: |
+  The following TypeScript code has a type error:
+  ```
+  function process(input: string | string[]) {
+    if (typeof input === 'string') {
+      return input.toUpperCase()
+    }
+    return input.map(i => i.toUpperCase())
+  }
+  ```
+  Fix the type narrowing so TypeScript is satisfied.
+  Save to /tmp/debug-types.ts.
+expected_files:
+  - /tmp/debug-types.ts
+verification:
+  - command: "bun run /tmp/debug-types.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if type narrowing is fixed without using any, 0.0 otherwise.
+  Output ONLY the score.

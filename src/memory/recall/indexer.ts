@@ -20,12 +20,12 @@ export interface IndexTurn {
 }
 
 export class FTS5Indexer {
-  private db: import("better-sqlite3").Database | null = null
+  private db: any | null = null
 
-  constructor(private config: RecallConfig) {}
+  constructor(config?: Partial<RecallConfig>) {}
 
   /** Set the database instance (must open a SQLite db first) */
-  setDb(db: import("better-sqlite3").Database): void {
+  setDb(db: any): void {
     this.db = db
   }
 

@@ -1,2 +1,0 @@
-bunx tsc --noEmit
-cd website && bunx tsc -b

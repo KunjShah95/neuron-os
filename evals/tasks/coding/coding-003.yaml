@@ -1,0 +1,18 @@
+id: coding-003
+category: coding
+description: "Implement a deep clone function that handles circular references"
+input: |
+  Write a TypeScript function `deepClone<T>(obj: T): T` that deep clones
+  JavaScript objects, arrays, Maps, Sets, Dates, and handles circular references.
+  Save to /tmp/deep-clone.ts.
+  - Must NOT use JSON.parse(JSON.stringify(obj))
+  - Must handle circular references without infinite loops
+expected_files:
+  - /tmp/deep-clone.ts
+verification:
+  - command: "bun run /tmp/deep-clone.ts"
+    expect_exit_code: 0
+timeout_ms: 180000
+judge_prompt: |
+  Score 1.0 if deep clone handles all types including circular refs, 0.0 otherwise.
+  Output ONLY the score.

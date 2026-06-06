@@ -1,0 +1,17 @@
+id: coding-009
+category: coding
+description: "Implement a topological sort for a DAG"
+input: |
+  Write a TypeScript function `topologicalSort(graph: Map<string, string[]>): string[]`
+  that performs topological sort on a directed acyclic graph. Save to /tmp/topo-sort.ts.
+  - Must detect cycles and throw an error
+  - Must return nodes in valid topological order
+expected_files:
+  - /tmp/topo-sort.ts
+verification:
+  - command: "bun run /tmp/topo-sort.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if topo sort is correct and detects cycles, 0.0 otherwise.
+  Output ONLY the score.

@@ -175,4 +175,27 @@ export const api = {
     requestWithRetry<{ projects: Array<{ name: string; root: string; createdAt: number }> }>("/projects").then((r) => r.projects),
 
   getTypes: () => requestWithRetry<{ types: any[] }>("/types").then((r) => r.types),
+
+  saveWidgetAsSkill: (data: {
+    name: string
+    description: string
+    tags: string[]
+    type: string
+    widgetJson: Record<string, unknown>
+  }) =>
+    requestWithRetry<{ status: string; path: string }>("/skills", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  listSkills: () =>
+    requestWithRetry<{
+      skills: Array<{
+        name: string
+        description: string
+        tags: string[]
+        type: string
+        widgetJson: Record<string, unknown>
+      }>
+    }>("/skills", { method: "GET" }).then((r) => r.skills),
 }

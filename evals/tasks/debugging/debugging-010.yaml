@@ -1,0 +1,25 @@
+id: debugging-010
+category: debugging
+description: "Fix an async/await promise chain that swallows errors"
+input: |
+  The following async function silently swallows errors. Fix it:
+  ```
+  async function fetchUserData(userId: string) {
+    try {
+      const profile = await api.getUser(userId)
+      const posts = await api.getPosts(profile.id)
+      const comments = await api.getComments(posts[0].id)
+      return { profile, posts, comments }
+    } catch {}
+  }
+  ```
+  The empty catch block swallows all errors. Fix it properly.
+  Save to /tmp/debug-errors.ts.
+expected_files:
+  - /tmp/debug-errors.ts
+verification:
+  - command: "bun run /tmp/debug-errors.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if errors are properly handled, 0.0 otherwise. Output ONLY the score.

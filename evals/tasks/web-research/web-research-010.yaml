@@ -1,0 +1,10 @@
+id: web-research-010
+category: web-research
+description: "Research the concept of Model Context Protocol (MCP)"
+input: |
+  Search the web to research Model Context Protocol (MCP). Explain what it
+  is, who created it, how it works, and what tools support it.
+timeout_ms: 180000
+judge_prompt: |
+  Score 1.0 if MCP is accurately explained with real details, 0.0 otherwise.
+  Output ONLY the score.

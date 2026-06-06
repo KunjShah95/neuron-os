@@ -1,0 +1,10 @@
+id: web-research-009
+category: web-research
+description: "Find TypeScript 5.8 release notes"
+input: |
+  Search the web to find the TypeScript 5.8 release notes. Summarize the
+  key new features, breaking changes, and performance improvements.
+timeout_ms: 180000
+judge_prompt: |
+  Score 1.0 if accurate TypeScript 5.8 release information is provided, 0.0 otherwise.
+  Output ONLY the score.

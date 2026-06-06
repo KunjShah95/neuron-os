@@ -1,0 +1,33 @@
+id: refactoring-001
+category: refactoring
+description: "Refactor a monolithic function into smaller single-responsibility functions"
+input: |
+  Refactor this monolithic function into smaller functions with single responsibilities.
+  Save to /tmp/refactor-monolith.ts.
+  ```
+  function processOrder(order: any) {
+    // Validate
+    if (!order.id || !order.items || order.items.length === 0) throw new Error('invalid')
+    // Calculate
+    let total = 0
+    for (const item of order.items) {
+      total += item.price * item.quantity
+    }
+    if (total > 100) total *= 0.9
+    // Format
+    const output = `Order ${order.id}: $${total.toFixed(2)}`
+    // Send
+    console.log(output)
+    return { id: order.id, total }
+  }
+  ```
+  Break it into: validate, calculate, format, and process functions.
+expected_files:
+  - /tmp/refactor-monolith.ts
+verification:
+  - command: "bun run /tmp/refactor-monolith.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if the function is broken into 3+ single-responsibility functions, 0.0 otherwise.
+  Output ONLY the score.

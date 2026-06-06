@@ -1,0 +1,12 @@
+id: multi-agent-003
+category: multi-agent
+description: "Have two research agents compare approaches and synthesize"
+input: |
+  Use ask_agent to:
+  1. Research: "What are the pros and cons of SQLite vs PostgreSQL for local development?"
+  2. Research: "What are the pros and cons of Prisma vs Drizzle ORM?"
+  Synthesize both research results into a single comparison document.
+timeout_ms: 300000
+judge_prompt: |
+  Score 1.0 if both agents provided results and they are synthesized, 0.0 otherwise.
+  Output ONLY the score.

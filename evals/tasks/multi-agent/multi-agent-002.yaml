@@ -1,0 +1,13 @@
+id: multi-agent-002
+category: multi-agent
+description: "Use a build agent and a review agent in sequence"
+input: |
+  Use ask_agent to:
+  1. Spawn a build agent to implement a TypeScript function that validates email addresses
+     using regex. Save to /tmp/email-validator.ts.
+  2. Spawn a review agent to review the implementation for correctness and edge cases.
+  Return the review feedback.
+timeout_ms: 300000
+judge_prompt: |
+  Score 1.0 if the sequence produces an implementation AND a review, 0.0 otherwise.
+  Output ONLY the score.

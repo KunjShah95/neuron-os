@@ -1,0 +1,27 @@
+id: refactoring-007
+category: refactoring
+description: "Split a god object into focused classes"
+input: |
+  Split this god object into focused classes:
+  ```
+  class UserManager {
+    createUser(data: any) { /* ... */ }
+    validateEmail(email: string) { /* ... */ }
+    sendWelcomeEmail(userId: string) { /* ... */ }
+    generateReport() { /* ... */ }
+    exportToCSV() { /* ... */ }
+    calculateMetrics() { /* ... */ }
+    sendNotifications() { /* ... */ }
+    backupData() { /* ... */ }
+  }
+  ```
+  Split into UserCRUD, UserValidation, NotificationService, ReportService, etc.
+  Save to /tmp/refactor-god-object.ts.
+expected_files:
+  - /tmp/refactor-god-object.ts
+verification:
+  - command: "bun run /tmp/refactor-god-object.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if split into 3+ focused classes, 0.0 otherwise. Output ONLY the score.

@@ -4,6 +4,10 @@
  * Voice configuration — stored at ~/.aegis/voice.yaml.
  */
 
+import { readFileSync, existsSync } from "node:fs"
+import { join } from "node:path"
+import { parse } from "yaml"
+
 export interface VoiceConfig {
   enabled: boolean
   stt: "off" | "local" | "cloud"
@@ -33,9 +37,6 @@ export const DEFAULT_VOICE_CONFIG: VoiceConfig = {
  */
 export function loadVoiceConfig(): VoiceConfig {
   try {
-    const { readFileSync, existsSync } = require("node:fs") as typeof import("node:fs")
-    const { join } = require("node:path") as typeof import("node:path")
-    const { parse } = require("yaml") as typeof import("yaml")
 
     const configPath = join(
       process.env.HOME || process.env.USERPROFILE || "~",

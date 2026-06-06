@@ -6,6 +6,10 @@ import Chat from "./routes/Chat"
 import Agents from "./routes/Agents"
 import Memory from "./routes/Memory"
 import Skills from "./routes/Skills"
+import A2uiBoard from "./routes/A2uiBoard"
+import A2uiPlayground from "./routes/A2uiPlayground"
+import Souls from "./routes/Souls"
+import Capabilities from "./routes/Capabilities"
 import Status from "./routes/Status"
 import Config from "./routes/Config"
 import Cron from "./routes/Cron"
@@ -15,18 +19,24 @@ import Setup from "./routes/Setup"
 import Docs from "./routes/Docs"
 import ErrorBoundary from "./components/ErrorBoundary"
 import { ProjectProvider } from "./contexts/ProjectContext"
+import { A2uiStreamProvider } from "./contexts/A2uiStreamContext"
 
 export default function App() {
   const location = useLocation()
 
   return (
     <ProjectProvider>
+    <A2uiStreamProvider>
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route element={<Layout />}>
           <Route index element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
           <Route path="chat" element={<ErrorBoundary><Chat /></ErrorBoundary>} />
           <Route path="agents" element={<ErrorBoundary><Agents /></ErrorBoundary>} />
+          <Route path="a2ui" element={<ErrorBoundary><A2uiBoard /></ErrorBoundary>} />
+          <Route path="a2ui/playground" element={<ErrorBoundary><A2uiPlayground /></ErrorBoundary>} />
+          <Route path="souls" element={<ErrorBoundary><Souls /></ErrorBoundary>} />
+          <Route path="capabilities" element={<ErrorBoundary><Capabilities /></ErrorBoundary>} />
           <Route path="memory" element={<ErrorBoundary><Memory /></ErrorBoundary>} />
           <Route path="skills" element={<ErrorBoundary><Skills /></ErrorBoundary>} />
           <Route path="status" element={<ErrorBoundary><Status /></ErrorBoundary>} />
@@ -39,6 +49,7 @@ export default function App() {
         </Route>
       </Routes>
     </AnimatePresence>
+    </A2uiStreamProvider>
     </ProjectProvider>
   )
 }

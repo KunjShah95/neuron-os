@@ -1,0 +1,24 @@
+id: refactoring-008
+category: refactoring
+description: "Replace nested ternaries with clear conditional logic"
+input: |
+  Replace these nested ternaries with clear if/else or switch logic:
+  ```
+  const status = user.role === 'admin'
+    ? user.superAdmin
+      ? 'super_admin'
+      : user.moderator ? 'moderator' : 'admin'
+    : user.role === 'user'
+      ? user.verified ? 'verified_user' : 'unverified_user'
+      : 'guest'
+  ```
+  Save to /tmp/refactor-ternary.ts.
+expected_files:
+  - /tmp/refactor-ternary.ts
+verification:
+  - command: "bun run /tmp/refactor-ternary.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if ternaries are replaced with clear logic, 0.0 otherwise.
+  Output ONLY the score.

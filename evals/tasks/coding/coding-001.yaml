@@ -1,0 +1,18 @@
+id: coding-001
+category: coding
+description: "Implement a recursive Fibonacci function with memoization in TypeScript"
+input: |
+  Write a TypeScript function `fib(n: number): number` that computes the n-th
+  Fibonacci number using memoization. Save to /tmp/fib.ts.
+  - Must handle n=0 correctly (return 0)
+  - Must use memoization (not naive recursion)
+  - Export the function as default
+expected_files:
+  - /tmp/fib.ts
+verification:
+  - command: "bun run /tmp/fib.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if the function is correct and uses memoization, 0.0 otherwise.
+  Output ONLY the score.

@@ -1,8 +1,17 @@
 export type SandboxType = "none" | "filesystem" | "process" | "docker"
 
+/**
+ * Isolation level determines the security posture for an agent type.
+ * - "none": no sandbox (trusted, local-only agents)
+ * - "process": process-level isolation (default, Bun child process)
+ * - "container": container-level isolation (Docker, zero-trust)
+ */
+export type IsolationLevel = "none" | "process" | "container"
+
 export interface SandboxConfig {
   enabled: boolean
   type: SandboxType
+  isolationLevel?: IsolationLevel
   allowedPaths?: string[]
   allowedCommands?: string[]
   tempDir?: string

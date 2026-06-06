@@ -1,0 +1,27 @@
+id: refactoring-009
+category: refactoring
+description: "Convert function parameters to a named options object"
+input: |
+  This function has too many positional parameters. Convert to a named options object:
+  ```
+  function createQuery(
+    table: string,
+    select: string[],
+    where: Record<string, any>,
+    orderBy?: string,
+    limit?: number,
+    offset?: number,
+    join?: string,
+    groupBy?: string[]
+  ): string
+  ```
+  Save to /tmp/refactor-params.ts.
+expected_files:
+  - /tmp/refactor-params.ts
+verification:
+  - command: "bun run /tmp/refactor-params.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if refactored to use a named options interface, 0.0 otherwise.
+  Output ONLY the score.

@@ -128,6 +128,12 @@ export class AgentRuntime {
       .join("\n\n---\n\n")
   }
 
+  private allowedTools?: string[]
+
+  setAllowedTools(tools: string[]): void {
+    this.allowedTools = tools
+  }
+
   private skillsLoaded = false
 
   async ensureSkillsLoaded(): Promise<void> {

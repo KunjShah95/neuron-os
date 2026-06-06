@@ -1,0 +1,23 @@
+id: refactoring-006
+category: refactoring
+description: "Add TypeScript types to untyped JavaScript"
+input: |
+  Add proper TypeScript types to this untyped function:
+  ```
+  function calculateScore(results) {
+    return results
+      .filter(r => r.passed)
+      .map(r => r.points)
+      .reduce((sum, p) => sum + p, 0) / results.length
+  }
+  ```
+  Add proper interfaces and type annotations. Save to /tmp/refactor-types.ts.
+expected_files:
+  - /tmp/refactor-types.ts
+verification:
+  - command: "bun run /tmp/refactor-types.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if proper TypeScript types are added without changing logic, 0.0 otherwise.
+  Output ONLY the score.

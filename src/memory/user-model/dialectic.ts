@@ -10,10 +10,10 @@
  */
 
 import { createLogger } from "../../cli/logger"
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs"
+import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from "node:fs"
 import { join, resolve } from "node:path"
 import { EMPTY_USER_MODEL } from "./types"
-import type { UserModel, DialecticProposal, DialecticResult, AuditEntry } from "./types"
+import type { UserModel, DialecticProposal, AuditEntry } from "./types"
 
 const log = createLogger("dialectic")
 
@@ -78,7 +78,6 @@ export class DialecticEngine {
 
   private releaseLock(): void {
     try {
-      const { unlinkSync } = require("node:fs") as typeof import("node:fs")
       unlinkSync(this.lockPath)
     } catch {
       // Ignore — file may have been removed

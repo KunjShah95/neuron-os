@@ -1,0 +1,13 @@
+id: multi-agent-005
+category: multi-agent
+description: "Research then implement a file watcher"
+input: |
+  Use ask_agent to:
+  1. Research: "Bun's file system watching API and how to use fs.watch"
+  2. Build: Implement a file watcher class that watches a directory and emits
+     'change', 'add', 'unlink' events with the changed file path.
+  Save to /tmp/file-watcher.ts.
+timeout_ms: 300000
+judge_prompt: |
+  Score 1.0 if research informed the implementation, 0.0 otherwise.
+  Output ONLY the score.

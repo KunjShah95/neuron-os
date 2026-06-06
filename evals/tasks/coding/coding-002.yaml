@@ -1,0 +1,18 @@
+id: coding-002
+category: coding
+description: "Implement a LRU Cache class in TypeScript"
+input: |
+  Implement a generic LRU Cache class `LRUCache<K, V>` in TypeScript.
+  Save to /tmp/lru-cache.ts.
+  - Must support get(key) and put(key, value) operations
+  - Must be O(1) time complexity for both operations
+  - Must evict least recently used item when capacity is exceeded
+expected_files:
+  - /tmp/lru-cache.ts
+verification:
+  - command: "bun run /tmp/lru-cache.ts"
+    expect_exit_code: 0
+timeout_ms: 120000
+judge_prompt: |
+  Score 1.0 if the LRU Cache is correct with O(1) operations, 0.0 otherwise.
+  Output ONLY the score.

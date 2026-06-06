@@ -1,6 +1,6 @@
 import ansiEscapes from "ansi-escapes"
 import { calculateLayout } from "./layout"
-import { renderHeader, renderAgentList, renderActivityLog, renderStatusBar, renderCommandBar, renderProviders, renderSessions } from "./components"
+import { renderHeader, renderAgentList, renderActivityLog, renderStatusBar, renderCommandBar, renderProviders, renderSessions, renderA2uiPanel } from "./components"
 import { createInitialState, updateMetrics, addLogEntry } from "./store"
 import { parseKey, handleKey } from "./input"
 import { executeCommand } from "./commands"
@@ -91,10 +91,24 @@ export async function startDashboard() {
         output += leftLines[y] ?? ""
       }
 
-      // Divider between agents and log panels
-      const dividerX = layout.agents.width
+      // Divider between agents and A2UI panels
+      const divider1X = layout.agents.width
+      for (let y = 0; y < layout.a2ui.height; y++) {
+        output += ansiEscapes.cursorTo(divider1X, layout.header.height + y)
+        output += theme.muted(box.v)
+      }
+
+      // A2UI panel (center)
+      const a2uiLines = renderA2uiPanel(state, layout.a2ui)
+      for (let y = 0; y < layout.a2ui.height; y++) {
+        output += ansiEscapes.cursorTo(layout.a2ui.x, layout.a2ui.y + y)
+        output += a2uiLines[y] ?? ""
+      }
+
+      // Divider between A2UI and log panels
+      const divider2X = layout.a2ui.x + layout.a2ui.width
       for (let y = 0; y < layout.log.height; y++) {
-        output += ansiEscapes.cursorTo(dividerX, layout.header.height + y)
+        output += ansiEscapes.cursorTo(divider2X, layout.header.height + y)
         output += theme.muted(box.v)
       }
 
