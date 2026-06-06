@@ -1,8 +1,0 @@
-{
-  "id": "cli-agent-run-help",
-  "name": "Add agent-run --help",
-  "goal": "Ensure `aegis agent-run --help` shows the new `--ratchet`, `--eval`, and `--test-cmd` options with one-line descriptions.",
-  "criteria": ["typecheck"],
-  "tags": ["cli", "docs"],
-  "timeout": 300000
-}

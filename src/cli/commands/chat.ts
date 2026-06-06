@@ -49,7 +49,9 @@ function loadAIConfig(overrideProvider?: string, overrideModel?: string): AIConf
       || process.env.MISTRAL_API_KEY
       || process.env.DEEPSEEK_API_KEY
       || cfg.apiKey,
-    baseUrl: process.env.AI_BASE_URL || cfg.baseUrl,
+    baseUrl: process.env.AEGIS_AI_BASE_URL
+      || process.env.AI_BASE_URL
+      || cfg.baseUrl,
     temperature: cfg.temperature ?? 0.7,
     maxTokens: cfg.maxTokens ?? 8192,
   }
@@ -232,16 +234,21 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
     rl.prompt()
   }
 
-  rl.on("line", (line) => {
-    processInput(line)
-  })
+  // ── Fix: Wait for readline to close before resolving ──────────────
+  // Previously, rl.prompt() was called and the function returned
+  // immediately, causing the chat to exit before any user input.
+  // Now we wrap in a Promise that resolves only on close.
+  await new Promise<void>((resolve) => {
+    rl.on("line", (line) => {
+      processInput(line)
+    })
 
-  rl.on("close", () => {
-    console.log(`\n  ${theme.muted("Chat ended.")}\n`)
-    // Don't call process.exit() here - let the control flow return naturally
-    // to avoid InteractiveExit error in wakeup mode
-    rl.removeAllListeners()
-  })
+    rl.on("close", () => {
+      console.log(`\n  ${theme.muted("Chat ended.")}\n`)
+      rl.removeAllListeners()
+      resolve()
+    })
 
-  rl.prompt()
+    rl.prompt()
+  })
 }

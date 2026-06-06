@@ -130,7 +130,7 @@ export default function FAQSection() {
             Read the docs
           </a>{" "}
           or{" "}
-          <a href="https://github.com" className="text-white hover:text-ink-100 transition-colors underline underline-offset-4">
+          <a href="https://github.com/KunjShah95/neuron-os/issues" target="_blank" rel="noopener noreferrer" className="text-white hover:text-ink-100 transition-colors underline underline-offset-4">
             open an issue ↗
           </a>
         </p>

@@ -48,6 +48,10 @@ export const MODEL_REFERENCES: Record<AIProviderType, ModelOption[]> = {
     { id: "google/gemini-2.0-flash", label: "Gemini 2.0 Flash" },
     { id: "meta-llama/llama-3.3-70b-instruct", label: "Llama 3.3 70B" },
     { id: "mistralai/mistral-7b-instruct", label: "Mistral 7B" },
+    { id: "openrouter/free", label: "OpenRouter Free" },
+    { id: "cognitivecomputations/dolphin3.0-mistral-24b:free", label: "Dolphin 3.0 (free)" },
+    { id: "microsoft/phi-4:free", label: "Phi-4 (free)" },
+    { id: "qwen/qwen2.5-vl-3b-instruct:free", label: "Qwen 2.5 VL (free)" },
   ],
   mistral: [
     { id: "mistral-large-latest", label: "Mistral Large" },

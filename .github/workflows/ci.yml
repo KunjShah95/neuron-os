@@ -75,6 +75,45 @@ jobs:
           path: dashboard/dist/
           if-no-files-found: warn
 
+  website:
+    name: Website
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.x'
+
+      - name: Cache website dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: website-bun-${{ hashFiles('website/package-lock.json') }}
+          restore-keys: website-bun-
+
+      - name: Install website dependencies
+        run: bun install --frozen-lockfile
+        working-directory: website
+
+      - name: Typecheck website
+        run: bunx tsc -b
+        working-directory: website
+
+      - name: Build website
+        run: bun run build
+        working-directory: website
+
+      - name: Upload website build
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: website-dist
+          path: website/dist/
+          if-no-files-found: warn
+
   coverage:
     name: Coverage
     runs-on: ubuntu-latest

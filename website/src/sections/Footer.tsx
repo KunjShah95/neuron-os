@@ -27,7 +27,7 @@ const linkGroups: FooterLinkGroup[] = [
   {
     label: "Community",
     links: [
-      { label: "GitHub", href: "https://github.com", external: true },
+      { label: "GitHub", href: "https://github.com/KunjShah95/neuron-os", external: true },
       { label: "Discord", href: "https://discord.com", external: true },
       { label: "X (Twitter)", href: "https://x.com", external: true },
       { label: "YouTube", href: "https://youtube.com", external: true },
@@ -86,7 +86,7 @@ export default function Footer() {
 
             <div className="flex items-center gap-5">
               <a
-                href="https://github.com"
+                href="https://github.com/KunjShah95/neuron-os"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="GitHub"

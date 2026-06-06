@@ -50,6 +50,10 @@ export function resolveApiKey(provider: string): string | undefined {
   return process.env[envMap[provider] || ""] || process.env.AEGIS_AI_API_KEY
 }
 
+export function resolveBaseUrl(): string | undefined {
+  return process.env.AEGIS_AI_BASE_URL || process.env.AI_BASE_URL || undefined
+}
+
 export function parseFallbacksFromEnv(): AIConfig["fallbacks"] {
   const raw = process.env.AEGIS_AI_FALLBACKS
   if (!raw) return undefined

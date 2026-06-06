@@ -5,6 +5,30 @@ All notable changes to this project are documented below.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — 2026-06-06
+
+### Added
+
+- **Marketing landing page** — new `website/` directory (Vite + React 19 + Framer Motion 12 + Tailwind 3) with a redesigned hero, features grid, architecture diagram, terminal demo, metrics, tech stack, use cases, docs preview, changelog timeline, FAQ accordion, and CTA panel. Liquid-glass surfaces, animated orb background, custom dark palette (purple / pink / cyan / green / yellow), and `prefers-reduced-motion` support.
+- **Multi-platform adapter gateway** — `src/adapters/` now ships with Discord, Slack, SMS (Twilio), Voice (Twilio), WhatsApp, Email (Nodemailer), Webhook, and Bot-Commands adapters behind a single `gateway.ts` interface. Includes 4 adapter test files (gateway, sms, whatsapp, hmac).
+- **HMAC-signed REST API** — `src/api/hmac.ts` with timing-safe comparison, replay-protection window, and a `hmac.test.ts` covering sign / verify / replay / tampering cases.
+- **New AI providers** — Mistral, Azure OpenAI, and Together AI are now first-class in `src/ai/providers.ts`, with a `providers.test.ts` smoke test.
+- **Test framework migration** — agent / audit / bench / chat / cron / harness / mcp / memory / mesh / sandbox / tools / vault suites migrated from `test-*.ts` to `*.test.ts` naming so they run under `bun test --coverage` and Codecov. New tests added: planner, ratchet, supervisor, runtime, docker / filesystem / process (sandbox), runner, reporter, embedding, computer, rbac.
+- **GitHub Actions coverage reporting** — `ci.yml` runs `bun test --coverage` and uploads to Codecov with a `dashboard` flag for vitest output.
+- **`docs/superpowers/specs/2026-06-05-cost-attribution-design.md`** — design spec for Sprint 17 (cost attribution & agent benchmarking), tracking real implementation that replaces the stubbed `src/billing/tracker.ts` and `src/telemetry/cost.ts`.
+
+### Changed
+
+- `tsconfig.json` now excludes `website/` from the root `tsc --noEmit` (the website has its own `tsconfig.app.json`); the pre-commit hook runs both typechecks in sequence.
+- `.husky/pre-commit` runs `bunx tsc --noEmit` (root) **and** `bunx tsc -b` (website) so both projects stay clean.
+- Dashboard files were refactored from `dashboard/src/site/*.tsx` to `dashboard/src/site/components/` to keep imports relative now that they mirror the website's component layout.
+- README and `ROADMAP.md` updated to mention the website, the adapter gateway, and the upcoming v0.6.0+ vision.
+
+### Removed
+
+- Runtime SQLite databases (`data/audit/*.db*`, `data/telemetry/*.db*`, `data/experience/*.db*`) and ephemeral state directories (`.aegis/`, `.superpowers/`, `.commandcode/`, `.worktrees/`) are now gitignored — they are runtime state, not source.
+- Test stub utilities (`src/utils/doSomething.ts`, `greet.ts`, `hello.ts`), the one-time `copy-site.js` script, and the top-level `task.md` / `implementation_plan.md` planning artifacts are no longer tracked.
+
 ## [Unreleased]
 
 ### Added

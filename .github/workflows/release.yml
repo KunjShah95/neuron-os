@@ -64,9 +64,40 @@ jobs:
         run: bun run build
         working-directory: dashboard
 
+  website:
+    name: Website
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.x'
+
+      - name: Cache website dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: website-bun-${{ hashFiles('website/package-lock.json') }}
+          restore-keys: website-bun-
+
+      - name: Install website dependencies
+        run: bun install --frozen-lockfile
+        working-directory: website
+
+      - name: Typecheck website
+        run: bunx tsc -b
+        working-directory: website
+
+      - name: Build website
+        run: bun run build
+        working-directory: website
+
   release:
     name: Release
-    needs: [test, dashboard]
+    needs: [test, dashboard, website]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -84,12 +115,24 @@ jobs:
         run: bun install --frozen-lockfile
         working-directory: dashboard
 
+      - name: Install website dependencies
+        run: bun install --frozen-lockfile
+        working-directory: website
+
       - name: Typecheck
         run: bun run --bun tsc --noEmit
+
+      - name: Typecheck website
+        run: bunx tsc -b
+        working-directory: website
 
       - name: Build dashboard
         run: bun run build
         working-directory: dashboard
+
+      - name: Build website
+        run: bun run build
+        working-directory: website
 
       - name: Create release tag
         id: tag
@@ -107,6 +150,7 @@ jobs:
           tag_name: ${{ steps.tag.outputs.tag }}
           files: |
             dashboard/dist/**/*
+            website/dist/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -1,8 +1,0 @@
-{
-  "id": "docs-ratchet-runtime",
-  "name": "Document RatchetRuntime",
-  "goal": "Add JSDoc to src/agent/ratchet.ts explaining the stash/measure/revert protocol, the outcome enum, and the relationship to AgentEngine completion.",
-  "criteria": ["typecheck"],
-  "tags": ["docs", "agent"],
-  "timeout": 300000
-}

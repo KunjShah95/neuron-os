@@ -1,8 +1,0 @@
-{
-  "id": "tests-pass-harness",
-  "name": "Harness tests pass",
-  "goal": "Ensure src/harness/test-runner.ts, test-reporter.ts, and test-index.ts all pass when run via `bun run`.",
-  "criteria": ["tests-pass"],
-  "tags": ["tests", "harness"],
-  "timeout": 300000
-}

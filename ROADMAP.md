@@ -110,13 +110,48 @@ Build a local-first, extensible platform for running autonomous AI agents with a
 - Skill marketplace integration for community-contributed plugins
 - Plugin sandbox with restricted permissions
 
+### v0.6.0 — Multi-platform gateway (in progress)
+- `src/adapters/` ships 8 adapters: Discord, Slack, SMS (Twilio), Voice (Twilio), WhatsApp, Email (Nodemailer), Webhook, Bot-Commands — all behind a single `gateway.ts` interface
+- HMAC-signed REST API (`src/api/hmac.ts`) for inbound webhooks
+- New AI providers: Mistral, Azure OpenAI, Together AI
+- Adapter-level test surface (gateway, sms, whatsapp, hmac)
+- Marketing landing page (`website/`) — public-facing Vite + React 19 site
+
+### v0.7.0 — Cost attribution & agent benchmarking
+- Real implementation of the `2026-06-05-cost-attribution-design.md` spec: SQLite token store, derived USD pricing, rollup queries, `aegis cost {today, week, agent, session, top, budget}` CLI
+- Replaces stubbed `src/billing/tracker.ts` and `src/telemetry/cost.ts`
+- Benchmark scores in agent run history (cost spike detection)
+
+### v0.8.0 — Knowledge graph & long-term memory
+- `src/memory/agentmemory.ts` deeper integration: BM25 + Vector + Graph + Temporal scoring
+- Cross-session knowledge synthesis
+- Per-agent memory namespaces with TTL and archival
+
+### v0.9.0 — Distributed runtime
+- Multi-host worker pool with leader election (Raft or simple)
+- Encrypted worker transport (Noise protocol or libsodium)
+- Remote management API (HTTP + WebSocket) with HMAC + RBAC
+
 ### v1.0.0 — Production-ready
 - Remote API, RBAC, audit logging, hardened runtimes
-- Multi-channel gateway (Telegram, Discord, Slack, Matrix)
 - Plugin marketplace with version resolution
 - Background agents with file watching and event-driven triggers
+- End-to-end observability (traces, metrics, logs)
+- SLA-grade uptime, SLO dashboards, incident playbooks
+- Public-facing marketing site, comprehensive docs site, community Discord
+
+## Future Vision (beyond v1.0.0)
+
+Aegis is building toward a **fully local-first, agent-aware operating system**:
+
+- **Self-improving runtime** — agents that measure their own regressions (ratchet), replay failed sessions, and propose skill candidates
+- **Tool-level economy** — agents bid for compute, pay for tool calls, and track cost per task across providers
+- **Cross-agent teams** — orchestrators that decompose a goal into typed sub-tasks, run them in parallel, and reconcile results
+- **Plugin marketplace** — community-contributed agent types, tools, and policies, versioned and signed
+- **Open governance** — RFCs in `docs/superpowers/specs/`, public design discussions, and consensus-driven spec evolution
 
 ## How to contribute to the roadmap
 
 - Open issues labeled `roadmap` with feature proposals and user scenarios.
-- For larger efforts, open a discussion or RFC-style issue and propose a design.
+- For larger efforts, open a GitHub Discussion in the **RFCs** category (https://github.com/KunjShah95/neuron-os/discussions) and propose a design.
+- Browse the **`docs/superpowers/specs/`** directory for in-flight design specs you can pick up.

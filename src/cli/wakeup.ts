@@ -36,6 +36,31 @@ class InteractiveExit extends Error {
   }
 }
 
+/**
+ * Reset stdin after @clack/prompts finishes to prevent leftover raw mode
+ * state or buffered data from causing subcommands to exit prematurely.
+ *
+ * @clack/prompts uses raw mode stdin for keystroke capture. After select()
+ * or text() completes, stdin can be left in a degraded state with:
+ *   1. Raw mode still enabled (common on Windows)
+ *   2. Leftover bytes in the buffer (the Enter key that confirmed the selection)
+ *   3. Stale data event listeners
+ *
+ * This function drains everything and restores canonical (cooked) mode so
+ * the next command (readline, raw-mode TUI, or info-screen) starts clean.
+ */
+function resetStdinAfterClack(): void {
+  try {
+    process.stdin.removeAllListeners("data")
+    if (process.stdin.isRaw) {
+      process.stdin.setRawMode(false)
+    }
+    process.stdin.pause()
+  } catch {
+    // Best-effort — some environments (non-TTY, tests) don't support setRawMode
+  }
+}
+
 async function promptForArg(entry: CommandEntry): Promise<string | null> {
   if (!entry.needsArg) return ""
   const input = await text({
@@ -107,6 +132,14 @@ export async function runWakeup(program?: Command): Promise<void> {
     console.log()
     console.log(theme.muted(`  Running: aegis ${cmdArgs.join(" ")}`))
     console.log()
+
+    // ── Critical: Reset stdin before dispatching to subcommand ─────
+    // @clack/prompts leaves stdin in raw mode with buffered data.
+    // Without this reset, any command that reads stdin (readline,
+    // raw-mode TUI, info-screen) will immediately receive stale bytes
+    // and interpret them as a quit signal or EOF, causing the command
+    // to exit before the user can interact.
+    resetStdinAfterClack()
 
     try {
       await runCommandInteractive(program!, cmdArgs)

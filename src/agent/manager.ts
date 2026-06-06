@@ -124,7 +124,7 @@ export class AgentManager {
 
     try {
       const child = spawn({
-        cmd: ["bun", "run", scriptPath, ...(effectiveDef.args ?? [])],
+        cmd: [process.execPath, "run", scriptPath, ...(effectiveDef.args ?? [])],
         env: {
           ...process.env as Record<string, string>,
           AEGIS_AGENT_ID: id,

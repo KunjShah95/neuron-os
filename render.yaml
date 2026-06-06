@@ -1,0 +1,51 @@
+# ── Render Blueprint Config ──────────────────────────────────────────
+# Docs: https://render.com/docs/blueprint-spec
+#
+# This file enables Infrastructure-as-Code deployment via Render's
+# Blueprint system. Push to GitHub and Render auto-deploys.
+#
+# Uses Docker mode (our existing Dockerfile). The dockerCommand
+# overrides the Dockerfile CMD to run the Telegram bot.
+# ──────────────────────────────────────────────────────────────────────
+
+services:
+  - type: web
+    name: neuron-os
+    runtime: image
+
+    # Point to our existing Dockerfile
+    dockerfilePath: ./Dockerfile
+
+    # Override the default CMD (serve) → Telegram bot for mobile access
+    dockerCommand: bun run index.ts telegram
+
+    # Health check endpoint (the API health endpoint is always available)
+    healthCheckPath: /api/v1/health
+
+    # Auto-scaling: keep 1 instance always warm
+    plan: starter  # free tier: starter, paid: professional
+    scaling:
+      minInstances: 1
+      maxInstances: 1
+
+    # ── Environment Variables ───────────────────────────────────────
+    # Set these in the Render Dashboard (they contain secrets):
+    #
+    #   TELEGRAM_BOT_TOKEN   — from @BotFather (required for Telegram)
+    #   ANTHROPIC_API_KEY    — your AI provider key (required for /ask, /agent, /plan)
+    #   OPENAI_API_KEY       — alternative AI provider
+    #   DEEPSEEK_API_KEY     — alternative AI provider
+    #   TELEGRAM_ALLOWED_USERS — optional, comma-separated Telegram user IDs
+    #
+    envVars:
+      - key: AEGIS_LOG_LEVEL
+        value: info
+      - key: PORT
+        value: 8080
+
+      # Secrets — set these in the Render Dashboard (sync: false means
+      # they must be provided manually, not committed to git)
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false

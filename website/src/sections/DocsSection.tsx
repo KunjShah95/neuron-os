@@ -195,7 +195,9 @@ export default function DocsSection() {
                 Read full guide →
               </a>
               <a
-                href="#"
+                href="https://github.com/KunjShah95/neuron-os"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="btn-landing-outline inline-flex items-center gap-2"
                 style={{ padding: "8px 14px", fontSize: 12 }}
               >
