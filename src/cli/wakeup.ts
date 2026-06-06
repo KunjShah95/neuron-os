@@ -1,4 +1,7 @@
 import type { Command } from "commander"
+import { spawn } from "node:child_process"
+import { resolve } from "node:path"
+import { existsSync } from "node:fs"
 import { select, text, isCancel } from "@clack/prompts"
 import { showBanner } from "../cli/banner"
 import { registerAllModes, listModes } from "../modes"
@@ -46,8 +49,8 @@ class InteractiveExit extends Error {
  *   2. Leftover bytes in the buffer (the Enter key that confirmed the selection)
  *   3. Stale data event listeners
  *
- * This function drains everything and restores canonical (cooked) mode so
- * the next command (readline, raw-mode TUI, or info-screen) starts clean.
+ * IMPORTANT: This must NOT call pause() on Windows — it breaks subsequent
+ * readline/TUI input. Only remove stale listeners and reset raw mode.
  */
 function resetStdinAfterClack(): void {
   try {
@@ -55,7 +58,6 @@ function resetStdinAfterClack(): void {
     if (process.stdin.isRaw) {
       process.stdin.setRawMode(false)
     }
-    process.stdin.pause()
   } catch {
     // Best-effort — some environments (non-TTY, tests) don't support setRawMode
   }
@@ -71,20 +73,67 @@ async function promptForArg(entry: CommandEntry): Promise<string | null> {
   return String(input).trim()
 }
 
-async function runCommandInteractive(program: Command, args: string[]): Promise<void> {
-  const origExit = process.exit.bind(process)
-  ;(process as any).exit = ((code?: number) => {
-    throw new InteractiveExit(code ?? 0)
-  }) as any
-
-  try {
-    await program.parseAsync(["node", "aegis", ...args])
-  } catch (e) {
-    if (e instanceof InteractiveExit) return
-    throw e
-  } finally {
-    ;(process as any).exit = origExit
+/**
+ * Run a subcommand in a child process with inherited stdio.
+ *
+ * This is CRITICAL on Windows: @clack/prompts uses raw mode on stdin
+ * for keystroke capture. After clack finishes, the Windows console
+ * can be left in a state where in-process stdin recovery (resetting
+ * raw mode, removing listeners, draining buffers) still leaves
+ * readline/TUI commands unable to accept keyboard input.
+ *
+ * By spawning a child process with stdio:"inherit", the subcommand
+ * gets a completely fresh connection to the terminal file descriptors,
+ * bypassing any corrupted console-mode state left behind by clack.
+ *
+ * This is a well-established pattern used by git, fzf, neovim, etc.
+ */
+async function runCommandInteractive(_program: Command, args: string[]): Promise<void> {
+  const entry = process.execPath
+  const script = process.argv[1]
+  if (!script) {
+    // Fallback: resolve project root and use that path
+    const fallbackScript = resolve(process.cwd(), "index.ts")
+    if (existsSync(fallbackScript)) {
+      return runCommandSpawn(entry, fallbackScript, args)
+    }
+    // Last resort: run in-process (may have stdin issues on Windows)
+    const origExit = process.exit.bind(process)
+    ;(process as any).exit = ((code?: number) => {
+      throw new InteractiveExit(code ?? 0)
+    }) as any
+    try {
+      await _program.parseAsync(["node", "aegis", ...args])
+    } catch (e) {
+      if (e instanceof InteractiveExit) return
+      throw e
+    } finally {
+      ;(process as any).exit = origExit
+    }
+    return
   }
+
+  await runCommandSpawn(entry, script, args)
+}
+
+async function runCommandSpawn(entry: string, script: string, args: string[]): Promise<void> {
+  // Pass AEGIS_SPAWNED=1 so the child knows it was spawned from wakeup
+  // and can suppress duplicate banner rendering.
+  const child = spawn(entry, [script, ...args], {
+    stdio: "inherit",
+    cwd: process.cwd(),
+    env: { ...process.env, AEGIS_SPAWNED: "1" },
+  })
+
+  await new Promise<void>((resolve) => {
+    child.on("exit", () => resolve())
+    child.on("error", () => resolve())
+  })
+
+  // Reset parent stdin after child exits — the child may have changed
+  // terminal state (raw mode, etc.) that could affect clack's next
+  // select() call in the while loop.
+  resetStdinAfterClack()
 }
 
 export async function runWakeup(program?: Command): Promise<void> {
