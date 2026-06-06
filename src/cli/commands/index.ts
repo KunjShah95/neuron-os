@@ -30,6 +30,7 @@ import { registerSession } from "./session"
 import { registerToolset } from "./toolset"
 import { registerProject } from "./project"
 import { registerExperience } from "./experience"
+import { registerTrain } from "./train"
 import { registerAudit } from "./audit"
 import { registerMesh } from "./mesh"
 import { registerBench } from "./bench"
@@ -39,6 +40,7 @@ import { registerSlack } from "./slack"
 import { registerWhatsApp } from "./whatsapp"
 import { registerSMS } from "./sms"
 import { registerVoice } from "./voice"
+import { registerVoiceLocal } from "./voice-local"
 import { registerDoctor } from "./doctor"
 import { registerCompletion } from "./completion"
 import { registerSupervise } from "./supervise"
@@ -46,6 +48,9 @@ import { registerReflect } from "./reflect"
 import { registerAdversarial } from "./adversarial"
 import { registerCi } from "./ci"
 import { registerPricing } from "./pricing"
+import { registerDebate } from "./debate"
+import { registerCost } from "./cost"
+import { registerPlugin } from "./plugin"
 
 export function registerAllCommands(program: Command) {
   registerDoctor(program)
@@ -54,9 +59,13 @@ export function registerAllCommands(program: Command) {
   registerReflect(program)
   registerProject(program)
   registerExperience(program)
+  registerTrain(program)
   registerAdversarial(program)
   registerCi(program)
   registerPricing(program)
+  registerDebate(program)
+  registerCost(program)
+  registerPlugin(program)
   registerAudit(program)
   registerMesh(program)
   registerBench(program)
@@ -66,6 +75,7 @@ export function registerAllCommands(program: Command) {
   registerWhatsApp(program)
   registerSMS(program)
   registerVoice(program)
+  registerVoiceLocal(program)
   registerWakeup(program)
   registerSetup(program)
   registerDashboard(program)
