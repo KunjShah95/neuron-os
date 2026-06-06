@@ -114,6 +114,17 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
   let { engine, ai: _ai } = buildEngine(chatConfig)
   const messages: ModelMessage[] = []
 
+  // ── Ensure stdin is in a usable state before readline ──────────
+  // After wakeup menu's resetStdinAfterClack(), stdin may be paused
+  // or in raw mode. Readline needs cooked mode to work properly.
+  try {
+    if (process.stdin.isRaw) {
+      process.stdin.setRawMode(false)
+    }
+    process.stdin.resume()
+    process.stdin.setEncoding("utf-8")
+  } catch { /* best-effort */ }
+
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,

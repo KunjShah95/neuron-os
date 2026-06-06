@@ -5,11 +5,30 @@ import { resolve, join } from "node:path"
 
 // ── Auto-load .env file ─────────────────────────────────────────────
 // Loads .env from project root if it exists (before any other imports).
+// Checks multiple paths for compatibility across run modes:
+//   1. Script directory (import.meta.dir)
+//   2. Current working directory (process.cwd())
 // Supports both KEY=value and export KEY=value formats.
 // Does NOT override already-set environment variables.
 function loadDotEnv(): void {
-  const envPath = resolve(import.meta.dir ?? process.cwd(), ".env")
-  if (!existsSync(envPath)) return
+  const candidates = [
+    import.meta.dir ? resolve(import.meta.dir, ".env") : null,
+    resolve(process.cwd(), ".env"),
+  ].filter(Boolean) as string[]
+  const envPath = candidates.find((p) => existsSync(p))
+  if (!envPath) {
+    // No .env file found — not an error, but hint the user on first run
+    const hasAnyKey = [
+      "AEGIS_AI_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY",
+      "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY",
+      "GROQ_API_KEY", "MISTRAL_API_KEY", "AZURE_OPENAI_API_KEY",
+      "TOGETHERAI_API_KEY", "XAI_API_KEY", "COHERE_API_KEY", "PERPLEXITY_API_KEY",
+    ].some((k) => process.env[k])
+    if (!hasAnyKey) {
+      console.warn("  ⚡ No API keys set. Create a .env file from .env.example or run: aegis setup-keys")
+    }
+    return
+  }
   try {
     const content = readFileSync(envPath, "utf-8")
     for (const line of content.split("\n")) {
