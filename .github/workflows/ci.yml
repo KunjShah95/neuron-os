@@ -144,7 +144,7 @@ jobs:
         working-directory: dashboard
 
       - name: Run coverage (bun test files)
-        run: bun test --coverage --coverage-reporter=lcov --coverage-reporter=text src/ 2>&1
+        run: bun test --coverage --coverage-reporter=lcov --coverage-reporter=text --path-ignore-patterns="dashboard/**" 2>&1
 
       - name: Run dashboard coverage (vitest)
         continue-on-error: true
