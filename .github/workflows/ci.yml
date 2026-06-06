@@ -199,8 +199,14 @@ jobs:
         if: always()
         run: |
           echo "📊 Coverage uploaded to Codecov"
-          [ -f coverage/lcov.info ] && echo "  • $(grep -c '^SF:' coverage/lcov.info) source files in bun test report"
-          [ -f dashboard/coverage/lcov.info ] && echo "  • $(grep -c '^SF:' dashboard/coverage/lcov.info) source files in dashboard report"
+          if [ -f coverage/lcov.info ]; then
+            count=$(grep -c '^SF:' coverage/lcov.info 2>/dev/null || echo 0)
+            echo "  • ${count} source files in bun test report"
+          fi
+          if [ -f dashboard/coverage/lcov.info ]; then
+            count=$(grep -c '^SF:' dashboard/coverage/lcov.info 2>/dev/null || echo 0)
+            echo "  • ${count} source files in dashboard report"
+          fi
 
       - name: Upload coverage report (artifact backup)
         if: always()
