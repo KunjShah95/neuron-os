@@ -1,8 +1,0 @@
-{
-  "id": "tests-pass-sandbox",
-  "name": "Sandbox tests pass",
-  "goal": "Ensure src/sandbox/test-filesystem.ts, test-process.ts, and test-index.ts all pass.",
-  "criteria": ["tests-pass"],
-  "tags": ["tests", "sandbox"],
-  "timeout": 300000
-}

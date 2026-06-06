@@ -1,8 +1,0 @@
-{
-  "id": "cli-bench-help",
-  "name": "Add bench command help",
-  "goal": "Ensure `aegis bench --help` and each subcommand (`list`, `run`, `history`, `baseline`) print a useful description and list of options.",
-  "criteria": ["typecheck"],
-  "tags": ["cli", "docs"],
-  "timeout": 300000
-}

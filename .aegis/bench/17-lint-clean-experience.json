@@ -1,8 +1,0 @@
-{
-  "id": "lint-clean-experience",
-  "name": "Lint experience module",
-  "goal": "Ensure `eslint src/experience/` reports zero errors and zero warnings.",
-  "criteria": ["lint-clean"],
-  "tags": ["lint", "experience"],
-  "timeout": 300000
-}

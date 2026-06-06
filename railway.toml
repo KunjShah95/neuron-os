@@ -1,0 +1,28 @@
+# ── Railway Deployment Config ─────────────────────────────────────────
+# Docs: https://docs.railway.com/config
+#
+# Railway auto-detects the Dockerfile in the repo root, so [build] is
+# optional. We just set startCommand to run the Telegram bot (the default
+# Dockerfile CMD starts the API server instead).
+# ──────────────────────────────────────────────────────────────────────
+
+[build]
+  # Dockerfile is auto-detected — no build command needed.
+  # If you prefer Nixpacks instead of Docker, uncomment:
+  # builder = "nixpacks"
+  # buildCommand = "bun install"
+
+[deploy]
+  # Override the Dockerfile CMD to run the Telegram bot
+  # This lets you control neuron-os from your phone 24/7.
+  # Change to "bun run index.ts serve" if you want the API server instead.
+  startCommand = "bun run index.ts telegram"
+
+  restartPolicyType = "on-failure"
+  restartPolicyMaxRetries = 10
+
+  # Health check against the API server (runs even in telegram mode
+  # because the Telegram adapter also starts the health endpoint)
+  [deploy.healthcheck]
+    path = "/api/v1/health"
+    port = 8080

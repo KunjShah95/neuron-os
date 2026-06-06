@@ -172,7 +172,9 @@ export default function HeroSection() {
             </span>
           </a>
           <a
-            href="https://github.com"
+            href="https://github.com/KunjShah95/neuron-os"
+            target="_blank"
+            rel="noopener noreferrer"
             className="btn-landing-outline flex items-center gap-2"
             style={{
               background: "rgba(255,255,255,0.04)",

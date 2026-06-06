@@ -1,8 +1,0 @@
-{
-  "id": "tests-pass-memory",
-  "name": "Memory tests pass",
-  "goal": "Ensure src/memory/test-embedding.ts, test-vector.ts, test-session-store.ts, and test-memory-system.ts all pass.",
-  "criteria": ["tests-pass"],
-  "tags": ["tests", "memory"],
-  "timeout": 300000
-}

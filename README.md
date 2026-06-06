@@ -9,22 +9,28 @@
 
 *The Operating System for Autonomous AI Agents*
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue)]()
+[![Version](https://img.shields.io/badge/version-0.2.0-blue)]()
 [![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.3.14-black)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
+[![GitHub](https://img.shields.io/badge/GitHub-KunjShah95%2Fneuron--os-181717?logo=github)](https://github.com/KunjShah95/neuron-os)
 
 ---
 
+> **🌐 Marketing site: [`website/`](website/)** — the Vite + React 19 landing page (hero, features, architecture, terminal demo, docs, changelog, FAQ, CTA) is what visitors see at the top of the repo.
+>
 > **📚 Full documentation available in [`docs/`](docs/index.md)** — quick start, architecture, CLI reference, agent system, memory system, development guides, REST API reference, FAQ, and troubleshooting.
 
 ## Features
 
 - **12 TUI modes** — unified mode launcher (just run `aegis`), with Dashboard, Chat, Status, Skills, Config, Cron, Memory, Agent Manager, AgentMemory, Setup, API Server, and MCP screens
 - **14 specialized agent types** — build, plan, read, write, test, validate, review, debug, document, refactor, deploy, monitor, explore, main
-- **Web-based dashboard** — Vite + React 19 + Tailwind CSS frontend with 12 route pages, API proxy, Framer Motion animations (`dashboard/`)
+- **Marketing landing page** — Vite + React 19 + Framer Motion 12 + Tailwind 3 site in `website/` with hero, features grid, architecture diagram, terminal demo, metrics, tech stack, use cases, docs preview, changelog timeline, FAQ accordion, and CTA
+- **Web app dashboard** — Vite + React 19 + Tailwind CSS frontend with 12 route pages, API proxy, Framer Motion animations (`dashboard/`)
+- **Multi-platform adapter gateway** — `src/adapters/` ships Discord, Slack, SMS (Twilio), Voice (Twilio), WhatsApp, Email (Nodemailer), Webhook, and Bot-Commands adapters behind a single `gateway.ts` interface
+- **HMAC-signed REST API** — `src/api/hmac.ts` with timing-safe comparison, replay-protection window, and a `hmac.test.ts` coverage
 - **Live Dashboard TUI** — real-time agent monitoring with activity log, agent cards, command bar, and status bar
-- **Streaming Chat TUI** — multi-provider AI chat with Anthropic, OpenAI, DeepSeek, Ollama, and custom endpoints
+- **Streaming Chat TUI** — multi-provider AI chat with Anthropic, OpenAI, DeepSeek, Mistral, Azure OpenAI, Together AI, Ollama, and custom endpoints
 - **Auto-recovery** — respawn crashed agents with exponential backoff (configurable retries, multiplier, cap)
 - **Lifecycle hook system** — pre/post hooks for spawn, kill, message, error, and exit events
 - **JSON-line IPC protocol** — structured stdin/stdout communication between parent and worker processes
@@ -152,22 +158,29 @@ aegis agentmemory connect                  # Test connection to sidecar
 
 ---
 
-## Web Dashboard
+## Web Frontends
 
-A standalone Vite + React 19 + TypeScript + Tailwind CSS frontend lives in `dashboard/`.
+Two Vite + React 19 + TypeScript + Tailwind frontends ship in this repo, each with a different role.
 
-### Build
+### `website/` — Marketing landing page (this release's new addition)
+
+The public-facing landing site visitors land on. Pure presentation — hero, features, architecture, terminal demo, docs preview, changelog timeline, FAQ, CTA. Liquid-glass surfaces, animated orb background, `prefers-reduced-motion` support, Framer Motion entrance animations, and a custom dark palette (purple / pink / cyan / green / yellow).
+
+```bash
+cd website
+bun install
+bun run build          # outputs to website/dist/
+bun run dev            # Vite dev server on :5173
+```
+
+### `dashboard/` — Web app (Console, Chat, Agents, Memory, Skills, etc.)
+
+The full feature web app — 12 route pages including Console, Chat, Agents, Memory, Skills, Status, Config, Cron, MCP, Server, Setup, and Docs.
 
 ```bash
 cd dashboard
 bun install
 bun run build          # outputs to dashboard/dist/
-```
-
-### Development
-
-```bash
-cd dashboard
 bun run dev            # Vite dev server on :5173, proxies /api to :8080
 ```
 

@@ -1,8 +1,0 @@
-{
-  "id": "tests-pass-agent",
-  "name": "Agent tests pass",
-  "goal": "Ensure src/agent/test-manager.ts, test-ratchet.ts, and test-runtime.ts all pass.",
-  "criteria": ["tests-pass"],
-  "tags": ["tests", "agent"],
-  "timeout": 300000
-}

@@ -1,8 +1,0 @@
-{
-  "id": "docs-experience-retrieval",
-  "name": "Document ExperienceRetriever",
-  "goal": "Add JSDoc to src/experience/retrieval.ts explaining the searchSimilar() and formatContext() methods, including input/output types and a usage example.",
-  "criteria": ["typecheck"],
-  "tags": ["docs", "experience"],
-  "timeout": 300000
-}

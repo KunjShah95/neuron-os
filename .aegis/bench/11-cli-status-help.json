@@ -1,8 +1,0 @@
-{
-  "id": "cli-status-help",
-  "name": "Add status command help",
-  "goal": "Ensure `aegis status --help` shows all available subcommands and options with clear descriptions.",
-  "criteria": ["typecheck"],
-  "tags": ["cli", "docs"],
-  "timeout": 300000
-}
