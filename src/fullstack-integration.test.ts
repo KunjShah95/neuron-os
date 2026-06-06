@@ -176,6 +176,9 @@ it("should health endpoint", async () => {
 
 it("should agent list endpoint", async () => {
   console.log("\n  Test: Agent list endpoint")
+  // Default bun:test timeout is 5s, but agent spawn + cleanup from prior
+  // test can leave the manager busy. Give the second test more headroom.
+  // (Bun: pass timeout as third arg to `it()`.)
 
   const port = await findFreePort()
   const server = startApiServer({ port, host: "127.0.0.1" })
@@ -227,7 +230,7 @@ it("should agent list endpoint", async () => {
   } finally {
     await cleanup(server, spawnedIds)
   }
-})
+}, 20_000)
 
 it("should ws sse fallback", async () => {
   console.log("\n  Test: SSE fallback endpoint")
