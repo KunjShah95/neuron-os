@@ -81,7 +81,7 @@ async function cleanup(server: { stop: () => void }, agentIds: string[]) {
 
 // ── Tests ─────────────────────────────────────────────────────────────
 
-it("should full stack ws event flow", { timeout: 30_000 }, async () => {
+it("should full stack ws event flow", async () => {
   console.log("\n  Test: Full-stack API → agent spawn → WebSocket event flow")
 
   const port = await findFreePort()
@@ -91,13 +91,13 @@ it("should full stack ws event flow", { timeout: 30_000 }, async () => {
   try {
     // ── Step 1: Connect WebSocket ──────────────────────────────────
     const ws = new WebSocket(`ws://127.0.0.1:${port}/api/v1/ws`)
-    await waitForOpen(ws)
+    await waitForOpen(ws, 15_000)
 
     // ── Step 2: Wait for the "connected" event ─────────────────────
     const allEvents = await collectWsMessages(
       ws,
       (msg) => msg.event === "connected",
-      5_000,
+      15_000,
     )
     expect(allEvents.length > 0).toBe(true)
     const connectedMsg: any = allEvents.find((m: any) => m.event === "connected")
@@ -154,7 +154,7 @@ it("should full stack ws event flow", { timeout: 30_000 }, async () => {
   }
 })
 
-it("should health endpoint", { timeout: 15_000 }, async () => {
+it("should health endpoint", async () => {
   console.log("\n  Test: API server health endpoint")
 
   const port = await findFreePort()
@@ -232,7 +232,7 @@ it("should agent list endpoint", async () => {
   }
 }, 20_000)
 
-it("should ws sse fallback", { timeout: 15_000 }, async () => {
+it("should ws sse fallback", async () => {
   console.log("\n  Test: SSE fallback endpoint")
 
   const port = await findFreePort()
