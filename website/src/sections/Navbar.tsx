@@ -22,10 +22,11 @@ function XIcon({ size = 16 }: { size?: number }) {
 }
 
 const navLinks = [
+  { label: "Features", href: "#features" },
   { label: "Docs", href: "#docs" },
-  { label: "Dashboard", href: "#dashboard" },
-  { label: "Skills", href: "#stack" },
+  { label: "Stack", href: "#stack" },
   { label: "Changelog", href: "#changelog" },
+  { label: "FAQ", href: "#faq" },
 ]
 
 export default function Navbar() {
@@ -41,7 +42,11 @@ export default function Navbar() {
   const handleAnchorClick = (e: React.MouseEvent, href: string) => {
     e.preventDefault()
     const el = document.querySelector(href)
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" })
+    } else if (href.startsWith("#")) {
+      window.location.hash = href
+    }
     setMobileOpen(false)
   }
 
