@@ -27,6 +27,7 @@ import { registerResearch } from "./research"
 import { registerOrchestrate } from "./orchestrate"
 import { registerWebhook } from "./webhook"
 import { registerSession } from "./session"
+import { registerToolset } from "./toolset"
 import { registerProject } from "./project"
 import { registerExperience } from "./experience"
 import { registerAudit } from "./audit"
@@ -87,4 +88,5 @@ export function registerAllCommands(program: Command) {
   registerOrchestrate(program)
   registerWebhook(program)
   registerSession(program)
+  registerToolset(program)
 }
