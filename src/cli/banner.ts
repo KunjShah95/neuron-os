@@ -15,6 +15,8 @@ function countInstalledSkills(): number {
 
 
 export function showBanner(opts?: { version?: string; tagline?: string; title?: string }) {
+  // Suppress banner when spawned from the wakeup menu (child process)
+  if (process.env.AEGIS_SPAWNED) return
   if (bannerEmitted) return
   bannerEmitted = true
 
