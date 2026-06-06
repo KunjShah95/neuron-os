@@ -860,7 +860,8 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
     },
   })
 
-  // Start A2UI WebSocket bridge — forward A2UI widget events to dashboard clients
+  // Start WebSocket event bridges — forward agent and A2UI events to dashboard clients
+  startWsEventBridge()
   const unsubA2ui = startA2uiWsBridge()
 
   log.info("API server listening", { url: `http://${config.host}:${config.port}` })
