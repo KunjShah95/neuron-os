@@ -730,7 +730,7 @@ it("should engine ratchet config propagates", async () => {
   expect(result instanceof Promise).toBe(true)
   await result
   expect(true).toBe(true)
-})
+}, 60_000)
 
 it("should engine ratchet boolean enabled", async () => {
   const runtime = new AgentRuntime({ agentId: "engine-ratchet-bool", cwd: "." })

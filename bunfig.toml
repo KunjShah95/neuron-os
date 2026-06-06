@@ -1,10 +1,7 @@
-# Bun configuration for test runner behavior.
-# Dashboard files use vitest (not bun test), and certain patterns are excluded.
 [test]
 exclude = [
   "dashboard",
   "dashboard/**",
-  "dashboard\\**",
-  "node_modules/**",
-  "node_modules"
+  "node_modules",
+  "node_modules/**"
 ]
