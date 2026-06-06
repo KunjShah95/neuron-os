@@ -29,7 +29,7 @@ async function findFreePort(): Promise<number> {
 }
 
 /** Wait for a WebSocket connection to open (with timeout). */
-function waitForOpen(ws: WebSocket, timeoutMs = 5000): Promise<void> {
+function _waitForOpen(ws: WebSocket, timeoutMs = 5000): Promise<void> {
   return new Promise((resolve, reject) => {
     if (ws.readyState === WebSocket.OPEN) { resolve(); return }
     const timer = setTimeout(() => reject(new Error("WebSocket connection timeout")), timeoutMs)
