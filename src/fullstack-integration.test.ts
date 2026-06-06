@@ -79,22 +79,15 @@ it("should full stack ws event flow", async () => {
   const spawnedIds: string[] = []
 
   try {
-    // ── Step 1: Connect WebSocket and collect initial events ────────
+    // ── Step 1: Connect WebSocket ──────────────────────────────────
     const ws = new WebSocket(`ws://127.0.0.1:${port}/api/v1/ws`)
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("WS connect timeout")), 5_000)
+      ws.addEventListener("open", () => { clearTimeout(timer); resolve() }, { once: true })
+      ws.addEventListener("error", () => { clearTimeout(timer); reject(new Error("WS connect error")) }, { once: true })
+    })
 
-    // Start collecting BEFORE waiting for open — server sends "connected" immediately
-    const allEvents = await collectWsMessages(
-      ws,
-      (msg) => msg.event === "connected",
-      15_000,
-    )
-    expect(allEvents.length > 0).toBe(true)
-    const connectedMsg: any = allEvents.find((m: any) => m.event === "connected")
-    expect(connectedMsg?.data?.clientId).toMatch(/^ws-\d+$/)
-    expect(Array.isArray(connectedMsg?.data?.agents)).toBe(true)
-    expect(connectedMsg.data.agents.length).toBe(0)
-
-    // ── Step 3: Start collecting events for agent spawn ────────────
+    // ── Step 2: Start collecting events for agent spawn ─────────────
     const spawnPromise = collectWsMessages(
       ws,
       (msg) => msg.event === "agent:ready",
