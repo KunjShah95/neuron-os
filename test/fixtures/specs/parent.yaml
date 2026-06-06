@@ -1,0 +1,13 @@
+apiVersion: aegis/v1
+kind: Agent
+metadata:
+  name: parent-agent
+spec:
+  type: build
+  model:
+    provider: anthropic
+    name: claude-opus-4-20250514
+  tools:
+    allow:
+      - read
+      - bash

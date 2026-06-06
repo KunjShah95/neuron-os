@@ -1,0 +1,12 @@
+apiVersion: aegis/v1
+kind: Agent
+from: parent.yaml
+metadata:
+  name: child-agent
+spec:
+  model:
+    name: claude-sonnet-4-20250514
+  tools:
+    allow:
+      - write
+      - glob

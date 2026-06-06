@@ -1,0 +1,9 @@
+apiVersion: aegis/v1
+kind: Agent
+metadata:
+  name: minimal-test
+spec:
+  type: build
+  model:
+    provider: openai
+    name: gpt-4o
