@@ -47,6 +47,7 @@ export async function runWakeup() {
       { value: "agent", label: "Agent Mode", hint: "Let the AI modify your codebase" },
       { value: "plan", label: "Plan Mode", hint: "Generate and execute step-by-step plans" },
       { value: "research", label: "Research Mode", hint: "Autonomous research loop (Karpathy-style)" },
+      { value: "voice", label: "Voice Mode", hint: "Voice-interactive agent with STT/TTS" },
       { value: "exit", label: "Exit", hint: "Return to CLI" },
     ],
   })
@@ -85,6 +86,9 @@ export async function runWakeup() {
     }
   } else if (mode === "plan") {
     await runPlanModeInteractive()
+  } else if (mode === "voice") {
+    const { voiceMode } = await import("./voice")
+    await voiceMode.run()
   } else if (mode === "research") {
     await runResearchMode()
   }

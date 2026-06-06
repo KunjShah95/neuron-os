@@ -1728,6 +1728,449 @@
       ],
       "sourceFile": "src/cli/commands/whatsapp.ts",
       "description": "Start the WhatsApp bot adapter (Twilio)"
+    },
+    {
+      "name": "insights",
+      "options": [],
+      "sourceFile": "src/cli/commands/insights.ts",
+      "description": "Cross-database intelligence — join audit, billing, experience, and telemetry",
+      "alias": "i"
+    },
+    {
+      "name": "insights summary",
+      "options": [],
+      "sourceFile": "src/cli/commands/insights.ts",
+      "description": "High-level system status across all 4 databases",
+      "parent": "insights"
+    },
+    {
+      "name": "insights sessions",
+      "options": [
+        {
+          "flag": "-l, --limit <number>",
+          "description": "Number of sessions to show",
+          "required": false,
+          "defaultValue": "20"
+        }
+      ],
+      "sourceFile": "src/cli/commands/insights.ts",
+      "description": "Session-level report joining all databases",
+      "parent": "insights"
+    },
+    {
+      "name": "insights agents",
+      "options": [],
+      "sourceFile": "src/cli/commands/insights.ts",
+      "description": "Agent performance heatmap (by agent_type)",
+      "parent": "insights"
+    },
+    {
+      "name": "insights failures",
+      "options": [],
+      "sourceFile": "src/cli/commands/insights.ts",
+      "description": "Root cause — what failed, what it cost, what patterns",
+      "parent": "insights"
+    },
+    {
+      "name": "insights costs",
+      "options": [],
+      "sourceFile": "src/cli/commands/insights.ts",
+      "description": "Cost vs outcome analysis (cheapest paths to success)",
+      "parent": "insights"
+    },
+    {
+      "name": "insights timeline",
+      "options": [
+        {
+          "flag": "-d, --days <number>",
+          "description": "Number of days to show",
+          "required": false,
+          "defaultValue": "20"
+        }
+      ],
+      "sourceFile": "src/cli/commands/insights.ts",
+      "description": "Timeline of activity across all stores",
+      "parent": "insights"
+    },
+    {
+      "name": "insights export",
+      "options": [
+        {
+          "flag": "--format <format>",
+          "description": "Export format",
+          "required": false,
+          "defaultValue": "json"
+        },
+        {
+          "flag": "-o, --output <path>",
+          "description": "Output file path",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/insights.ts",
+      "description": "Export unified data as JSON",
+      "parent": "insights"
+    },
+    {
+      "name": "cost",
+      "options": [],
+      "sourceFile": "src/cli/commands/cost.ts",
+      "description": "Billing and cost tracking — monitor agent usage and budget",
+      "alias": "spend"
+    },
+    {
+      "name": "cost total",
+      "options": [],
+      "sourceFile": "src/cli/commands/cost.ts",
+      "description": "Show total spend vs budget",
+      "parent": "cost"
+    },
+    {
+      "name": "cost models",
+      "options": [],
+      "sourceFile": "src/cli/commands/cost.ts",
+      "description": "Show cost breakdown by model",
+      "parent": "cost"
+    },
+    {
+      "name": "cost sessions",
+      "options": [],
+      "sourceFile": "src/cli/commands/cost.ts",
+      "description": "Show cost by session",
+      "parent": "cost"
+    },
+    {
+      "name": "cost history",
+      "options": [
+        {
+          "flag": "-d, --days <number>",
+          "description": "Number of days of history",
+          "required": false,
+          "defaultValue": "7"
+        }
+      ],
+      "sourceFile": "src/cli/commands/cost.ts",
+      "description": "Show daily cost history",
+      "parent": "cost"
+    },
+    {
+      "name": "cost budget",
+      "options": [],
+      "sourceFile": "src/cli/commands/cost.ts",
+      "description": "Show or set budget limit",
+      "parent": "cost"
+    },
+    {
+      "name": "cost report",
+      "options": [],
+      "sourceFile": "src/cli/commands/cost.ts",
+      "description": "Full cost attribution report",
+      "parent": "cost"
+    },
+    {
+      "name": "benchmark",
+      "options": [],
+      "sourceFile": "src/cli/commands/benchmark.ts",
+      "description": "Adversarial eval benchmark — track regression over time"
+    },
+    {
+      "name": "benchmark run",
+      "options": [
+        {
+          "flag": "--category <name>",
+          "description": "Filter by category (coding, debugging, etc.)",
+          "required": false
+        },
+        {
+          "flag": "--update-baseline",
+          "description": "Accept current results as new baseline",
+          "required": false
+        },
+        {
+          "flag": "--threshold <pct>",
+          "description": "Fail if regression > X%",
+          "required": false,
+          "defaultValue": "10"
+        },
+        {
+          "flag": "--json",
+          "description": "Output as JSON for CI consumption",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/benchmark.ts",
+      "description": "Run eval tasks and compare vs baseline",
+      "parent": "benchmark"
+    },
+    {
+      "name": "benchmark status",
+      "options": [],
+      "sourceFile": "src/cli/commands/benchmark.ts",
+      "description": "Show last benchmark run, score, drift",
+      "parent": "benchmark"
+    },
+    {
+      "name": "benchmark baseline",
+      "options": [
+        {
+          "flag": "--set <file>",
+          "description": "Import a baseline from JSON file",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/benchmark.ts",
+      "description": "Show current baseline scores",
+      "parent": "benchmark"
+    },
+    {
+      "name": "plugin",
+      "options": [],
+      "sourceFile": "src/cli/commands/plugin.ts",
+      "description": "Manage the local plugin registry (publish, install, list, remove)",
+      "alias": "plugins"
+    },
+    {
+      "name": "plugin publish",
+      "options": [
+        {
+          "flag": "-d, --description <text>",
+          "description": "Description for the plugin",
+          "required": false
+        },
+        {
+          "flag": "-v, --version <version>",
+          "description": "Version string",
+          "required": false,
+          "defaultValue": "1.0.0"
+        }
+      ],
+      "sourceFile": "src/cli/commands/plugin.ts",
+      "description": "Package a skill directory into the local registry",
+      "parent": "plugin"
+    },
+    {
+      "name": "plugin install",
+      "options": [
+        {
+          "flag": "-f, --force",
+          "description": "Overwrite existing skill directory",
+          "required": false,
+          "defaultValue": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/plugin.ts",
+      "description": "Install a plugin from the local registry into skills/",
+      "parent": "plugin"
+    },
+    {
+      "name": "plugin list",
+      "options": [],
+      "sourceFile": "src/cli/commands/plugin.ts",
+      "description": "List all plugins in the local registry",
+      "parent": "plugin"
+    },
+    {
+      "name": "plugin remove",
+      "options": [
+        {
+          "flag": "--keep-files",
+          "description": "Keep the package directory on disk",
+          "required": false,
+          "defaultValue": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/plugin.ts",
+      "description": "Remove a plugin from the local registry",
+      "parent": "plugin",
+      "alias": "rm"
+    },
+    {
+      "name": "train",
+      "options": [],
+      "sourceFile": "src/cli/commands/train.ts",
+      "description": "Training trajectory management — export and manage training data"
+    },
+    {
+      "name": "train export",
+      "options": [
+        {
+          "flag": "-f, --format <format>",
+          "description": "Output format: atropos or jsonl",
+          "required": false,
+          "defaultValue": "atropos"
+        },
+        {
+          "flag": "-s, --since <days>",
+          "description": "Days to look back",
+          "required": false,
+          "defaultValue": "7"
+        },
+        {
+          "flag": "-o, --output <path>",
+          "description": "Output file path",
+          "required": false,
+          "defaultValue": "./trajectories-export.jsonl"
+        },
+        {
+          "flag": "--session <id>",
+          "description": "Export only this session ID",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/train.ts",
+      "description": "Export training trajectories to file",
+      "parent": "train"
+    },
+    {
+      "name": "voice-local",
+      "options": [
+        {
+          "flag": "--project <name>",
+          "description": "Use a specific project workspace",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/voice-local.ts",
+      "description": "Start interactive local voice mode (STT/TTS)"
+    },
+    {
+      "name": "debate",
+      "options": [],
+      "sourceFile": "src/cli/commands/debate.ts",
+      "description": "Multi-agent debate topology — resolve disagreements with arbitration",
+      "alias": "d"
+    },
+    {
+      "name": "debate list",
+      "options": [],
+      "sourceFile": "src/cli/commands/debate.ts",
+      "description": "List all signed debate decisions",
+      "parent": "debate"
+    },
+    {
+      "name": "debate show",
+      "options": [],
+      "sourceFile": "src/cli/commands/debate.ts",
+      "description": "View a specific signed decision record",
+      "parent": "debate"
+    },
+    {
+      "name": "debate resolve",
+      "options": [],
+      "sourceFile": "src/cli/commands/debate.ts",
+      "description": "Resolve a disagreement with an arbitrator (agent/human/majority)",
+      "parent": "debate"
+    },
+    {
+      "name": "pricing",
+      "options": [],
+      "sourceFile": "src/cli/commands/pricing.ts",
+      "description": "Tool-level economy — pricing registry, cost router, and budget guard",
+      "alias": "price"
+    },
+    {
+      "name": "pricing list",
+      "options": [],
+      "sourceFile": "src/cli/commands/pricing.ts",
+      "description": "Show tool pricing table with model costs",
+      "parent": "pricing"
+    },
+    {
+      "name": "pricing leaderboard",
+      "options": [
+        {
+          "flag": "--threshold <pct>",
+          "description": "Quality threshold as percentage of max score",
+          "required": false,
+          "defaultValue": "95"
+        }
+      ],
+      "sourceFile": "src/cli/commands/pricing.ts",
+      "description": "Run leaderboard comparing cost vs quality across models",
+      "parent": "pricing"
+    },
+    {
+      "name": "pricing set",
+      "options": [],
+      "sourceFile": "src/cli/commands/pricing.ts",
+      "description": "Set a custom price for a tool or model",
+      "parent": "pricing"
+    },
+    {
+      "name": "ci",
+      "options": [],
+      "sourceFile": "src/cli/commands/ci.ts",
+      "description": "Auto-fix failing CI — webhook server that investigates and fixes failures",
+      "alias": "ci-fix"
+    },
+    {
+      "name": "ci watch",
+      "options": [
+        {
+          "flag": "--secret <secret>",
+          "description": "HMAC secret for GitHub webhook verification",
+          "required": false
+        },
+        {
+          "flag": "--github-token <token>",
+          "description": "GitHub token for posting PR comments and creating fix PRs",
+          "required": false
+        },
+        {
+          "flag": "--no-review",
+          "description": "Disable auto PR review",
+          "required": false
+        },
+        {
+          "flag": "--no-fix",
+          "description": "Disable auto fix on push",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/ci.ts",
+      "description": "Start CI webhook server — watches for failures and auto-fixes",
+      "parent": "ci"
+    },
+    {
+      "name": "ci status",
+      "options": [],
+      "sourceFile": "src/cli/commands/ci.ts",
+      "description": "Show CI configuration and current status",
+      "parent": "ci"
+    },
+    {
+      "name": "memory policy",
+      "options": [],
+      "sourceFile": "src/cli/commands/memory-policy.ts",
+      "description": "Cross-team memory ACL — manage access control lists"
+    },
+    {
+      "name": "memory policy grant",
+      "options": [],
+      "sourceFile": "src/cli/commands/memory-policy.ts",
+      "description": "Grant access to a memory namespace",
+      "parent": "memory"
+    },
+    {
+      "name": "memory policy revoke",
+      "options": [],
+      "sourceFile": "src/cli/commands/memory-policy.ts",
+      "description": "Revoke a grant by ID",
+      "parent": "memory"
+    },
+    {
+      "name": "memory policy list",
+      "options": [],
+      "sourceFile": "src/cli/commands/memory-policy.ts",
+      "description": "List all active grants",
+      "parent": "memory"
+    },
+    {
+      "name": "memory policy deny",
+      "options": [],
+      "sourceFile": "src/cli/commands/memory-policy.ts",
+      "description": "Add a deny rule to a memory namespace",
+      "parent": "memory"
     }
   ]
 }

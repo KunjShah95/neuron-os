@@ -181,6 +181,160 @@ export function registerSession(program: Command) {
       }
     })
 
+  // ── fork ──────────────────────────────────────────────────────────
+  session
+    .command("fork <parentId>")
+    .description("Fork a session at a checkpoint into a new branch")
+    .option("-n, --name <name>", "Name for the forked session")
+    .option("--goal <goal>", "New goal for the forked session")
+    .option("--at <messageId>", "Message ID to fork at (default: last message)", parseInt)
+    .action(async (parentId: string, opts: { name?: string; goal?: string; at?: number }) => {
+      const { sessionStore } = await import("../../memory/session-persistence")
+
+      const parent = sessionStore.getSession(parentId)
+      if (!parent) {
+        console.log(theme.error(`  Parent session "${parentId}" not found.`))
+        console.log(theme.dim("  Use `aegis session list` to see available sessions."))
+        process.exit(1)
+      }
+
+      console.log(theme.heading(`  Forking session: ${parent.name}`))
+      console.log(`    parent:  ${theme.dim(parentId)}`)
+      console.log(`    name:    ${theme.dim(opts.name || `${parent.name} (fork)`)}`)
+      console.log(`    at msg:  ${theme.dim(opts.at ? `#${opts.at}` : "last message")}`)
+      console.log()
+
+      try {
+        const fork = sessionStore.forkSession(parentId, {
+          atMessageId: opts.at,
+          name: opts.name,
+          goal: opts.goal,
+        })
+
+        const forkParent = fork.parentSessionId ? ` (forked from ${fork.parentSessionId.slice(0, 24)})` : ""
+        console.log(theme.success(`  ✓ Forked as "${fork.name}"`))
+        console.log(`    id:       ${theme.dim(fork.id)}`)
+        console.log(`    status:   🟢 active${forkParent}`)
+        console.log(`    messages: ${theme.dim(`${sessionStore.getMessages(fork.id, 1).length} messages copied`)}`)
+        console.log()
+        console.log(theme.dim("  Use `aegis session view " + fork.id.slice(0, 24) + "...` to see messages."))
+        console.log(theme.dim("  The original session is unchanged."))
+      } catch (err: any) {
+        console.log(theme.error(`  Fork failed: ${err.message ?? String(err)}`))
+        process.exit(1)
+      }
+    })
+
+  // ── checkpoints ───────────────────────────────────────────────────
+  session
+    .command("checkpoint <sessionId> <messageId>")
+    .description("Mark a message as a named checkpoint for later forking")
+    .requiredOption("-n, --name <name>", "Descriptive name for this checkpoint")
+    .action(async (sessionId: string, messageId: string, opts: { name: string }) => {
+      const { sessionStore } = await import("../../memory/session-persistence")
+
+      const session = sessionStore.getSession(sessionId)
+      if (!session) {
+        console.log(theme.error(`  Session "${sessionId}" not found.`))
+        process.exit(1)
+      }
+
+      const msgId = parseInt(messageId, 10)
+      if (isNaN(msgId)) {
+        console.log(theme.error(`  Invalid message ID: "${messageId}". Must be a number.`))
+        process.exit(1)
+      }
+
+      try {
+        sessionStore.createCheckpoint(sessionId, msgId, opts.name)
+        console.log(theme.success(`  ✓ Checkpoint "${opts.name}" created at message #${msgId}`))
+        console.log()
+        console.log(theme.dim(`  Use \`aegis session fork ${sessionId.slice(0, 24)}... --at ${msgId}\` to fork at this point.`))
+      } catch (err: any) {
+        console.log(theme.error(`  Checkpoint failed: ${err.message ?? String(err)}`))
+        process.exit(1)
+      }
+    })
+
+  // ── tree ──────────────────────────────────────────────────────────
+  session
+    .command("tree <sessionId>")
+    .description("Show the full fork tree starting from a session")
+    .action(async (sessionId: string) => {
+      const { sessionStore } = await import("../../memory/session-persistence")
+
+      const session = sessionStore.getSession(sessionId)
+      if (!session) {
+        console.log(theme.error(`  Session "${sessionId}" not found.`))
+        process.exit(1)
+      }
+
+      const tree = sessionStore.getForkTree(sessionId)
+      // tree always includes the root session; children are length > 1
+      if (tree.length <= 1) {
+        console.log(theme.dim(`  Session "${session.id}" has no forks.`))
+        return
+      }
+
+      console.log(theme.heading(`  Fork Tree (${tree.length} sessions)`))
+      console.log()
+
+      for (const s of tree) {
+        const indent = s.parentSessionId ? "  └─ " : "  "
+        const statusEmoji =
+          s.status === "active" ? "🟢" :
+          s.status === "completed" ? "✅" :
+          s.status === "failed" ? "🔴" : "⏸️"
+
+        const parentInfo = s.parentSessionId
+          ? theme.dim(` (fork of ${s.parentSessionId.slice(0, 24)}…)`)
+          : ""
+
+        console.log(`  ${indent}${statusEmoji} ${theme.bold(s.name)}`)
+        console.log(`    id:     ${theme.dim(s.id.slice(0, 32))}${parentInfo}`)
+        console.log(`    goal:   ${theme.dim((s.goal || "(no goal)").slice(0, 60))}`)
+        if (s.checkpointName) {
+          console.log(`    cp:     ${theme.dim(`@ "${s.checkpointName}" (msg #${s.checkpointId})`)}`)
+        }
+        console.log()
+      }
+    })
+
+  // ── merge ─────────────────────────────────────────────────────────
+  session
+    .command("merge <sourceId> <targetId>")
+    .description("Merge messages from one session into another")
+    .action(async (sourceId: string, targetId: string) => {
+      const { sessionStore } = await import("../../memory/session-persistence")
+
+      const source = sessionStore.getSession(sourceId)
+      if (!source) {
+        console.log(theme.error(`  Source session "${sourceId}" not found.`))
+        process.exit(1)
+      }
+      const target = sessionStore.getSession(targetId)
+      if (!target) {
+        console.log(theme.error(`  Target session "${targetId}" not found.`))
+        process.exit(1)
+      }
+
+      const sourceMsgs = sessionStore.getMessages(sourceId, 10_000)
+      console.log(theme.heading(`  Merging sessions`))
+      console.log(`  source: ${theme.dim(source.name)} (${sourceMsgs.length} messages)`)
+      console.log(`  target: ${theme.dim(target.name)}`)
+      console.log()
+
+      try {
+        sessionStore.mergeSession(sourceId, targetId)
+        console.log(theme.success(`  ✓ Merged ${sourceMsgs.length} messages into "${target.name}"`))
+        console.log(theme.dim(`  Source session "${sourceId}" marked as completed.`))
+        console.log(theme.dim(`  Use \`aegis session view ${targetId.slice(0, 24)}...\` to see merged messages.`))
+      } catch (err: any) {
+        console.log(theme.error(`  Merge failed: ${err.message ?? String(err)}`))
+        process.exit(1)
+      }
+    })
+
   // ── resume ────────────────────────────────────────────────────────
   session
     .command("resume <sessionId>")

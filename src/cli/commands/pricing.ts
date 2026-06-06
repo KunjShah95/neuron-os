@@ -1,7 +1,6 @@
 import type { Command } from "commander"
 import { loadPricing, savePricing, DEFAULT_PRICING } from "../../economy/pricing-registry"
-import { route, estimateCost } from "../../economy/cost-router"
-import { predictCost } from "../../economy/predictor"
+import { estimateCost } from "../../economy/cost-router"
 import { submitToLeaderboard, fetchLeaderboard } from "../../economy/leaderboard-client"
 
 export function registerPricing(program: Command): void {

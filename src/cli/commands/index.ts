@@ -12,6 +12,7 @@ import { registerServe } from "./serve"
 import { registerMCP } from "./mcp"
 import { registerMemory } from "./memory"
 import { registerAgentMemory } from "./agentmemory"
+import { registerUnifiedMemory } from "./unified-memory"
 import { registerTelegram } from "./telegram"
 import { registerAsk } from "./ask"
 import { registerPlan } from "./plan"
@@ -30,6 +31,8 @@ import { registerSession } from "./session"
 import { registerToolset } from "./toolset"
 import { registerProject } from "./project"
 import { registerExperience } from "./experience"
+import { registerInsights } from "./insights"
+import { registerBenchmark } from "./benchmark"
 import { registerTrain } from "./train"
 import { registerAudit } from "./audit"
 import { registerMesh } from "./mesh"
@@ -50,7 +53,10 @@ import { registerCi } from "./ci"
 import { registerPricing } from "./pricing"
 import { registerDebate } from "./debate"
 import { registerCost } from "./cost"
+import { registerPreflight } from "./preflight"
 import { registerPlugin } from "./plugin"
+import { registerTrigger } from "./trigger"
+import { registerRouter } from "./router"
 
 export function registerAllCommands(program: Command) {
   registerDoctor(program)
@@ -59,13 +65,18 @@ export function registerAllCommands(program: Command) {
   registerReflect(program)
   registerProject(program)
   registerExperience(program)
+  registerInsights(program)
   registerTrain(program)
+  registerBenchmark(program)
   registerAdversarial(program)
   registerCi(program)
   registerPricing(program)
   registerDebate(program)
   registerCost(program)
   registerPlugin(program)
+  registerTrigger(program)
+  registerRouter(program)
+  registerPreflight(program)
   registerAudit(program)
   registerMesh(program)
   registerBench(program)
@@ -88,6 +99,7 @@ export function registerAllCommands(program: Command) {
   registerServe(program)
   registerMCP(program)
   registerMemory(program)
+  registerUnifiedMemory(program)
   registerAgentMemory(program)
   registerTelegram(program)
   registerAsk(program)

@@ -356,16 +356,15 @@ export default function Docs() {
                 href={`#group-${group.name}`}
                 onClick={(e) => {
                   e.preventDefault()
-                  setActiveGroup(null)
                   setActiveTag(null)
                   setSearch("")
-                  const el = document.getElementById(`group-${group.name}`)
-                  if (el) {
-                    el.scrollIntoView({ behavior: "smooth", block: "start" })
-                    setTimeout(() => {
-                      setActiveGroup(group.name)
-                    }, 300)
-                  }
+                  setActiveGroup(group.name)
+                  setTimeout(() => {
+                    const el = document.getElementById(`group-${group.name}`)
+                    if (el) {
+                      el.scrollIntoView({ behavior: "smooth", block: "start" })
+                    }
+                  }, 50)
                 }}
                 className="flex items-center gap-2 px-3 py-1.5 text-xs text-surface-500 hover:text-surface-200 hover:bg-surface-800/40 rounded-lg transition-all"
               >

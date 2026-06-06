@@ -10,7 +10,7 @@
  */
 
 import { createLogger } from "../../cli/logger"
-import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from "node:fs"
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs"
 import { join, resolve } from "node:path"
 import { EMPTY_USER_MODEL } from "./types"
 import type { UserModel, DialecticProposal, AuditEntry } from "./types"
@@ -21,7 +21,6 @@ export class DialecticEngine {
   private modelPath: string
   private lockPath: string
   private model: UserModel
-  private lockFd: number | null = null
 
   constructor(baseDir = resolve(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "memory")) {
     this.modelPath = join(baseDir, "user_model.json")

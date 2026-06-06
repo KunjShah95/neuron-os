@@ -1,0 +1,70 @@
+name: "Aegis CI Auto-Fix"
+description: >
+  Investigate CI failures and autonomously create a fix PR.
+  Runs as a post-job step when tests fail — analyzes logs, identifies
+  root cause, applies a fix, and opens a PR with the `ci-fix` label.
+
+branding:
+  icon: "shield"
+  color: "purple"
+
+inputs:
+  github-token:
+    description: "GitHub token for creating PRs and commenting"
+    required: true
+  aegis-bin:
+    description: "Path to the aegis binary (default: via bun)"
+    required: false
+    default: "bun run index.ts"
+  max-retries:
+    description: "Max fix attempts before giving up"
+    required: false
+    default: "3"
+  allowlist:
+    description: "Glob patterns for files the fixer may modify (comma-separated)"
+    required: false
+    default: "src/**/*.ts,src/**/*.tsx,*.json,*.yaml,*.yml"
+  merge-method:
+    description: "Merge method: squash, rebase, merge"
+    required: false
+    default: "squash"
+  auto-merge:
+    description: "Auto-merge when CI passes on the fix branch"
+    required: false
+    default: "false"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ inputs.github-token }}
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: "1.x"
+
+    - name: Install dependencies
+      shell: bash
+      run: bun install --frozen-lockfile
+
+    - name: Run Aegis CI Fix
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        AEGIS_CI_ALLOWLIST: ${{ inputs.allowlist }}
+        AEGIS_CI_MAX_RETRIES: ${{ inputs.max-retries }}
+        AEGIS_CI_MERGE_METHOD: ${{ inputs.merge-method }}
+        AEGIS_CI_AUTO_MERGE: ${{ inputs.auto-merge }}
+      run: |
+        ${{ inputs.aegis-bin }} ci watch \
+          --github-token "$GITHUB_TOKEN" \
+          --no-fix false \
+          --no-review false \
+          2>&1 &
+        CI_PID=$!
+        echo "CI server started (PID: $CI_PID)"
+        echo "ci_pid=$CI_PID" >> $GITHUB_ENV

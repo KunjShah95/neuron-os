@@ -88,7 +88,6 @@ export class EvalSuite {
       const verification: { command: string; expect_exit_code: number }[] = []
 
       let section: string | null = null
-      let inVerification = false
 
       for (const line of lines) {
         const trimmed = line.trim()

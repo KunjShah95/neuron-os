@@ -1,0 +1,89 @@
+name: Adversarial
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      category:
+        description: 'Task category to target (or all)'
+        default: 'all'
+      mutation:
+        description: 'Mutation type or all'
+        default: 'all'
+
+jobs:
+  adversarial:
+    name: Adversarial Self-Play
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.x'
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: adversarial-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: adversarial-bun-
+      - run: bun install --frozen-lockfile
+
+      - name: Run adversarial evals
+        id: adversarial-run
+        run: |
+          ARGS="run --all --json"
+          if [ "${{ github.event.inputs.category }}" != "" ] && [ "${{ github.event.inputs.category }}" != "all" ]; then
+            ARGS="$ARGS --category ${{ github.event.inputs.category }}"
+          fi
+          if [ "${{ github.event.inputs.mutation }}" != "" ] && [ "${{ github.event.inputs.mutation }}" != "all" ]; then
+            ARGS="$ARGS --mutation ${{ github.event.inputs.mutation }}"
+          fi
+          bun run index.ts adversarial $ARGS > adversarial-results.json 2>&1 || echo "REGRESSIONS_FOUND=true" >> $GITHUB_ENV
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Check regressions
+        run: |
+          if [ "${{ env.REGRESSIONS_FOUND }}" != "true" ]; then
+            bun run index.ts benchmark run --json --threshold 10 2>&1 || echo "REGRESSIONS_FOUND=true" >> $GITHUB_ENV
+          fi
+
+      - name: Ratchet regressions
+        if: env.REGRESSIONS_FOUND == 'true'
+        run: bun run index.ts adversarial ratchet --all
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: adversarial-results
+          path: adversarial-results.json
+          if-no-files-found: warn
+
+      - name: Create issue on regression
+        if: env.REGRESSIONS_FOUND == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let results = { total: 0, failed: 0, newRegressions: 0 };
+            try {
+              results = JSON.parse(fs.readFileSync('adversarial-results.json', 'utf8'));
+            } catch {}
+            const body = `## 🤖 Adversarial Regression Detected
+
+  ### Summary
+  - **Total tasks:** ${results.total || 0}
+  - **Failed:** ${results.failed || 0}
+  - **New regressions:** ${results.newRegressions || 0}
+
+  See attached artifact for full results.`;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Adversarial regression detected',
+              body: body,
+              labels: ['adversarial', 'regression']
+            });

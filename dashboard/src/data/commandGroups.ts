@@ -55,7 +55,14 @@ const allCommands = (commandsJson.commands as ExtractedCommand[])
   })
 
 const byRoot = (root: string) =>
-  allCommands.filter((c) => c.name === root || c.name.startsWith(root + " "))
+  allCommands.filter((c) => {
+    const cmdName = c.name.toLowerCase()
+    const rootLower = root.toLowerCase()
+    return cmdName === rootLower || 
+           cmdName.startsWith(rootLower + " ") ||
+           cmdName.startsWith(rootLower + " <") ||
+           cmdName.startsWith(rootLower + " [")
+  })
 
 // Group definitions: hand-curated ordering, icons, and tag sets.
 // `commands` arrays are derived from shared/commands.json.
@@ -65,12 +72,14 @@ const groups: Array<{ name: string; icon: string; tags: string[]; roots: string[
   { name: "agents", icon: "⬡", tags: ["agent"], roots: ["agent", "chat", "agent-run", "pool", "supervise"] },
   { name: "orchestration", icon: "⊛", tags: ["agent", "research"], roots: ["plan", "orchestrate", "mesh", "research", "ask"] },
   { name: "memory", icon: "◇", tags: ["memory"], roots: ["memory", "agentmemory", "experience", "reflect"] },
-  { name: "knowledge", icon: "◆", tags: ["system", "info"], roots: ["skills", "harness", "bench", "audit"] },
+  { name: "knowledge", icon: "◆", tags: ["system", "info"], roots: ["skills", "skill", "harness", "bench", "audit", "browse", "publish"] },
   { name: "schedule", icon: "⏱", tags: ["system", "schedule"], roots: ["cron"] },
   { name: "serve", icon: "↗", tags: ["network", "server"], roots: ["serve", "openapi", "mcp"] },
   { name: "adapters", icon: "⟳", tags: ["network"], roots: ["discord", "slack", "telegram", "whatsapp", "sms", "email", "voice", "webhook"] },
   { name: "sessions", icon: "◯", tags: ["data"], roots: ["session", "project"] },
   { name: "runtime", icon: "◌", tags: ["system"], roots: ["telemetry", "sandbox", "computer"] },
+  { name: "security", icon: "🛡", tags: ["security"], roots: ["adversarial"] },
+  { name: "tools", icon: "🔧", tags: ["system"], roots: ["toolset"] },
 ]
 
 export const commandGroups: CommandGroup[] = groups.map((g) => ({

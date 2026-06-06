@@ -92,11 +92,11 @@ export class HonchoAdapter {
 
       if (!response.ok) throw new Error("Not found")
 
-      const data = await response.json()
+      const data = await response.json() as Record<string, unknown>
       return {
         connected: true,
-        lastSync: data.updated_at,
-        remoteVersion: data.model_version,
+        lastSync: data.updated_at as string | undefined,
+        remoteVersion: data.model_version as number | undefined,
       }
     } catch {
       return { connected: false }

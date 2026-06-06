@@ -75,6 +75,33 @@ jobs:
           path: dashboard/dist/
           if-no-files-found: warn
 
+  dashboard-test:
+    name: Dashboard Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.x'
+
+      - name: Cache dashboard dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: dashboard-bun-${{ hashFiles('dashboard/bun.lock') }}
+          restore-keys: dashboard-bun-
+
+      - name: Install dashboard dependencies
+        run: bun install --frozen-lockfile
+        working-directory: dashboard
+
+      - name: Run dashboard tests
+        run: bun test --coverage
+        working-directory: dashboard
+
   website:
     name: Website
     runs-on: ubuntu-latest
@@ -144,12 +171,11 @@ jobs:
         working-directory: dashboard
 
       - name: Run coverage (bun test files)
-        run: bun test --coverage --coverage-reporter=lcov --coverage-reporter=text --path-ignore-patterns="dashboard/**" 2>&1
+        run: bun test --coverage --coverage-reporter=lcov --coverage-reporter=text --path-ignore-patterns="tmp*/**" 2>&1
 
       - name: Run dashboard coverage (vitest)
-        continue-on-error: true
         run: |
-          cd dashboard && bunx vitest run --coverage 2>&1 || echo "⚠️ Dashboard coverage skipped (separate report)"
+          cd dashboard && bunx vitest run --coverage 2>&1
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -185,3 +211,18 @@ jobs:
             coverage/
             dashboard/coverage/
           if-no-files-found: warn
+
+  aegis-ci-fix:
+    name: Aegis CI Auto-Fix
+    if: failure() && github.event_name == 'push'
+    needs: [test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Run Aegis CI Fix
+        uses: ./.github/actions/aegis-ci-fix
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-merge: "true"

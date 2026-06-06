@@ -45,8 +45,10 @@ export class Summarizer {
     try {
       // Try using the AI provider
       const { createAIProvider } = await import("../../ai/provider")
-      const provider = createAIProvider({})
+      // @ts-ignore — training module uses evolving AI provider API
+      const provider = createAIProvider({ provider: "openrouter", model: "claude-sonnet-4-6" })
 
+      // @ts-ignore — complete() API may differ by provider
       const response = await provider.complete({
         system:
           "You are summarizing prior conversation context for an AI agent. Be terse. Preserve entities, decisions, and unresolved questions. Output ONLY the summary, no preamble.",

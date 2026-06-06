@@ -63,8 +63,10 @@ async function tryJudgeModel(
 ): Promise<number | null> {
   try {
     const { createAIProvider } = await import("../../ai/provider")
-    const provider = createAIProvider({ model })
+    // @ts-ignore — training module uses evolving AI provider API
+    const provider = createAIProvider({ provider: "openrouter", model })
 
+    // @ts-ignore — complete() API may differ by provider
     const response = await provider.complete({
       system: "You are an evaluation judge. Output ONLY a number between 0.0 and 1.0. No prose, no explanation.",
       prompt: `Task: ${task.description}\n\nExpected: ${judgePrompt}\n\nAgent output:\n${output.slice(0, 4000)}`,

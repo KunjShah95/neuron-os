@@ -17,6 +17,7 @@ import MCP from "./routes/MCP"
 import Serve from "./routes/Serve"
 import Setup from "./routes/Setup"
 import Docs from "./routes/Docs"
+import SystemModules from "./routes/SystemModules"
 import ErrorBoundary from "./components/ErrorBoundary"
 import { ProjectProvider } from "./contexts/ProjectContext"
 import { A2uiStreamProvider } from "./contexts/A2uiStreamContext"
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="serve" element={<ErrorBoundary><Serve /></ErrorBoundary>} />
           <Route path="setup" element={<ErrorBoundary><Setup /></ErrorBoundary>} />
           <Route path="docs" element={<ErrorBoundary><Docs /></ErrorBoundary>} />
+          <Route path="modules" element={<ErrorBoundary><SystemModules /></ErrorBoundary>} />
         </Route>
       </Routes>
     </AnimatePresence>

@@ -26,8 +26,8 @@ function toCanonical(spec: AgentSpec): CanonicalSpec {
     k: spec.kind,
     m: {
       n: spec.metadata.name,
-      l: Object.fromEntries([...Object.entries(spec.metadata.labels)].sort()),
-      a: Object.fromEntries([...Object.entries(spec.metadata.annotations)].sort()),
+      l: Object.fromEntries([...Object.entries(spec.metadata.labels)].sort()) as Record<string, string>,
+      a: Object.fromEntries([...Object.entries(spec.metadata.annotations)].sort()) as Record<string, string>,
     },
     s: {
       t: spec.spec.type,
@@ -53,7 +53,7 @@ function toCanonical(spec: AgentSpec): CanonicalSpec {
       sk: [...(spec.spec.skills ?? [])].sort(),
       me: { ns: spec.spec.memory?.namespace ?? "default", ...(spec.spec.memory?.ttl_days ? { tt: spec.spec.memory.ttl_days } : {}), rk: spec.spec.memory?.recall_top_k ?? 3 },
       h: (spec.spec.hooks ?? []).map((h: any) => ({ e: h.event, p: h.phase, c: h.command })),
-      e: Object.fromEntries([...Object.entries(spec.spec.env ?? {})].sort()),
+      e: Object.fromEntries([...Object.entries(spec.spec.env ?? {})].sort()) as Record<string, string>,
       ...(spec.spec.budget ? { b: { ...(spec.spec.budget.usd ? { u: spec.spec.budget.usd } : {}), ...(spec.spec.budget.tokens ? { to: spec.spec.budget.tokens } : {}) } } : {}),
       tr: (spec.spec.triggers ?? []).map((t: any) => Object.fromEntries(Object.entries(t).sort())),
     },

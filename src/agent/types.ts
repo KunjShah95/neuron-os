@@ -35,6 +35,8 @@ export interface AgentDef {
   recovery?: RecoveryConfig
   /** Zero-trust isolation level (overrides agent type default) */
   isolationLevel?: IsolationLevel
+  /** Agent goal / task description */
+  goal?: string
 }
 
 // ── Auto-recovery ─────────────────────────────────────────────────────
@@ -135,6 +137,29 @@ export interface HookContext {
   data?: unknown
   /** Mutable metadata that hooks can read/write */
   meta: Record<string, unknown>
+}
+
+// ── Dispatch message types (worker-to-worker routing) ────────────────
+
+/**
+ * Payload for a dispatched task to another agent worker.
+ * The target agent executes the goal and replies with dispatch-result.
+ */
+export interface DispatchPayload {
+  goal: string
+  context?: string
+  sourceAgentId: string
+  timeoutMs?: number
+}
+
+/**
+ * Result payload returned after a dispatched task completes.
+ */
+export interface DispatchResultPayload {
+  success: boolean
+  output: string
+  durationMs: number
+  error?: string
 }
 
 // ── Manager options ───────────────────────────────────────────────────

@@ -1,4 +1,5 @@
 import { taskQueue } from "../agent/queue"
+import { triggerEngine, type GatewayCommandConfig } from "../triggers/registry"
 import type { PlatformAdapter, PlatformMessage } from "./types"
 import { createLogger } from "../cli/logger"
 
@@ -35,20 +36,37 @@ export class MultiPlatformGateway {
 
   /**
    * Central entry point for incoming messages from any platform (Slack, Telegram, Terminal).
+   * All routing is driven by gateway_command triggers — no hardcoded command paths.
+   * Default triggers for /agent and /ping are registered by the TriggerEngine on startup.
    */
   public async handleMessage(msg: PlatformMessage) {
     log.info(`[${msg.platform}] <${msg.userName}>: ${msg.text}`)
 
+    // Strip leading / for command matching, then look up trigger
     const text = msg.text.trim()
-    if (text.startsWith("/agent ")) {
-      const goal = text.replace("/agent ", "").trim()
-      const taskId = taskQueue.submit(goal, "normal")
-      await this.sendReply(msg.platform, msg.channelId, `🚀 Task queued with ID: ${taskId}`, msg.id)
-    } else if (text.startsWith("/ping")) {
-      await this.sendReply(msg.platform, msg.channelId, `pong`, msg.id)
+    const command = text.startsWith("/") ? text.slice(1).trim() : text
+
+    const matched = triggerEngine.matchGatewayCommand(command, msg.platform)
+    if (!matched) {
+      await this.sendReply(msg.platform, msg.channelId, `Unrecognized command. Try /agent <goal>`, msg.id)
+      return
+    }
+
+    log.info(`Gateway command matched trigger "${matched.name}"`)
+
+    // If the trigger's goal contains {{rest}}, substitute with captured args (even if empty)
+    const cfg = matched.config as GatewayCommandConfig
+    const args = command.slice(cfg.command.length).trim()
+    const goalOverride = matched.action.goal.includes("{{rest}}")
+      ? matched.action.goal.replace("{{rest}}", args)
+      : undefined
+
+    const result = await triggerEngine.fire(matched, goalOverride)
+
+    if (result.success) {
+      await this.sendReply(msg.platform, msg.channelId, result.result || "Done", msg.id)
     } else {
-      // Unrecognized commands could trigger a generic chat response or a help menu.
-      await this.sendReply(msg.platform, msg.channelId, `Unrecognized gateway command. Try /agent <goal>`, msg.id)
+      await this.sendReply(msg.platform, msg.channelId, `Error: ${result.error}`, msg.id)
     }
   }
 

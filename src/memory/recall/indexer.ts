@@ -22,7 +22,7 @@ export interface IndexTurn {
 export class FTS5Indexer {
   private db: any | null = null
 
-  constructor(config?: Partial<RecallConfig>) {}
+  constructor(_config?: Partial<RecallConfig>) {}
 
   /** Set the database instance (must open a SQLite db first) */
   setDb(db: any): void {

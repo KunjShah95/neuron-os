@@ -60,7 +60,7 @@ export class EvalRunner {
    * In production, this would spin up an agent worker, send the goal,
    * and wait for completion. For now, returns a simulated result.
    */
-  async runTask(task: EvalTask, config: EvalConfig): Promise<EvalResult> {
+  async runTask(task: EvalTask, _config: EvalConfig): Promise<EvalResult> {
     const start = Date.now()
 
     try {
@@ -106,7 +106,7 @@ export class EvalRunner {
     }
   }
 
-  private async simulateExecution(task: EvalTask): Promise<void> {
+  private async simulateExecution(_task: EvalTask): Promise<void> {
     // Simulate some work — in production this spawns a real agent
     await new Promise((r) => setTimeout(r, 500 + Math.random() * 1000))
   }
@@ -127,17 +127,18 @@ export class EvalRunner {
     const byCategory: Record<string, { total: number; passed: number; passRate: number }> = {}
 
     for (const result of results) {
-      if (!byCategory[result.category]) {
-        byCategory[result.category] = { total: 0, passed: 0, passRate: 0 }
+      const cat = result.category
+      if (!byCategory[cat]) {
+        byCategory[cat] = { total: 0, passed: 0, passRate: 0 }
       }
-      byCategory[result.category].total++
-      if (result.passed) byCategory[result.category].passed++
+      const entry = byCategory[cat]!
+      entry.total++
+      if (result.passed) entry.passed++
     }
 
     for (const cat of Object.keys(byCategory)) {
-      byCategory[cat].passRate = byCategory[cat].total > 0
-        ? byCategory[cat].passed / byCategory[cat].total
-        : 0
+      const entry = byCategory[cat]!
+      entry.passRate = entry.total > 0 ? entry.passed / entry.total : 0
     }
 
     const total = results.length

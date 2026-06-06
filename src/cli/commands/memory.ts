@@ -3,6 +3,7 @@ import { theme } from "../theme"
 import { showBanner } from "../banner"
 import { memorySystem, vectorMemory } from "../../memory"
 import type { ExtractedFact } from "../../memory/types"
+import { registerMemoryPolicy } from "./memory-policy"
 
 export function registerMemory(program: Command) {
   const mem = program
@@ -20,6 +21,8 @@ export function registerMemory(program: Command) {
       }
       console.log(content)
     })
+
+  registerMemoryPolicy(mem)
 
   mem
     .command("add <content>")
@@ -125,7 +128,7 @@ export function registerMemory(program: Command) {
     }
     console.log(`  ${theme.dim(`  Vector entries: ${vecStats.total}`)}`)
     console.log()
-    console.log(`  ${theme.muted("Subcommands: show, add, search, facts, vector")}`)
+    console.log(`  ${theme.muted("Subcommands: show, add, search, facts, vector, stats, policy")}`)
     console.log()
   })
 

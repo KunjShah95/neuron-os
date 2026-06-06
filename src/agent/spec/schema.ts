@@ -11,8 +11,8 @@ export const AgentSpec = z.object({
   from: z.string().optional(),
   metadata: z.object({
     name: z.string().regex(/^[a-z0-9-]+$/),
-    labels: z.record(z.string()).default({}),
-    annotations: z.record(z.string()).default({}),
+    labels: z.record(z.string(), z.string()).default({}),
+    annotations: z.record(z.string(), z.string()).default({}),
   }),
   spec: z.object({
     type: z.enum(["build", "plan", "read", "write", "test", "validate", "review", "debug", "document", "refactor", "deploy", "monitor", "explore", "main"]),
@@ -28,25 +28,25 @@ export const AgentSpec = z.object({
       file: z.string().optional(),
       append_skills: z.boolean().default(true),
       append_user_model: z.boolean().default(true),
-    }).default({}),
+    }).default({ append_skills: true, append_user_model: true }),
     tools: z.object({
       allow: z.array(z.string()).default([]),
       deny: z.array(z.string()).default([]),
       toolset: z.string().optional(),
-    }).default({}),
+    }).default({ allow: [], deny: [] }),
     context_files: z.array(z.string()).default([]),
     skills: z.array(z.string()).default([]),
     memory: z.object({
       namespace: z.string().default("default"),
       ttl_days: z.number().optional(),
       recall_top_k: z.number().default(3),
-    }).default({}),
+    }).default({ namespace: "default", recall_top_k: 3 }),
     hooks: z.array(z.object({
       event: z.enum(["spawn", "kill", "message", "error", "exit"]),
       phase: z.enum(["pre", "post"]),
       command: z.string(),
     })).default([]),
-    env: z.record(z.string()).default({}),
+    env: z.record(z.string(), z.string()).default({}),
     budget: z.object({
       usd: z.number().positive().optional(),
       tokens: z.number().positive().optional(),

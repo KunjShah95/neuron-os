@@ -11,6 +11,10 @@ export type { SessionRecord, SessionMessage } from "./session-persistence"
 export { FTS5Indexer, FTS5Retriever, Summarizer, ensureFTS5Schema, DEFAULT_RECALL_CONFIG } from "./recall"
 export type { RecallHit, RecallQuery, RecallConfig } from "./recall"
 
+// Unified memory query engine
+export { UnifiedMemoryQuery } from "./unified-query"
+export type { UnifiedResult, UnifiedQuery, UnifiedStoreStats } from "./unified-query"
+
 // Dialectic user model
 export { DialecticEngine, dialecticEngine } from "./user-model/dialectic"
 export { HonchoAdapter, honchoAdapter } from "./user-model/honcho-adapter"

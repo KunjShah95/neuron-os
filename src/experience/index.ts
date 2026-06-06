@@ -4,3 +4,5 @@ export { generateClusterReport, formatClusterReport, writeInsightsToMemory } fro
 export type { ClusterReport } from "./cluster"
 export { ExperienceRetriever } from "./retrieval"
 export type { RetrievedExperience, RetrievedOptions } from "./retrieval"
+export { ExperienceReplay, experienceReplay } from "./replay"
+export type { RetryResult, SkillExtraction, CycleResult, ReplayResult, PipelineStats, RetryStrategy } from "./replay"

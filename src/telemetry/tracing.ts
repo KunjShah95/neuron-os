@@ -97,6 +97,23 @@ export class TracingStore {
       metadata: r.metadata ? JSON.parse(r.metadata) : undefined
     }))
   }
+
+  public getStats(): { totalSpans: number; sessionCount: number; byType: Record<string, number>; byStatus: Record<string, number> } {
+    const total = this.db.prepare("SELECT COUNT(*) as c FROM spans").get() as { c: number }
+    const sessions = this.db.prepare("SELECT COUNT(DISTINCT session_id) as c FROM spans").get() as { c: number }
+    const typeRows = this.db.prepare("SELECT type, COUNT(*) as c FROM spans GROUP BY type").all() as { type: string; c: number }[]
+    const statusRows = this.db.prepare("SELECT status, COUNT(*) as c FROM spans GROUP BY status").all() as { status: string; c: number }[]
+    const byType: Record<string, number> = {}
+    for (const r of typeRows) byType[r.type] = r.c
+    const byStatus: Record<string, number> = {}
+    for (const r of statusRows) byStatus[r.status] = r.c
+    return { totalSpans: total.c, sessionCount: sessions.c, byType, byStatus }
+  }
+
+  public getAllSessionIds(): string[] {
+    const rows = this.db.prepare("SELECT DISTINCT session_id FROM spans").all() as { session_id: string }[]
+    return rows.map(r => r.session_id)
+  }
 }
 
 export const tracingStore = new TracingStore()

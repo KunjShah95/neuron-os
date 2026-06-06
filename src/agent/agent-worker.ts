@@ -161,6 +161,63 @@ function handleShutdown(): void {
   running = false
 }
 
+// ── Dispatch handler (worker-to-worker routing) ───────────────────────
+
+/**
+ * Handle a dispatched task from another worker.
+ * Executes the goal via the ReAct loop and replies with dispatch-result.
+ */
+async function handleDispatch(msg: AgentIpcMessage): Promise<void> {
+  const payload = msg.payload as {
+    goal: string
+    context?: string
+    sourceAgentId: string
+    timeoutMs?: number
+  } | undefined
+
+  if (!payload?.goal) {
+    send({ id: msg.id, type: "dispatch-result", payload: {
+      success: false,
+      output: "",
+      durationMs: 0,
+      error: "No goal provided in dispatch payload",
+    }})
+    return
+  }
+
+  log("info", `Received dispatched task from ${payload.sourceAgentId}: ${payload.goal.slice(0, 100)}`)
+
+  // Build the full goal with optional context prepended
+  const fullGoal = payload.context
+    ? `Context from ${payload.sourceAgentId}:\n${payload.context}\n\nTask: ${payload.goal}`
+    : payload.goal
+
+  taskCount++
+
+  try {
+    const timeout = payload.timeoutMs ?? 300_000
+    const result = await Promise.race([
+      runReActLoop(fullGoal, taskCount),
+      new Promise<string>((_, reject) =>
+        setTimeout(() => reject(new Error("Dispatch task timed out")), timeout)
+      ),
+    ])
+
+    send({ id: msg.id, type: "dispatch-result", payload: {
+      success: true,
+      output: result,
+      durationMs: Date.now() - (msg.timestamp || Date.now()),
+    }})
+  } catch (err: any) {
+    send({ id: msg.id, type: "dispatch-result", payload: {
+      success: false,
+      output: err?.message || String(err),
+      durationMs: Date.now() - (msg.timestamp || Date.now()),
+      error: err?.message || String(err),
+    }})
+  }
+}
+
 // ── IPC input reader ──────────────────────────────────────────────────
 
 let buffer = ""
@@ -183,6 +240,8 @@ function processLine(line: string): void {
       handleEcho(msg); break
     case "run-task":
       handleRunTask(msg).catch((err) => replyTo(msg, "error", { message: String(err) })); break
+    case "dispatch":
+      handleDispatch(msg).catch((err) => replyTo(msg, "dispatch-result", { success: false, error: String(err) })); break
     case "shutdown":
       handleShutdown(); break
     default:

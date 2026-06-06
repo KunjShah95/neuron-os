@@ -34,6 +34,12 @@ export interface SessionRecord {
   createdAt: number
   updatedAt: number
   metadata: Record<string, string>
+  /** ID of the parent session if this is a fork. Null for root sessions. */
+  parentSessionId?: string
+  /** Message ID at which the fork occurred (the last message copied from parent). */
+  checkpointId?: number
+  /** Human-readable label for this checkpoint/fork. */
+  checkpointName?: string
 }
 
 export interface SessionMessage {
@@ -49,6 +55,26 @@ export interface SessionState {
   key: string
   value: string
   sessionId: string
+}
+
+/**
+ * Options for forking a session.
+ */
+export interface ForkOptions {
+  /**
+   * The message ID to fork at (inclusive).
+   * All messages up to and including this ID are copied to the fork.
+   * Default: last message in the session.
+   */
+  atMessageId?: number
+  /**
+   * A descriptive name for the fork branch (e.g., "try-refactor-approach").
+   */
+  name?: string
+  /**
+   * A new goal for the forked session (defaults to parent's goal).
+   */
+  goal?: string
 }
 
 // ── SessionStore ──────────────────────────────────────────────────────
@@ -118,6 +144,28 @@ export class SessionStore {
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_messages_session
       ON session_messages(session_id, timestamp)
+    `)
+
+    // ── Schema migration: add branching columns ────────────────────────
+    // These were added after the initial schema, so existing databases
+    // need ALTER TABLE. We try each migration and ignore errors if the
+    // column already exists.
+    const migrations = [
+      `ALTER TABLE sessions ADD COLUMN parent_session_id TEXT REFERENCES sessions(id)`,
+      `ALTER TABLE sessions ADD COLUMN checkpoint_id INTEGER`,
+      `ALTER TABLE sessions ADD COLUMN checkpoint_name TEXT`,
+    ]
+    for (const sql of migrations) {
+      try {
+        this.db.exec(sql)
+      } catch {
+        // Column already exists — this is expected on warm databases
+      }
+    }
+
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_sessions_parent
+      ON sessions(parent_session_id)
     `)
 
     this.initialized = true
@@ -356,6 +404,216 @@ export class SessionStore {
     }))
   }
 
+  // ── Fork / Checkpoint ─────────────────────────────────────────────
+
+  /**
+   * Fork a session at a specific message checkpoint, creating a new
+   * child session that inherits all messages up to (and including) that
+   * message. The new session can then continue independently.
+   *
+   * Think of this like git branching: the parent session's history up to
+   * the checkpoint is immutable, and the fork explores a different path.
+   *
+   * @param parentId - The session to fork from
+   * @param opts - Fork options (message ID at which to fork, name, goal)
+   * @returns The newly created forked session record
+   */
+  forkSession(parentId: string, opts?: ForkOptions): SessionRecord {
+    const parent = this.getSession(parentId)
+    if (!parent) {
+      throw new Error(`Cannot fork: session "${parentId}" not found`)
+    }
+
+    const messages = this.getMessages(parentId, 10_000)
+    if (messages.length === 0) {
+      throw new Error(`Cannot fork: session "${parentId}" has no messages`)
+    }
+
+    // Determine the checkpoint — the message ID at which we fork
+    const checkpointMsg = opts?.atMessageId
+      ? messages.find((m) => m.id === opts.atMessageId)
+      : messages[messages.length - 1]
+
+    if (!checkpointMsg) {
+      throw new Error(
+        `Cannot fork: checkpoint message ${opts?.atMessageId} not found in session "${parentId}"`,
+      )
+    }
+
+    // Determine which messages to copy (up to and including the checkpoint)
+    const checkpointIdx = messages.findIndex((m) => m.id === checkpointMsg.id)
+    const messagesToCopy = messages.slice(0, checkpointIdx + 1)
+
+    // Create the forked session with branching metadata
+    const forkId = `fork-${parentId}-${Date.now().toString(36)}`
+    const now = Date.now()
+
+    this.db.transaction(() => {
+      this.db.prepare(`
+        INSERT INTO sessions (id, name, agent_type, goal, status, created_at, updated_at, metadata,
+          parent_session_id, checkpoint_id, checkpoint_name)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        forkId,
+        opts?.name ?? `${parent.name} (fork)`,
+        parent.agentType,
+        opts?.goal ?? parent.goal,
+        "active",
+        now,
+        now,
+        JSON.stringify({ ...parent.metadata, forkedFrom: parentId, forkMessageId: checkpointMsg.id }),
+        parentId,
+        checkpointMsg.id,
+        opts?.name ?? null,
+      )
+
+      // Copy messages up to the checkpoint
+      const insertMsg = this.db.prepare(`
+        INSERT INTO session_messages (session_id, role, content, timestamp, tool_calls)
+        VALUES (?, ?, ?, ?, ?)
+      `)
+      for (const msg of messagesToCopy) {
+        insertMsg.run(forkId, msg.role, msg.content, msg.timestamp, msg.toolCalls ?? null)
+      }
+
+      // Copy all session state from parent (skip stale checkpoint markers
+      // since the fork has its own autoincrement message IDs)
+      const parentState = this.getAllState(parentId)
+      const insertState = this.db.prepare(`
+        INSERT OR IGNORE INTO session_state (session_id, key, value)
+        VALUES (?, ?, ?)
+      `)
+      for (const [key, value] of Object.entries(parentState)) {
+        if (key.startsWith("checkpoint:")) continue
+        insertState.run(forkId, key, value)
+      }
+    })()
+
+    // Log the fork
+    log.info(`Session "${parentId}" forked as "${forkId}" with ${messagesToCopy.length} messages`)
+
+    return this.getSession(forkId)!
+  }
+
+  /**
+   * Mark a specific message in a session as a named checkpoint.
+   * This makes it easier to later fork at this exact point.
+   *
+   * @param sessionId - The session to add the checkpoint to
+   * @param messageId - The message ID to mark as a checkpoint
+   * @param name - A descriptive name for this checkpoint
+   */
+  createCheckpoint(sessionId: string, messageId: number, name: string): void {
+    const session = this.getSession(sessionId)
+    if (!session) {
+      throw new Error(`Cannot create checkpoint: session "${sessionId}" not found`)
+    }
+
+    const messages = this.getMessages(sessionId, 1)
+    const exists = messages.some((m) => m.id === messageId)
+    if (!exists) {
+      throw new Error(
+        `Cannot create checkpoint: message ${messageId} not found in session "${sessionId}"`,
+      )
+    }
+
+    // Store checkpoint as a state entry for easy querying
+    this.setState(sessionId, `checkpoint:${messageId}`, name)
+
+    log.info(`Checkpoint "${name}" created at message ${messageId} in session "${sessionId}"`)
+  }
+
+  /**
+   * List all forked child sessions from a given parent.
+   * Returns sessions that have parent_session_id matching the given session.
+   *
+   * @param parentId - The parent session to list forks for
+   */
+  listForks(parentId: string): SessionRecord[] {
+    const rows = this.db.prepare(`
+      SELECT * FROM sessions
+      WHERE parent_session_id = ?
+      ORDER BY created_at ASC
+    `).all(parentId) as Record<string, unknown>[]
+
+    return rows.map((r) => this.rowToSession(r))
+  }
+
+  /**
+   * Get the full fork tree starting from a root session.
+   * Returns an array with the parent first, then all children recursively.
+   */
+  getForkTree(sessionId: string): SessionRecord[] {
+    const tree: SessionRecord[] = []
+    const visited = new Set<string>()
+
+    const collect = (id: string) => {
+      if (visited.has(id)) return
+      visited.add(id)
+      const session = this.getSession(id)
+      if (session) {
+        tree.push(session)
+        const forks = this.listForks(id)
+        for (const fork of forks) {
+          collect(fork.id)
+        }
+      }
+    }
+
+    collect(sessionId)
+    return tree
+  }
+
+  /**
+   * Merge messages from a source session into a target session.
+   * All messages from the source are appended to the target, preserving
+   * order and timestamps. The source session is marked as 'completed'
+   * after the merge.
+   *
+   * @param sourceId - The session to merge messages from
+   * @param targetId - The session to merge messages into
+   * @returns The updated target session record
+   */
+  mergeSession(sourceId: string, targetId: string): SessionRecord {
+    const source = this.getSession(sourceId)
+    const target = this.getSession(targetId)
+
+    if (!source) throw new Error(`Source session "${sourceId}" not found`)
+    if (!target) throw new Error(`Target session "${targetId}" not found`)
+
+    const sourceMessages = this.getMessages(sourceId, 10_000)
+    if (sourceMessages.length === 0) {
+      log.info(`Merge: source "${sourceId}" has no messages — nothing to merge`)
+      return target
+    }
+
+    this.db.transaction(() => {
+      const insertMsg = this.db.prepare(`
+        INSERT INTO session_messages (session_id, role, content, timestamp, tool_calls)
+        VALUES (?, ?, ?, ?, ?)
+      `)
+      for (const msg of sourceMessages) {
+        insertMsg.run(targetId, msg.role, msg.content, msg.timestamp, msg.toolCalls ?? null)
+      }
+
+      // Mark source as completed
+      this.db.prepare(
+        "UPDATE sessions SET status = 'completed', updated_at = ? WHERE id = ?",
+      ).run(Date.now(), sourceId)
+
+      // Update target timestamp
+      this.db.prepare(
+        "UPDATE sessions SET updated_at = ? WHERE id = ?",
+      ).run(Date.now(), targetId)
+    })()
+
+    log.info(
+      `Merged ${sourceMessages.length} messages from "${sourceId}" into "${targetId}"`,
+    )
+
+    return this.getSession(targetId)!
+  }
+
   // ── Prune ──────────────────────────────────────────────────────────
 
   /**
@@ -403,6 +661,9 @@ export class SessionStore {
       createdAt: row.created_at as number,
       updatedAt: row.updated_at as number,
       metadata: JSON.parse((row.metadata as string) || "{}"),
+      parentSessionId: row.parent_session_id as string | undefined,
+      checkpointId: row.checkpoint_id as number | undefined,
+      checkpointName: row.checkpoint_name as string | undefined,
     }
   }
 }

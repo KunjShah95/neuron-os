@@ -15,8 +15,11 @@ import type {
 } from "./types"
 import { HookRegistry } from "./hooks"
 import { getAgentType, getAllAgentTypes, type AgentType } from "./agent-types"
+import { createLogger } from "../cli/logger"
 import { DockerSandbox } from "../sandbox/docker"
 import type { IsolationLevel } from "../sandbox/types"
+
+const log = createLogger("agent:manager")
 
 // ── Sandbox manager ───────────────────────────────────────────────────
 
@@ -144,6 +147,23 @@ export class AgentManager {
           AEGIS_ISOLATION_LEVEL: this.getIsolationLevel(def),
         },
       }
+
+      // Model routing: auto-select cheapest viable provider/model
+      if (process.env.AEGIS_MODEL_ROUTER !== "disabled") {
+        try {
+          const { ModelRouter } = await import("../economy/model-router")
+          const route = ModelRouter.route({ taskType: type.name })
+          if (route.provider !== type.modelHint?.split(':')[0]) {
+            effectiveDef.env = {
+              ...effectiveDef.env,
+              AEGIS_ROUTED_PROVIDER: route.provider,
+              AEGIS_ROUTED_MODEL: route.model,
+              AEGIS_ROUTED_COST: String(route.estimatedCost),
+            }
+            console.log(`[ModelRouter] ${type.name} → ${route.provider}/${route.model} ($${route.estimatedCost.toFixed(4)})`)
+          }
+        } catch { /* router failure is non-fatal */ }
+      }
     }
     
     const id = generateId()
@@ -175,6 +195,29 @@ export class AgentManager {
     this.abortControllers.set(id, controller)
 
     await this.hooks.run("spawn", "pre", id, instance, { def: effectiveDef })
+
+    // Pre-flight cost estimate
+    if (process.env.AEGIS_PREFLIGHT !== "disabled") {
+      try {
+        const { PreflightEstimator } = await import("../economy/preflight")
+        const estimate = PreflightEstimator.checkThresholds(
+          PreflightEstimator.estimate({
+            goal: effectiveDef.goal || effectiveDef.name,
+            agentType: effectiveDef.agentType,
+          }),
+        )
+        if (estimate.recommendation === "block") {
+          throw new Error(
+            `Pre-flight cost check blocked: estimated $${estimate.estimatedCost.toFixed(4)} exceeds block threshold. ${estimate.reasoning}`,
+          )
+        }
+        if (estimate.recommendation === "warn") {
+          log.warn(`Pre-flight: estimated $${estimate.estimatedCost.toFixed(4)} exceeds warn threshold`)
+        }
+      } catch (err) {
+        if (err instanceof Error && err.message.includes("blocked")) throw err
+      }
+    }
 
     try {
       const child = spawn({
@@ -522,6 +565,25 @@ export class AgentManager {
     return Array.from(this.agents.values()).find((a) => a.def.agentType === agentType)
   }
 
+  /**
+   * Look up an agent by name or type, returning a safe summary for IPC responses.
+   * Used by workers to discover peers for dispatch.
+   */
+  lookupAgent(opts: { name?: string; agentType?: string }): { id: string; name: string; agentType?: string; status: string } | null {
+    const agent = opts.name
+      ? this.findAgentByName(opts.name)
+      : opts.agentType
+        ? this.findAgentByType(opts.agentType)
+        : undefined
+    if (!agent) return null
+    return {
+      id: agent.id,
+      name: agent.def.name,
+      agentType: agent.def.agentType,
+      status: agent.status,
+    }
+  }
+
   // ── Send a ping to check aliveness ──────────────────────────────────
 
   ping(id: string): void {
@@ -689,6 +751,12 @@ export class AgentManager {
           instance.status = "running"
         }
         this.emit("agent:heartbeat", id)
+        break
+      }
+      case "dispatch-result": {
+        // Route worker-to-worker dispatch results back through the event system
+        // so routeIpc() can resolve its promise.
+        this.emit("agent:result", id, { ...msg, agentId: id })
         break
       }
       case "error": {

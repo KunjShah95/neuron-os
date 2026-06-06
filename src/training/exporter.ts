@@ -162,8 +162,8 @@ export class TrajectoryExporter {
     const toolCalls = events.filter((e) => e.type === "tool_call") as any[]
     const costRecords = events.filter((e) => e.type === "cost_record") as any[]
 
-    const totalCost = costRecords.reduce(
-      (sum: number, c: any) => ({
+    const totalCost = costRecords.reduce<{ prompt_tokens: number; completion_tokens: number; cost_usd: number }>(
+      (sum, c: any) => ({
         prompt_tokens: (sum.prompt_tokens ?? 0) + (c.prompt_tokens ?? 0),
         completion_tokens: (sum.completion_tokens ?? 0) + (c.completion_tokens ?? 0),
         cost_usd: (sum.cost_usd ?? 0) + (c.cost_usd ?? 0),

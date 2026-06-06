@@ -128,10 +128,9 @@ export class AgentRuntime {
       .join("\n\n---\n\n")
   }
 
-  private allowedTools?: string[]
-
-  setAllowedTools(tools: string[]): void {
-    this.allowedTools = tools
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  setAllowedTools(_tools: string[]): void {
+    // TODO: implement tool filtering based on allowed list
   }
 
   private skillsLoaded = false

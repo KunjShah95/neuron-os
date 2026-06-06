@@ -1,9 +1,10 @@
 import type { AgentSpec } from "./schema"
 import { hashSpec, deriveSessionId } from "./hasher"
 import { toolsetRegistry } from "../../toolsets"
-import { agentManager } from "../manager"
+
 import { createAgentRuntime } from "../runtime"
 import { AIProviderManager, resolveApiKey } from "../../ai"
+import type { AIProviderType } from "../../ai/models"
 import { AgentEngine } from "../engine"
 
 export interface RunResult {
@@ -38,7 +39,7 @@ export async function runSpec(spec: AgentSpec, input: RunInput): Promise<RunResu
   const agentId = `spec-${sessionId}`
   const runtime = createAgentRuntime(agentId, spec.spec.type)
   const ai = new AIProviderManager({
-    provider: spec.spec.model.provider,
+    provider: spec.spec.model.provider as AIProviderType,
     model: spec.spec.model.name,
     apiKey: resolveApiKey(spec.spec.model.provider),
     temperature: spec.spec.model.temperature,

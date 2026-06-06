@@ -13,6 +13,7 @@
  */
 
 import { agentPool } from "../agent/agent-pool"
+import { triggerEngine } from "../triggers/registry"
 import { createLogger } from "../cli/logger"
 import { verifyHmac } from "./hmac"
 
@@ -37,6 +38,8 @@ export interface WebhookEvent {
   payload: Record<string, unknown>
   deliveryId?: string
   signature?: string
+  /** Actual URL pathname of the webhook request */
+  path?: string
 }
 
 // ── Event Parsing ─────────────────────────────────────────────────────
@@ -121,6 +124,17 @@ export async function handleWebhookEvent(
 
   const parsed = parseGitHubEvent(event, payload)
   log.info("Webhook received", { source, event: parsed.action, repo: parsed.repo })
+
+  // Check for registered webhook triggers that match this event
+  const webhookPath = webhookEvent.path ?? `/api/v1/webhook/${source}`
+  const matchedTrigger = triggerEngine.matchWebhook(webhookPath)
+  if (matchedTrigger) {
+    log.info(`Webhook event "${event}" matched trigger "${matchedTrigger.name}"`)
+    // Fire the trigger asynchronously — don't block the webhook response
+    triggerEngine.fire(matchedTrigger).catch((err) => {
+      log.error(`Webhook trigger "${matchedTrigger.name}" fire failed`, { error: String(err) })
+    })
+  }
 
   // ── Route to appropriate handler ──────────────────────────────────
 
@@ -213,7 +227,7 @@ export function createWebhookHandler(config: WebhookConfig) {
       })
     }
 
-    const webhookEvent: WebhookEvent = { source, event, payload, deliveryId, signature }
+    const webhookEvent: WebhookEvent = { source, event, payload, deliveryId, signature, path: url.pathname }
     const result = await handleWebhookEvent(webhookEvent, config)
 
     return new Response(JSON.stringify(result.body), {

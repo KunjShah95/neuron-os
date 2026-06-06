@@ -1,6 +1,6 @@
 import type { Command } from "commander"
 import { globalDetector } from "../../debate/detector"
-import { listDecisionRecords, loadDecisionRecord, resolveDisagreementAsync } from "../../debate/record"
+import { listDecisionRecords, loadDecisionRecord } from "../../debate/record"
 
 export function registerDebate(program: Command): void {
   const debate = program
@@ -11,8 +11,8 @@ export function registerDebate(program: Command): void {
     .command("pending")
     .description("List unresolved disagreements")
     .action(() => {
-      const records = listDecisionRecords()
       // Pending = no record yet (in-memory only)
+      listDecisionRecords() // ensure module is loaded
       const claims = globalDetector.getClaims()
       const subjects = new Set(claims.map((c) => c.subject))
       if (subjects.size === 0) {

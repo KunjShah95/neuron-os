@@ -13,6 +13,7 @@ import { dashboardMode, chatMode } from "./builtin"
 import { sandboxMode } from "./sandbox"
 import { computerMode } from "./computer"
 import { harnessMode } from "./harness"
+import { voiceMode } from "./voice"
 
 export function registerAllModes() {
   registerMode(dashboardMode)
@@ -30,6 +31,7 @@ export function registerAllModes() {
   registerMode(sandboxMode)
   registerMode(computerMode)
   registerMode(harnessMode)
+  registerMode(voiceMode)
 }
 
 export { registerMode, listModes, getMode } from "./registry"

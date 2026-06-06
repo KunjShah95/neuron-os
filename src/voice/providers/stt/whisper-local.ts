@@ -8,7 +8,7 @@
 
 import { createLogger } from "../../../cli/logger"
 import { existsSync, mkdirSync } from "node:fs"
-import { join, resolve } from "node:path"
+import { join } from "node:path"
 import type { STTProvider, STTResult } from "./types"
 
 const log = createLogger("voice:whisper-local")

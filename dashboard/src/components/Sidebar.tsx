@@ -7,6 +7,7 @@ const navItems: NavItem[] = [
   { path: "/", label: "Console", icon: "◈" },
   { path: "/chat", label: "Chat", icon: "✦" },
   { path: "/agents", label: "Agents", icon: "⬡" },
+  { path: "/modules", label: "System", icon: "◎" },
   { path: "/a2ui", label: "A2UI", icon: "▤" },
   { path: "/a2ui/playground", label: "Playground", icon: "✦" },
   { path: "/memory", label: "Memory", icon: "◇" },

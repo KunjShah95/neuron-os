@@ -46,22 +46,38 @@ The current release. Aegis at v0.2.0 is a **production-shaped local agent OS** t
 - 6 AI providers, 30+ test suites, 65% line coverage, a clean CI/CD pipeline
 - A redesigned marketing landing page and a public roadmap
 
-The next six milestones are the path from "production-shaped" to "production-ready" — and then beyond.
+---
+
+## 4. The Seven Milestones to v1.0.0
+
+### v0.3.0 — Stabilization & Hardening (Q3 2026)
+
+**What it unlocks:** The foundation is solid. CI is green, tests are comprehensive, Docker builds are reliable, and Windows support is first-class.
+
+- Full CI/CD test matrix (Linux, macOS, Windows)
+- 80% line coverage across `src/`
+- Complete API documentation with TypeDoc
+- Docker multi-arch builds (AMD64, ARM64)
+- Error boundary coverage on all TUI modes
+- Config validation with JSON Schema (`aegis doctor` validates everything)
+- Windows Terminal support polish
+
+**Done when:** a new contributor can clone the repo, run `bun install`, and have a green test suite in under 5 minutes on any supported OS.
 
 ---
 
-## 4. The Six Milestones to v1.0.0
+### v0.6.0 — Multi-platform gateway ✅ (Q2 2026 — SHIPPED)
 
-### v0.6.0 — Multi-platform gateway (current focus)
-
-**What it unlocks:** Every team can plug Aegis into the chat platform they already use. The agent becomes reachable where the user is, not where the developer happened to ship the CLI.
+**What it unlocked:** Every team can plug Aegis into the chat platform they already use. The agent becomes reachable where the user is, not where the developer happened to ship the CLI.
 
 - 8 first-class adapters shipped (Discord, Slack, SMS, Voice, WhatsApp, Email, Webhook, Bot-Commands)
 - HMAC-signed REST API with replay-protection window
 - Per-adapter test coverage (sign / verify / replay / tampering)
 - `aegis gateway start` to run a multi-adapter daemon
+- Marketing website with docs, changelog, FAQ
+- Web dashboard with 12 routes
 
-**Done when:** a developer can `bun run index.ts gateway` and have agents replying to real users across three of the eight surfaces in under 30 minutes.
+**Status:** Shipped in v0.2.0.
 
 ---
 
