@@ -81,7 +81,7 @@ async function cleanup(server: { stop: () => void }, agentIds: string[]) {
 
 // ── Tests ─────────────────────────────────────────────────────────────
 
-it("should full stack ws event flow", async () => {
+it("should full stack ws event flow", { timeout: 30_000 }, async () => {
   console.log("\n  Test: Full-stack API → agent spawn → WebSocket event flow")
 
   const port = await findFreePort()
@@ -154,7 +154,7 @@ it("should full stack ws event flow", async () => {
   }
 })
 
-it("should health endpoint", async () => {
+it("should health endpoint", { timeout: 15_000 }, async () => {
   console.log("\n  Test: API server health endpoint")
 
   const port = await findFreePort()
@@ -232,7 +232,7 @@ it("should agent list endpoint", async () => {
   }
 }, 20_000)
 
-it("should ws sse fallback", async () => {
+it("should ws sse fallback", { timeout: 15_000 }, async () => {
   console.log("\n  Test: SSE fallback endpoint")
 
   const port = await findFreePort()

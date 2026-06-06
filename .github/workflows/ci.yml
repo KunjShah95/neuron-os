@@ -99,7 +99,7 @@ jobs:
         working-directory: dashboard
 
       - name: Run dashboard tests
-        run: bun test --coverage
+        run: bun run test -- --coverage
         working-directory: dashboard
 
   website:

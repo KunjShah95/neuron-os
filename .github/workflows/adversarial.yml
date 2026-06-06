@@ -71,19 +71,20 @@ jobs:
             try {
               results = JSON.parse(fs.readFileSync('adversarial-results.json', 'utf8'));
             } catch {}
-            const body = `## 🤖 Adversarial Regression Detected
-
-  ### Summary
-  - **Total tasks:** ${results.total || 0}
-  - **Failed:** ${results.failed || 0}
-  - **New regressions:** ${results.newRegressions || 0}
-
-  See attached artifact for full results.`;
-
+            const lines = [
+              '## Adversarial Regression Detected',
+              '',
+              '### Summary',
+              '- **Total tasks:** ' + (results.total || 0),
+              '- **Failed:** ' + (results.failed || 0),
+              '- **New regressions:** ' + (results.newRegressions || 0),
+              '',
+              'See attached artifact for full results.'
+            ];
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: 'Adversarial regression detected',
-              body: body,
+              body: lines.join('\n'),
               labels: ['adversarial', 'regression']
             });
