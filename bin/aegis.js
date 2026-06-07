@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { createWriteStream, existsSync, mkdirSync, chmodSync } from "node:fs"
-import { get } from "node:https"
 import { resolve, dirname } from "node:path"
 import { homedir } from "node:os"
 import { spawn } from "node:child_process"
@@ -56,23 +55,22 @@ async function main() {
 
     console.error(`\n  Downloading aegis for ${os}/${arch}...`)
     try {
-      await new Promise((resolvePromise, reject) => {
-        mkdirSync(CACHE, { recursive: true })
+      mkdirSync(CACHE, { recursive: true })
+      const res = await fetch(url, { redirect: "follow" })
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} ${res.statusText}`)
+      }
+      const buf = Buffer.from(await res.arrayBuffer())
+      await new Promise((resolveWrite, rejectWrite) => {
         const file = createWriteStream(binPath)
-        get(url, (res) => {
-          if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-            file.close()
-            reject(new Error(`Redirect (use the final URL): ${res.headers.location}`))
-            return
-          }
-          if (res.statusCode !== 200) {
-            file.close()
-            reject(new Error(`HTTP ${res.statusCode}`))
-            return
-          }
-          res.pipe(file)
-          file.on("finish", () => { file.close(); chmodSync(binPath, 0o755); resolvePromise() })
-        }).on("error", reject)
+        file.on("error", rejectWrite)
+        file.on("finish", () => {
+          file.close(() => {
+            chmodSync(binPath, 0o755)
+            resolveWrite()
+          })
+        })
+        file.end(buf)
       })
       console.error(`  Cached to ${binPath}\n`)
     } catch (err) {
