@@ -104,8 +104,8 @@ jobs:
         include:
           - { target: linux-x64,         os: ubuntu-latest, ext: '',  binary: aegis-linux-x64,         bun_target: bun-linux-x64-baseline }
           - { target: linux-arm64,       os: ubuntu-latest, ext: '',  binary: aegis-linux-arm64,       bun_target: bun-linux-arm64 }
-          - { target: darwin-x64,        os: macos-13,      ext: '',  binary: aegis-darwin-x64,        bun_target: bun-darwin-x64 }
-          - { target: darwin-arm64,      os: macos-14,      ext: '',  binary: aegis-darwin-arm64,      bun_target: bun-darwin-arm64 }
+          - { target: darwin-x64,        os: macos-latest,  ext: '',  binary: aegis-darwin-x64,        bun_target: bun-darwin-x64 }
+          - { target: darwin-arm64,      os: macos-latest,  ext: '',  binary: aegis-darwin-arm64,      bun_target: bun-darwin-arm64 }
           - { target: windows-x64,       os: windows-latest, ext: '.exe', binary: aegis-windows-x64,    bun_target: bun-windows-x64 }
 
     steps:
