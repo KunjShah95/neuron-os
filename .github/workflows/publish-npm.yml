@@ -22,7 +22,13 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Publish
-        run: npm publish
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "⚠️  NPM_TOKEN secret not set — skipping publish"
+            echo "   Set it at: https://github.com/KunjShah95/neuron-os/settings/secrets/actions"
+            exit 0
+          fi
+          npm publish
         working-directory: packages/aegis
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
