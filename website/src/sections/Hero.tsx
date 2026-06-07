@@ -4,13 +4,21 @@ import { LampContainer } from "../components/Lamp"
 import { fadeUp } from "../lib/motion"
 
 export default function Hero() {
-  const [copied, setCopied] = useState(false)
-  const installCmd = "npx @kunjshah/aegis"
+  const [copiedNpx, setCopiedNpx] = useState(false)
+  const [copiedCurl, setCopiedCurl] = useState(false)
+  const npxCmd = "npx neuron-aegis"
+  const curlCmd = "curl -fsSL https://raw.githubusercontent.com/KunjShah95/neuron-os/main/install.sh | bash"
 
-  const copy = async () => {
-    await navigator.clipboard.writeText(installCmd)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1800)
+  const copyNpx = async () => {
+    await navigator.clipboard.writeText(npxCmd)
+    setCopiedNpx(true)
+    setTimeout(() => setCopiedNpx(false), 1800)
+  }
+
+  const copyCurl = async () => {
+    await navigator.clipboard.writeText(curlCmd)
+    setCopiedCurl(true)
+    setTimeout(() => setCopiedCurl(false), 1800)
   }
 
   return (
@@ -21,7 +29,7 @@ export default function Hero() {
           className="mt-6 inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/[0.08] bg-white/[0.02] text-[11px] text-neutral-400 font-mono"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-          <span>v0.2.1 · MIT · Local-first</span>
+          <span>v1.0.0 · MIT · Local-first</span>
           <span className="text-neutral-700">·</span>
           <a href="#changelog" className="hover:text-white transition-colors">
             changelog →
@@ -69,35 +77,82 @@ export default function Hero() {
 
         <motion.div
           variants={fadeUp}
-          id="install"
-          className="mt-10 group relative flex items-center gap-2 pl-4 pr-2 py-2 rounded-xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-md max-w-md mx-auto"
+          className="mt-10 flex flex-col gap-2 items-center"
         >
-          <span className="font-mono text-[13px] text-neutral-500 select-none">$</span>
-          <code className="font-mono text-[13px] text-white flex-1 text-left truncate">
-            {installCmd}
-          </code>
-          <button
-            onClick={copy}
-            aria-label="Copy install command"
-            className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-mono text-neutral-400 hover:text-white bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/[0.12] transition-all"
+          <div className="text-[11px] font-mono text-neutral-600 tracking-wider mb-1">
+            INSTALL IN ONE COMMAND
+          </div>
+
+          {/* npx install */}
+          <div
+            id="install"
+            className="group relative flex items-center gap-2 pl-4 pr-2 py-2 rounded-xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-md w-full max-w-md"
           >
-            {copied ? (
-              <>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span>copied</span>
-              </>
-            ) : (
-              <>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="9" y="9" width="13" height="13" rx="2" />
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                </svg>
-                <span>copy</span>
-              </>
-            )}
-          </button>
+            <span className="font-mono text-[13px] text-neutral-500 select-none shrink-0">
+              <span className="text-blue-400">npx</span>
+            </span>
+            <code className="font-mono text-[13px] text-white flex-1 text-left truncate">
+              neuron-aegis
+            </code>
+            <button
+              onClick={copyNpx}
+              aria-label="Copy npx install command"
+              className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-mono text-neutral-400 hover:text-white bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/[0.12] transition-all"
+            >
+              {copiedNpx ? (
+                <>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span>done</span>
+                </>
+              ) : (
+                <>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                  <span>copy</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* curl install */}
+          <div className="group relative flex items-center gap-2 pl-4 pr-2 py-2 rounded-xl border border-white/[0.06] bg-white/[0.01] backdrop-blur-md hover:border-white/[0.1] transition-all w-full max-w-md">
+            <span className="font-mono text-[13px] text-neutral-500 select-none shrink-0">
+              <span className="text-green-400">curl</span>
+            </span>
+            <code className="font-mono text-[13px] text-neutral-300 flex-1 text-left truncate">
+              -fsSL .../install.sh | bash
+            </code>
+            <button
+              onClick={copyCurl}
+              aria-label="Copy curl install command"
+              className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-mono text-neutral-500 hover:text-white bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/[0.12] transition-all"
+            >
+              {copiedCurl ? (
+                <>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span>done</span>
+                </>
+              ) : (
+                <>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                  <span>copy</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="text-[10px] font-mono text-neutral-600 mt-1">
+            Linux/macOS · WSL · Docker also available
+          </div>
         </motion.div>
       </LampContainer>
     </section>

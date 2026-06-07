@@ -2,7 +2,7 @@
 
 *The Operating System for Autonomous AI Agents*
 
-[![Version](https://img.shields.io/badge/version-0.10.0-blue)]()
+[![Version](https://img.shields.io/badge/version-1.0.0-blue)]()
 [![Roadmap](https://img.shields.io/badge/roadmap-1--year%20plan-purple)]()
 [![Status](https://img.shields.io/badge/status-active%20development-orange)]()
 [![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.3.14-black)]()
@@ -16,18 +16,33 @@
 
 ## Quick Start
 
-**Zero install — just run:**
+**Zero install — three ways to start:**
 
+**1. CURL** (Linux/macOS — downloads prebuilt binary)
 ```bash
-npx @kunjshah/aegis                # interactive mode picker
-npx @kunjshah/aegis status         # system overview
-npx @kunjshah/aegis chat           # streaming AI chat
-npx @kunjshah/aegis dashboard      # live agent monitoring TUI
-npx @kunjshah/aegis serve          # start REST API server
+curl -fsSL https://raw.githubusercontent.com/KunjShah95/neuron-os/main/install.sh | bash
 ```
 
+**2. NPX** (cross-platform — auto-downloads shim)
+```bash
+npx @kunjshah/aegis                  # interactive mode picker
+npx @kunjshah/aegis status           # system overview
+npx @kunjshah/aegis chat             # streaming AI chat
+npx @kunjshah/aegis dashboard        # live agent monitoring TUI
+npx @kunjshah/aegis serve            # start REST API server
+```
 The shim downloads the prebuilt binary on first run and caches it at `~/.aegis/bin/`.
 If you have [Bun](https://bun.sh) installed, `bunx @kunjshah/aegis` skips the download and runs TypeScript directly.
+
+**3. Docker** (containerized)
+```bash
+docker run -d --name aegis -p 8080:8080 ghcr.io/kunjshah95/neuron-os:latest
+```
+
+**Windows (PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/KunjShah95/neuron-os/main/install.ps1 | iex
+```
 
 **Or install from source** (for development):
 
@@ -43,13 +58,13 @@ bun run index.ts status            # System overview
 bun run index.ts serve             # Start REST API server
 ```
 
-**Prerequisites:** [Bun](https://bun.sh) >= 1.3.14
+**Prerequisites:** [Bun](https://bun.sh) >= 1.3.14 (only needed for source install — the curl/npx methods don't require it)
 
 ---
 
 ## What's in the Box
 
-### TUI Modes (12)
+### TUI Modes (23)
 
 Run `aegis` (no args) for the interactive mode picker, or launch directly:
 
@@ -349,6 +364,79 @@ docker run -p 8080:8080 \
 docker compose --profile dev up
 ```
 
+### Production Deployment (Docker Compose)
+
+Create `docker-compose.prod.yml` with all security features enabled:
+
+```yaml
+version: "3.9"
+services:
+  aegis:
+    image: ghcr.io/kunjshah95/neuron-os:latest
+    container_name: aegis-prod
+    ports:
+      - "8080:8080"
+    volumes:
+      - aegis-data:/home/aegis/.aegis
+    environment:
+      # API authentication
+      - AEGIS_API_KEY=${AEGIS_API_KEY:?Set AEGIS_API_KEY}
+      - AEGIS_AUTH_REQUIRED=true
+
+      # Vault encryption
+      - AEGIS_VAULT_KEY=${AEGIS_VAULT_KEY:?Set AEGIS_VAULT_KEY}
+
+      # Sandbox isolation
+      - AEGIS_SANDBOX=docker
+
+      # CORS (set to your dashboard URL)
+      - AEGIS_API_CORS_ORIGINS=${AEGIS_API_CORS_ORIGINS:-http://localhost:5173}
+
+      # Rate limiting
+      - AEGIS_API_RATE_LIMIT=200
+
+      # AI provider keys (example)
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+
+      # Model routing
+      - AEGIS_MODEL_ROUTER=auto
+      - AEGIS_PREFLIGHT=enabled
+
+      # Observability
+      - AEGIS_LOG_LEVEL=info
+
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "bun", "-e", "fetch('http://localhost:8080/api/v1/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  aegis-data:
+    driver: local
+```
+
+Run it:
+```bash
+# Create required secrets
+echo "AEGIS_API_KEY=$(openssl rand -hex 32)" > .env
+echo "AEGIS_VAULT_KEY=$(openssl rand -hex 32)" >> .env
+echo "ANTHROPIC_API_KEY=sk-ant-..." >> .env
+
+# Start the service
+docker compose -f docker-compose.prod.yml --env-file .env up -d
+
+# Verify it's running
+docker compose -f docker-compose.prod.yml ps
+curl http://localhost:8080/api/v1/health
+```
+
+All secrets are passed via environment variables from `.env`. Keep this file secure and never commit it to version control. Use your secret manager (Vault, AWS Secrets Manager, 1Password CLI) to inject secrets in production.
+
 ---
 
 ## Roadmap (2026-2027)
@@ -488,7 +576,7 @@ Neuron OS has shipped 4 major milestones since v0.2.0. The roadmap below shows w
 2. **Open an issue** labeled `roadmap` for focused, single-module proposals
 3. **Pick up a spec** from [`docs/superpowers/specs/`](docs/superpowers/specs/) and ship it
 
-See [ROADMAP.md](ROADMAP.md) for the full strategic roadmap and [docs/](docs/) for complete documentation.
+See [ROADMAP.md](ROADMAP.md) for the full strategic roadmap, [docs/security-whitepaper.md](docs/security-whitepaper.md) for the formal enterprise security document, and [docs/](docs/) for complete documentation. The website also includes a [comparison section](https://neuron-os.dev/#comparison) vs LangChain, AutoGPT, and CrewAI.
 
 ---
 
