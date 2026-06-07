@@ -276,9 +276,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Tag commit and push tag
+      - name: Tag commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "${{ steps.tag.outputs.tag }}" -m "Release ${{ steps.tag.outputs.tag }}"
-          git push origin "${{ steps.tag.outputs.tag }}"
+          # Tag is created by softprops/action-gh-release above.
+          # This local tag is for reference only; push may fail on protected branches.
+          git tag "${{ steps.tag.outputs.tag }}" 2>/dev/null || true

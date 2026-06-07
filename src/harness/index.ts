@@ -98,3 +98,9 @@ export type {
   CalibrationResult,
   DriftReport,
 } from "./grader/types"
+
+// ── Distributed Runner (Phase 3) ────────────────────────────────
+export { TestSharder } from "./test-sharder"
+export type { ShardStrategy, ShardStrategyType, ShardResult } from "./test-sharder"
+export { DistributedEvalRunner, registerEvalWorker } from "./distributed-runner"
+export type { DistributedEvalConfig, WorkerTaskPayload, WorkerTaskResult, EvalWorkerOptions } from "./distributed-runner"
