@@ -4,25 +4,120 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      tag-suffix:
+        description: "Optional suffix to append to the auto-generated tag (e.g. 'rc1')"
+        required: false
+        default: ""
 
 permissions:
   contents: write
 
 jobs:
+  # ─────────────────────────────────────────────────────────────────
+  # Test gates
+  # ─────────────────────────────────────────────────────────────────
   test:
-    name: Test
+    name: Test (root)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.x'
 
-      - name: Cache bun dependencies
-        uses: actions/cache@v4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: bun-
+
+      - run: bun install --frozen-lockfile
+      - run: bun run --bun tsc --noEmit
+      - run: bun run scripts/run-tests.ts
+
+  dashboard-build:
+    name: Build dashboard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.x'
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: dashboard-bun-${{ hashFiles('dashboard/bun.lock') }}
+          restore-keys: dashboard-bun-
+
+      - run: bun install --frozen-lockfile
+        working-directory: dashboard
+      - run: bun run build
+        working-directory: dashboard
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-dist
+          path: dashboard/dist/
+          if-no-files-found: warn
+
+  website-build:
+    name: Build website
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.x'
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: website-bun-${{ hashFiles('website/package-lock.json') }}
+          restore-keys: website-bun-
+
+      - run: bun install --frozen-lockfile
+        working-directory: website
+      - run: bunx tsc -b
+        working-directory: website
+      - run: bun run build
+        working-directory: website
+      - uses: actions/upload-artifact@v4
+        with:
+          name: website-dist
+          path: website/dist/
+          if-no-files-found: warn
+
+  # ─────────────────────────────────────────────────────────────────
+  # Cross-platform binary matrix
+  # ─────────────────────────────────────────────────────────────────
+  binaries:
+    name: Binary (${{ matrix.target }})
+    needs: [test, dashboard-build, website-build]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: linux-x64,         os: ubuntu-latest, ext: '',  binary: aegis-linux-x64,         bun_target: bun-linux-x64-baseline }
+          - { target: linux-arm64,       os: ubuntu-latest, ext: '',  binary: aegis-linux-arm64,       bun_target: bun-linux-arm64 }
+          - { target: darwin-x64,        os: macos-13,      ext: '',  binary: aegis-darwin-x64,        bun_target: bun-darwin-x64 }
+          - { target: darwin-arm64,      os: macos-14,      ext: '',  binary: aegis-darwin-arm64,      bun_target: bun-darwin-arm64 }
+          - { target: windows-x64,       os: windows-latest, ext: '.exe', binary: aegis-windows-x64,    bun_target: bun-windows-x64 }
+          - { target: windows-arm64,     os: windows-latest, ext: '.exe', binary: aegis-windows-arm64,  bun_target: bun-windows-arm64 }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.x'
+
+      - uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
           key: bun-${{ hashFiles('**/bun.lock') }}
@@ -31,131 +126,155 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Typecheck
-        run: bun run tsc --noEmit
-
-      - name: Run tests
-        run: bun run scripts/run-tests.ts
-
-  dashboard:
-    name: Dashboard
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Download pre-built dashboard
+        uses: actions/download-artifact@v4
         with:
-          bun-version: '1.x'
+          name: dashboard-dist
+          path: dashboard/dist
 
-      - name: Cache dashboard dependencies
-        uses: actions/cache@v4
+      - name: Build binary (${{ matrix.target }})
+        run: |
+          mkdir -p dist
+          bun build index.ts \
+            --compile \
+            --target=${{ matrix.bun_target }} \
+            --outfile=dist/${{ matrix.binary }}${{ matrix.ext }}
+          chmod +x dist/${{ matrix.binary }}${{ matrix.ext }} 2>/dev/null || true
+          ls -lh dist/
+
+      - name: Package binary (zip)
+        run: |
+          cd dist
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            powershell -Command "Compress-Archive -Path ${{ matrix.binary }}${{ matrix.ext }} -DestinationPath ${{ matrix.binary }}.zip -Force"
+          else
+            zip ${{ matrix.binary }}.zip ${{ matrix.binary }}${{ matrix.ext }}
+          fi
+          ls -lh
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum ${{ matrix.binary }}${{ matrix.ext }} > ${{ matrix.binary }}.sha256
+          cat ${{ matrix.binary }}.sha256
+
+      - uses: actions/upload-artifact@v4
         with:
-          path: ~/.bun/install/cache
-          key: dashboard-bun-${{ hashFiles('dashboard/bun.lock') }}
-          restore-keys: dashboard-bun-
+          name: binary-${{ matrix.target }}
+          path: |
+            dist/${{ matrix.binary }}${{ matrix.ext }}
+            dist/${{ matrix.binary }}.zip
+            dist/${{ matrix.binary }}.sha256
+          if-no-files-found: error
 
-      - name: Install dashboard dependencies
-        run: bun install --frozen-lockfile
-        working-directory: dashboard
-
-      - name: Build dashboard
-        run: bun run build
-        working-directory: dashboard
-
-  website:
-    name: Website
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: '1.x'
-
-      - name: Cache website dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: website-bun-${{ hashFiles('website/package-lock.json') }}
-          restore-keys: website-bun-
-
-      - name: Install website dependencies
-        run: bun install --frozen-lockfile
-        working-directory: website
-
-      - name: Typecheck website
-        run: bunx tsc -b
-        working-directory: website
-
-      - name: Build website
-        run: bun run build
-        working-directory: website
-
+  # ─────────────────────────────────────────────────────────────────
+  # Release — collect all artifacts and publish
+  # ─────────────────────────────────────────────────────────────────
   release:
-    name: Release
-    needs: [test, dashboard, website]
+    name: Publish release
+    needs: [test, dashboard-build, website-build, binaries]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Download all binary artifacts
+        uses: actions/download-artifact@v4
         with:
-          bun-version: '1.x'
+          path: artifacts/binaries
 
-      - name: Install root dependencies
-        run: bun install --frozen-lockfile
+      - name: Download dashboard build
+        uses: actions/download-artifact@v4
+        with:
+          name: dashboard-dist
+          path: artifacts/dashboard
 
-      - name: Install dashboard dependencies
-        run: bun install --frozen-lockfile
-        working-directory: dashboard
+      - name: Download website build
+        uses: actions/download-artifact@v4
+        with:
+          name: website-dist
+          path: artifacts/website
 
-      - name: Install website dependencies
-        run: bun install --frozen-lockfile
-        working-directory: website
+      - name: List all collected artifacts
+        run: find artifacts -type f | sort
 
-      - name: Typecheck
-        run: bun run --bun tsc --noEmit
-
-      - name: Typecheck website
-        run: bunx tsc -b
-        working-directory: website
-
-      - name: Build dashboard
-        run: bun run build
-        working-directory: dashboard
-
-      - name: Build website
-        run: bun run build
-        working-directory: website
+      - name: Compute combined checksums
+        run: |
+          cd artifacts/binaries
+          find . -type f -name "*.sha256" -exec cat {} \; > ../checksums.txt
+          cat ../checksums.txt
 
       - name: Create release tag
         id: tag
+        env:
+          SUFFIX: ${{ github.event.inputs.tag-suffix }}
         run: |
-          TAG="v$(date +%Y%m%d)-${GITHUB_RUN_NUMBER}"
+          if [ -n "$SUFFIX" ]; then
+            TAG="v$(date +%Y%m%d)-${SUFFIX}"
+          else
+            TAG="v$(date +%Y%m%d)-${GITHUB_RUN_NUMBER}"
+          fi
           echo "tag=$TAG" >> $GITHUB_OUTPUT
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$TAG" -m "Release $TAG"
-          git push origin "$TAG"
+          echo "Release tag: $TAG"
+
+      - name: Build release notes
+        id: notes
+        run: |
+          {
+            echo "## Neuron OS ${{ steps.tag.outputs.tag }}"
+            echo ""
+            echo "### Install"
+            echo ""
+            echo "**Linux / macOS**"
+            echo '```'
+            echo "curl -fsSL https://raw.githubusercontent.com/KunjShah95/neuron-os/main/install.sh | bash"
+            echo '```'
+            echo ""
+            echo "**Windows (PowerShell)**"
+            echo '```powershell'
+            echo "irm https://raw.githubusercontent.com/KunjShah95/neuron-os/main/install.ps1 | iex"
+            echo '```'
+            echo ""
+            echo "**Docker**"
+            echo '```'
+            echo "docker run -d --name aegis -p 8080:8080 -v aegis-data:/home/aegis/.aegis ghcr.io/kunjshah95/neuron-os:latest"
+            echo '```'
+            echo ""
+            echo "### Binaries"
+            echo ""
+            echo "| Platform | Architecture | File |"
+            echo "| --- | --- | --- |"
+            echo "| Linux | x64 | \`aegis-linux-x64\` |"
+            echo "| Linux | arm64 | \`aegis-linux-arm64\` |"
+            echo "| macOS | x64 | \`aegis-darwin-x64\` |"
+            echo "| macOS | arm64 (Apple Silicon) | \`aegis-darwin-arm64\` |"
+            echo "| Windows | x64 | \`aegis-windows-x64.exe\` |"
+            echo "| Windows | arm64 | \`aegis-windows-arm64.exe\` |"
+            echo ""
+            echo "### Checksums"
+            echo '```'
+            cat artifacts/checksums.txt
+            echo '```'
+          } > release_notes.md
+          cat release_notes.md
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
+          body_path: release_notes.md
           files: |
-            dashboard/dist/**/*
-            website/dist/**/*
+            artifacts/binaries/**
+            artifacts/dashboard/**
+            artifacts/website/**
+            artifacts/checksums.txt
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload source artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: aegis-source-${{ github.run_id }}
-          path: .
+      - name: Tag commit and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.tag.outputs.tag }}" -m "Release ${{ steps.tag.outputs.tag }}"
+          git push origin "${{ steps.tag.outputs.tag }}"
