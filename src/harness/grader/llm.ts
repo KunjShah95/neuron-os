@@ -385,7 +385,7 @@ async function tryJudgeCall(
   // Try numeric parse (for simple score-only output)
   const numMatch = text.match(/^[\s\n]*(\d+\.?\d*)[\s\n]*$/)
   if (numMatch) {
-    const score = parseFloat(numMatch[1])
+    const score = parseFloat(numMatch[1]!)
     if (isFinite(score) && score >= 0 && score <= 1) {
       return { score, confidence: 0.5, reasoning: "" }
     }
