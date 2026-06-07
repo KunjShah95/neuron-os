@@ -100,6 +100,7 @@
     "build:binary": "bun build index.ts --compile --target=bun-windows-x64 --outfile=dist/aegis.exe",
     "build:binary:linux": "bun build index.ts --compile --target=bun-linux-x64 --outfile=dist/aegis-linux-x64",
     "build:binary:mac": "bun build index.ts --compile --target=bun-darwin-x64 --outfile=dist/aegis-darwin-x64",
+    "build:binary:mac-arm64": "bun build index.ts --compile --target=bun-darwin-arm64 --outfile=dist/aegis-darwin-arm64",
     "docker:build": "docker build -t neuron-os/aegis:latest .",
     "docker:push": "docker push neuron-os/aegis:latest",
     "docker:up": "docker compose up -d",
