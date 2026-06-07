@@ -16,22 +16,31 @@
 
 ## Quick Start
 
+**Zero install — just run:**
+
 ```bash
-# Clone and install
+npx @kunjshah/aegis                # interactive mode picker
+npx @kunjshah/aegis status         # system overview
+npx @kunjshah/aegis chat           # streaming AI chat
+npx @kunjshah/aegis dashboard      # live agent monitoring TUI
+npx @kunjshah/aegis serve          # start REST API server
+```
+
+The shim downloads the prebuilt binary on first run and caches it at `~/.aegis/bin/`.
+If you have [Bun](https://bun.sh) installed, `bunx @kunjshah/aegis` skips the download and runs TypeScript directly.
+
+**Or install from source** (for development):
+
+```bash
 git clone https://github.com/KunjShah95/neuron-os.git
 cd neuron-os
 bun install
 
-# Launch the interactive mode picker
-bun run index.ts
-# or explicitly
-bun run index.ts wakeup
-
-# Or go straight to a mode
-bun run index.ts dashboard   # Live agent monitoring TUI
-bun run index.ts chat          # Streaming AI chat
-bun run index.ts status        # System overview
-bun run index.ts serve         # Start REST API server
+bun run index.ts                   # interactive mode picker
+bun run index.ts dashboard         # Live agent monitoring TUI
+bun run index.ts chat              # Streaming AI chat
+bun run index.ts status            # System overview
+bun run index.ts serve             # Start REST API server
 ```
 
 **Prerequisites:** [Bun](https://bun.sh) >= 1.3.14
