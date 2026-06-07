@@ -268,9 +268,7 @@ jobs:
           name: ${{ steps.tag.outputs.tag }}
           body_path: release_notes.md
           files: |
-            artifacts/binaries/**
-            artifacts/dashboard/**
-            artifacts/website/**
+            artifacts/binaries/aegis-*
             artifacts/checksums.txt
           fail_on_unmatched_files: false
           overwrite_files: true
