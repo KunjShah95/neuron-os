@@ -127,7 +127,9 @@ export class AgentManager {
       try {
         const distributedId = await this.spawnDistributed(def)
         if (distributedId) return distributedId
-      } catch { /* fall through to local spawn */ }
+      } catch {
+        /* fall through to local spawn */
+      }
     }
 
     // If agentType is specified, apply type configuration
@@ -137,10 +139,10 @@ export class AgentManager {
       if (!type) {
         throw new Error(`Unknown agent type: ${def.agentType}. Run 'aegis agent types' to see available types.`)
       }
-      
+
       // Merge type tools with def tools (def overrides)
       const tools = def.tools ?? type.tools
-      
+
       // Apply type configuration
       effectiveDef = {
         ...def,
@@ -161,19 +163,23 @@ export class AgentManager {
         try {
           const { ModelRouter } = await import("../economy/model-router")
           const route = ModelRouter.route({ taskType: type.name })
-          if (route.provider !== type.modelHint?.split(':')[0]) {
+          if (route.provider !== type.modelHint?.split(":")[0]) {
             effectiveDef.env = {
               ...effectiveDef.env,
               AEGIS_ROUTED_PROVIDER: route.provider,
               AEGIS_ROUTED_MODEL: route.model,
               AEGIS_ROUTED_COST: String(route.estimatedCost),
             }
-            console.log(`[ModelRouter] ${type.name} → ${route.provider}/${route.model} ($${route.estimatedCost.toFixed(4)})`)
+            console.log(
+              `[ModelRouter] ${type.name} → ${route.provider}/${route.model} ($${route.estimatedCost.toFixed(4)})`,
+            )
           }
-        } catch { /* router failure is non-fatal */ }
+        } catch {
+          /* router failure is non-fatal */
+        }
       }
     }
-    
+
     const id = generateId()
     const scriptPath = resolve(process.cwd(), effectiveDef.script)
     const isolationLevel = this.getIsolationLevel(effectiveDef)
@@ -206,7 +212,9 @@ export class AgentManager {
       const { traceCollector } = await import("../observability")
       const span = traceCollector.startSpan(`agent:${effectiveDef.name}`, "agent")
       instance.metadata = { ...instance.metadata, traceSpanId: span.id }
-    } catch { /* observability is optional */ }
+    } catch {
+      /* observability is optional */
+    }
 
     await this.hooks.run("spawn", "pre", id, instance, { def: effectiveDef })
 
@@ -237,7 +245,7 @@ export class AgentManager {
       const child = spawn({
         cmd: [process.execPath, "run", scriptPath, ...(effectiveDef.args ?? [])],
         env: {
-          ...process.env as Record<string, string>,
+          ...(process.env as Record<string, string>),
           AEGIS_AGENT_ID: id,
           AEGIS_AGENT_NAME: effectiveDef.name,
           ...effectiveDef.env,
@@ -280,13 +288,17 @@ export class AgentManager {
           try {
             const { traceCollector } = await import("../observability")
             traceCollector.endSpan(traceSpanId, code === 0 ? "ok" : "error")
-          } catch { /* non-fatal */ }
+          } catch {
+            /* non-fatal */
+          }
         }
 
         try {
           const { sloManager } = await import("../observability")
           sloManager.recordMetric("agent_success_rate", code === 0 ? 1 : 0)
-        } catch { /* non-fatal */ }
+        } catch {
+          /* non-fatal */
+        }
 
         // Run exit hooks
         await this.hooks.run("exit", "post", id, instance, { code })
@@ -308,7 +320,7 @@ export class AgentManager {
 
       this.emit("agent:spawned", id, { pid: child.pid })
       instance.log.push(this.makeLog("info", `Spawned (pid ${child.pid})`))
-      
+
       if (effectiveDef.agentType) {
         instance.log.push(this.makeLog("info", `Agent type: ${effectiveDef.agentType}`))
       }
@@ -526,9 +538,15 @@ export class AgentManager {
     let traceSpanId: string | undefined
     try {
       const { traceCollector } = await import("../observability")
-      const span = traceCollector.startSpan(`ipc:${msg.type}`, "ipc", instance.metadata?.traceSpanId as string | undefined)
+      const span = traceCollector.startSpan(
+        `ipc:${msg.type}`,
+        "ipc",
+        instance.metadata?.traceSpanId as string | undefined,
+      )
       traceSpanId = span.id
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
 
     try {
       const line = JSON.stringify(msg) + "\n"
@@ -539,14 +557,18 @@ export class AgentManager {
         try {
           const { traceCollector } = await import("../observability")
           traceCollector.endSpan(traceSpanId, "ok")
-        } catch { /* non-fatal */ }
+        } catch {
+          /* non-fatal */
+        }
       }
     } catch (err) {
       if (traceSpanId) {
         try {
           const { traceCollector } = await import("../observability")
           traceCollector.endSpan(traceSpanId, "error")
-        } catch { /* non-fatal */ }
+        } catch {
+          /* non-fatal */
+        }
       }
       instance.log.push(this.makeLog("error", `Failed to send IPC message: ${String(err)}`))
     }
@@ -579,7 +601,9 @@ export class AgentManager {
     }
 
     fromAgent.log.push(this.makeLog("info", `Routing IPC ${msg.type} → agent "${toAgent.def.name}" (${toId})`))
-    toAgent.log.push(this.makeLog("info", `Received routed IPC ${msg.type} from agent "${fromAgent.def.name}" (${fromId})`))
+    toAgent.log.push(
+      this.makeLog("info", `Received routed IPC ${msg.type} from agent "${fromAgent.def.name}" (${fromId})`),
+    )
 
     await this.sendIpc(toId, routedMsg)
 
@@ -623,7 +647,10 @@ export class AgentManager {
    * Look up an agent by name or type, returning a safe summary for IPC responses.
    * Used by workers to discover peers for dispatch.
    */
-  lookupAgent(opts: { name?: string; agentType?: string }): { id: string; name: string; agentType?: string; status: string } | null {
+  lookupAgent(opts: {
+    name?: string
+    agentType?: string
+  }): { id: string; name: string; agentType?: string; status: string } | null {
     const agent = opts.name
       ? this.findAgentByName(opts.name)
       : opts.agentType
@@ -694,12 +721,12 @@ export class AgentManager {
       }
     }
     await Promise.allSettled(kills)
-    
+
     // Clean up all sandbox containers
     if (dockerSandbox) {
       dockerSandbox.cleanup()
     }
-    
+
     this.agents.clear()
     this.hooks.clear()
     this.listeners.clear()
@@ -724,7 +751,9 @@ export class AgentManager {
         nodeId,
         role: "worker",
         leaderHost: process.env.AEGIS_CLUSTER_LEADER_HOST,
-        leaderPort: process.env.AEGIS_CLUSTER_LEADER_PORT ? parseInt(process.env.AEGIS_CLUSTER_LEADER_PORT, 10) : undefined,
+        leaderPort: process.env.AEGIS_CLUSTER_LEADER_PORT
+          ? parseInt(process.env.AEGIS_CLUSTER_LEADER_PORT, 10)
+          : undefined,
         listenPort: 0,
         secret,
       })
@@ -754,7 +783,14 @@ export class AgentManager {
 
   private createPendingInstance(id: string, def: AgentDef): AgentInstance {
     // Use a null-coalesced stub — process is overwritten immediately after spawn()
-    const stub = { pid: 0, kill: () => {}, exited: Promise.resolve(0), stdin: null, stdout: null, stderr: null } as unknown as Subprocess
+    const stub = {
+      pid: 0,
+      kill: () => {},
+      exited: Promise.resolve(0),
+      stdin: null,
+      stdout: null,
+      stderr: null,
+    } as unknown as Subprocess
     return {
       id,
       def,
@@ -920,7 +956,11 @@ export class AgentManager {
   private emit(type: AgentEventType, agentId: string, data?: unknown): void {
     const event: AgentEvent = { type, agentId, data }
     for (const cb of this.listeners) {
-      try { cb(event) } catch { /* isolate listener failures */ }
+      try {
+        cb(event)
+      } catch {
+        /* isolate listener failures */
+      }
     }
   }
 

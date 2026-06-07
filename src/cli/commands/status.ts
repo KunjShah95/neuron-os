@@ -46,9 +46,7 @@ function buildStatusReport() {
   const heapMB = (mem.heapUsed / 1024 / 1024).toFixed(1)
   const cpus = os.cpus().length
   const uptime = Math.floor(process.uptime())
-  const runtime = process.versions.bun
-    ? `bun ${process.versions.bun}`
-    : `node ${process.version}`
+  const runtime = process.versions.bun ? `bun ${process.versions.bun}` : `node ${process.version}`
 
   const agents = agentManager.list()
   const running = agents.filter((a) => a.status === "running")
@@ -98,7 +96,9 @@ function renderStatus(report: ReturnType<typeof buildStatusReport>) {
   if (report.agents.list.length > 0) {
     for (const a of report.agents.list) {
       const statusColor = a.status === "running" ? theme.success : a.status === "error" ? theme.error : theme.warn
-      lines.push(`  ${theme.bold(a.name.padEnd(20))} ${statusColor(a.status.padEnd(10))} ${theme.muted(`${a.type} | up ${a.uptime}`)}`)
+      lines.push(
+        `  ${theme.bold(a.name.padEnd(20))} ${statusColor(a.status.padEnd(10))} ${theme.muted(`${a.type} | up ${a.uptime}`)}`,
+      )
     }
   } else {
     lines.push(`  ${theme.muted("  No agents running")}`)

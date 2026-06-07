@@ -12,12 +12,7 @@
 import { createClient, type MatrixClient } from "matrix-js-sdk"
 import type { PlatformAdapter, PlatformSendOptions } from "./types"
 import { createLogger } from "../cli/logger"
-import {
-  WELCOME_MSG,
-  HELP_MSG,
-  getCommandHandler,
-  clip,
-} from "./bot-commands"
+import { WELCOME_MSG, HELP_MSG, getCommandHandler, clip } from "./bot-commands"
 
 const log = createLogger("adapter:matrix")
 

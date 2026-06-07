@@ -5,12 +5,15 @@ import { getActiveProject, getProjectDataDir } from "./context"
 
 export interface AegisConfig {
   agentTypes?: string[]
-  agentModels?: Record<string, {
-    provider?: string
-    model?: string
-    budgetUsd?: number
-    maxTokens?: number
-  }>
+  agentModels?: Record<
+    string,
+    {
+      provider?: string
+      model?: string
+      budgetUsd?: number
+      maxTokens?: number
+    }
+  >
   budgetUsd?: number
   skills?: string[]
   allowedTools?: string[]
@@ -20,12 +23,7 @@ export interface AegisConfig {
   }
 }
 
-const CONFIG_FILENAMES = [
-  "aegis.config.ts",
-  "aegis.config.json",
-  "aegis.config.yaml",
-  "aegis.config.yml",
-]
+const CONFIG_FILENAMES = ["aegis.config.ts", "aegis.config.json", "aegis.config.yaml", "aegis.config.yml"]
 
 export class ConfigLoader {
   static load(projectRoot?: string): AegisConfig | null {
@@ -57,9 +55,7 @@ export class ConfigLoader {
       } else if (ext === "yaml" || ext === "yml") {
         config = parseYaml(raw) as Record<string, unknown>
       } else if (ext === "ts") {
-        throw new Error(
-          "TypeScript config files (aegis.config.ts) require dynamic import — use .json or .yaml instead",
-        )
+        throw new Error("TypeScript config files (aegis.config.ts) require dynamic import — use .json or .yaml instead")
       } else {
         return null
       }
@@ -89,10 +85,7 @@ export class ConfigLoader {
     return null
   }
 
-  static merge(
-    config: Partial<AegisConfig>,
-    defaults?: Partial<AegisConfig>,
-  ): AegisConfig {
+  static merge(config: Partial<AegisConfig>, defaults?: Partial<AegisConfig>): AegisConfig {
     const result: AegisConfig = { ...defaults, ...config } as AegisConfig
 
     if (defaults?.agentModels || config.agentModels) {

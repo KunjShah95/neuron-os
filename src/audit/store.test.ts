@@ -56,9 +56,18 @@ describe("AuditStore", () => {
     testSessions.push(sessionId)
 
     const types: AuditEventType[] = [
-      "thought", "tool_call", "tool_result", "file_read", "file_write",
-      "file_delete", "shell_command", "approval_request", "approval_result",
-      "error", "session_start", "session_end",
+      "thought",
+      "tool_call",
+      "tool_result",
+      "file_read",
+      "file_write",
+      "file_delete",
+      "shell_command",
+      "approval_request",
+      "approval_result",
+      "error",
+      "session_start",
+      "session_end",
     ]
 
     for (const eventType of types) {

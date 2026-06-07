@@ -53,10 +53,7 @@ function discoverEvalTasks(category?: string): EvalTaskYaml[] {
 }
 
 export function registerAdversarial(program: Command): void {
-  const adversarial = program
-    .command("adversarial")
-    .alias("adv")
-    .description("Red-team adversarial self-play")
+  const adversarial = program.command("adversarial").alias("adv").description("Red-team adversarial self-play")
 
   adversarial
     .command("enable")
@@ -108,9 +105,7 @@ export function registerAdversarial(program: Command): void {
     .option("--task <id>", "Filter by task ID")
     .action((opts: { since?: string; severity?: string; task?: string }) => {
       const since = opts.since ? parseInt(opts.since, 10) : undefined
-      const findings = opts.task
-        ? loadFindings(opts.task, since)
-        : loadRecentFindings(since, opts.severity)
+      const findings = opts.task ? loadFindings(opts.task, since) : loadRecentFindings(since, opts.severity)
 
       if (findings.length === 0) {
         console.log("No findings.")
@@ -251,14 +246,18 @@ async function handleRun(opts: { all?: boolean; json?: boolean; category?: strin
   }
 
   if (!opts.json) {
-    console.log(`\nDone. ${tasks.length - totalFailed}/${tasks.length} passed. ${allFindings.length} tasks had findings.`)
+    console.log(
+      `\nDone. ${tasks.length - totalFailed}/${tasks.length} passed. ${allFindings.length} tasks had findings.`,
+    )
     return
   }
 
   const output: Record<string, unknown> = {
     total: tasks.length,
     failed: totalFailed,
-    newRegressions: allFindings.filter((f) => f.findings && Array.isArray(f.findings) && (f.findings as unknown[]).length > 0).length,
+    newRegressions: allFindings.filter(
+      (f) => f.findings && Array.isArray(f.findings) && (f.findings as unknown[]).length > 0,
+    ).length,
     results: allFindings,
     ts: Date.now(),
   }

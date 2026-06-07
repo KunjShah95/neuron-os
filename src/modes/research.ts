@@ -115,7 +115,9 @@ export async function runResearchLoop(
         `4. How to verify/measure the result`,
         ``,
         `Keep changes small and focused — one hypothesis per iteration.`,
-      ].filter(Boolean).join("\n")
+      ]
+        .filter(Boolean)
+        .join("\n")
 
       const exploration = await generateText({
         model: ai.getModel(),
@@ -167,9 +169,7 @@ export async function runResearchLoop(
 
         // Phase 4: Measure via RatchetRuntime
         const measure = await ratchet.measure(
-          config.testCommand
-            ? { cwd, testCommand: config.testCommand }
-            : { cwd, criteria: [{ metric: "typecheck" }] },
+          config.testCommand ? { cwd, testCommand: config.testCommand } : { cwd, criteria: [{ metric: "typecheck" }] },
           previousScore,
         )
 
@@ -195,13 +195,14 @@ export async function runResearchLoop(
           outcome: measure.outcome,
           score: measure.score,
           metric: measure.output.slice(0, 300),
-          summary: measure.outcome === "improved"
-            ? "Changes improved the metric"
-            : measure.outcome === "neutral"
-              ? "No measurable change"
-              : measure.outcome === "degraded"
-                ? "Metric degraded, files reverted"
-                : "Evaluator error",
+          summary:
+            measure.outcome === "improved"
+              ? "Changes improved the metric"
+              : measure.outcome === "neutral"
+                ? "No measurable change"
+                : measure.outcome === "degraded"
+                  ? "Metric degraded, files reverted"
+                  : "Evaluator error",
         })
       } else {
         iterations.push({

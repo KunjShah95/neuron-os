@@ -4,9 +4,7 @@ import { estimateCost } from "../../economy/cost-router"
 import { submitToLeaderboard, fetchLeaderboard } from "../../economy/leaderboard-client"
 
 export function registerPricing(program: Command): void {
-  const pricing = program
-    .command("pricing")
-    .description("Tool-level economy and cost routing")
+  const pricing = program.command("pricing").description("Tool-level economy and cost routing")
 
   pricing
     .command("list")
@@ -15,17 +13,33 @@ export function registerPricing(program: Command): void {
       const data = loadPricing()
 
       console.log("Tool pricing:")
-      console.log("  Name".padEnd(24), "api_usd".padEnd(12), "compute/s".padEnd(12), "io/mb".padEnd(12), "p50 ms".padEnd(8))
+      console.log(
+        "  Name".padEnd(24),
+        "api_usd".padEnd(12),
+        "compute/s".padEnd(12),
+        "io/mb".padEnd(12),
+        "p50 ms".padEnd(8),
+      )
       console.log("  " + "-".repeat(68))
       for (const [name, t] of Object.entries(data.tools)) {
-        console.log(`  ${name.padEnd(22)} ${(t.api_usd?.toFixed(4) ?? "-").padEnd(10)} ${(t.compute_usd_per_second?.toFixed(6) ?? "-").padEnd(10)} ${(t.io_usd_per_mb?.toFixed(6) ?? "-").padEnd(10)} ${(t.latency_p50_ms?.toString() ?? "-").padEnd(6)}`)
+        console.log(
+          `  ${name.padEnd(22)} ${(t.api_usd?.toFixed(4) ?? "-").padEnd(10)} ${(t.compute_usd_per_second?.toFixed(6) ?? "-").padEnd(10)} ${(t.io_usd_per_mb?.toFixed(6) ?? "-").padEnd(10)} ${(t.latency_p50_ms?.toString() ?? "-").padEnd(6)}`,
+        )
       }
 
       console.log("\nModel pricing:")
-      console.log("  Name".padEnd(24), "prompt/1k".padEnd(12), "completion/1k".padEnd(14), "quality".padEnd(10), "score".padEnd(8))
+      console.log(
+        "  Name".padEnd(24),
+        "prompt/1k".padEnd(12),
+        "completion/1k".padEnd(14),
+        "quality".padEnd(10),
+        "score".padEnd(8),
+      )
       console.log("  " + "-".repeat(68))
       for (const [name, m] of Object.entries(data.models)) {
-        console.log(`  ${name.padEnd(22)} $${m.prompt_usd_per_1k.toFixed(4).padEnd(6)} $${m.completion_usd_per_1k.toFixed(4).padEnd(8)} ${m.quality_tier.padEnd(8)} ${(m.benchmark_score?.toFixed(2) ?? "-").padEnd(6)}`)
+        console.log(
+          `  ${name.padEnd(22)} $${m.prompt_usd_per_1k.toFixed(4).padEnd(6)} $${m.completion_usd_per_1k.toFixed(4).padEnd(8)} ${m.quality_tier.padEnd(8)} ${(m.benchmark_score?.toFixed(2) ?? "-").padEnd(6)}`,
+        )
       }
     })
 
@@ -47,11 +61,11 @@ export function registerPricing(program: Command): void {
 
       // Try tools first, then models
       if (data.tools[name] && field in data.tools[name]!) {
-        (data.tools[name] as Record<string, unknown>)[field] = numValue
+        ;(data.tools[name] as Record<string, unknown>)[field] = numValue
         savePricing(data)
         console.log(`Set tools.${name}.${field} = ${numValue}`)
       } else if (data.models[name] && field in data.models[name]!) {
-        (data.models[name] as Record<string, unknown>)[field] = numValue
+        ;(data.models[name] as Record<string, unknown>)[field] = numValue
         savePricing(data)
         console.log(`Set models.${name}.${field} = ${numValue}`)
       } else {
@@ -68,28 +82,40 @@ export function registerPricing(program: Command): void {
     .option("--calls <n>", "Number of tool calls", "0")
     .option("--complexity <level>", "simple|moderate|complex", "moderate")
     .option("--budget <usd>", "Budget constraint", "1.0")
-    .action((opts: { input?: string; output?: string; tools?: string; calls?: string; complexity?: string; budget?: string }) => {
-      const input = parseInt(opts.input ?? "1000", 10)
-      const output = parseInt(opts.output ?? "500", 10)
-      const toolNames = opts.tools ? opts.tools.split(",").map((s) => s.trim()) : []
-      const toolCalls = parseInt(opts.calls ?? "0", 10)
-      const budget = parseFloat(opts.budget ?? "1.0")
+    .action(
+      (opts: {
+        input?: string
+        output?: string
+        tools?: string
+        calls?: string
+        complexity?: string
+        budget?: string
+      }) => {
+        const input = parseInt(opts.input ?? "1000", 10)
+        const output = parseInt(opts.output ?? "500", 10)
+        const toolNames = opts.tools ? opts.tools.split(",").map((s) => s.trim()) : []
+        const toolCalls = parseInt(opts.calls ?? "0", 10)
+        const budget = parseFloat(opts.budget ?? "1.0")
 
-      const result = estimateCost({
-        inputTokens: input,
-        outputTokens: output,
-        tools: toolNames,
-        toolCalls,
-      }, { budget })
+        const result = estimateCost(
+          {
+            inputTokens: input,
+            outputTokens: output,
+            tools: toolNames,
+            toolCalls,
+          },
+          { budget },
+        )
 
-      console.log(`Cost estimate (${opts.complexity ?? "moderate"} complexity):`)
-      console.log(`  Cheap:    $${result.cheap.toFixed(4)}`)
-      console.log(`  Balanced: $${result.balanced.toFixed(4)}`)
-      console.log(`  Premium:  $${result.premium.toFixed(4)}`)
-      console.log()
-      console.log(`  Budget: $${budget.toFixed(2)}`)
-      console.log(`  ${result.reasoning}`)
-    })
+        console.log(`Cost estimate (${opts.complexity ?? "moderate"} complexity):`)
+        console.log(`  Cheap:    $${result.cheap.toFixed(4)}`)
+        console.log(`  Balanced: $${result.balanced.toFixed(4)}`)
+        console.log(`  Premium:  $${result.premium.toFixed(4)}`)
+        console.log()
+        console.log(`  Budget: $${budget.toFixed(2)}`)
+        console.log(`  ${result.reasoning}`)
+      },
+    )
 
   pricing
     .command("refresh")
@@ -100,9 +126,7 @@ export function registerPricing(program: Command): void {
     })
 
   // leaderboard subcommands
-  const bench = pricing
-    .command("bench")
-    .description("Benchmark suite and leaderboard")
+  const bench = pricing.command("bench").description("Benchmark suite and leaderboard")
 
   bench
     .command("leaderboard")
@@ -120,7 +144,9 @@ export function registerPricing(program: Command): void {
         return
       }
       for (const entry of entries) {
-        console.log(`  ${entry.provider ?? "?"}/${entry.model ?? "?"}: quality ${entry.quality_score ?? "?"}, cost $${entry.cost_usd ?? "?"}/task`)
+        console.log(
+          `  ${entry.provider ?? "?"}/${entry.model ?? "?"}: quality ${entry.quality_score ?? "?"}, cost $${entry.cost_usd ?? "?"}/task`,
+        )
       }
     })
 

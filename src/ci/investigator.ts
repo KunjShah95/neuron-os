@@ -34,7 +34,7 @@ export async function investigate(params: {
         agentManager.offEvent(handler)
         const data = event.data as { output?: string }
         const output = data.output || ""
-        const cost = (Date.now() - startTime) / 60_000 * 0.003 // rough cost estimate
+        const cost = ((Date.now() - startTime) / 60_000) * 0.003 // rough cost estimate
 
         // Parse fix description from output
         const fixMatch = output.match(/FIX_DESCRIPTION:\s*(.+)/)
@@ -51,7 +51,11 @@ export async function investigate(params: {
       }
       if (event.type === "agent:exit" && !resolved) {
         agentManager.offEvent(handler)
-        resolve({ success: false, cost_usd: (Date.now() - startTime) / 60_000 * 0.003, error: "Agent exited without result" })
+        resolve({
+          success: false,
+          cost_usd: ((Date.now() - startTime) / 60_000) * 0.003,
+          error: "Agent exited without result",
+        })
       }
     }
     agentManager.onEvent(handler)
@@ -96,13 +100,16 @@ Your job:
     })
 
     const budgetMs = params.budgetUsd * 60_000 * 5 // rough: $1 = ~5min
-    const timeout = setTimeout(() => {
-      if (!resolved) {
-        resolved = true
-        agentManager.kill(agentId).catch(() => {})
-        log.warn(`CI investigation timed out for ${params.runId}`)
-      }
-    }, Math.min(budgetMs, 300_000)) // cap at 5min
+    const timeout = setTimeout(
+      () => {
+        if (!resolved) {
+          resolved = true
+          agentManager.kill(agentId).catch(() => {})
+          log.warn(`CI investigation timed out for ${params.runId}`)
+        }
+      },
+      Math.min(budgetMs, 300_000),
+    ) // cap at 5min
 
     const result = await resultPromise
     clearTimeout(timeout)
@@ -118,8 +125,10 @@ Your job:
     log.warn(`CI investigation error: ${err}`)
     if (!resolved) {
       resolved = true
-      try { await agentManager.kill(agentId) } catch {}
+      try {
+        await agentManager.kill(agentId)
+      } catch {}
     }
-    return { success: false, cost_usd: (Date.now() - startTime) / 60_000 * 0.003, error: String(err) }
+    return { success: false, cost_usd: ((Date.now() - startTime) / 60_000) * 0.003, error: String(err) }
   }
 }

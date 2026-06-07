@@ -4,10 +4,7 @@ import { credentialVault } from "../../vault"
 import { showBanner } from "../banner"
 
 export function registerConfig(program: Command) {
-  const config = program
-    .command("config")
-    .alias("cfg")
-    .description("Manage credentials and configuration")
+  const config = program.command("config").alias("cfg").description("Manage credentials and configuration")
 
   config
     .command("set <key> <value>")
@@ -65,9 +62,7 @@ export function registerConfig(program: Command) {
       console.log(`  ${theme.heading(`Credentials (${entries.length})`)}`)
       console.log()
       for (const e of entries) {
-        const masked = e.value.length > 8
-          ? e.value.slice(0, 4) + "…" + e.value.slice(-4)
-          : "…"
+        const masked = e.value.length > 8 ? e.value.slice(0, 4) + "…" + e.value.slice(-4) : "…"
         console.log(`  ${theme.accent(e.key.padEnd(30))} ${theme.dim(`[${e.scope}]`)} ${masked}`)
       }
     }
@@ -90,9 +85,7 @@ export function registerConfig(program: Command) {
       console.log(theme.heading("  Stored Credentials:"))
       console.log()
       for (const e of entries) {
-        const masked = e.value.length > 8
-          ? e.value.slice(0, 4) + "…" + e.value.slice(-4)
-          : "…"
+        const masked = e.value.length > 8 ? e.value.slice(0, 4) + "…" + e.value.slice(-4) : "…"
         console.log(`  ${theme.accent(e.key.padEnd(30))} ${theme.dim(`[${e.scope}]`)} ${masked}`)
       }
     })

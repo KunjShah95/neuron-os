@@ -9,12 +9,7 @@
 import { Client, GatewayIntentBits, Events } from "discord.js"
 import type { PlatformAdapter, PlatformSendOptions } from "./types"
 import { createLogger } from "../cli/logger"
-import {
-  WELCOME_MSG,
-  HELP_MSG,
-  getCommandHandler,
-  clip,
-} from "./bot-commands"
+import { WELCOME_MSG, HELP_MSG, getCommandHandler, clip } from "./bot-commands"
 
 const log = createLogger("adapter:discord")
 
@@ -30,11 +25,7 @@ const TRUNCATION_SUFFIX = "\n\n…[truncated]"
 
 export function createDiscordAdapter(config: DiscordConfig): PlatformAdapter {
   const client = new Client({
-    intents: [
-      GatewayIntentBits.Guilds,
-      GatewayIntentBits.GuildMessages,
-      GatewayIntentBits.MessageContent,
-    ],
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
   })
 
   client.once(Events.ClientReady, (c) => {

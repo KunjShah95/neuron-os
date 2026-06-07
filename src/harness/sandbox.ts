@@ -93,8 +93,8 @@ export class HarnessSandboxManager {
     const after = this.listFiles(handle.workDir)
     const before = this.getBaselineFiles(handle.id) ?? []
 
-    const created = after.filter(f => !before.includes(f))
-    const deleted = before.filter(f => !after.includes(f))
+    const created = after.filter((f) => !before.includes(f))
+    const deleted = before.filter((f) => !after.includes(f))
 
     let gitDiff: string | undefined
     try {
@@ -108,7 +108,7 @@ export class HarnessSandboxManager {
       after,
       created,
       deleted,
-      modified: created.filter(f => {
+      modified: created.filter((f) => {
         // Files that exist in both but may have changed content
         return before.includes(f) && after.includes(f)
       }),

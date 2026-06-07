@@ -52,7 +52,12 @@ export class MeshOrchestrator {
           results = await this.runEnsemble(config.runs, controller.signal)
           break
         case "supervisor":
-          results = await this.runSupervisor(config.supervisor, config.subAgents, config.reviewRequired, controller.signal)
+          results = await this.runSupervisor(
+            config.supervisor,
+            config.subAgents,
+            config.reviewRequired,
+            controller.signal,
+          )
           break
         default:
           throw new Error(`Unknown topology: ${(config as any).topology}`)
@@ -98,10 +103,7 @@ export class MeshOrchestrator {
 
   // ── Topology Implementations ────────────────────────────────────────
 
-  private async runSequential(
-    agents: MeshAgent[],
-    signal: AbortSignal,
-  ): Promise<MeshAgentResult[]> {
+  private async runSequential(agents: MeshAgent[], signal: AbortSignal): Promise<MeshAgentResult[]> {
     const results: MeshAgentResult[] = []
 
     for (const agent of agents) {
@@ -135,11 +137,7 @@ export class MeshOrchestrator {
     return results
   }
 
-  private async runDebate(
-    debaters: MeshAgent[],
-    rounds: number,
-    signal: AbortSignal,
-  ): Promise<MeshAgentResult[]> {
+  private async runDebate(debaters: MeshAgent[], rounds: number, signal: AbortSignal): Promise<MeshAgentResult[]> {
     const results: MeshAgentResult[] = []
 
     for (let round = 0; round < rounds; round++) {
@@ -147,10 +145,13 @@ export class MeshOrchestrator {
 
       // Run all debaters in parallel for this round
       const roundPromises = debaters.map((d) =>
-        this.executeAgent({
-          ...d,
-          goal: `[Round ${round + 1}/${rounds}] ${d.goal}`,
-        }, signal),
+        this.executeAgent(
+          {
+            ...d,
+            goal: `[Round ${round + 1}/${rounds}] ${d.goal}`,
+          },
+          signal,
+        ),
       )
       const roundResults = await Promise.all(roundPromises)
       results.push(...roundResults)
@@ -163,9 +164,7 @@ export class MeshOrchestrator {
     runs: Array<{ agent: MeshAgent; model: string }>,
     signal: AbortSignal,
   ): Promise<MeshAgentResult[]> {
-    const runPromises = runs.map((r) =>
-      this.executeAgent({ ...r.agent, model: r.model }, signal),
-    )
+    const runPromises = runs.map((r) => this.executeAgent({ ...r.agent, model: r.model }, signal))
     return Promise.all(runPromises)
   }
 
@@ -178,9 +177,7 @@ export class MeshOrchestrator {
     const results: MeshAgentResult[] = []
 
     // Run sub-agents in parallel
-    const subResults = await Promise.all(
-      subAgents.map((sa) => this.executeAgent(sa, signal)),
-    )
+    const subResults = await Promise.all(subAgents.map((sa) => this.executeAgent(sa, signal)))
     results.push(...subResults)
 
     // Run supervisor to review
@@ -190,10 +187,13 @@ export class MeshOrchestrator {
       reviewRequired ? "\n\nApprove or request changes." : "",
     ].join("\n")
 
-    const supervisorResult = await this.executeAgent({
-      ...supervisor,
-      goal: reviewGoal,
-    }, signal)
+    const supervisorResult = await this.executeAgent(
+      {
+        ...supervisor,
+        goal: reviewGoal,
+      },
+      signal,
+    )
     results.push(supervisorResult)
 
     return results
@@ -201,10 +201,7 @@ export class MeshOrchestrator {
 
   // ── Agent Execution ─────────────────────────────────────────────────
 
-  private async executeAgent(
-    agent: MeshAgent,
-    _signal: AbortSignal,
-  ): Promise<MeshAgentResult> {
+  private async executeAgent(agent: MeshAgent, _signal: AbortSignal): Promise<MeshAgentResult> {
     const startTime = Date.now()
     log.debug("Executing mesh agent", { agentId: agent.id, role: agent.role })
 

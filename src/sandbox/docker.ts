@@ -20,6 +20,14 @@ export interface DockerSandboxOptions {
   readOnlyRoot?: boolean
   /** User ID to run as inside container (default: 1000) */
   userId?: string
+  /** Drop all Linux capabilities (default: true) */
+  dropAllCaps?: boolean
+  /** Enable seccomp security profile (default: true) */
+  seccompEnabled?: boolean
+  /** Mount /tmp as tmpfs with noexec,nosuid (default: true) */
+  tmpfsEnabled?: boolean
+  /** No new privileges (default: true) */
+  noNewPrivileges?: boolean
   /** Additional Docker run args */
   extraArgs?: string[]
 }
@@ -32,6 +40,10 @@ const DEFAULT_OPTIONS: Required<DockerSandboxOptions> = {
   networkEnabled: false,
   readOnlyRoot: true,
   userId: "1000",
+  dropAllCaps: true,
+  seccompEnabled: true,
+  tmpfsEnabled: true,
+  noNewPrivileges: true,
   extraArgs: [],
 }
 
@@ -52,14 +64,22 @@ export class DockerSandbox implements Sandbox {
       networkEnabled: config?.networkEnabled ?? DEFAULT_OPTIONS.networkEnabled,
       readOnlyRoot: config?.readOnlyRoot ?? DEFAULT_OPTIONS.readOnlyRoot,
       userId: config?.userId || DEFAULT_OPTIONS.userId,
+      dropAllCaps: config?.dropAllCaps ?? DEFAULT_OPTIONS.dropAllCaps,
+      seccompEnabled: config?.seccompEnabled ?? DEFAULT_OPTIONS.seccompEnabled,
+      tmpfsEnabled: config?.tmpfsEnabled ?? DEFAULT_OPTIONS.tmpfsEnabled,
+      noNewPrivileges: config?.noNewPrivileges ?? DEFAULT_OPTIONS.noNewPrivileges,
       extraArgs: config?.extraArgs || DEFAULT_OPTIONS.extraArgs,
     }
     this._enabled = config?.enabled ?? true
     this.dockerAvailable = this.checkDocker()
   }
 
-  get enabled(): boolean { return this._enabled }
-  set enabled(v: boolean) { this._enabled = v }
+  get enabled(): boolean {
+    return this._enabled
+  }
+  set enabled(v: boolean) {
+    this._enabled = v
+  }
 
   private checkDocker(): boolean {
     try {
@@ -78,23 +98,47 @@ export class DockerSandbox implements Sandbox {
     if (!this._enabled || !this.dockerAvailable) return null
 
     const id = `aegis-sandbox-${agentId}-${randomUUID().slice(0, 8)}`
-    const { image, mountPoint, cpuLimit, memoryLimit, networkEnabled, readOnlyRoot, userId, extraArgs } = this.options
+    const {
+      image,
+      mountPoint,
+      cpuLimit,
+      memoryLimit,
+      networkEnabled,
+      readOnlyRoot,
+      userId,
+      dropAllCaps,
+      seccompEnabled,
+      tmpfsEnabled,
+      noNewPrivileges,
+      extraArgs,
+    } = this.options
 
     try {
       const args = [
-        "run", "-d",
+        "run",
+        "-d",
         "--rm",
-        "--name", id,
-        `--user`, userId,
-        `--workdir`, mountPoint,
-        `--volume`, `${cwd}:${mountPoint}`,
+        "--name",
+        id,
+        `--user`,
+        userId,
+        `--workdir`,
+        mountPoint,
+        `--volume`,
+        `${cwd}:${mountPoint}`,
         ...(readOnlyRoot ? [`--read-only`] : []),
         ...(memoryLimit ? [`--memory`, memoryLimit] : []),
         ...(cpuLimit ? [`--cpus`, cpuLimit] : []),
         ...(networkEnabled ? [] : [`--network`, `none`]),
+        ...(dropAllCaps ? [`--cap-drop=ALL`] : []),
+        ...(noNewPrivileges ? [`--security-opt`, `no-new-privileges:true`] : []),
+        ...(!seccompEnabled ? [`--security-opt`, `seccomp=unconfined`] : []),
+        ...(tmpfsEnabled ? [`--tmpfs`, `/tmp:noexec,nosuid,size=64m`] : []),
         ...extraArgs,
         image,
-        "tail", "-f", "/dev/null",
+        "tail",
+        "-f",
+        "/dev/null",
       ].filter(Boolean)
 
       const containerId = execSync(`docker ${args.join(" ")}`, {
@@ -136,10 +180,11 @@ export class DockerSandbox implements Sandbox {
     if (!entry) return null
 
     try {
-      const result = execSync(
-        `docker exec ${entry.containerId} sh -c ${JSON.stringify(cmd)}`,
-        { timeout: 60000, encoding: "utf8", stdio: "pipe" },
-      )
+      const result = execSync(`docker exec ${entry.containerId} sh -c ${JSON.stringify(cmd)}`, {
+        timeout: 60000,
+        encoding: "utf8",
+        stdio: "pipe",
+      })
       return { output: result.trim(), exitCode: 0 }
     } catch (err: any) {
       const output = err.stdout?.toString()?.trim() || err.message || ""
@@ -189,9 +234,11 @@ export class DockerSandbox implements Sandbox {
           `Network: ${this.options.networkEnabled ? "enabled" : "disabled (zero-trust)"}`,
           `Memory limit: ${this.options.memoryLimit}`,
           `Read-only root: ${this.options.readOnlyRoot}`,
-          ...Array.from(this.containers.entries()).map(
-            ([agentId, entry]) => `  ${agentId}: ${entry.containerId}`,
-          ),
+          `Capabilities: ${this.options.dropAllCaps ? "all dropped" : "default"}`,
+          `Seccomp: ${this.options.seccompEnabled ? "default profile" : "disabled"}`,
+          `No new privileges: ${this.options.noNewPrivileges}`,
+          `Tmpfs: ${this.options.tmpfsEnabled ? "/tmp (noexec,nosuid,64m)" : "disabled"}`,
+          ...Array.from(this.containers.entries()).map(([agentId, entry]) => `  ${agentId}: ${entry.containerId}`),
         ]
       : ["Sandbox disabled"]
     return {

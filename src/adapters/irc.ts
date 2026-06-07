@@ -12,12 +12,7 @@
 import { Client } from "irc-framework"
 import type { PlatformAdapter, PlatformSendOptions } from "./types"
 import { createLogger } from "../cli/logger"
-import {
-  WELCOME_MSG,
-  HELP_MSG,
-  getCommandHandler,
-  clip,
-} from "./bot-commands"
+import { WELCOME_MSG, HELP_MSG, getCommandHandler, clip } from "./bot-commands"
 
 const log = createLogger("adapter:irc")
 
@@ -38,8 +33,8 @@ interface IRCConfig {
 const IRC_MAX = 400
 
 export function createIRCAdapter(config: IRCConfig): PlatformAdapter {
-  const port = config.port ?? (config.tls ?? true ? 6697 : 6667)
-  const useTls = config.tls ?? (port === 6697)
+  const port = config.port ?? ((config.tls ?? true) ? 6697 : 6667)
+  const useTls = config.tls ?? port === 6697
   let client: Client | null = null
 
   /** Send a message to a channel or user with IRC-safe truncation */
@@ -157,7 +152,9 @@ export function createIRCAdapter(config: IRCConfig): PlatformAdapter {
         for (const channel of config.channels) {
           try {
             client.part(channel)
-          } catch { /* ignore */ }
+          } catch {
+            /* ignore */
+          }
         }
         client.quit("Adapter shutting down")
         client = null

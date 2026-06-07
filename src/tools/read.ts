@@ -50,9 +50,7 @@ export const readTool: Tool = {
 
       return {
         success: true,
-        output: truncated
-          ? `${output}\n\n... (${lines.length - endIdx} more lines)`
-          : output,
+        output: truncated ? `${output}\n\n... (${lines.length - endIdx} more lines)` : output,
         metadata: {
           path: fullPath,
           totalLines: lines.length,

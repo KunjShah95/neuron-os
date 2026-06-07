@@ -201,12 +201,11 @@ export class AgentToolExecutor {
     const fileOps = all
       .filter(
         (a) =>
-          (a.type === "file_create" || a.type === "file_modify" || a.type === "file_delete") &&
-          a.status === "approved",
+          (a.type === "file_create" || a.type === "file_modify" || a.type === "file_delete") && a.status === "approved",
       )
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
 
-    const lastByPath = new Map<string, typeof fileOps[0]>()
+    const lastByPath = new Map<string, (typeof fileOps)[0]>()
     for (const a of fileOps) lastByPath.set(this.norm(a.path), a)
 
     for (const [p, a] of lastByPath) {
@@ -373,7 +372,10 @@ export class AgentToolExecutor {
 
   /** Get skill root directories. */
   private skillRoots(): string[] {
-    const extra = process.env.SKILLS_DIRS?.split(/[;]/).map((s) => s.trim()).filter(Boolean) ?? []
+    const extra =
+      process.env.SKILLS_DIRS?.split(/[;]/)
+        .map((s) => s.trim())
+        .filter(Boolean) ?? []
     return [
       ...extra,
       path.join(process.cwd(), "skills"),

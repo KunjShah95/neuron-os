@@ -102,9 +102,7 @@ describe("SMSAdapter", () => {
     })
 
     expect(mockMessagesCreate).toHaveBeenCalledTimes(1)
-    expect(mockMessagesCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ body: "" }),
-    )
+    expect(mockMessagesCreate).toHaveBeenCalledWith(expect.objectContaining({ body: "" }))
   })
 
   it("should send to the correct phone number", async () => {
@@ -113,9 +111,7 @@ describe("SMSAdapter", () => {
       text: "Test message",
     })
 
-    expect(mockMessagesCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ to: "+1987654321" }),
-    )
+    expect(mockMessagesCreate).toHaveBeenCalledWith(expect.objectContaining({ to: "+1987654321" }))
   })
 
   // ══════════════════════════════════════════════════════════════════
@@ -150,9 +146,7 @@ describe("SMSAdapter", () => {
       text,
     })
 
-    expect(mockMessagesCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ body: text }),
-    )
+    expect(mockMessagesCreate).toHaveBeenCalledWith(expect.objectContaining({ body: text }))
   })
 
   it("should not clip text exactly at the limit", async () => {
@@ -162,9 +156,7 @@ describe("SMSAdapter", () => {
       text,
     })
 
-    expect(mockMessagesCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ body: text }),
-    )
+    expect(mockMessagesCreate).toHaveBeenCalledWith(expect.objectContaining({ body: text }))
   })
 
   // ══════════════════════════════════════════════════════════════════

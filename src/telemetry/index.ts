@@ -117,11 +117,7 @@ function getRuntime(): string {
  * Queue a telemetry event for a CLI command execution.
  * Events are batched and sent asynchronously — failures are silently caught.
  */
-export function recordCommand(
-  command: string,
-  success: boolean,
-  durationMs: number,
-): void {
+export function recordCommand(command: string, success: boolean, durationMs: number): void {
   if (!isOptedIn()) return
 
   const event: TelemetryEvent = {

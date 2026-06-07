@@ -14,51 +14,36 @@ import type { GraderContext } from "./types"
 
 describe("stringMatchGrader", () => {
   it("returns 1.0 when pattern is found (contains mode)", () => {
-    const result = stringMatchGrader(
-      "Hello world",
-      { pattern: "world", mode: "contains" },
-    )
+    const result = stringMatchGrader("Hello world", { pattern: "world", mode: "contains" })
     expect(result.score).toBe(1.0)
     expect(result.grader).toBe("deterministic")
   })
 
   it("returns 0.0 when pattern is not found", () => {
-    const result = stringMatchGrader(
-      "Hello world",
-      { pattern: "goodbye", mode: "contains" },
-    )
+    const result = stringMatchGrader("Hello world", { pattern: "goodbye", mode: "contains" })
     expect(result.score).toBe(0.0)
   })
 
   it("returns 1.0 for exact match", () => {
-    const result = stringMatchGrader(
-      "Hello world",
-      { pattern: "Hello world", mode: "exact" },
-    )
+    const result = stringMatchGrader("Hello world", { pattern: "Hello world", mode: "exact" })
     expect(result.score).toBe(1.0)
   })
 
   it("returns 0.0 for exact mismatch", () => {
-    const result = stringMatchGrader(
-      "Hello world!",
-      { pattern: "Hello world", mode: "exact" },
-    )
+    const result = stringMatchGrader("Hello world!", { pattern: "Hello world", mode: "exact" })
     expect(result.score).toBe(0.0)
   })
 
   it("returns 1.0 for regex match", () => {
-    const result = stringMatchGrader(
-      "Error: something failed at line 42",
-      { pattern: "Error.*line \\d+", mode: "regex" },
-    )
+    const result = stringMatchGrader("Error: something failed at line 42", {
+      pattern: "Error.*line \\d+",
+      mode: "regex",
+    })
     expect(result.score).toBe(1.0)
   })
 
   it("is case-insensitive by default", () => {
-    const result = stringMatchGrader(
-      "HELLO WORLD",
-      { pattern: "hello", mode: "contains" },
-    )
+    const result = stringMatchGrader("HELLO WORLD", { pattern: "hello", mode: "contains" })
     expect(result.score).toBe(1.0)
   })
 
@@ -68,11 +53,7 @@ describe("stringMatchGrader", () => {
       testName: "Test 1",
       expected: { pattern: "expected_output" },
     }
-    const result = stringMatchGrader(
-      "this is the expected_output here",
-      {},
-      context,
-    )
+    const result = stringMatchGrader("this is the expected_output here", {}, context)
     expect(result.score).toBe(1.0)
   })
 
@@ -82,11 +63,7 @@ describe("stringMatchGrader", () => {
       testName: "Test 1",
       trace: [{ name: "bash", params: {}, result: "hidden result" }],
     }
-    const result = stringMatchGrader(
-      "visible output",
-      { pattern: "hidden", mode: "contains" },
-      context,
-    )
+    const result = stringMatchGrader("visible output", { pattern: "hidden", mode: "contains" }, context)
     expect(result.score).toBe(1.0)
   })
 
@@ -101,11 +78,7 @@ describe("stringMatchGrader", () => {
       testName: "Test 1",
       trace: [{ name: "bash", params: {}, result: "irrelevant output" }],
     }
-    const result = stringMatchGrader(
-      "wrong output here",
-      { pattern: "missing_pattern", mode: "contains" },
-      context,
-    )
+    const result = stringMatchGrader("wrong output here", { pattern: "missing_pattern", mode: "contains" }, context)
     expect(result.score).toBe(0.0)
   })
 })
@@ -123,10 +96,7 @@ describe("fileCheckGrader", () => {
         deleted: [],
       },
     }
-    const result = fileCheckGrader(
-      { filesExist: ["src/index.ts"] },
-      context,
-    )
+    const result = fileCheckGrader({ filesExist: ["src/index.ts"] }, context)
     expect(result.score).toBe(1.0)
   })
 
@@ -142,10 +112,7 @@ describe("fileCheckGrader", () => {
         deleted: [],
       },
     }
-    const result = fileCheckGrader(
-      { filesExist: ["missing-file.ts"] },
-      context,
-    )
+    const result = fileCheckGrader({ filesExist: ["missing-file.ts"] }, context)
     expect(result.score).toBe(0.0)
   })
 
@@ -174,10 +141,7 @@ describe("stepCountGrader", () => {
       testName: "Test 1",
       trace: [{ name: "a", params: {}, result: "ok" }],
     }
-    const result = stepCountGrader(
-      { maxSteps: 10 },
-      context,
-    )
+    const result = stepCountGrader({ maxSteps: 10 }, context)
     expect(result.score).toBeGreaterThan(0.5)
   })
 
@@ -187,10 +151,7 @@ describe("stepCountGrader", () => {
       testName: "Test 1",
       trace: Array(20).fill({ name: "bash", params: {}, result: "ok" }),
     }
-    const result = stepCountGrader(
-      { maxSteps: 5 },
-      context,
-    )
+    const result = stepCountGrader({ maxSteps: 5 }, context)
     expect(result.score).toBe(0.3)
   })
 })
@@ -232,10 +193,7 @@ describe("diffGrader", () => {
         deleted: [],
       },
     }
-    const result = diffGrader(
-      { maxLinesChanged: 10 },
-      context,
-    )
+    const result = diffGrader({ maxLinesChanged: 10 }, context)
     expect(result.score).toBe(1.0)
   })
 })

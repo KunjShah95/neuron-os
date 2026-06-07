@@ -3,9 +3,7 @@ import { theme } from "../theme"
 import { showBanner } from "../banner"
 
 export function registerMCP(program: Command) {
-  const mcp = program
-    .command("mcp")
-    .description("Manage MCP (Model Context Protocol) servers")
+  const mcp = program.command("mcp").description("Manage MCP (Model Context Protocol) servers")
 
   mcp
     .command("serve")

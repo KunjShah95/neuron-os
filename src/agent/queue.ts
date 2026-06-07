@@ -60,11 +60,16 @@ export class TaskQueue {
 
   private getPriorityLevel(p: TaskPriority): number {
     switch (p) {
-      case "critical": return 0
-      case "high": return 1
-      case "normal": return 2
-      case "low": return 3
-      default: return 2
+      case "critical":
+        return 0
+      case "high":
+        return 1
+      case "normal":
+        return 2
+      case "low":
+        return 3
+      default:
+        return 2
     }
   }
 
@@ -85,21 +90,29 @@ export class TaskQueue {
   public pull(agentId: string): QueuedTask | null {
     // We use an immediate transaction to safely pull exactly one task
     const pulledTask = this.db.transaction(() => {
-      const task = this.db.prepare(`
+      const task = this.db
+        .prepare(
+          `
         SELECT * FROM queue 
         WHERE status = 'queued' 
         ORDER BY priority_level ASC, created_at ASC 
         LIMIT 1
-      `).get() as Record<string, any> | null
+      `,
+        )
+        .get() as Record<string, any> | null
 
       if (task) {
-        this.db.prepare(`
+        this.db
+          .prepare(
+            `
           UPDATE queue 
           SET status = 'running', agent_id = ?, started_at = ? 
           WHERE id = ?
-        `).run(agentId, Date.now(), task.id)
-        
-        return { ...task, status: 'running', agent_id: agentId }
+        `,
+          )
+          .run(agentId, Date.now(), task.id)
+
+        return { ...task, status: "running", agent_id: agentId }
       }
       return null
     })() as Record<string, any> | null
@@ -115,18 +128,22 @@ export class TaskQueue {
       createdAt: pulledTask.created_at as number,
       startedAt: Date.now(),
       completedAt: null,
-      result: null
+      result: null,
     }
   }
 
   public complete(id: string, success: boolean, resultStr?: string): void {
     const status = success ? "completed" : "failed"
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       UPDATE queue 
       SET status = ?, completed_at = ?, result = ? 
       WHERE id = ?
-    `).run(status, Date.now(), resultStr || null, id)
-    
+    `,
+      )
+      .run(status, Date.now(), resultStr || null, id)
+
     log.info(`Task finished`, { taskId: id, status })
   }
 
@@ -150,7 +167,7 @@ export class TaskQueue {
       createdAt: row.created_at,
       startedAt: row.started_at,
       completedAt: row.completed_at,
-      result: row.result
+      result: row.result,
     }
   }
 }

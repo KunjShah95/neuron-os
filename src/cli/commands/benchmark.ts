@@ -24,12 +24,9 @@ interface EvalTaskYaml {
 }
 
 export function registerBenchmark(program: Command) {
-  const bm = program
-    .command("benchmark")
-    .description("Adversarial eval benchmark — track regression over time")
+  const bm = program.command("benchmark").description("Adversarial eval benchmark — track regression over time")
 
-  bm
-    .command("run [task-path]")
+  bm.command("run [task-path]")
     .description("Run eval tasks and compare vs baseline")
     .option("--category <name>", "Filter by category (coding, debugging, etc.)")
     .option("--update-baseline", "Accept current results as new baseline")
@@ -37,13 +34,9 @@ export function registerBenchmark(program: Command) {
     .option("--json", "Output as JSON for CI consumption")
     .action(handleRun)
 
-  bm
-    .command("status")
-    .description("Show last benchmark run, score, drift")
-    .action(handleStatus)
+  bm.command("status").description("Show last benchmark run, score, drift").action(handleStatus)
 
-  bm
-    .command("baseline")
+  bm.command("baseline")
     .description("Show current baseline scores")
     .option("--set <file>", "Import a baseline from JSON file")
     .action(handleBaseline)
@@ -64,15 +57,21 @@ function discoverEvalTasks(taskPath?: string, category?: string): EvalTaskYaml[]
   }
 
   const tasks: EvalTaskYaml[] = []
-  const categories = category ? [category] : readdirSync(EVALS_DIR).filter((d) => {
-    const full = resolve(EVALS_DIR, d)
-    try { return readdirSync(full).some(f => f.endsWith(".yaml")) } catch { return false }
-  })
+  const categories = category
+    ? [category]
+    : readdirSync(EVALS_DIR).filter((d) => {
+        const full = resolve(EVALS_DIR, d)
+        try {
+          return readdirSync(full).some((f) => f.endsWith(".yaml"))
+        } catch {
+          return false
+        }
+      })
 
   for (const cat of categories) {
     const catDir = resolve(EVALS_DIR, cat)
     if (!existsSync(catDir)) continue
-    const files = readdirSync(catDir).filter(f => f.endsWith(".yaml"))
+    const files = readdirSync(catDir).filter((f) => f.endsWith(".yaml"))
     for (const file of files) {
       try {
         const raw = readFileSync(resolve(catDir, file), "utf-8")
@@ -159,7 +158,7 @@ async function handleRun(
     }
   }
 
-  const passed = scores.filter(s => s.passed).length
+  const passed = scores.filter((s) => s.passed).length
   const total = scores.length
   const totalCost = scores.reduce((s, sc) => s + sc.costUsd, 0)
 
@@ -170,13 +169,15 @@ async function handleRun(
 
     if (report.regressions > 0) {
       console.log(theme.warn(`  Regressions detected: ${report.regressions}\n`))
-      for (const reg of report.regressionsList.filter(r => r.regressed)) {
+      for (const reg of report.regressionsList.filter((r) => r.regressed)) {
         const from = reg.previousPassed ? "✅" : "❌"
         const to = reg.currentPassed ? "✅" : "❌"
         console.log(`  ${reg.taskId}: ${from} → ${to}`)
         if (reg.previousPassed && reg.currentPassed) {
-          const durDelta = ((reg.currentDurationMs - reg.previousDurationMs) / reg.previousDurationMs * 100).toFixed(1)
-          const costDelta = ((reg.currentCostUsd - reg.previousCostUsd) / reg.previousCostUsd * 100).toFixed(1)
+          const durDelta = (((reg.currentDurationMs - reg.previousDurationMs) / reg.previousDurationMs) * 100).toFixed(
+            1,
+          )
+          const costDelta = (((reg.currentCostUsd - reg.previousCostUsd) / reg.previousCostUsd) * 100).toFixed(1)
           console.log(`    duration: ${durDelta}%  cost: ${costDelta}%`)
         }
       }
@@ -187,7 +188,7 @@ async function handleRun(
 
     if (opts.updateBaseline) {
       const baseline: BenchmarkBaseline = {
-        scores: Object.fromEntries(scores.map(s => [s.taskId, s])),
+        scores: Object.fromEntries(scores.map((s) => [s.taskId, s])),
         createdAt: manager.load().createdAt || Date.now(),
         updatedAt: Date.now(),
         version: "1",
@@ -205,12 +206,12 @@ async function handleRun(
     const output: Record<string, unknown> = {
       summary: { passed, total, totalCost, regressions: report.regressions, threshold },
       results: scores,
-      regressions: report.regressionsList.filter(r => r.regressed),
+      regressions: report.regressionsList.filter((r) => r.regressed),
       passedThreshold: report.passedThreshold,
     }
     if (opts.updateBaseline) {
       const baseline: BenchmarkBaseline = {
-        scores: Object.fromEntries(scores.map(s => [s.taskId, s])),
+        scores: Object.fromEntries(scores.map((s) => [s.taskId, s])),
         createdAt: manager.load().createdAt || Date.now(),
         updatedAt: Date.now(),
         version: "1",
@@ -235,7 +236,7 @@ async function handleStatus() {
   }
 
   const scores = Object.values(baseline.scores)
-  const passed = scores.filter(s => s.passed).length
+  const passed = scores.filter((s) => s.passed).length
   const totalCost = scores.reduce((s, sc) => s + sc.costUsd, 0)
   const avgDuration = scores.reduce((s, sc) => s + sc.durationMs, 0) / scores.length
 
@@ -244,7 +245,7 @@ async function handleStatus() {
   console.log(`  Total tasks:  ${scoreCount}`)
   console.log(`  Passed:       ${theme.success(String(passed))}`)
   console.log(`  Failed:       ${theme.error(String(scoreCount - passed))}`)
-  console.log(`  Pass rate:    ${(passed / scoreCount * 100).toFixed(1)}%`)
+  console.log(`  Pass rate:    ${((passed / scoreCount) * 100).toFixed(1)}%`)
   console.log(`  Total cost:   $${totalCost.toFixed(3)}`)
   console.log(`  Avg duration: ${Math.round(avgDuration)}ms`)
   console.log()
@@ -257,7 +258,9 @@ async function handleBaseline(opts: { set?: string }) {
   if (opts.set) {
     const imported = manager.importFromFile(opts.set)
     manager.save(imported)
-    console.log(theme.success(`\n  Baseline imported from ${opts.set} (${Object.keys(imported.scores).length} scores)\n`))
+    console.log(
+      theme.success(`\n  Baseline imported from ${opts.set} (${Object.keys(imported.scores).length} scores)\n`),
+    )
     return
   }
 
@@ -278,7 +281,7 @@ async function handleBaseline(opts: { set?: string }) {
 
   console.log(theme.heading(`\n  Baseline Scores (${scores.length} tasks)\n`))
   for (const [cat, items] of byCategory) {
-    const passed = items.filter(s => s.passed).length
+    const passed = items.filter((s) => s.passed).length
     console.log(`  ${theme.bold(cat)} (${passed}/${items.length})`)
     for (const s of items) {
       const icon = s.passed ? theme.success("✓") : theme.error("✗")

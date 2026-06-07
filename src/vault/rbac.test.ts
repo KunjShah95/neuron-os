@@ -155,7 +155,7 @@ describe("VaultRBAC", () => {
     await rbac.setPolicy("NEW_KEY_2", { allowedRoles: ["system"] })
 
     const policies = await rbac.listPolicies()
-    const newKeys = policies.filter(p => p.secretKey.startsWith("NEW_KEY_"))
+    const newKeys = policies.filter((p) => p.secretKey.startsWith("NEW_KEY_"))
     expect(newKeys.length).toBe(2)
   })
 
@@ -184,12 +184,11 @@ describe("VaultRBAC", () => {
     await freshRbac.initialize()
 
     const policies = await freshRbac.listPolicies()
-    const defaultKeys = policies.map(p => p.secretKey)
+    const defaultKeys = policies.map((p) => p.secretKey)
     expect(defaultKeys).toContain("GITHUB_TOKEN")
     expect(defaultKeys).toContain("OPENAI_API_KEY")
     expect(defaultKeys).toContain("ANTHROPIC_API_KEY")
     expect(defaultKeys).toContain("AWS_ACCESS_KEY_ID")
     expect(defaultKeys).toContain("AWS_SECRET_ACCESS_KEY")
   })
-
 })

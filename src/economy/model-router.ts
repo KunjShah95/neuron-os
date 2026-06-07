@@ -33,26 +33,29 @@ const MODEL_PREFIX_PROVIDER: Array<[RegExp, string]> = [
   [/^mixtral-/, "mistral"],
 ]
 
-const TASK_DEFAULTS: Record<string, {
-  tier: "cheap" | "balanced" | "premium"
-  inputTokens: number
-  outputTokens: number
-  budget: number
-}> = {
-  build:       { tier: "balanced", inputTokens: 4000, outputTokens: 2000, budget: 0.50 },
-  plan:        { tier: "premium",  inputTokens: 3000, outputTokens: 1000, budget: 0.30 },
-  read:        { tier: "cheap",    inputTokens: 1000, outputTokens: 500,  budget: 0.05 },
-  write:       { tier: "balanced", inputTokens: 2000, outputTokens: 1000, budget: 0.10 },
-  test:        { tier: "balanced", inputTokens: 2000, outputTokens: 1000, budget: 0.10 },
-  validate:    { tier: "cheap",    inputTokens: 1500, outputTokens: 500,  budget: 0.05 },
-  review:      { tier: "premium",  inputTokens: 4000, outputTokens: 1000, budget: 0.30 },
-  debug:       { tier: "premium",  inputTokens: 3000, outputTokens: 1500, budget: 0.50 },
-  document:    { tier: "balanced", inputTokens: 2000, outputTokens: 1000, budget: 0.10 },
-  refactor:    { tier: "balanced", inputTokens: 2000, outputTokens: 1000, budget: 0.15 },
-  deploy:      { tier: "balanced", inputTokens: 1500, outputTokens: 500,  budget: 0.10 },
-  monitor:     { tier: "cheap",    inputTokens: 500,  outputTokens: 200,  budget: 0.02 },
-  explore:     { tier: "cheap",    inputTokens: 500,  outputTokens: 200,  budget: 0.02 },
-  adversarial: { tier: "premium",  inputTokens: 3000, outputTokens: 1500, budget: 0.50 },
+const TASK_DEFAULTS: Record<
+  string,
+  {
+    tier: "cheap" | "balanced" | "premium"
+    inputTokens: number
+    outputTokens: number
+    budget: number
+  }
+> = {
+  build: { tier: "balanced", inputTokens: 4000, outputTokens: 2000, budget: 0.5 },
+  plan: { tier: "premium", inputTokens: 3000, outputTokens: 1000, budget: 0.3 },
+  read: { tier: "cheap", inputTokens: 1000, outputTokens: 500, budget: 0.05 },
+  write: { tier: "balanced", inputTokens: 2000, outputTokens: 1000, budget: 0.1 },
+  test: { tier: "balanced", inputTokens: 2000, outputTokens: 1000, budget: 0.1 },
+  validate: { tier: "cheap", inputTokens: 1500, outputTokens: 500, budget: 0.05 },
+  review: { tier: "premium", inputTokens: 4000, outputTokens: 1000, budget: 0.3 },
+  debug: { tier: "premium", inputTokens: 3000, outputTokens: 1500, budget: 0.5 },
+  document: { tier: "balanced", inputTokens: 2000, outputTokens: 1000, budget: 0.1 },
+  refactor: { tier: "balanced", inputTokens: 2000, outputTokens: 1000, budget: 0.15 },
+  deploy: { tier: "balanced", inputTokens: 1500, outputTokens: 500, budget: 0.1 },
+  monitor: { tier: "cheap", inputTokens: 500, outputTokens: 200, budget: 0.02 },
+  explore: { tier: "cheap", inputTokens: 500, outputTokens: 200, budget: 0.02 },
+  adversarial: { tier: "premium", inputTokens: 3000, outputTokens: 1500, budget: 0.5 },
 }
 
 function resolveModelProvider(modelName: string): string {
@@ -115,11 +118,7 @@ export class ModelRouter {
     }
   }
 
-  static routeWithOverride(
-    task: RouterTask,
-    preferredProvider: string,
-    preferredModel: string,
-  ): RouterResult {
+  static routeWithOverride(task: RouterTask, preferredProvider: string, preferredModel: string): RouterResult {
     const apiKey = resolveApiKey(preferredProvider)
     const pricing = loadPricing()
     const modelInfo = pricing.models[preferredModel]
@@ -128,8 +127,8 @@ export class ModelRouter {
     if (modelInfo) {
       const inputTokens = task.estimatedInputTokens ?? 2000
       const outputTokens = task.estimatedOutputTokens ?? 1000
-      estimatedCost = (inputTokens / 1000) * modelInfo.prompt_usd_per_1k +
-        (outputTokens / 1000) * modelInfo.completion_usd_per_1k
+      estimatedCost =
+        (inputTokens / 1000) * modelInfo.prompt_usd_per_1k + (outputTokens / 1000) * modelInfo.completion_usd_per_1k
     }
 
     const tier = (modelInfo?.quality_tier ?? "balanced") as "cheap" | "balanced" | "premium"
@@ -144,7 +143,10 @@ export class ModelRouter {
     }
   }
 
-  static getPricing(_provider: string, model: string): {
+  static getPricing(
+    _provider: string,
+    model: string,
+  ): {
     costPer1kInput: number
     costPer1kOutput: number
     tier: string
@@ -162,7 +164,7 @@ export class ModelRouter {
   static suggestBudget(agentType: string): number {
     const defs = TASK_DEFAULTS[agentType]
     if (defs) return defs.budget
-    return 0.10
+    return 0.1
   }
 
   static listAvailable(options?: {

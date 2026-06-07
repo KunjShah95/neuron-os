@@ -9,11 +9,7 @@
 import { WebClient } from "@slack/web-api"
 import type { PlatformAdapter, PlatformSendOptions } from "./types"
 import { createLogger } from "../cli/logger"
-import {
-  WELCOME_MSG,
-  HELP_MSG,
-  getCommandHandler,
-} from "./bot-commands"
+import { WELCOME_MSG, HELP_MSG, getCommandHandler } from "./bot-commands"
 
 const log = createLogger("adapter:slack")
 
@@ -57,11 +53,7 @@ export function createSlackAdapter(config: SlackConfig): PlatformAdapter {
             const user = event.event.user
 
             // Check auth
-            if (
-              config.allowedUserIds &&
-              config.allowedUserIds.length > 0 &&
-              !config.allowedUserIds.includes(user)
-            ) {
+            if (config.allowedUserIds && config.allowedUserIds.length > 0 && !config.allowedUserIds.includes(user)) {
               return
             }
 

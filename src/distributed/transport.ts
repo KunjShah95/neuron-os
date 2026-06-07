@@ -44,10 +44,7 @@ export class SecureTransport {
 
   static parseMessage(raw: string, key: Buffer): { type: string; payload: unknown } {
     const envelope: Envelope = JSON.parse(raw)
-    const plaintext = this.decrypt(
-      { ciphertext: envelope.ciphertext, iv: envelope.iv, tag: envelope.tag },
-      key,
-    )
+    const plaintext = this.decrypt({ ciphertext: envelope.ciphertext, iv: envelope.iv, tag: envelope.tag }, key)
     return { type: envelope.type, payload: JSON.parse(plaintext) }
   }
 }

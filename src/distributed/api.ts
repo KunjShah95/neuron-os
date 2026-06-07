@@ -7,7 +7,12 @@ import { createLogger } from "../cli/logger"
 
 const log = createLogger("distributed:api")
 
-type RouteHandler = (req: IncomingMessage, res: ServerResponse, body: string, params: Record<string, string>) => void | Promise<void>
+type RouteHandler = (
+  req: IncomingMessage,
+  res: ServerResponse,
+  body: string,
+  params: Record<string, string>,
+) => void | Promise<void>
 
 interface Route {
   method: string
@@ -122,7 +127,12 @@ export class DistributedAPI {
     res.end(JSON.stringify(data) + "\n")
   }
 
-  private handleHealth = async (_req: IncomingMessage, res: ServerResponse, _body: string, _params: Record<string, string>): Promise<void> => {
+  private handleHealth = async (
+    _req: IncomingMessage,
+    res: ServerResponse,
+    _body: string,
+    _params: Record<string, string>,
+  ): Promise<void> => {
     const local = this.pool.getLocalInfo()
     this.sendJson(res, 200, {
       status: "ok",
@@ -132,12 +142,22 @@ export class DistributedAPI {
     })
   }
 
-  private handleListWorkers = async (_req: IncomingMessage, res: ServerResponse, _body: string, _params: Record<string, string>): Promise<void> => {
+  private handleListWorkers = async (
+    _req: IncomingMessage,
+    res: ServerResponse,
+    _body: string,
+    _params: Record<string, string>,
+  ): Promise<void> => {
     const workers = this.pool.listWorkers()
     this.sendJson(res, 200, workers)
   }
 
-  private handleGetWorker = async (_req: IncomingMessage, res: ServerResponse, _body: string, params: Record<string, string>): Promise<void> => {
+  private handleGetWorker = async (
+    _req: IncomingMessage,
+    res: ServerResponse,
+    _body: string,
+    params: Record<string, string>,
+  ): Promise<void> => {
     const id = params["id"]
     const worker = this.pool.listWorkers().find((w) => w.id === id)
     if (!worker) {
@@ -147,7 +167,12 @@ export class DistributedAPI {
     this.sendJson(res, 200, worker)
   }
 
-  private handlePostTask = async (_req: IncomingMessage, res: ServerResponse, body: string, _params: Record<string, string>): Promise<void> => {
+  private handlePostTask = async (
+    _req: IncomingMessage,
+    res: ServerResponse,
+    body: string,
+    _params: Record<string, string>,
+  ): Promise<void> => {
     let parsed: { type?: string; payload?: unknown; agentType?: string }
     try {
       parsed = JSON.parse(body)
@@ -191,11 +216,21 @@ export class DistributedAPI {
     }
   }
 
-  private handleStats = async (_req: IncomingMessage, res: ServerResponse, _body: string, _params: Record<string, string>): Promise<void> => {
+  private handleStats = async (
+    _req: IncomingMessage,
+    res: ServerResponse,
+    _body: string,
+    _params: Record<string, string>,
+  ): Promise<void> => {
     this.sendJson(res, 200, this.pool.getStats())
   }
 
-  private handleElectionReset = async (_req: IncomingMessage, res: ServerResponse, _body: string, _params: Record<string, string>): Promise<void> => {
+  private handleElectionReset = async (
+    _req: IncomingMessage,
+    res: ServerResponse,
+    _body: string,
+    _params: Record<string, string>,
+  ): Promise<void> => {
     this.sendJson(res, 200, { message: "Election reset triggered" })
   }
 }

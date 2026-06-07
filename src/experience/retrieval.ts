@@ -35,11 +35,7 @@ export class ExperienceRetriever {
     const limit = opts?.limit ?? 5
     return this.store
       .searchByGoalSimilarity(goal, limit, opts?.project)
-      .filter(
-        (r) =>
-          opts?.minSimilarity === undefined ||
-          r.similarity >= opts.minSimilarity,
-      )
+      .filter((r) => opts?.minSimilarity === undefined || r.similarity >= opts.minSimilarity)
       .map((r) => ({ record: r, similarity: r.similarity }))
   }
 
@@ -52,16 +48,12 @@ export class ExperienceRetriever {
       const icon = OUTCOME_ICONS[record.outcome] ?? "•"
       const goal = record.goal.slice(0, 80).replace(/\n/g, " ")
       const summary = record.summary.slice(0, 200).replace(/\n/g, " ")
-      lines.push(
-        `### ${icon} [reward: ${record.reward.toFixed(2)}, sim: ${similarity.toFixed(2)}] ${goal}`,
-      )
+      lines.push(`### ${icon} [reward: ${record.reward.toFixed(2)}, sim: ${similarity.toFixed(2)}] ${goal}`)
       lines.push(`Summary: ${summary}`)
       lines.push("")
     }
 
-    const failures = retrieved.filter(
-      (r) => r.record.outcome === "failed" || r.record.outcome === "reverted",
-    )
+    const failures = retrieved.filter((r) => r.record.outcome === "failed" || r.record.outcome === "reverted")
     if (failures.length > 0) {
       lines.push("## Avoid (failed/reverted patterns)")
       for (const f of failures) {

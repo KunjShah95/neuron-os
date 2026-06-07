@@ -10,9 +10,7 @@ export interface TaskProfile {
   complexity: "simple" | "moderate" | "complex"
 }
 
-export function predictCost(
-  task: TaskProfile,
-): CostEstimate {
+export function predictCost(task: TaskProfile): CostEstimate {
   const pricing = loadPricing()
 
   // Scale by complexity
@@ -27,7 +25,7 @@ export function predictCost(
   const balancedModels = models.filter(([, m]) => m.quality_tier === "balanced")
   const premiumModels = models.filter(([, m]) => m.quality_tier === "premium")
 
-  function bestOfCategory(candidates: Array<[string, typeof pricing.models[string]]>): number {
+  function bestOfCategory(candidates: Array<[string, (typeof pricing.models)[string]]>): number {
     const costs = candidates.map(([name]) => estimateModelCost(name, scaledInput, scaledOutput))
     return costs.length > 0 ? Math.min(...costs) : Infinity
   }
@@ -49,7 +47,8 @@ export function predictCost(
     premium: premium + toolCost,
     selected: "balanced",
     selected_model: "",
-    reasoning: `Estimated cost for ${task.complexity} task: ` +
+    reasoning:
+      `Estimated cost for ${task.complexity} task: ` +
       `cheap $${(cheap + toolCost).toFixed(4)}, ` +
       `balanced $${(balanced + toolCost).toFixed(4)}, ` +
       `premium $${(premium + toolCost).toFixed(4)}`,

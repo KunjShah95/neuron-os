@@ -52,7 +52,12 @@ export class KnowledgeSynthesizer {
             if (deps?.recallRetriever) {
               const hits = deps.recallRetriever.retrieve({ text: topic, maxResults: 5 })
               for (const h of hits) {
-                allSources.push({ store: "recall", id: h.turn_id, content: h.content.slice(0, 300), score: h.finalScore })
+                allSources.push({
+                  store: "recall",
+                  id: h.turn_id,
+                  content: h.content.slice(0, 300),
+                  score: h.finalScore,
+                })
               }
             }
             break
@@ -71,7 +76,12 @@ export class KnowledgeSynthesizer {
               const g = deps?.graph ?? knowledgeGraph
               const entities = g.search({ query: topic, limit: 5 })
               for (const e of entities) {
-                allSources.push({ store: "graph", id: e.id, content: `[${e.type}] ${e.name}: ${e.context}`.slice(0, 300), score: e.confidence })
+                allSources.push({
+                  store: "graph",
+                  id: e.id,
+                  content: `[${e.type}] ${e.name}: ${e.context}`.slice(0, 300),
+                  score: e.confidence,
+                })
               }
             }
             break
@@ -80,7 +90,12 @@ export class KnowledgeSynthesizer {
               const es = deps?.expStore ?? experienceStore
               const results = es.searchByGoalSimilarity(topic, 5)
               for (const r of results) {
-                allSources.push({ store: "experience", id: r.id, content: `[${r.outcome}] ${r.goal} — ${r.summary}`.slice(0, 300), score: r.similarity })
+                allSources.push({
+                  store: "experience",
+                  id: r.id,
+                  content: `[${r.outcome}] ${r.goal} — ${r.summary}`.slice(0, 300),
+                  score: r.similarity,
+                })
               }
             }
             break
@@ -89,7 +104,12 @@ export class KnowledgeSynthesizer {
               const ss = deps?.sessStore ?? sessionStore
               const results = ss.searchMessages(topic, 5)
               for (const r of results) {
-                allSources.push({ store: "sessions", id: `${r.message.id}`, content: r.message.content.slice(0, 300), score: 0.5 })
+                allSources.push({
+                  store: "sessions",
+                  id: `${r.message.id}`,
+                  content: r.message.content.slice(0, 300),
+                  score: 0.5,
+                })
               }
             }
             break

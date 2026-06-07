@@ -40,11 +40,7 @@ async function fetchMCPTools(server: MCPServerConfig): Promise<MCPToolDefinition
   return body.tools ?? []
 }
 
-async function callMCPTool(
-  server: MCPServerConfig,
-  toolName: string,
-  args: Record<string, unknown>,
-): Promise<unknown> {
+async function callMCPTool(server: MCPServerConfig, toolName: string, args: Record<string, unknown>): Promise<unknown> {
   const response = await fetch(server.url.replace(/\/$/, "") + "/call", {
     method: "POST",
     headers: {

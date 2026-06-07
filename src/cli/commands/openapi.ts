@@ -5,9 +5,7 @@ import { createLogger } from "../logger"
 const log = createLogger("cli:openapi")
 
 export function registerOpenApi(program: Command) {
-  const openapi = program
-    .command("openapi")
-    .description("Generate or serve the OpenAPI 3.0 specification")
+  const openapi = program.command("openapi").description("Generate or serve the OpenAPI 3.0 specification")
 
   openapi
     .command("generate")

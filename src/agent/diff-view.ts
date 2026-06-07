@@ -10,11 +10,7 @@ import type { ActionLog } from "./action-tracker"
 /**
  * Format a unified diff patch for a single file.
  */
-export function formatPatch(
-  filePath: string,
-  before: string,
-  after: string,
-): string {
+export function formatPatch(filePath: string, before: string, after: string): string {
   return createTwoFilesPatch(filePath, filePath, before, after, "", "", {
     context: 3,
   })
@@ -30,9 +26,7 @@ export function composeBeforeAfter(sorted: ActionLog[]): {
   before: string
   after: string
 } {
-  const sortedCopy = [...sorted].sort(
-    (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
-  )
+  const sortedCopy = [...sorted].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
   const first = sortedCopy[0]!
   const last = sortedCopy[sortedCopy.length - 1]!
 

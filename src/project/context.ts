@@ -72,7 +72,9 @@ export function setActiveProject(name: string | null): void {
   ensureDirs()
   try {
     writeFileSync(ACTIVE_PROJECT_FILE, name ?? "", "utf-8")
-  } catch { /* best-effort */ }
+  } catch {
+    /* best-effort */
+  }
 }
 
 // ── Project CRUD ──────────────────────────────────────────────────────

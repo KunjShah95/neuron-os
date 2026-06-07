@@ -132,10 +132,7 @@ export async function runTest(test: TestCase, config?: HarnessRunnerConfig): Pro
 
 // ── Parallel Suite Runner ────────────────────────────────────────
 
-export async function runSuite(
-  tests: TestCase[],
-  config?: HarnessRunnerConfig,
-): Promise<EvalResult[]> {
+export async function runSuite(tests: TestCase[], config?: HarnessRunnerConfig): Promise<EvalResult[]> {
   const runnerConfig: RunnerConfig = {
     concurrency: config?.runnerConfig?.concurrency ?? 4,
     mode: config?.runnerConfig?.mode ?? "parallel",
@@ -174,7 +171,7 @@ export async function runSuite(
         // Retry if failed and retries configured
         if (!result.passed && runnerConfig.retryCount > 0) {
           for (let attempt = 1; attempt <= runnerConfig.retryCount; attempt++) {
-            await new Promise(r => setTimeout(r, runnerConfig.retryDelay * attempt))
+            await new Promise((r) => setTimeout(r, runnerConfig.retryDelay * attempt))
             const retryResult = await runTest(test, config)
             if (retryResult.passed) {
               flakyManager.recordRun(test.id, result, retryResult)

@@ -20,18 +20,18 @@ import { type AgentTypeName } from "./agent-types"
 // ── Types ─────────────────────────────────────────────────────────────
 
 export type CapabilityCategory =
-  | "code"           // Writing, reading, editing code
-  | "analysis"       // Analyzing, reviewing, auditing
-  | "architecture"   // Designing, planning, structuring
-  | "testing"        // Testing, validating, verifying
-  | "deployment"     // Deploying, releasing, rolling back
-  | "monitoring"     // Monitoring, alerting, observability
-  | "research"       // Researching, searching, gathering info
-  | "integration"    // Integrating, connecting, wiring services
-  | "security"       // Security auditing, vulnerability scanning
-  | "documentation"  // Writing docs, generating reports
-  | "communication"  // Messaging, notifications, collaboration
-  | "automation"     // Automating workflows, pipelines
+  | "code" // Writing, reading, editing code
+  | "analysis" // Analyzing, reviewing, auditing
+  | "architecture" // Designing, planning, structuring
+  | "testing" // Testing, validating, verifying
+  | "deployment" // Deploying, releasing, rolling back
+  | "monitoring" // Monitoring, alerting, observability
+  | "research" // Researching, searching, gathering info
+  | "integration" // Integrating, connecting, wiring services
+  | "security" // Security auditing, vulnerability scanning
+  | "documentation" // Writing docs, generating reports
+  | "communication" // Messaging, notifications, collaboration
+  | "automation" // Automating workflows, pipelines
 
 export interface Capability {
   id: string
@@ -53,7 +53,7 @@ export interface Capability {
 export interface AgentCapabilityRegistration {
   agentId: string
   agentType: AgentTypeName | string
-  capabilities: string[]  // Capability IDs
+  capabilities: string[] // Capability IDs
   registeredAt: number
   /** Current load factor (0-1) — how busy this agent is */
   loadFactor: number
@@ -121,7 +121,11 @@ const BUILTIN_CAPABILITIES: Capability[] = [
     category: "code",
     keywords: ["read", "find", "search", "explore", "understand", "navigate"],
     complexity: 2,
-    examples: ["Find where a function is defined", "Understand the authentication flow", "Map data flow through the system"],
+    examples: [
+      "Find where a function is defined",
+      "Understand the authentication flow",
+      "Map data flow through the system",
+    ],
   },
 
   // Analysis capabilities
@@ -356,7 +360,11 @@ const BUILTIN_CAPABILITIES: Capability[] = [
     keywords: ["coordinate", "delegate", "orchestrate", "distribute", "parallel"],
     complexity: 9,
     subCapabilities: ["communication.chat", "architecture.plan"],
-    examples: ["Split a large task across agents", "Coordinate parallel workstreams", "Merge results from multiple agents"],
+    examples: [
+      "Split a large task across agents",
+      "Coordinate parallel workstreams",
+      "Merge results from multiple agents",
+    ],
   },
 
   // Automation capabilities
@@ -423,11 +431,12 @@ export class CapabilityRegistry {
    */
   searchCapabilities(query: string): Capability[] {
     const q = query.toLowerCase()
-    return Array.from(this.capabilities.values()).filter((c) =>
-      c.name.toLowerCase().includes(q) ||
-      c.description.toLowerCase().includes(q) ||
-      c.keywords.some((k) => k.toLowerCase().includes(q)) ||
-      c.examples.some((e) => e.toLowerCase().includes(q)),
+    return Array.from(this.capabilities.values()).filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.description.toLowerCase().includes(q) ||
+        c.keywords.some((k) => k.toLowerCase().includes(q)) ||
+        c.examples.some((e) => e.toLowerCase().includes(q)),
     )
   }
 

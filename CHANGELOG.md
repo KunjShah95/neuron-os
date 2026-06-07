@@ -32,7 +32,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 6 — Self-improvement skill pipeline**: `src/improve/eval-validator.ts` validates skill candidates against the GraderSuite before publishing; `src/improve/skill-monitor.ts` tracks skill performance over time with trend analysis, degradation detection, and improvement suggestions. CLI: `aegis improve validate` (run/list/stats), `aegis improve monitor` (status/list/degrading/top/record).
+- **Phase 7 — Multi-agent orchestration harness**: `src/harness/multi-agent.ts` defines 6 coordination patterns (sequential, parallel, debate, hierarchical, voting, refine) with typed `MultiAgentTest` definitions and a scenario factory; `src/harness/multi-agent-collector.ts` collects handoff accuracy, context loss, consensus quality, parallel speedup, Gini coefficient, and per-agent metrics. CLI: `aegis eval multi-agent` (list/run/metrics).
+- **Phase 8 — Golden dataset manager**: `src/harness/golden-dataset.ts` implements the Silver→Gold→Audit→Archived pipeline for human-verified eval tasks with file persistence; `src/harness/golden-validator.ts` cross-validates tasks across multiple LLM models. Tasks auto-discovered via `evals/golden/` with `aegis eval run --golden`. CLI: `aegis eval golden` (create/list/promote/audit/archive/stats).
+- **Unit test suites** (66 tests total): `src/improve/eval-validator.test.ts` (11 tests), `src/improve/skill-monitor.test.ts` (17 tests), `src/harness/golden-dataset.test.ts` (24 tests), `src/harness/multi-agent-collector.test.ts` (14 tests).
+- **Dashboard eval panels**: Golden Dataset (🥇), Skill Pipeline (🔧), and Multi-Agent (🤖) panels in `dashboard/src/routes/Eval.tsx` with stat summaries and CLI quick-refs.
+- **Calibration comparison script improvements**: `scripts/calibration-compare.ts` now supports `LIMIT=N` env var to run only N examples (default: all 40), and Groq + Ollama models in `DEFAULT_MODELS` with proper API key handling for local providers.
+- **JSON test loader**: `src/harness/discover.ts` now includes a `jsonLoader` that parses GoldenTask JSON files (single or array) into `TestCase` objects.
+
 - **Auto-generated docs source** — `scripts/extract-commands.ts` parses `src/cli/commands/*.ts` via the TypeScript Compiler API and emits `shared/commands.json` (128 commands as of this write). The dashboard and website docs sections now consume this file as a single source of truth instead of hand-maintained command arrays. New scripts: `bun run docs:generate` / `bun run docs:check`. `pretest` runs `docs:check` to fail CI on drift.
+
+### Fixed
+- **SkillMonitor recursion bug**: `generateSuggestions()` no longer calls `this.getPerformance()` internally, which caused infinite recursion and `Maximum call stack size exceeded`.
+
+
 - **Generator test suite** — `scripts/__tests__/extract-commands.test.ts` with 3 fixture files (`simple.ts`, `with-options.ts`, `with-subcommands.ts`) covering simple chains, alias/description/options/defaults, and parent+subcommand extraction. All 3 tests pass; the test is registered in `scripts/run-tests.ts`.
 - **Dashboard docs layer** — `dashboard/src/data/commandGroups.ts` derives 11 hand-curated groups (system, setup, agents, orchestration, memory, knowledge, schedule, serve, adapters, sessions, runtime) from `shared/commands.json` and adds icon/tag metadata. `dashboard/src/routes/Docs.tsx` now imports this layer; the hand-maintained `commandGroups` array is gone.
 - **Website docs layer** — `website/src/data/docTopics.ts` exposes `navGroups`, `docTopics`, and `defaultTopic` (15 curated topics) sourced from `shared/commands.json` via a `row(name)` helper that resolves command descriptions from the JSON. `website/src/sections/DocsSection.tsx` now imports this layer; the hand-maintained `navGroups` / `docContent` / `defaultContent` constants are gone.

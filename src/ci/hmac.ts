@@ -1,7 +1,9 @@
 import { createHash, timingSafeEqual } from "crypto"
 
 export function signPayload(payload: string, key: string): string {
-  return createHash("sha256").update(payload + key).digest("hex")
+  return createHash("sha256")
+    .update(payload + key)
+    .digest("hex")
 }
 
 export function verifySignature(payload: string, signature: string, key: string): boolean {

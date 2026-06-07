@@ -1,23 +1,34 @@
 import { z } from "zod"
 
 export const ToolPricing = z.object({
-  tools: z.record(z.string(), z.object({
-    api_usd: z.number().nonnegative().optional(),
-    compute_usd_per_second: z.number().nonnegative().optional(),
-    io_usd_per_mb: z.number().nonnegative().optional(),
-    latency_p50_ms: z.number().nonnegative().optional(),
-    latency_p99_ms: z.number().nonnegative().optional(),
-    provider_specific: z.record(z.string(), z.object({
-      api_usd: z.number().optional(),
-    })).optional(),
-  })),
-  models: z.record(z.string(), z.object({
-    prompt_usd_per_1k: z.number().nonnegative(),
-    completion_usd_per_1k: z.number().nonnegative(),
-    context_window: z.number().int().positive(),
-    quality_tier: z.enum(["cheap", "balanced", "premium"]),
-    benchmark_score: z.number().min(0).max(1).optional(),
-  })),
+  tools: z.record(
+    z.string(),
+    z.object({
+      api_usd: z.number().nonnegative().optional(),
+      compute_usd_per_second: z.number().nonnegative().optional(),
+      io_usd_per_mb: z.number().nonnegative().optional(),
+      latency_p50_ms: z.number().nonnegative().optional(),
+      latency_p99_ms: z.number().nonnegative().optional(),
+      provider_specific: z
+        .record(
+          z.string(),
+          z.object({
+            api_usd: z.number().optional(),
+          }),
+        )
+        .optional(),
+    }),
+  ),
+  models: z.record(
+    z.string(),
+    z.object({
+      prompt_usd_per_1k: z.number().nonnegative(),
+      completion_usd_per_1k: z.number().nonnegative(),
+      context_window: z.number().int().positive(),
+      quality_tier: z.enum(["cheap", "balanced", "premium"]),
+      benchmark_score: z.number().min(0).max(1).optional(),
+    }),
+  ),
 })
 
 export type ToolPricing = z.infer<typeof ToolPricing>

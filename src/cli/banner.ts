@@ -13,7 +13,6 @@ function countInstalledSkills(): number {
   return readdirSync(skillsDir, { withFileTypes: true }).filter((e) => e.isDirectory()).length
 }
 
-
 export function showBanner(opts?: { version?: string; tagline?: string; title?: string }) {
   // Suppress banner when spawned from the wakeup menu (child process)
   if (process.env.AEGIS_SPAWNED) return
@@ -22,7 +21,10 @@ export function showBanner(opts?: { version?: string; tagline?: string; title?: 
 
   if (process.stdout.isTTY && !process.argv.includes("--plain") && !process.argv.includes("--json")) {
     const text = figlet.textSync(opts?.title ?? "Neuron OS", { font: "Big" })
-    const colored = text.split("\n").map((l) => theme.accent(l)).join("\n")
+    const colored = text
+      .split("\n")
+      .map((l) => theme.accent(l))
+      .join("\n")
     console.log(colored)
     const version = opts?.version ?? `v${getVersion()}`
 
@@ -37,4 +39,6 @@ export function showBanner(opts?: { version?: string; tagline?: string; title?: 
   }
 }
 
-export function resetBanner() { bannerEmitted = false }
+export function resetBanner() {
+  bannerEmitted = false
+}

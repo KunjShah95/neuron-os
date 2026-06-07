@@ -36,7 +36,6 @@ function checkKey(raw: string, expected: ChatKeyEvent["type"], _label: string) {
 }
 
 describe("Chat Tests", () => {
-
   // ══════════════════════════════════════════════════════════════════
   //  1. Chat Layout
   // ══════════════════════════════════════════════════════════════════
@@ -54,7 +53,8 @@ describe("Chat Tests", () => {
     expect(layout80x24.hint.height).toBe(1)
     expect(layout80x24.hint.y).toBe(layout80x24.input.y + 1)
 
-    const totalHeight = layout80x24.header.height + layout80x24.messages.height + layout80x24.input.height + layout80x24.hint.height
+    const totalHeight =
+      layout80x24.header.height + layout80x24.messages.height + layout80x24.input.height + layout80x24.hint.height
     expect(totalHeight).toBe(24)
   })
 
@@ -64,7 +64,7 @@ describe("Chat Tests", () => {
     expect(layout40x10.input.height >= 1).toBe(true)
     expect(layout40x10.header.height === 1).toBe(true)
     expect(
-      layout40x10.header.height + layout40x10.messages.height + layout40x10.input.height + layout40x10.hint.height
+      layout40x10.header.height + layout40x10.messages.height + layout40x10.input.height + layout40x10.hint.height,
     ).toBe(10)
   })
 
@@ -260,8 +260,7 @@ describe("Chat Tests", () => {
     appendToStreamingMessage(state, "Here's a function:")
     const msgLines2 = renderMessages(state, { x: 0, y: 1, width: 80, height: 15 })
     expect(
-      stripAnsi(msgLines2.join("")).includes("streaming") ||
-      stripAnsi(msgLines2.join("")).includes("Streaming")
+      stripAnsi(msgLines2.join("")).includes("streaming") || stripAnsi(msgLines2.join("")).includes("Streaming"),
     ).toBe(true)
   })
 
@@ -605,5 +604,4 @@ describe("Chat Tests", () => {
     expect(lwp.picker!.width === 34).toBe(true)
     expect(lwp.messages.width === 45).toBe(true)
   })
-
 })

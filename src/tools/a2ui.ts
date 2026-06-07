@@ -229,9 +229,7 @@ export class A2uiManager {
    */
   registerActionRoute(pattern: string, agentId: string, autoRegistered?: boolean): void {
     // Remove existing route with same pattern+agentId to avoid duplicates
-    this.actionRoutes = this.actionRoutes.filter(
-      (r) => !(r.pattern === pattern && r.agentId === agentId),
-    )
+    this.actionRoutes = this.actionRoutes.filter((r) => !(r.pattern === pattern && r.agentId === agentId))
 
     this.actionRoutes.push({
       pattern,
@@ -256,9 +254,7 @@ export class A2uiManager {
   /** Remove a specific action route by pattern and agent ID */
   removeActionRoute(pattern: string, agentId: string): boolean {
     const before = this.actionRoutes.length
-    this.actionRoutes = this.actionRoutes.filter(
-      (r) => !(r.pattern === pattern && r.agentId === agentId),
-    )
+    this.actionRoutes = this.actionRoutes.filter((r) => !(r.pattern === pattern && r.agentId === agentId))
     return this.actionRoutes.length < before
   }
 
@@ -463,7 +459,6 @@ export class A2uiManager {
   clearAll(): void {
     this.widgets.clear()
   }
-
 }
 
 // ── Singleton ─────────────────────────────────────────────────────────
@@ -558,13 +553,15 @@ function renderMetricChart(w: A2uiMetricChart, _useColors: boolean): string[] {
   const unit = w.unit ?? ""
   lines.push(`  ${w.metric}: ${w.value}${unit} ${trendIcon}`)
   if (w.history && w.history.length > 0) {
-    const sparkline = w.history.map((v) => {
-      if (v > 80) return "▇"
-      if (v > 60) return "▆"
-      if (v > 40) return "▅"
-      if (v > 20) return "▃"
-      return "▁"
-    }).join("")
+    const sparkline = w.history
+      .map((v) => {
+        if (v > 80) return "▇"
+        if (v > 60) return "▆"
+        if (v > 40) return "▅"
+        if (v > 20) return "▃"
+        return "▁"
+      })
+      .join("")
     lines.push(`  ${sparkline}`)
   }
   return lines

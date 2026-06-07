@@ -103,7 +103,9 @@ export function registerDocsCrawl(program: Command) {
           const { readFileSync } = await import("node:fs")
           try {
             const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"))
-            console.log(`  ${theme.accent(site)} — ${manifest.succeeded || 0} pages (${manifest.crawledAt || "unknown"})`)
+            console.log(
+              `  ${theme.accent(site)} — ${manifest.succeeded || 0} pages (${manifest.crawledAt || "unknown"})`,
+            )
           } catch {
             console.log(`  ${theme.accent(site)}`)
           }

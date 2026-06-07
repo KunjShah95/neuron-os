@@ -56,11 +56,21 @@ export async function handleKey(state: AppState, key: KeyEvent): Promise<"contin
 
     case "tab": {
       switch (ui.focus) {
-        case "log": ui.focus = "agents"; break
-        case "agents": ui.focus = "providers"; break
-        case "providers": ui.focus = "sessions"; break
-        case "sessions": ui.focus = "command"; break
-        case "command": ui.focus = "log"; break
+        case "log":
+          ui.focus = "agents"
+          break
+        case "agents":
+          ui.focus = "providers"
+          break
+        case "providers":
+          ui.focus = "sessions"
+          break
+        case "sessions":
+          ui.focus = "command"
+          break
+        case "command":
+          ui.focus = "log"
+          break
       }
       state.dirty = true
       return "refresh"
@@ -93,9 +103,9 @@ export async function handleKey(state: AppState, key: KeyEvent): Promise<"contin
           ui.input = ""
         }
       } else if (ui.focus === "providers") {
-        state.providerIndex = Math.min(((state.providers?.length ?? 1) - 1), (state.providerIndex ?? 0) + 1)
+        state.providerIndex = Math.min((state.providers?.length ?? 1) - 1, (state.providerIndex ?? 0) + 1)
       } else if (ui.focus === "sessions") {
-        state.sessionIndex = Math.min(((state.sessions?.length ?? 1) - 1), (state.sessionIndex ?? 0) + 1)
+        state.sessionIndex = Math.min((state.sessions?.length ?? 1) - 1, (state.sessionIndex ?? 0) + 1)
       } else if (ui.logScroll > 0) {
         ui.logScroll--
       }
@@ -251,7 +261,10 @@ export async function handleKey(state: AppState, key: KeyEvent): Promise<"contin
           ui.pendingAction = { type: "rename", sessionId: id }
           ui.focus = "command"
           ui.input = id
-          addLogEntry(state, { text: `Edit the name in the command bar and press Enter to rename (current: ${id})`, type: "event" })
+          addLogEntry(state, {
+            text: `Edit the name in the command bar and press Enter to rename (current: ${id})`,
+            type: "event",
+          })
           state.dirty = true
           return "refresh"
         }
@@ -259,7 +272,10 @@ export async function handleKey(state: AppState, key: KeyEvent): Promise<"contin
           ui.pendingAction = { type: "export", sessionId: id }
           ui.focus = "command"
           ui.input = `exports/${id}.json`
-          addLogEntry(state, { text: `Edit export path in the command bar and press Enter to export (suggested: exports/${id}.json)`, type: "event" })
+          addLogEntry(state, {
+            text: `Edit export path in the command bar and press Enter to export (suggested: exports/${id}.json)`,
+            type: "event",
+          })
           state.dirty = true
           return "refresh"
         }

@@ -21,8 +21,7 @@ export const delegateTaskTool: Tool = {
     {
       name: "context",
       type: "string",
-      description:
-        "Optional context or files to pass to the sub-agent as background",
+      description: "Optional context or files to pass to the sub-agent as background",
     },
     {
       name: "timeout",
@@ -30,10 +29,7 @@ export const delegateTaskTool: Tool = {
       description: "Timeout in milliseconds (default: 300000 / 5 min)",
     },
   ],
-  async execute(
-    params: Record<string, unknown>,
-    ctx: ToolContext,
-  ): Promise<ToolResult> {
+  async execute(params: Record<string, unknown>, ctx: ToolContext): Promise<ToolResult> {
     const goal = params.goal as string
     if (!goal) {
       return { success: false, output: "", error: "Goal parameter is required" }
@@ -49,9 +45,7 @@ export const delegateTaskTool: Tool = {
     const targetType = isNameLookup ? undefined : agentTypeParam
 
     // Build the full goal with optional context
-    const fullGoal = context
-      ? `Context from ${ctx.agentId}:\n${context}\n\nTask: ${goal}`
-      : goal
+    const fullGoal = context ? `Context from ${ctx.agentId}:\n${context}\n\nTask: ${goal}` : goal
 
     try {
       // 1. Try to find an existing agent of the requested type/name

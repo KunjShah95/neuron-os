@@ -86,7 +86,7 @@ export class FailureClusterer {
       .filter(Boolean) as ExperienceRecord[]
 
     let retried = 0
-    let succeeded = 0
+    const succeeded = 0
 
     for (const exp of toRetry) {
       const modifiedGoal = `(Retry cluster: ${cluster.name}) ${exp.goal} — ${cluster.suggestedFix}`

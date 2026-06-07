@@ -106,7 +106,9 @@ export class SessionReplay {
     const session = this.load()
     const lines: string[] = []
 
-    lines.push(`📋 Session: ${session.sessionId.slice(0, 16)}... (${session.totalSteps} steps, ${session.outcome || "?"})`)
+    lines.push(
+      `📋 Session: ${session.sessionId.slice(0, 16)}... (${session.totalSteps} steps, ${session.outcome || "?"})`,
+    )
     lines.push("")
 
     for (const step of session.steps) {
@@ -156,10 +158,7 @@ export class SessionReplay {
       } else if (entry.eventType === "tool_result") {
         currentStep.result = entry.summary
         currentStep.durationMs = entry.durationMs
-      } else if (
-        entry.eventType === "approval_request" ||
-        entry.eventType === "approval_result"
-      ) {
+      } else if (entry.eventType === "approval_request" || entry.eventType === "approval_result") {
         currentStep.action = entry.summary
       }
     }

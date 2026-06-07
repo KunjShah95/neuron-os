@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-07T06:35:25.526Z",
+  "generatedAt": "2026-06-07T13:31:02.904Z",
   "commands": [
     {
       "name": "adversarial",
@@ -1137,6 +1137,281 @@
       "description": "Pre-flight cost estimation — estimate cost before spawning an agent"
     },
     {
+      "name": "eval",
+      "options": [],
+      "sourceFile": "src/cli/commands/eval.ts",
+      "description": "Agent evaluation pipeline (run, report, ci, baseline, experiment, review, status, calibrate)"
+    },
+    {
+      "name": "eval baseline",
+      "options": [
+        {
+          "flag": "--id <id>",
+          "description": "Baseline ID",
+          "required": false
+        },
+        {
+          "flag": "--model <model>",
+          "description": "Model filter",
+          "required": false
+        },
+        {
+          "flag": "--suite <suite>",
+          "description": "Suite filter",
+          "required": false
+        },
+        {
+          "flag": "--compare <id>",
+          "description": "Compare with another baseline",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/eval.ts",
+      "description": "Manage baselines",
+      "parent": "eval"
+    },
+    {
+      "name": "eval calibrate",
+      "options": [
+        {
+          "flag": "--model <model>",
+          "description": "Judge model to calibrate",
+          "required": false,
+          "defaultValue": "claude-sonnet-4-6"
+        },
+        {
+          "flag": "--output <path>",
+          "description": "Output path for calibration report",
+          "required": false,
+          "defaultValue": ".aegis/calibration-report.json"
+        }
+      ],
+      "sourceFile": "src/cli/commands/eval.ts",
+      "description": "Run judge calibration against the golden dataset",
+      "parent": "eval"
+    },
+    {
+      "name": "eval ci",
+      "options": [
+        {
+          "flag": "-s, --suite <path>",
+          "description": "Path to eval suite",
+          "required": false,
+          "defaultValue": "evals"
+        },
+        {
+          "flag": "--model <model>",
+          "description": "Model to evaluate",
+          "required": false
+        },
+        {
+          "flag": "--threshold <n>",
+          "description": "Max score drop allowed",
+          "required": false,
+          "defaultValue": "0.05"
+        },
+        {
+          "flag": "--min-pass-rate <n>",
+          "description": "Minimum pass rate required",
+          "required": false,
+          "defaultValue": "0.85"
+        },
+        {
+          "flag": "--baseline-id <id>",
+          "description": "Compare against specific baseline",
+          "required": false
+        },
+        {
+          "flag": "--report-path <path>",
+          "description": "Path to write CI report",
+          "required": false,
+          "defaultValue": ".aegis/ci-report.json"
+        },
+        {
+          "flag": "--annotate-pr",
+          "description": "Format output as PR comment",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/eval.ts",
+      "description": "Run the CI gate against a baseline with threshold enforcement",
+      "parent": "eval"
+    },
+    {
+      "name": "eval experiment",
+      "options": [
+        {
+          "flag": "--id <id>",
+          "description": "Experiment ID",
+          "required": false
+        },
+        {
+          "flag": "--name <name>",
+          "description": "Experiment name (for create)",
+          "required": false
+        },
+        {
+          "flag": "--compare-with <id>",
+          "description": "Compare with another experiment",
+          "required": false
+        },
+        {
+          "flag": "--add-tag <tag>",
+          "description": "Add tag to experiment",
+          "required": false
+        },
+        {
+          "flag": "--tags <tags>",
+          "description": "Filter by tags (comma-separated)",
+          "required": false
+        },
+        {
+          "flag": "--since <date>",
+          "description": "Filter by date",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/eval.ts",
+      "description": "Manage experiments",
+      "parent": "eval"
+    },
+    {
+      "name": "eval report",
+      "options": [
+        {
+          "flag": "--format <fmt>",
+          "description": "Report format: json, md, html",
+          "required": false,
+          "defaultValue": "html"
+        },
+        {
+          "flag": "--output <path>",
+          "description": "Output directory",
+          "required": false,
+          "defaultValue": ".aegis/reports"
+        },
+        {
+          "flag": "--input <path>",
+          "description": "Input results file (default: last run)",
+          "required": false
+        },
+        {
+          "flag": "--baseline-id <id>",
+          "description": "Compare against baseline",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/eval.ts",
+      "description": "Generate and export evaluation report",
+      "parent": "eval"
+    },
+    {
+      "name": "eval review",
+      "options": [
+        {
+          "flag": "--id <id>",
+          "description": "Review ticket ID",
+          "required": false
+        },
+        {
+          "flag": "--reviewer <name>",
+          "description": "Reviewer name",
+          "required": false
+        },
+        {
+          "flag": "--comment <text>",
+          "description": "Review comment",
+          "required": false
+        },
+        {
+          "flag": "--resolution <type>",
+          "description": "Resolution type: accepted-regression, false-positive, needs-fix, flaky-test",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/eval.ts",
+      "description": "HITL review workflow for regressions",
+      "parent": "eval"
+    },
+    {
+      "name": "eval run",
+      "options": [
+        {
+          "flag": "-s, --suite <path>",
+          "description": "Path to eval suite directory or file",
+          "required": false,
+          "defaultValue": "evals"
+        },
+        {
+          "flag": "--name <pattern>",
+          "description": "Only run tests matching name pattern",
+          "required": false
+        },
+        {
+          "flag": "--tag <tag>",
+          "description": "Only run tests with this tag",
+          "required": false
+        },
+        {
+          "flag": "--model <model>",
+          "description": "Override model for the run",
+          "required": false
+        },
+        {
+          "flag": "--concurrency <n>",
+          "description": "Number of parallel tests",
+          "required": false,
+          "defaultValue": "4"
+        },
+        {
+          "flag": "--baseline-id <id>",
+          "description": "Compare against a specific baseline",
+          "required": false
+        },
+        {
+          "flag": "--experiment <name>",
+          "description": "Attach run to an experiment",
+          "required": false
+        },
+        {
+          "flag": "--budget <usd>",
+          "description": "Max cost in USD for the run",
+          "required": false
+        },
+        {
+          "flag": "--distributed",
+          "description": "Use distributed workers",
+          "required": false
+        },
+        {
+          "flag": "--stream <path>",
+          "description": "Stream results as JSONL to this path",
+          "required": false
+        },
+        {
+          "flag": "--golden",
+          "description": "Include golden (audited) tasks from evals/golden/",
+          "required": false
+        },
+        {
+          "flag": "--golden-status <status>",
+          "description": "Golden task status filter: silver, gold, audited",
+          "required": false,
+          "defaultValue": "audited"
+        }
+      ],
+      "sourceFile": "src/cli/commands/eval.ts",
+      "description": "Run an eval suite with grader pipeline and baseline comparison",
+      "parent": "eval"
+    },
+    {
+      "name": "eval status",
+      "options": [],
+      "sourceFile": "src/cli/commands/eval.ts",
+      "description": "Show harness status (tests found, last run summary)",
+      "parent": "eval"
+    },
+    {
       "name": "experience",
       "options": [],
       "sourceFile": "src/cli/commands/experience.ts",
@@ -1290,6 +1565,128 @@
       "options": [],
       "sourceFile": "src/cli/commands/production.ts",
       "description": "Retrieve a credential"
+    },
+    {
+      "name": "golden",
+      "options": [],
+      "sourceFile": "src/cli/commands/golden.ts",
+      "description": "Manage golden dataset (Silver→Gold→Audit pipeline)"
+    },
+    {
+      "name": "golden archive <id>",
+      "options": [],
+      "sourceFile": "src/cli/commands/golden.ts",
+      "description": "Archive a golden task",
+      "parent": "golden"
+    },
+    {
+      "name": "golden audit",
+      "options": [
+        {
+          "flag": "--dry-run",
+          "description": "Show which tasks would be audited without running",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/golden.ts",
+      "description": "Run cross-model validation on all Gold tasks ready for audit",
+      "parent": "golden"
+    },
+    {
+      "name": "golden create",
+      "options": [
+        {
+          "flag": "--name <name>",
+          "description": "Task name",
+          "required": false
+        },
+        {
+          "flag": "--prompt <text>",
+          "description": "Task prompt",
+          "required": false
+        },
+        {
+          "flag": "--category <cat>",
+          "description": "Test category (smoke, regression, capability, adversarial, benchmark, golden)",
+          "required": false,
+          "defaultValue": "capability"
+        },
+        {
+          "flag": "--difficulty <level>",
+          "description": "Difficulty (easy, medium, hard, expert)",
+          "required": false,
+          "defaultValue": "medium"
+        },
+        {
+          "flag": "--author <name>",
+          "description": "Task author",
+          "required": false
+        },
+        {
+          "flag": "--expected <pattern>",
+          "description": "Expected output pattern",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/golden.ts",
+      "description": "Create a new Silver-grade golden task",
+      "parent": "golden"
+    },
+    {
+      "name": "golden list",
+      "options": [
+        {
+          "flag": "--status <status>",
+          "description": "Filter by status (silver, gold, audited, archived)",
+          "required": false
+        },
+        {
+          "flag": "--category <cat>",
+          "description": "Filter by category",
+          "required": false
+        },
+        {
+          "flag": "--limit <n>",
+          "description": "Max tasks to show",
+          "required": false,
+          "defaultValue": "20"
+        }
+      ],
+      "sourceFile": "src/cli/commands/golden.ts",
+      "description": "List golden tasks by status",
+      "parent": "golden"
+    },
+    {
+      "name": "golden promote <id>",
+      "options": [
+        {
+          "flag": "--verifier <name>",
+          "description": "Verifier name",
+          "required": false,
+          "defaultValue": "cli-user"
+        },
+        {
+          "flag": "--quality <n>",
+          "description": "Quality score 1-5",
+          "required": false,
+          "defaultValue": "4"
+        },
+        {
+          "flag": "--notes <text>",
+          "description": "Review notes",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/golden.ts",
+      "description": "Promote a Silver task to Gold (human verification)",
+      "parent": "golden"
+    },
+    {
+      "name": "golden stats",
+      "options": [],
+      "sourceFile": "src/cli/commands/golden.ts",
+      "description": "Show golden dataset statistics (total, by status, by category, audit pass rate)",
+      "parent": "golden"
     },
     {
       "name": "graph",
@@ -1816,6 +2213,160 @@
       "parent": "mesh"
     },
     {
+      "name": "monitor",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve-monitor.ts",
+      "description": "Monitor skill performance — track success rates, detect degradation, find top performers"
+    },
+    {
+      "name": "monitor degrading",
+      "options": [
+        {
+          "flag": "--threshold <n>",
+          "description": "Degradation threshold (0-1)",
+          "required": false,
+          "defaultValue": "0.1"
+        },
+        {
+          "flag": "--limit <n>",
+          "description": "Number to show",
+          "required": false,
+          "defaultValue": "10"
+        }
+      ],
+      "sourceFile": "src/cli/commands/improve-monitor.ts",
+      "description": "Show skills that are degrading and need attention",
+      "parent": "monitor"
+    },
+    {
+      "name": "monitor list",
+      "options": [
+        {
+          "flag": "--sort <field>",
+          "description": "Sort by: name, success-rate, degradation, invocations",
+          "required": false,
+          "defaultValue": "degradation"
+        },
+        {
+          "flag": "--limit <n>",
+          "description": "Number of skills to show",
+          "required": false,
+          "defaultValue": "20"
+        }
+      ],
+      "sourceFile": "src/cli/commands/improve-monitor.ts",
+      "description": "List all skills with performance summaries",
+      "parent": "monitor"
+    },
+    {
+      "name": "monitor record <skillId>",
+      "options": [
+        {
+          "flag": "--name <name>",
+          "description": "Skill name",
+          "required": false
+        },
+        {
+          "flag": "--success <bool>",
+          "description": "Whether the skill succeeded (true/false)",
+          "required": false,
+          "defaultValue": "true"
+        },
+        {
+          "flag": "--reward <n>",
+          "description": "Reward value (0-1)",
+          "required": false,
+          "defaultValue": "0.8"
+        },
+        {
+          "flag": "--tokens <n>",
+          "description": "Token count",
+          "required": false,
+          "defaultValue": "1000"
+        },
+        {
+          "flag": "--duration <ms>",
+          "description": "Duration in ms",
+          "required": false,
+          "defaultValue": "5000"
+        }
+      ],
+      "sourceFile": "src/cli/commands/improve-monitor.ts",
+      "description": "Manually record a skill usage outcome",
+      "parent": "monitor"
+    },
+    {
+      "name": "monitor status",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve-monitor.ts",
+      "description": "Show skill monitoring overview and stats",
+      "parent": "monitor"
+    },
+    {
+      "name": "monitor top",
+      "options": [
+        {
+          "flag": "--limit <n>",
+          "description": "Number to show",
+          "required": false,
+          "defaultValue": "5"
+        }
+      ],
+      "sourceFile": "src/cli/commands/improve-monitor.ts",
+      "description": "Show top performing skills",
+      "parent": "monitor"
+    },
+    {
+      "name": "multi-agent",
+      "options": [],
+      "sourceFile": "src/cli/commands/multi-agent-scenarios.ts",
+      "description": "Multi-agent orchestration evaluation — coordination patterns, metrics, and scenarios"
+    },
+    {
+      "name": "multi-agent list",
+      "options": [
+        {
+          "flag": "--pattern <pattern>",
+          "description": "Filter by pattern (sequential, parallel, debate, hierarchical, voting, refine)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/multi-agent-scenarios.ts",
+      "description": "List available multi-agent scenarios and coordination patterns",
+      "parent": "multi-agent"
+    },
+    {
+      "name": "multi-agent metrics",
+      "options": [
+        {
+          "flag": "--test-id <id>",
+          "description": "Test ID to show metrics for",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/multi-agent-scenarios.ts",
+      "description": "Show coordination metrics from a past multi-agent run",
+      "parent": "multi-agent"
+    },
+    {
+      "name": "multi-agent run <scenarioName>",
+      "options": [
+        {
+          "flag": "--prompt <text>",
+          "description": "Custom prompt for the scenario",
+          "required": false
+        },
+        {
+          "flag": "--dry-run",
+          "description": "Show what would be run without executing",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/multi-agent-scenarios.ts",
+      "description": "Run a multi-agent scenario with sample data",
+      "parent": "multi-agent"
+    },
+    {
       "name": "ns",
       "options": [],
       "sourceFile": "src/cli/commands/knowledge.ts",
@@ -1977,6 +2528,20 @@
       "alias": "plugins"
     },
     {
+      "name": "plugin browse",
+      "options": [
+        {
+          "flag": "-l, --limit <number>",
+          "description": "Max results",
+          "required": false,
+          "defaultValue": "20"
+        }
+      ],
+      "sourceFile": "src/cli/commands/plugin.ts",
+      "description": "Browse trending plugins in the marketplace (skills.sh)",
+      "parent": "plugin"
+    },
+    {
       "name": "plugin install",
       "options": [
         {
@@ -1988,6 +2553,31 @@
       ],
       "sourceFile": "src/cli/commands/plugin.ts",
       "description": "Install a plugin from the local registry into skills/",
+      "parent": "plugin"
+    },
+    {
+      "name": "plugin install-from-url",
+      "options": [
+        {
+          "flag": "--name <name>",
+          "description": "Plugin name (default: repo name)",
+          "required": false
+        },
+        {
+          "flag": "--ref <ref>",
+          "description": "Branch, tag, or commit",
+          "required": false,
+          "defaultValue": "main"
+        },
+        {
+          "flag": "-f, --force",
+          "description": "Overwrite existing skill directory",
+          "required": false,
+          "defaultValue": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/plugin.ts",
+      "description": "Install a plugin from a git URL (GitHub, GitLab, etc.)",
       "parent": "plugin"
     },
     {
@@ -2030,6 +2620,20 @@
       "description": "Remove a plugin from the local registry",
       "parent": "plugin",
       "alias": "rm"
+    },
+    {
+      "name": "plugin search",
+      "options": [
+        {
+          "flag": "-l, --limit <number>",
+          "description": "Max results",
+          "required": false,
+          "defaultValue": "10"
+        }
+      ],
+      "sourceFile": "src/cli/commands/plugin.ts",
+      "description": "Search the remote plugin marketplace (skills.sh)",
+      "parent": "plugin"
     },
     {
       "name": "policy",
@@ -3530,10 +4134,61 @@
       "parent": "user"
     },
     {
+      "name": "validate",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve-validate.ts",
+      "description": "Validate skill candidates against the eval harness before publishing"
+    },
+    {
       "name": "validate <id>",
       "options": [],
       "sourceFile": "src/cli/commands/improve.ts",
       "description": "Validate a skill candidate against recent failures"
+    },
+    {
+      "name": "validate list",
+      "options": [
+        {
+          "flag": "--limit <n>",
+          "description": "Number of recent entries to show",
+          "required": false,
+          "defaultValue": "10"
+        }
+      ],
+      "sourceFile": "src/cli/commands/improve-validate.ts",
+      "description": "List validation history",
+      "parent": "validate"
+    },
+    {
+      "name": "validate run [candidateId]",
+      "options": [
+        {
+          "flag": "--all",
+          "description": "Validate all candidates (default: validates all)",
+          "required": false
+        },
+        {
+          "flag": "--min-score <n>",
+          "description": "Minimum composite score to pass",
+          "required": false,
+          "defaultValue": "0.7"
+        },
+        {
+          "flag": "--dry-run",
+          "description": "Show what would be validated without running",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/improve-validate.ts",
+      "description": "Validate one or all skill candidates against the eval harness",
+      "parent": "validate"
+    },
+    {
+      "name": "validate stats",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve-validate.ts",
+      "description": "Show validation statistics",
+      "parent": "validate"
     },
     {
       "name": "voice",

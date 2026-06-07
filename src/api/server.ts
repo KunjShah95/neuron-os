@@ -14,7 +14,11 @@ const log = createLogger("api")
 // ── Zod Schemas for request validation ─────────────────────────────────
 
 const SpawnAgentSchema = z.object({
-  name: z.string().min(1, "Name is required").max(64, "Name too long").regex(/^[a-zA-Z0-9_-]+$/, "Name must be alphanumeric with -_"),
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .max(64, "Name too long")
+    .regex(/^[a-zA-Z0-9_-]+$/, "Name must be alphanumeric with -_"),
   type: z.string().max(32, "Type too long").optional(),
   script: z.string().max(256, "Script path too long").optional(),
 })
@@ -32,7 +36,11 @@ const MemoryQuerySchema = z.object({
 })
 
 const SaveSkillSchema = z.object({
-  name: z.string().min(1, "Name is required").max(64, "Name too long").regex(/^[a-zA-Z0-9_-]+$/, "Name must be alphanumeric with -_"),
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .max(64, "Name too long")
+    .regex(/^[a-zA-Z0-9_-]+$/, "Name must be alphanumeric with -_"),
   description: z.string().min(1, "Description is required").max(200, "Description too long"),
   tags: z.array(z.string()).max(10, "Too many tags").default([]),
   type: z.string().min(1, "Widget type is required"),
@@ -139,7 +147,10 @@ const SECURITY_HEADERS: Record<string, string> = {
 
 function getAllowedOrigins(config: ApiServerConfig): string[] {
   if (config.corsOrigins) {
-    return config.corsOrigins.split(",").map((o) => o.trim()).filter(Boolean)
+    return config.corsOrigins
+      .split(",")
+      .map((o) => o.trim())
+      .filter(Boolean)
   }
   return ["http://localhost:5173"]
 }
@@ -151,7 +162,7 @@ function buildCorsHeaders(origin: string | null, allowedOrigins: string[]): Reco
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization, X-API-Key",
       "Access-Control-Max-Age": "86400",
-      "Vary": "Origin",
+      Vary: "Origin",
     }
   }
   // If no allowed origin matches and origin is present, don't set ACAO
@@ -276,7 +287,7 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
   if (pathname === "/api/v1/agents" && method === "POST") {
     const spawnResult = SpawnAgentSchema.safeParse(body)
     if (!spawnResult.success) {
-      return jsonResponse(400, { error: spawnResult.error.issues.map(i => i.message).join("; ") }, config, req)
+      return jsonResponse(400, { error: spawnResult.error.issues.map((i) => i.message).join("; ") }, config, req)
     }
 
     const payload = spawnResult.data
@@ -301,14 +312,19 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
     if (!instance) return jsonResponse(404, { error: "Agent not found" }, config, req)
 
     if (method === "GET") {
-      return jsonResponse(200, {
-        id: instance.id,
-        name: instance.def.name,
-        type: instance.def.agentType,
-        status: instance.status,
-        pid: instance.pid,
-        logCount: instance.log.length,
-      }, config, req)
+      return jsonResponse(
+        200,
+        {
+          id: instance.id,
+          name: instance.def.name,
+          type: instance.def.agentType,
+          status: instance.status,
+          pid: instance.pid,
+          logCount: instance.log.length,
+        },
+        config,
+        req,
+      )
     }
 
     if (method === "DELETE") {
@@ -325,7 +341,7 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
     const agentId = taskMatch[1]!
     const goalResult = TaskGoalSchema.safeParse(body)
     if (!goalResult.success) {
-      return jsonResponse(400, { error: goalResult.error.issues.map(i => i.message).join("; ") }, config, req)
+      return jsonResponse(400, { error: goalResult.error.issues.map((i) => i.message).join("; ") }, config, req)
     }
 
     const payload = goalResult.data
@@ -356,7 +372,7 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
   if (pathname === "/api/v1/memory" && method === "POST") {
     const memResult = MemoryContentSchema.safeParse(body)
     if (!memResult.success) {
-      return jsonResponse(400, { error: memResult.error.issues.map(i => i.message).join("; ") }, config, req)
+      return jsonResponse(400, { error: memResult.error.issues.map((i) => i.message).join("; ") }, config, req)
     }
     const payload = memResult.data
     const { memorySystem, getProjectMemorySystem } = await import("../memory/system")
@@ -369,7 +385,7 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
   if (pathname === "/api/v1/memory/search" && method === "POST") {
     const queryResult = MemoryQuerySchema.safeParse(body)
     if (!queryResult.success) {
-      return jsonResponse(400, { error: queryResult.error.issues.map(i => i.message).join("; ") }, config, req)
+      return jsonResponse(400, { error: queryResult.error.issues.map((i) => i.message).join("; ") }, config, req)
     }
     const payload = queryResult.data
     const { memorySystem, getProjectMemorySystem } = await import("../memory/system")
@@ -382,15 +398,20 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
   // ── Health ──────────────────────────────────────────────────────────
 
   if (pathname === "/api/v1/health" && method === "GET") {
-    return jsonResponse(200, {
-      status: "ok",
-      version: _version,
-      uptime: process.uptime(),
-      agents: {
-        total: agentManager.agents.size,
-        running: agentManager.list().filter((a) => a.status === "running").length,
+    return jsonResponse(
+      200,
+      {
+        status: "ok",
+        version: _version,
+        uptime: process.uptime(),
+        agents: {
+          total: agentManager.agents.size,
+          running: agentManager.list().filter((a) => a.status === "running").length,
+        },
       },
-    }, config, req)
+      config,
+      req,
+    )
   }
 
   // ── Projects ─────────────────────────────────────────────────────
@@ -487,17 +508,27 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
         "",
         "Call `emitWidget` with the JSON above to render this widget in the A2UI dashboard.",
         "",
-      ].filter(Boolean).join("\n")
+      ]
+        .filter(Boolean)
+        .join("\n")
 
       writeFileSync(join(skillsDir, "SKILL.md"), skillContent, "utf-8")
       // Save widget JSON separately for fast loading
-      writeFileSync(join(skillsDir, "widget.json"), JSON.stringify({
-        name: payload.name,
-        description: payload.description,
-        tags: payload.tags,
-        type: payload.type,
-        widgetJson: payload.widgetJson,
-      }, null, 2), "utf-8")
+      writeFileSync(
+        join(skillsDir, "widget.json"),
+        JSON.stringify(
+          {
+            name: payload.name,
+            description: payload.description,
+            tags: payload.tags,
+            type: payload.type,
+            widgetJson: payload.widgetJson,
+          },
+          null,
+          2,
+        ),
+        "utf-8",
+      )
       log.info("Skill saved from A2UI playground", { name: payload.name, type: payload.type })
       return jsonResponse(201, { status: "saved", path: join(skillsDir, "SKILL.md") }, config, req)
     } catch (err: any) {
@@ -753,7 +784,11 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
         wsHealth.lastConnectionAt = Date.now()
         wsHealth.peakConcurrent = Math.max(wsHealth.peakConcurrent, wsClients.size)
 
-        log.info("WebSocket client connected", { clientId: id, totalConnections: wsHealth.totalConnections, concurrent: wsClients.size })
+        log.info("WebSocket client connected", {
+          clientId: id,
+          totalConnections: wsHealth.totalConnections,
+          concurrent: wsClients.size,
+        })
 
         // Send initial state snapshot
         const agents = agentManager.list().map((a) => ({
@@ -803,12 +838,13 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
               timestamp: Date.now(),
             })
             log.info("A2UI action triggered", { action, scope, widgetId })
-          }          } catch (err) {
-            log.warn("WS message parse failed", { error: String(err) })
           }
-        },
+        } catch (err) {
+          log.warn("WS message parse failed", { error: String(err) })
+        }
+      },
 
-        close(ws: import("bun").ServerWebSocket<undefined>) {
+      close(ws: import("bun").ServerWebSocket<undefined>) {
         // Remove client
         for (const [id, client] of wsClients) {
           if (client.socket === ws) {
@@ -891,7 +927,11 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
             const handler = (event: any) => {
               if (closed) return
               try {
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ event: event.type || "agent:event", data: { agentId: event.agentId, data: event.data } })}\n\n`))
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({ event: event.type || "agent:event", data: { agentId: event.agentId, data: event.data } })}\n\n`,
+                  ),
+                )
               } catch (err) {
                 log.warn("SSE controller enqueue failed", { error: String(err) })
               }
@@ -912,7 +952,7 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
           headers: {
             "Content-Type": "text/event-stream",
             "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
+            Connection: "keep-alive",
             ...SECURITY_HEADERS,
           },
         })
@@ -924,9 +964,7 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
         headers: Object.fromEntries(request.headers.entries()),
         searchParams: url.searchParams,
         body:
-          request.method === "POST" || request.method === "PUT"
-            ? await request.json().catch(() => ({}))
-            : undefined,
+          request.method === "POST" || request.method === "PUT" ? await request.json().catch(() => ({})) : undefined,
       }
 
       return handleRequest(req, config)

@@ -41,12 +41,20 @@ function readOnlyTools(executor: AgentToolExecutor): Record<string, any> {
     },
     list_files: {
       description: "List files/dirs at a path.",
-      parameters: jsonSchema({ type: "object", properties: { path: { type: "string" }, recursive: { type: "boolean" } }, required: ["path"] }),
+      parameters: jsonSchema({
+        type: "object",
+        properties: { path: { type: "string" }, recursive: { type: "boolean" } },
+        required: ["path"],
+      }),
       execute: async (args: any) => executor.listFiles(args.path, args.recursive),
     },
     search_files: {
       description: "Find files matching a glob pattern; optional content filter.",
-      parameters: jsonSchema({ type: "object", properties: { root: { type: "string" }, pattern: { type: "string" }, content_contains: { type: "string" } }, required: ["root", "pattern"] }),
+      parameters: jsonSchema({
+        type: "object",
+        properties: { root: { type: "string" }, pattern: { type: "string" }, content_contains: { type: "string" } },
+        required: ["root", "pattern"],
+      }),
       execute: async (args: any) => executor.searchFiles(args.root, args.pattern, args.content_contains),
     },
     analyze_codebase: {
@@ -66,12 +74,23 @@ function fileTools(executor: AgentToolExecutor): Record<string, any> {
     },
     create_file: {
       description: "Stage creation of a new file (not written until approval).",
-      parameters: jsonSchema({ type: "object", properties: { path: { type: "string" }, content: { type: "string" } }, required: ["path", "content"] }),
+      parameters: jsonSchema({
+        type: "object",
+        properties: { path: { type: "string" }, content: { type: "string" } },
+        required: ["path", "content"],
+      }),
       execute: async (args: any) => executor.createFile(args.path, args.content),
     },
     modify_file: {
       description: "Stage a full-file replacement for an existing file (pending approval).",
-      parameters: jsonSchema({ type: "object", properties: { path: { type: "string" }, content: { type: "string", description: "Complete new file contents" } }, required: ["path", "content"] }),
+      parameters: jsonSchema({
+        type: "object",
+        properties: {
+          path: { type: "string" },
+          content: { type: "string", description: "Complete new file contents" },
+        },
+        required: ["path", "content"],
+      }),
       execute: async (args: any) => executor.modifyFile(args.path, args.content),
     },
     delete_file: {
@@ -81,12 +100,20 @@ function fileTools(executor: AgentToolExecutor): Record<string, any> {
     },
     list_files: {
       description: "List files/dirs at a path.",
-      parameters: jsonSchema({ type: "object", properties: { path: { type: "string" }, recursive: { type: "boolean" } }, required: ["path"] }),
+      parameters: jsonSchema({
+        type: "object",
+        properties: { path: { type: "string" }, recursive: { type: "boolean" } },
+        required: ["path"],
+      }),
       execute: async (args: any) => executor.listFiles(args.path, args.recursive),
     },
     search_files: {
       description: "Find files matching a glob pattern; optional content filter.",
-      parameters: jsonSchema({ type: "object", properties: { root: { type: "string" }, pattern: { type: "string" }, content_contains: { type: "string" } }, required: ["root", "pattern"] }),
+      parameters: jsonSchema({
+        type: "object",
+        properties: { root: { type: "string" }, pattern: { type: "string" }, content_contains: { type: "string" } },
+        required: ["root", "pattern"],
+      }),
       execute: async (args: any) => executor.searchFiles(args.root, args.pattern, args.content_contains),
     },
     analyze_codebase: {
@@ -118,7 +145,11 @@ export async function runAsk(ctx: { reply: (t: string, o?: object) => Promise<un
   await replyMd(ctx, text || "(no answer)")
 }
 
-export async function runAgent(ctx: { reply: (t: string, o?: object) => Promise<unknown> }, chatId: number, goal: string) {
+export async function runAgent(
+  ctx: { reply: (t: string, o?: object) => Promise<unknown> },
+  chatId: number,
+  goal: string,
+) {
   const tracker = new ActionTracker()
   const executor = new AgentToolExecutor(tracker)
   const tools: Record<string, any> = fileTools(executor)

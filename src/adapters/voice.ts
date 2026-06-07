@@ -20,7 +20,7 @@ const log = createLogger("adapter:voice")
 interface VoiceConfig {
   accountSid: string
   authToken: string
-  fromNumber: string  // Twilio voice-enabled phone number, e.g. "+14155552671"
+  fromNumber: string // Twilio voice-enabled phone number, e.g. "+14155552671"
   /** TTS voice: "man", "woman", "alice" (default: "alice") */
   voice?: "man" | "woman" | "alice"
   /** TTS language (default: "en-US") */
@@ -35,16 +35,16 @@ const TTS_MAX_LEN = 1500
 function stripMarkdown(text: string): string {
   // Remove markdown formatting for cleaner speech
   return text
-    .replace(/\*([^*]+)\*/g, "$1")  // bold
-    .replace(/_([^_]+)_/g, "$1")    // italic
-    .replace(/`([^`]+)`/g, "$1")    // code
-    .replace(/```[\s\S]*?```/g, "")  // code blocks
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")  // links
-    .replace(/#{1,6}\s/g, "")        // headings
-    .replace(/>\s/g, "")             // blockquotes
-    .replace(/[-*+]\s/g, "")         // list markers
-    .replace(/\n{2,}/g, ". ")       // double newlines -> sentence break
-    .replace(/\n/g, " ")            // single newlines -> space
+    .replace(/\*([^*]+)\*/g, "$1") // bold
+    .replace(/_([^_]+)_/g, "$1") // italic
+    .replace(/`([^`]+)`/g, "$1") // code
+    .replace(/```[\s\S]*?```/g, "") // code blocks
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // links
+    .replace(/#{1,6}\s/g, "") // headings
+    .replace(/>\s/g, "") // blockquotes
+    .replace(/[-*+]\s/g, "") // list markers
+    .replace(/\n{2,}/g, ". ") // double newlines -> sentence break
+    .replace(/\n/g, " ") // single newlines -> space
     .trim()
 }
 
@@ -77,9 +77,10 @@ export function createVoiceAdapter(config: VoiceConfig): PlatformAdapter {
 
       // Clean text for speech
       const cleanText = stripMarkdown(opts.text)
-      const speechText = cleanText.length <= TTS_MAX_LEN
-        ? cleanText
-        : cleanText.slice(0, TTS_MAX_LEN) + ". The message has been truncated."
+      const speechText =
+        cleanText.length <= TTS_MAX_LEN
+          ? cleanText
+          : cleanText.slice(0, TTS_MAX_LEN) + ". The message has been truncated."
 
       // Build TwiML with <Say> verb for text-to-speech
       const twiml = new twilio.twiml.VoiceResponse()

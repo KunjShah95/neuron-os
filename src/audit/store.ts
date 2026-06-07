@@ -25,21 +25,21 @@ const log = createLogger("audit")
 // ── Types ─────────────────────────────────────────────────────────────
 
 export type AuditEventType =
-  | "thought"          // Agent's internal reasoning
-  | "tool_call"        // Agent invoked a tool
-  | "tool_result"      // Tool returned a result
-  | "file_read"        // Agent read a file
-  | "file_write"       // Agent wrote/created a file
-  | "file_delete"      // Agent deleted a file
-  | "shell_command"    // Agent ran a shell command
+  | "thought" // Agent's internal reasoning
+  | "tool_call" // Agent invoked a tool
+  | "tool_result" // Tool returned a result
+  | "file_read" // Agent read a file
+  | "file_write" // Agent wrote/created a file
+  | "file_delete" // Agent deleted a file
+  | "shell_command" // Agent ran a shell command
   | "approval_request" // Human approval was requested
-  | "approval_result"  // Human approved/rejected
-  | "error"            // An error occurred
-  | "session_start"    // Session began
-  | "session_end"      // Session ended
-  | "policy_check"     // Policy was evaluated
+  | "approval_result" // Human approved/rejected
+  | "error" // An error occurred
+  | "session_start" // Session began
+  | "session_end" // Session ended
+  | "policy_check" // Policy was evaluated
   | "policy_violation" // Policy was violated
-  | "ratchet_revert"   // Git ratchet reverted files due to regression
+  | "ratchet_revert" // Git ratchet reverted files due to regression
 
 export interface AuditEntry {
   id: number
@@ -200,9 +200,9 @@ export class AuditStore {
   getStats(): { totalEntries: number; totalSessions: number; byType: Record<string, number> } {
     const total = this.db.prepare("SELECT COUNT(*) as c FROM audit_log").get() as { c: number }
     const sessions = this.db.prepare("SELECT COUNT(DISTINCT session_id) as c FROM audit_log").get() as { c: number }
-    const typeRows = this.db.prepare(
-      "SELECT event_type, COUNT(*) as c FROM audit_log GROUP BY event_type ORDER BY c DESC",
-    ).all() as { event_type: string; c: number }[]
+    const typeRows = this.db
+      .prepare("SELECT event_type, COUNT(*) as c FROM audit_log GROUP BY event_type ORDER BY c DESC")
+      .all() as { event_type: string; c: number }[]
 
     const byType: Record<string, number> = {}
     for (const r of typeRows) {

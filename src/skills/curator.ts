@@ -70,7 +70,10 @@ export class SkillCurator {
 
   // ── Experience-based skill generation ─────────────────────────────
 
-  async proposeSkillFromRun(conversationSummary: string, agentType: string): Promise<{ name: string; content: string } | null> {
+  async proposeSkillFromRun(
+    conversationSummary: string,
+    agentType: string,
+  ): Promise<{ name: string; content: string } | null> {
     const workflowIndicators = [
       "repeatedly used",
       "every time",
@@ -125,7 +128,7 @@ export class SkillCurator {
 
     for (const score of this.scores) {
       const successRate = score.uses > 0 ? score.successes / score.uses : 0
-      const isOld = score.lastUsed ? (now - new Date(score.lastUsed).getTime()) > 30 * 24 * 60 * 60 * 1000 : true
+      const isOld = score.lastUsed ? now - new Date(score.lastUsed).getTime() > 30 * 24 * 60 * 60 * 1000 : true
 
       if (successRate < threshold && isOld) {
         const skillDir = join(SKILLS_DIR, score.name)

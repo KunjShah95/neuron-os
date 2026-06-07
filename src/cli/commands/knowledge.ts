@@ -5,9 +5,7 @@ export function registerKnowledge(program: Command) {
   const mem = program.commands.find((c) => c.name() === "memory")
   if (!mem) return
 
-  const graph = mem
-    .command("graph")
-    .description("Knowledge graph — entity-relationship memory store")
+  const graph = mem.command("graph").description("Knowledge graph — entity-relationship memory store")
 
   graph
     .command("add-entity <name> <type> <context>")
@@ -61,7 +59,8 @@ export function registerKnowledge(program: Command) {
       console.log(theme.heading(`  Knowledge Graph Results (${results.length}):`))
       console.log()
       for (const r of results) {
-        const conf = r.confidence > 0.8 ? theme.success("high") : r.confidence > 0.5 ? theme.warn("med") : theme.dim("low")
+        const conf =
+          r.confidence > 0.8 ? theme.success("high") : r.confidence > 0.5 ? theme.warn("med") : theme.dim("low")
         console.log(`  ${theme.accent(r.name)} [${r.type}] (${conf})`)
         console.log(`    ${theme.dim(r.context.slice(0, 120))}`)
         console.log()
@@ -91,7 +90,9 @@ export function registerKnowledge(program: Command) {
       console.log()
       for (const r of related) {
         const dir = r.relationship.sourceId === entity.id ? "→" : "←"
-        console.log(`  ${theme.accent(r.entity.name)} ${dir} [${r.relationship.type}] (${(r.relationship.weight * 100).toFixed(0)}%)`)
+        console.log(
+          `  ${theme.accent(r.entity.name)} ${dir} [${r.relationship.type}] (${(r.relationship.weight * 100).toFixed(0)}%)`,
+        )
         console.log()
       }
     })
@@ -139,12 +140,9 @@ export function registerKnowledge(program: Command) {
       }
     })
 
-  const ns = mem
-    .command("ns")
-    .description("Memory namespaces — per-agent memory isolation")
+  const ns = mem.command("ns").description("Memory namespaces — per-agent memory isolation")
 
-  ns
-    .command("create <agent-type> <ttl-days>")
+  ns.command("create <agent-type> <ttl-days>")
     .description("Create a new memory namespace")
     .option("--agent-id <id>", "Specific agent ID")
     .action(async (agentType: string, ttlDays: string, opts: { agentId?: string }) => {
@@ -155,8 +153,7 @@ export function registerKnowledge(program: Command) {
       console.log(`    TTL:  ${ns.ttlDays} days`)
     })
 
-  ns
-    .command("add <ns-id> <content>")
+  ns.command("add <ns-id> <content>")
     .description("Add an entry to a namespace")
     .option("--type <t>", "Entry type: fact|observation|relationship|skill", "observation")
     .option("--source <s>", "Source identifier", "cli")
@@ -170,8 +167,7 @@ export function registerKnowledge(program: Command) {
       }
     })
 
-  ns
-    .command("query <ns-id> <query>")
+  ns.command("query <ns-id> <query>")
     .description("Search entries in a namespace")
     .option("--limit <n>", "Max results", (v) => parseInt(v, 10), 10)
     .action(async (nsId: string, query: string, opts: { limit: number }) => {
@@ -192,8 +188,7 @@ export function registerKnowledge(program: Command) {
       }
     })
 
-  ns
-    .command("list")
+  ns.command("list")
     .description("List all namespaces")
     .action(async () => {
       const { memoryNamespaceManager } = await import("../../memory/namespace")
@@ -207,13 +202,14 @@ export function registerKnowledge(program: Command) {
       console.log(theme.heading(`  Memory Namespaces (${namespaces.length}):`))
       console.log()
       for (const n of namespaces) {
-        console.log(`  ${theme.accent(n.id.slice(0, 16))} ${n.agentType}${n.agentId ? ` / ${n.agentId}` : ""} (TTL: ${n.ttlDays}d)`)
+        console.log(
+          `  ${theme.accent(n.id.slice(0, 16))} ${n.agentType}${n.agentId ? ` / ${n.agentId}` : ""} (TTL: ${n.ttlDays}d)`,
+        )
       }
       console.log()
     })
 
-  ns
-    .command("entries <ns-id>")
+  ns.command("entries <ns-id>")
     .description("List entries in a namespace")
     .option("--limit <n>", "Max entries", (v) => parseInt(v, 10), 20)
     .action(async (nsId: string, opts: { limit: number }) => {
@@ -234,8 +230,7 @@ export function registerKnowledge(program: Command) {
       }
     })
 
-  ns
-    .command("prune")
+  ns.command("prune")
     .description("Archive expired namespace entries")
     .action(async () => {
       const { memoryNamespaceManager } = await import("../../memory/namespace")
@@ -252,9 +247,7 @@ export function registerKnowledge(program: Command) {
       const { KnowledgeSynthesizer } = await import("../../memory/synthesize")
       const result = await KnowledgeSynthesizer.synthesize({
         topic,
-        sources: opts.sources
-          ? (opts.sources.split(",").map((s) => s.trim()) as any[])
-          : undefined,
+        sources: opts.sources ? (opts.sources.split(",").map((s) => s.trim()) as any[]) : undefined,
         maxSources: opts.maxSources,
       })
 

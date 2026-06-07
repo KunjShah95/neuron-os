@@ -29,17 +29,20 @@ export class EpisodicMemory {
           const content = JSON.parse(msg.content)
           modelMessages.push({ role: msg.role, content } as ModelMessage)
         } catch {
-          modelMessages.push({ role: msg.role, content: [{ type: "tool-result", toolName: "unknown", toolCallId: "unknown", result: msg.content }] } as any as ModelMessage)
+          modelMessages.push({
+            role: msg.role,
+            content: [{ type: "tool-result", toolName: "unknown", toolCallId: "unknown", result: msg.content }],
+          } as any as ModelMessage)
         }
       } else if (msg.role === "assistant" && msg.toolCalls) {
         try {
           JSON.parse(msg.toolCalls)
           // If the assistant message contains tool calls, the content needs to be an array
           modelMessages.push({
-             role: "assistant",
-             content: msg.content,
-             // Note: Vercel AI SDK usually expects tool calls mixed into content or as separate fields
-             // depending on the version. We'll store it as text for now, or parsed if supported.
+            role: "assistant",
+            content: msg.content,
+            // Note: Vercel AI SDK usually expects tool calls mixed into content or as separate fields
+            // depending on the version. We'll store it as text for now, or parsed if supported.
           } as ModelMessage)
         } catch {
           modelMessages.push({ role: msg.role, content: msg.content } as ModelMessage)

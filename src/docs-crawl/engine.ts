@@ -22,7 +22,9 @@ async function getFirecrawl() {
 
 export class CrawlEngine {
   async run(config: CrawlConfig): Promise<CrawlResult> {
-    log.info(`Starting crawl: ${config.url || config.path} (mode=${config.mode}, depth=${config.depth}, limit=${config.limit})`)
+    log.info(
+      `Starting crawl: ${config.url || config.path} (mode=${config.mode}, depth=${config.depth}, limit=${config.limit})`,
+    )
 
     const pages = config.url ? await this.crawlWeb(config) : await this.crawlLocal(config)
     const crawledAt = new Date().toISOString()
@@ -170,7 +172,10 @@ function extractPageId(url: string, baseUrl: string): string {
     const path = page.pathname.replace(base.pathname.replace(/\/$/, ""), "").replace(/^\//, "") || "index"
     return path.replace(/\/$/, "") || "index"
   } catch {
-    return url.replace(/https?:\/\//, "").replace(/[^a-z0-9]/gi, "-").slice(0, 100)
+    return url
+      .replace(/https?:\/\//, "")
+      .replace(/[^a-z0-9]/gi, "-")
+      .slice(0, 100)
   }
 }
 
@@ -185,7 +190,10 @@ function extractHeadings(content: string): Heading[] {
   let match: RegExpExecArray | null
   while ((match = pattern.exec(content)) !== null) {
     const text = match[2]!.trim()
-    const slug = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+    const slug = text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
     headings.push({ level: match[1]!.length, text, slug })
   }
   return headings

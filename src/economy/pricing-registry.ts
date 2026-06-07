@@ -22,11 +22,41 @@ export const DEFAULT_PRICING: ToolPricingType = {
     bash: { compute_usd_per_second: 0.00002, latency_p50_ms: 100, latency_p99_ms: 1000 },
   },
   models: {
-    "claude-sonnet-4-6": { prompt_usd_per_1k: 0.003, completion_usd_per_1k: 0.015, context_window: 200_000, quality_tier: "balanced", benchmark_score: 0.88 },
-    "claude-opus-4-6": { prompt_usd_per_1k: 0.015, completion_usd_per_1k: 0.075, context_window: 200_000, quality_tier: "premium", benchmark_score: 0.95 },
-    "claude-haiku-3-5": { prompt_usd_per_1k: 0.001, completion_usd_per_1k: 0.005, context_window: 200_000, quality_tier: "cheap", benchmark_score: 0.72 },
-    "gpt-4o": { prompt_usd_per_1k: 0.005, completion_usd_per_1k: 0.015, context_window: 128_000, quality_tier: "balanced", benchmark_score: 0.85 },
-    "gpt-4o-mini": { prompt_usd_per_1k: 0.00015, completion_usd_per_1k: 0.0006, context_window: 128_000, quality_tier: "cheap", benchmark_score: 0.70 },
+    "claude-sonnet-4-6": {
+      prompt_usd_per_1k: 0.003,
+      completion_usd_per_1k: 0.015,
+      context_window: 200_000,
+      quality_tier: "balanced",
+      benchmark_score: 0.88,
+    },
+    "claude-opus-4-6": {
+      prompt_usd_per_1k: 0.015,
+      completion_usd_per_1k: 0.075,
+      context_window: 200_000,
+      quality_tier: "premium",
+      benchmark_score: 0.95,
+    },
+    "claude-haiku-3-5": {
+      prompt_usd_per_1k: 0.001,
+      completion_usd_per_1k: 0.005,
+      context_window: 200_000,
+      quality_tier: "cheap",
+      benchmark_score: 0.72,
+    },
+    "gpt-4o": {
+      prompt_usd_per_1k: 0.005,
+      completion_usd_per_1k: 0.015,
+      context_window: 128_000,
+      quality_tier: "balanced",
+      benchmark_score: 0.85,
+    },
+    "gpt-4o-mini": {
+      prompt_usd_per_1k: 0.00015,
+      completion_usd_per_1k: 0.0006,
+      context_window: 128_000,
+      quality_tier: "cheap",
+      benchmark_score: 0.7,
+    },
   },
 }
 

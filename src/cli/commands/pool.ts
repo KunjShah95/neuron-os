@@ -8,9 +8,7 @@ import type { Command } from "commander"
 import { theme } from "../theme"
 
 export function registerPool(program: Command) {
-  const pool = program
-    .command("pool")
-    .description("Manage the agent execution pool")
+  const pool = program.command("pool").description("Manage the agent execution pool")
 
   // ── submit ──────────────────────────────────────────────────────────
   pool

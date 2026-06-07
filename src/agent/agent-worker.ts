@@ -25,8 +25,6 @@ function replyTo(msg: AgentIpcMessage, type: string, payload?: unknown): void {
   send({ id: msg.id, type, payload })
 }
 
-
-
 // Replace local builtin tools with runtime engine + registry integration.
 // The Agent worker will use the central AgentRuntime/AgentEngine when available,
 // falling back to the original builtin tool set for standalone usage.
@@ -75,15 +73,15 @@ async function runReActLoop(goal: string, taskId: number): Promise<string> {
 
   // Use AgentEngine + AgentRuntime so tool permissioning and skill loading are centralized.
   const engine = await ensureEngine()
-  
+
   // Load previous context to survive crashes
   const history = episodicMemory.loadContext(AGENT_ID)
   const messages: any[] = history.length > 0 ? history : []
-  
+
   // Only add the goal if we're not resuming an identical goal
   const lastMsg = messages[messages.length - 1]
   if (!lastMsg || lastMsg.content !== goal) {
-     messages.push({ role: "user", content: goal })
+    messages.push({ role: "user", content: goal })
   }
 
   let stepCount = 0
@@ -168,20 +166,26 @@ function handleShutdown(): void {
  * Executes the goal via the ReAct loop and replies with dispatch-result.
  */
 async function handleDispatch(msg: AgentIpcMessage): Promise<void> {
-  const payload = msg.payload as {
-    goal: string
-    context?: string
-    sourceAgentId: string
-    timeoutMs?: number
-  } | undefined
+  const payload = msg.payload as
+    | {
+        goal: string
+        context?: string
+        sourceAgentId: string
+        timeoutMs?: number
+      }
+    | undefined
 
   if (!payload?.goal) {
-    send({ id: msg.id, type: "dispatch-result", payload: {
-      success: false,
-      output: "",
-      durationMs: 0,
-      error: "No goal provided in dispatch payload",
-    }})
+    send({
+      id: msg.id,
+      type: "dispatch-result",
+      payload: {
+        success: false,
+        output: "",
+        durationMs: 0,
+        error: "No goal provided in dispatch payload",
+      },
+    })
     return
   }
 
@@ -198,23 +202,29 @@ async function handleDispatch(msg: AgentIpcMessage): Promise<void> {
     const timeout = payload.timeoutMs ?? 300_000
     const result = await Promise.race([
       runReActLoop(fullGoal, taskCount),
-      new Promise<string>((_, reject) =>
-        setTimeout(() => reject(new Error("Dispatch task timed out")), timeout)
-      ),
+      new Promise<string>((_, reject) => setTimeout(() => reject(new Error("Dispatch task timed out")), timeout)),
     ])
 
-    send({ id: msg.id, type: "dispatch-result", payload: {
-      success: true,
-      output: result,
-      durationMs: Date.now() - (msg.timestamp || Date.now()),
-    }})
+    send({
+      id: msg.id,
+      type: "dispatch-result",
+      payload: {
+        success: true,
+        output: result,
+        durationMs: Date.now() - (msg.timestamp || Date.now()),
+      },
+    })
   } catch (err: any) {
-    send({ id: msg.id, type: "dispatch-result", payload: {
-      success: false,
-      output: err?.message || String(err),
-      durationMs: Date.now() - (msg.timestamp || Date.now()),
-      error: err?.message || String(err),
-    }})
+    send({
+      id: msg.id,
+      type: "dispatch-result",
+      payload: {
+        success: false,
+        output: err?.message || String(err),
+        durationMs: Date.now() - (msg.timestamp || Date.now()),
+        error: err?.message || String(err),
+      },
+    })
   }
 }
 
@@ -235,15 +245,20 @@ function processLine(line: string): void {
 
   switch (msg.type) {
     case "ping":
-      handlePing(msg); break
+      handlePing(msg)
+      break
     case "echo":
-      handleEcho(msg); break
+      handleEcho(msg)
+      break
     case "run-task":
-      handleRunTask(msg).catch((err) => replyTo(msg, "error", { message: String(err) })); break
+      handleRunTask(msg).catch((err) => replyTo(msg, "error", { message: String(err) }))
+      break
     case "dispatch":
-      handleDispatch(msg).catch((err) => replyTo(msg, "dispatch-result", { success: false, error: String(err) })); break
+      handleDispatch(msg).catch((err) => replyTo(msg, "dispatch-result", { success: false, error: String(err) }))
+      break
     case "shutdown":
-      handleShutdown(); break
+      handleShutdown()
+      break
     default:
       replyTo(msg, "error", { message: `Unknown command type: ${msg.type}` })
   }
@@ -275,7 +290,10 @@ async function readStdin(): Promise<void> {
 
 function startHeartbeat(): void {
   const interval = setInterval(() => {
-    if (!running) { clearInterval(interval); return }
+    if (!running) {
+      clearInterval(interval)
+      return
+    }
     send({ type: "heartbeat", payload: { name: AGENT_NAME, taskCount } })
   }, HEARTBEAT_MS)
 }
@@ -296,7 +314,7 @@ async function pollQueue(): Promise<void> {
       }
     } else {
       // Sleep briefly if no task
-      await new Promise(r => setTimeout(r, 2000))
+      await new Promise((r) => setTimeout(r, 2000))
     }
   }
 }

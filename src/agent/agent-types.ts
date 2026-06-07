@@ -63,7 +63,11 @@ const WRITE_TOOLS: ToolPermission[] = [
 ]
 
 const TEST_TOOLS: ToolPermission[] = [
-  { name: "bash", allow: true, patterns: ["npm test", "npm run test", "pytest", "jest", "bun test", "vitest", "cargo test", "go test"] },
+  {
+    name: "bash",
+    allow: true,
+    patterns: ["npm test", "npm run test", "pytest", "jest", "bun test", "vitest", "cargo test", "go test"],
+  },
   { name: "read", allow: true },
   { name: "read_skill", allow: true },
 ]
@@ -71,11 +75,19 @@ const TEST_TOOLS: ToolPermission[] = [
 const VALIDATE_TOOLS: ToolPermission[] = [
   { name: "read", allow: true },
   { name: "read_skill", allow: true },
-  { name: "bash", allow: true, patterns: ["npm run lint", "tsc --noEmit", "eslint", "prettier --check", "bun run lint", "bun run typecheck"] },
+  {
+    name: "bash",
+    allow: true,
+    patterns: ["npm run lint", "tsc --noEmit", "eslint", "prettier --check", "bun run lint", "bun run typecheck"],
+  },
 ]
 
 const DEPLOY_TOOLS: ToolPermission[] = [
-  { name: "bash", allow: true, patterns: ["npm run deploy", "docker", "kubectl", "terraform", "git push", "bun run deploy"] },
+  {
+    name: "bash",
+    allow: true,
+    patterns: ["npm run deploy", "docker", "kubectl", "terraform", "git push", "bun run deploy"],
+  },
   { name: "read", allow: true },
   { name: "read_skill", allow: true },
 ]
@@ -92,7 +104,8 @@ export const AGENT_TYPES: Record<AgentTypeName, AgentType> = {
     mode: "primary",
     description: "Full-access development agent (all tools, container-isolated)",
     tools: ALL_TOOLS,
-    systemPrompt: "You are a full-access development agent. You can read, write, edit, and execute code to complete tasks. Follow best practices and existing code patterns.",
+    systemPrompt:
+      "You are a full-access development agent. You can read, write, edit, and execute code to complete tasks. Follow best practices and existing code patterns.",
     isolationLevel: "container",
   },
 
@@ -101,7 +114,8 @@ export const AGENT_TYPES: Record<AgentTypeName, AgentType> = {
     mode: "primary",
     description: "Architecture and planning (read-only, opus model)",
     tools: READ_ONLY_TOOLS,
-    systemPrompt: "You are a planning agent. Analyze requirements, design architecture, and create implementation plans. You cannot modify files — only read and analyze.",
+    systemPrompt:
+      "You are a planning agent. Analyze requirements, design architecture, and create implementation plans. You cannot modify files — only read and analyze.",
     modelHint: "claude-opus-4",
     temperature: 0.3,
     isolationLevel: "none",
@@ -112,7 +126,8 @@ export const AGENT_TYPES: Record<AgentTypeName, AgentType> = {
     mode: "subagent",
     description: "Fast codebase exploration (read, grep, glob)",
     tools: READ_ONLY_TOOLS,
-    systemPrompt: "You are a codebase exploration agent. Search and read files to answer questions. Be thorough and cite file paths with line numbers.",
+    systemPrompt:
+      "You are a codebase exploration agent. Search and read files to answer questions. Be thorough and cite file paths with line numbers.",
     maxTurns: 20,
     isolationLevel: "none",
   },
@@ -122,7 +137,8 @@ export const AGENT_TYPES: Record<AgentTypeName, AgentType> = {
     mode: "subagent",
     description: "File creation and editing (write, edit, read)",
     tools: WRITE_TOOLS,
-    systemPrompt: "You are a code writing agent. Create and modify files based on specifications. Follow existing code patterns and conventions.",
+    systemPrompt:
+      "You are a code writing agent. Create and modify files based on specifications. Follow existing code patterns and conventions.",
     maxTurns: 30,
     isolationLevel: "process",
   },
@@ -132,7 +148,8 @@ export const AGENT_TYPES: Record<AgentTypeName, AgentType> = {
     mode: "subagent",
     description: "Run tests and analyze failures (bash, read, container-isolated)",
     tools: TEST_TOOLS,
-    systemPrompt: "You are a testing agent. Run test suites, analyze failures, and report coverage. Use bash to execute test commands.",
+    systemPrompt:
+      "You are a testing agent. Run test suites, analyze failures, and report coverage. Use bash to execute test commands.",
     isolationLevel: "container",
   },
 
@@ -141,7 +158,8 @@ export const AGENT_TYPES: Record<AgentTypeName, AgentType> = {
     mode: "subagent",
     description: "Type checking and linting (read, bash)",
     tools: VALIDATE_TOOLS,
-    systemPrompt: "You are a validation agent. Run linters, type checkers, and formatters. Report issues without fixing them.",
+    systemPrompt:
+      "You are a validation agent. Run linters, type checkers, and formatters. Report issues without fixing them.",
     isolationLevel: "process",
   },
 
@@ -150,7 +168,8 @@ export const AGENT_TYPES: Record<AgentTypeName, AgentType> = {
     mode: "subagent",
     description: "Code review for security and patterns (read, opus)",
     tools: READ_ONLY_TOOLS,
-    systemPrompt: "You are a code review agent. Analyze code for security vulnerabilities, anti-patterns, and bugs. Provide actionable feedback with file:line references.",
+    systemPrompt:
+      "You are a code review agent. Analyze code for security vulnerabilities, anti-patterns, and bugs. Provide actionable feedback with file:line references.",
     modelHint: "claude-opus-4",
     temperature: 0.2,
     isolationLevel: "none",
@@ -161,7 +180,8 @@ export const AGENT_TYPES: Record<AgentTypeName, AgentType> = {
     mode: "subagent",
     description: "Systematic debugging (all tools, opus, container-isolated)",
     tools: ALL_TOOLS,
-    systemPrompt: "You are a debugging agent. Use systematic debugging: reproduce, isolate, diagnose, fix, verify. Maintain state across steps.",
+    systemPrompt:
+      "You are a debugging agent. Use systematic debugging: reproduce, isolate, diagnose, fix, verify. Maintain state across steps.",
     modelHint: "claude-opus-4",
     maxTurns: 50,
     isolationLevel: "container",
@@ -176,7 +196,8 @@ export const AGENT_TYPES: Record<AgentTypeName, AgentType> = {
       { name: "read_skill", allow: true },
       { name: "write", allow: true },
     ],
-    systemPrompt: "You are a documentation agent. Read code and generate clear, accurate documentation. Update existing docs when code changes.",
+    systemPrompt:
+      "You are a documentation agent. Read code and generate clear, accurate documentation. Update existing docs when code changes.",
     isolationLevel: "process",
   },
 
@@ -185,7 +206,8 @@ export const AGENT_TYPES: Record<AgentTypeName, AgentType> = {
     mode: "subagent",
     description: "Code restructuring (read, write, edit)",
     tools: WRITE_TOOLS,
-    systemPrompt: "You are a refactoring agent. Improve code structure, rename variables, extract functions. Preserve behavior — do not add features.",
+    systemPrompt:
+      "You are a refactoring agent. Improve code structure, rename variables, extract functions. Preserve behavior — do not add features.",
     isolationLevel: "process",
   },
 

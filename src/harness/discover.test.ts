@@ -23,8 +23,6 @@ Run echo hello world
     const discoverer = new TestDiscoverer()
     // Create a temp file approach - use inline content via the loader
     // Instead, test via the public discover method by creating a temp file
-    const { writeFileSync, mkdtempSync } = require("node:fs")
-    const { join } = require("node:path")
     const dir = mkdtempSync(".test-discover-")
 
     try {
@@ -37,8 +35,7 @@ Run echo hello world
       expect(tests[0].tags).toEqual(["smoke", "quick"])
       expect(tests[0].timeout).toBe(30000)
     } finally {
-      const { rmSync } = require("node:fs")
-      rmSync(dir, { recursive: true, force: true })
+        rmSync(dir, { recursive: true, force: true })
     }
   })
 
@@ -48,9 +45,6 @@ category: smoke
 ---
 Some prompt
 `
-    const { writeFileSync, mkdtempSync } = require("node:fs")
-    const { join } = require("node:path")
-    const { rmSync } = require("node:fs")
     const dir = mkdtempSync(".test-discover-noname-")
 
     try {
@@ -76,9 +70,6 @@ expected:
   maxTokens: 1000
 ---
 `
-    const { writeFileSync, mkdtempSync } = require("node:fs")
-    const { join } = require("node:path")
-    const { rmSync } = require("node:fs")
     const dir = mkdtempSync(".test-discover-expected-")
 
     try {
@@ -110,9 +101,6 @@ setup:
       const app = express()
 ---
 `
-    const { writeFileSync, mkdtempSync } = require("node:fs")
-    const { join } = require("node:path")
-    const { rmSync } = require("node:fs")
     const dir = mkdtempSync(".test-discover-setup-")
 
     try {
@@ -139,9 +127,6 @@ expected:
   exitCode: 0
 ---
 `
-    const { writeFileSync, mkdtempSync } = require("node:fs")
-    const { join } = require("node:path")
-    const { rmSync } = require("node:fs")
     const dir = mkdtempSync(".test-discover-types-")
 
     try {
@@ -169,9 +154,6 @@ Run a simple hello world
 ## timeout: 60000
 ## category: smoke
 `
-    const { writeFileSync, mkdtempSync } = require("node:fs")
-    const { join } = require("node:path")
-    const { rmSync } = require("node:fs")
     const dir = mkdtempSync(".test-discover-md-")
 
     try {
@@ -191,9 +173,6 @@ Run a simple hello world
 
   it("should skip files with no valid name", () => {
     const md = ``
-    const { writeFileSync, mkdtempSync } = require("node:fs")
-    const { join } = require("node:path")
-    const { rmSync } = require("node:fs")
     const dir = mkdtempSync(".test-discover-empty-")
 
     try {
@@ -214,9 +193,6 @@ This is the prompt body.
 ## tags: smoke
 ## timeout: 30000
 `
-    const { writeFileSync, mkdtempSync } = require("node:fs")
-    const { join } = require("node:path")
-    const { rmSync } = require("node:fs")
     const dir = mkdtempSync(".test-discover-prompt-")
 
     try {
@@ -237,10 +213,42 @@ describe("TestDiscoverer", () => {
   // ── applyFilter ─────────────────────────────────────────────
 
   const sampleTests: TestCase[] = [
-    { id: "t1", name: "Smoke Test", prompt: "", tags: ["smoke"], timeout: 10000, category: "smoke", priority: "critical" },
-    { id: "t2", name: "Coding Test", prompt: "", tags: ["coding", "typescript"], timeout: 30000, category: "capability", priority: "high" },
-    { id: "t3", name: "Debug Test", prompt: "", tags: ["debugging", "python"], timeout: 60000, category: "regression", priority: "medium" },
-    { id: "t4", name: "Security Test", prompt: "", tags: ["adversarial"], timeout: 120000, category: "adversarial", priority: "critical" },
+    {
+      id: "t1",
+      name: "Smoke Test",
+      prompt: "",
+      tags: ["smoke"],
+      timeout: 10000,
+      category: "smoke",
+      priority: "critical",
+    },
+    {
+      id: "t2",
+      name: "Coding Test",
+      prompt: "",
+      tags: ["coding", "typescript"],
+      timeout: 30000,
+      category: "capability",
+      priority: "high",
+    },
+    {
+      id: "t3",
+      name: "Debug Test",
+      prompt: "",
+      tags: ["debugging", "python"],
+      timeout: 60000,
+      category: "regression",
+      priority: "medium",
+    },
+    {
+      id: "t4",
+      name: "Security Test",
+      prompt: "",
+      tags: ["adversarial"],
+      timeout: 120000,
+      category: "adversarial",
+      priority: "critical",
+    },
   ]
 
   it("should filter by category", () => {
@@ -268,7 +276,13 @@ describe("TestDiscoverer", () => {
 
   it("should filter by tags with AND mode", () => {
     const t5: TestCase = {
-      id: "t5", name: "Full Stack", prompt: "", tags: ["coding", "typescript", "fullstack"], timeout: 30000, category: "capability", priority: "high",
+      id: "t5",
+      name: "Full Stack",
+      prompt: "",
+      tags: ["coding", "typescript", "fullstack"],
+      timeout: 30000,
+      category: "capability",
+      priority: "high",
     }
     const discoverer = new TestDiscoverer()
     const filtered = discoverer.applyFilter([...sampleTests, t5], {
@@ -321,7 +335,7 @@ describe("TestDiscoverer", () => {
   it("should return tests in original order when no dependencies", () => {
     const discoverer = new TestDiscoverer()
     const sorted = discoverer.resolveDependencies(sampleTests)
-    expect(sorted.map(s => s.id)).toEqual(["t1", "t2", "t3", "t4"])
+    expect(sorted.map((s) => s.id)).toEqual(["t1", "t2", "t3", "t4"])
   })
 
   it("should sort tests respecting dependency order", () => {
@@ -333,7 +347,7 @@ describe("TestDiscoverer", () => {
 
     const discoverer = new TestDiscoverer()
     const sorted = discoverer.resolveDependencies(tests)
-    const ids = sorted.map(s => s.id)
+    const ids = sorted.map((s) => s.id)
     // c must come before a, and a must come before b
     expect(ids.indexOf("c")).toBeLessThan(ids.indexOf("a"))
     expect(ids.indexOf("a")).toBeLessThan(ids.indexOf("b"))
@@ -355,9 +369,6 @@ describe("TestDiscoverer", () => {
 
   it("should deduplicate tests with same ID", () => {
     // This uses a temp dir with duplicate IDs (same file name)
-    const { writeFileSync, mkdtempSync } = require("node:fs")
-    const { join } = require("node:path")
-    const { rmSync } = require("node:fs")
 
     const yaml1 = `---
 name: Duplicate Test

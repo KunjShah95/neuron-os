@@ -14,14 +14,7 @@ const log = createLogger("bench")
 
 export const BENCH_DIR = resolve(process.cwd(), ".aegis/bench")
 
-const VALID_METRICS = new Set([
-  "tests-pass",
-  "lint-clean",
-  "typecheck",
-  "build",
-  "custom-script",
-  "manual",
-])
+const VALID_METRICS = new Set(["tests-pass", "lint-clean", "typecheck", "build", "custom-script", "manual"])
 
 function validateTask(t: unknown): t is BenchTask {
   if (!t || typeof t !== "object") return false

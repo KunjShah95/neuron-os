@@ -1,20 +1,9 @@
 import { describe, it, expect, afterEach } from "bun:test"
-import {
-  registerProvider,
-  getProviderFactory,
-  listProviders,
-  type ProviderFactory,
-} from "./providers"
-import {
-  createAIProvider,
-  resolveApiKey,
-  parseFallbacksFromEnv,
-  type AIConfig,
-} from "./provider"
+import { registerProvider, getProviderFactory, listProviders, type ProviderFactory } from "./providers"
+import { createAIProvider, resolveApiKey, parseFallbacksFromEnv, type AIConfig } from "./provider"
 import { getDefaultModel, getProviderBaseUrl, type AIProviderType } from "./models"
 
 describe("Provider Registry", () => {
-
   it("should list all registered providers", () => {
     const providers = listProviders()
     expect(providers.length).toBeGreaterThanOrEqual(14)
@@ -56,11 +45,21 @@ describe("Provider Registry", () => {
 })
 
 describe("Provider Model References", () => {
-
   it("should have default model for each provider", () => {
     const providers: AIProviderType[] = [
-      "anthropic", "openai", "deepseek", "ollama", "gemini", "groq",
-      "openrouter", "mistral", "azure", "togetherai", "xai", "cohere", "perplexity",
+      "anthropic",
+      "openai",
+      "deepseek",
+      "ollama",
+      "gemini",
+      "groq",
+      "openrouter",
+      "mistral",
+      "azure",
+      "togetherai",
+      "xai",
+      "cohere",
+      "perplexity",
     ]
     for (const p of providers) {
       const model = getDefaultModel(p)
@@ -99,7 +98,6 @@ describe("Provider Model References", () => {
 })
 
 describe("resolveApiKey", () => {
-
   const SAVED_KEYS: Record<string, string | undefined> = {
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
@@ -145,7 +143,6 @@ describe("resolveApiKey", () => {
 })
 
 describe("AIProviderManager", () => {
-
   it("should create provider with config", () => {
     const config: AIConfig = {
       provider: "openai",
@@ -206,9 +203,7 @@ describe("AIProviderManager", () => {
     const config: AIConfig = {
       provider: "openai",
       model: "gpt-4o",
-      fallbacks: [
-        { provider: "deepseek", model: "deepseek-chat" },
-      ],
+      fallbacks: [{ provider: "deepseek", model: "deepseek-chat" }],
     }
     const provider = createAIProvider(config)
     const stream = provider.stream([{ role: "user", content: "hi" }])
@@ -253,9 +248,7 @@ describe("AIProviderManager", () => {
     const config: AIConfig = {
       provider: "rejection-fb1" as AIProviderType,
       model: "test",
-      fallbacks: [
-        { provider: "rejection-fb2" as AIProviderType, model: "test" },
-      ],
+      fallbacks: [{ provider: "rejection-fb2" as AIProviderType, model: "test" }],
     }
     const provider = createAIProvider(config)
     const stream = provider.stream([{ role: "user", content: "hi" }])
@@ -267,8 +260,17 @@ describe("AIProviderManager", () => {
   it("should complete gracefully for each registered provider without API key", async () => {
     // Iterate over known types rather than listProviders() to avoid mock provider leakage
     const knownProviders: AIProviderType[] = [
-      "anthropic", "openai", "deepseek", "gemini", "groq", "openrouter",
-      "mistral", "togetherai", "xai", "cohere", "perplexity",
+      "anthropic",
+      "openai",
+      "deepseek",
+      "gemini",
+      "groq",
+      "openrouter",
+      "mistral",
+      "togetherai",
+      "xai",
+      "cohere",
+      "perplexity",
     ]
 
     for (const providerName of knownProviders) {
@@ -291,7 +293,6 @@ describe("AIProviderManager", () => {
 })
 
 describe("Fallback Configuration", () => {
-
   const FALLBACK_SAVED: Record<string, string | undefined> = {
     AEGIS_AI_FALLBACKS: process.env.AEGIS_AI_FALLBACKS,
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,

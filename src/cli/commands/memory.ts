@@ -6,9 +6,7 @@ import type { ExtractedFact } from "../../memory/types"
 import { registerMemoryPolicy } from "./memory-policy"
 
 export function registerMemory(program: Command) {
-  const mem = program
-    .command("memory")
-    .description("Manage memory and vector search")
+  const mem = program.command("memory").description("Manage memory and vector search")
 
   mem
     .command("show")
@@ -86,7 +84,8 @@ export function registerMemory(program: Command) {
         console.log(theme.heading(`  Facts [${opts.category}]:`))
         console.log()
         for (const f of facts) {
-          const conf = f.confidence > 0.8 ? theme.success("high") : f.confidence > 0.5 ? theme.warn("med") : theme.dim("low")
+          const conf =
+            f.confidence > 0.8 ? theme.success("high") : f.confidence > 0.5 ? theme.warn("med") : theme.dim("low")
           console.log(`  • ${f.fact} (${conf})`)
         }
       } else {
@@ -97,7 +96,7 @@ export function registerMemory(program: Command) {
         }
         const grouped: Record<string, typeof facts> = {}
         for (const f of facts) {
-          (grouped[f.category] ??= []).push(f)
+          ;(grouped[f.category] ??= []).push(f)
         }
         for (const [category, catFacts] of Object.entries(grouped)) {
           console.log(theme.heading(`  ${category}:`))

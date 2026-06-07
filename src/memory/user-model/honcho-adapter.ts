@@ -39,22 +39,19 @@ export class HonchoAdapter {
 
     try {
       // Push the latest user model
-      const pushResponse = await fetch(
-        `${this.baseUrl}/workspaces/${this.workspace}/users/${userId}/representations`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${this.apiKey}`,
-          },
-          body: JSON.stringify({
-            model_version: model.version,
-            preferences: model.preferences,
-            decision_patterns: model.decision_patterns,
-            updated_at: model.updated_at,
-          }),
+      const pushResponse = await fetch(`${this.baseUrl}/workspaces/${this.workspace}/users/${userId}/representations`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
         },
-      )
+        body: JSON.stringify({
+          model_version: model.version,
+          preferences: model.preferences,
+          decision_patterns: model.decision_patterns,
+          updated_at: model.updated_at,
+        }),
+      })
 
       if (!pushResponse.ok) {
         throw new Error(`Honcho push failed: ${pushResponse.status} ${pushResponse.statusText}`)
@@ -83,16 +80,13 @@ export class HonchoAdapter {
     }
 
     try {
-      const response = await fetch(
-        `${this.baseUrl}/workspaces/${this.workspace}/users/${userId}`,
-        {
-          headers: { Authorization: `Bearer ${this.apiKey}` },
-        },
-      )
+      const response = await fetch(`${this.baseUrl}/workspaces/${this.workspace}/users/${userId}`, {
+        headers: { Authorization: `Bearer ${this.apiKey}` },
+      })
 
       if (!response.ok) throw new Error("Not found")
 
-      const data = await response.json() as Record<string, unknown>
+      const data = (await response.json()) as Record<string, unknown>
       return {
         connected: true,
         lastSync: data.updated_at as string | undefined,

@@ -69,9 +69,7 @@ export class EvalRunner {
       // Simulate task execution with timeout
       await Promise.race([
         this.simulateExecution(task),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("timeout")), task.timeout_ms),
-        ),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), task.timeout_ms)),
       ])
 
       const duration_ms = Date.now() - start

@@ -143,9 +143,7 @@ export class DialecticEngine {
         break
       case "remove_pattern":
         if (proposal.value) {
-          this.model.decision_patterns = this.model.decision_patterns.filter(
-            (p) => p !== proposal.value,
-          )
+          this.model.decision_patterns = this.model.decision_patterns.filter((p) => p !== proposal.value)
         }
         break
       case "update_pattern":

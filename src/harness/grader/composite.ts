@@ -40,10 +40,7 @@ export const DEFAULT_COMPOSITE_CONFIG: CompositeScoringConfig = {
  * @param config - Composite scoring configuration
  * @returns The composite score 0.0–1.0
  */
-export function computeCompositeScore(
-  grades: GradeResult[],
-  config?: Partial<CompositeScoringConfig>,
-): number {
+export function computeCompositeScore(grades: GradeResult[], config?: Partial<CompositeScoringConfig>): number {
   const cfg = { ...DEFAULT_COMPOSITE_CONFIG, ...config }
 
   if (grades.length === 0) return 0.5 // Neutral score when no grades
@@ -88,7 +85,7 @@ export function computeCompositeScore(
   switch (cfg.strategy) {
     case "min": {
       // Take the minimum of all individual grade scores
-      const minScore = Math.min(...grades.map(g => g.score))
+      const minScore = Math.min(...grades.map((g) => g.score))
       composite = minScore
       break
     }
@@ -96,7 +93,7 @@ export function computeCompositeScore(
     case "geometric_mean": {
       // Geometric mean = (∏ scores)^(1/n)
       // Add small epsilon to avoid 0
-      const nonZeroScores = grades.map(g => Math.max(g.score, 0.001))
+      const nonZeroScores = grades.map((g) => Math.max(g.score, 0.001))
       const product = nonZeroScores.reduce((s, score) => s * score, 1)
       composite = Math.pow(product, 1 / nonZeroScores.length)
       break
@@ -127,25 +124,19 @@ export function computeCompositeScore(
 /**
  * Determine pass/fail based on composite score and optional passing threshold.
  */
-export function isPassing(
-  compositeScore: number,
-  threshold: number = 0.6,
-): boolean {
+export function isPassing(compositeScore: number, threshold: number = 0.6): boolean {
   return compositeScore >= threshold
 }
 
 /**
  * Normalize grade weights so they sum to a desired total.
  */
-export function normalizeWeights(
-  grades: GradeResult[],
-  targetTotal: number = 1.0,
-): GradeResult[] {
+export function normalizeWeights(grades: GradeResult[], targetTotal: number = 1.0): GradeResult[] {
   const currentTotal = grades.reduce((s, g) => s + g.weight, 0)
   if (currentTotal === 0) return grades
 
-  return grades.map(g => ({
+  return grades.map((g) => ({
     ...g,
-    weight: g.weight / currentTotal * targetTotal,
+    weight: (g.weight / currentTotal) * targetTotal,
   }))
 }

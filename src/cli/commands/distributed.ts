@@ -1,5 +1,6 @@
 import type { Command } from "commander"
 import { theme } from "../theme"
+import { hostname } from "node:os"
 
 export function registerDistributed(program: Command) {
   const distributed = program
@@ -16,30 +17,15 @@ export function registerDistributed(program: Command) {
     .option("--tags <tags...>", "Node tags")
     .action(handleStart)
 
-  distributed
-    .command("status")
-    .description("Show cluster status")
-    .action(handleStatus)
+  distributed.command("status").description("Show cluster status").action(handleStatus)
 
-  distributed
-    .command("workers")
-    .description("List all workers in the cluster")
-    .action(handleWorkers)
+  distributed.command("workers").description("List all workers in the cluster").action(handleWorkers)
 
-  distributed
-    .command("worker <id>")
-    .description("Show worker details")
-    .action(handleWorker)
+  distributed.command("worker <id>").description("Show worker details").action(handleWorker)
 
-  distributed
-    .command("task <type> <payload>")
-    .description("Dispatch a task to the best worker")
-    .action(handleTask)
+  distributed.command("task <type> <payload>").description("Dispatch a task to the best worker").action(handleTask)
 
-  distributed
-    .command("info")
-    .description("Show this node's distributed info")
-    .action(handleInfo)
+  distributed.command("info").description("Show this node's distributed info").action(handleInfo)
 }
 
 let currentPool: import("../../distributed").WorkerPool | null = null
@@ -48,7 +34,7 @@ async function handleStart(opts: { port?: string; role?: string; leader?: string
   const { WorkerPool } = await import("../../distributed")
 
   const secret = opts.secret ?? process.env.AEGIS_CLUSTER_SECRET ?? "aegis-default-secret"
-  const nodeId = `node-${require("node:os").hostname()}-${opts.port}`
+  const nodeId = `node-${hostname()}-${opts.port}`
 
   let leaderHost: string | undefined
   let leaderPort: number | undefined
@@ -113,7 +99,9 @@ async function handleStatus() {
   console.log(`  ${theme.bold("Term:")}       ${theme.dim(String(stats.term))}`)
   console.log(`  ${theme.bold("Workers:")}    ${theme.dim(String(stats.totalWorkers))}`)
   console.log(`  ${theme.bold("Ready:")}      ${theme.dim(String(stats.readyWorkers))}`)
-  console.log(`  ${theme.bold("Capacity:")}   ${theme.dim(`${stats.totalCapacity.cpu} CPU, ${stats.totalCapacity.memory} MB, ${stats.totalCapacity.agents} agents`)}`)
+  console.log(
+    `  ${theme.bold("Capacity:")}   ${theme.dim(`${stats.totalCapacity.cpu} CPU, ${stats.totalCapacity.memory} MB, ${stats.totalCapacity.agents} agents`)}`,
+  )
   console.log()
 }
 
@@ -133,7 +121,8 @@ async function handleWorkers() {
   console.log(theme.heading(`\n  Workers (${workers.length})\n`))
 
   for (const w of workers) {
-    const statusIcon = w.status === "ready" ? theme.success("●") : w.status === "offline" ? theme.error("●") : theme.warn("●")
+    const statusIcon =
+      w.status === "ready" ? theme.success("●") : w.status === "offline" ? theme.error("●") : theme.warn("●")
     console.log(`  ${statusIcon} ${theme.bold(w.id)}`)
     console.log(`      hostname: ${theme.dim(w.hostname)}`)
     console.log(`      status:   ${w.status === "ready" ? theme.success(w.status) : theme.warn(w.status)}`)
@@ -159,12 +148,16 @@ async function handleWorker(id: string) {
   console.log(theme.heading(`\n  Worker: ${worker.id}\n`))
   console.log(`  ${theme.bold("Hostname:")}    ${theme.dim(worker.hostname)}`)
   console.log(`  ${theme.bold("Port:")}        ${theme.dim(String(worker.port))}`)
-  console.log(`  ${theme.bold("Status:")}      ${worker.status === "ready" ? theme.success(worker.status) : theme.warn(worker.status)}`)
+  console.log(
+    `  ${theme.bold("Status:")}      ${worker.status === "ready" ? theme.success(worker.status) : theme.warn(worker.status)}`,
+  )
   console.log(`  ${theme.bold("CPU:")}         ${theme.dim(String(worker.capacity.cpu))}`)
   console.log(`  ${theme.bold("Memory:")}      ${theme.dim(`${worker.capacity.memory} MB`)}`)
   console.log(`  ${theme.bold("GPU:")}         ${worker.capacity.gpu ? theme.success("yes") : theme.dim("no")}`)
   console.log(`  ${theme.bold("Agents:")}      ${theme.dim(`${worker.capacity.agents}/${worker.capacity.maxAgents}`)}`)
-  console.log(`  ${theme.bold("Tags:")}        ${worker.tags.length > 0 ? theme.dim(worker.tags.join(", ")) : theme.dim("none")}`)
+  console.log(
+    `  ${theme.bold("Tags:")}        ${worker.tags.length > 0 ? theme.dim(worker.tags.join(", ")) : theme.dim("none")}`,
+  )
   console.log(`  ${theme.bold("Started:")}     ${theme.dim(worker.startedAt)}`)
   console.log(`  ${theme.bold("Heartbeat:")}   ${theme.dim(worker.lastHeartbeat)}`)
   console.log()
@@ -192,7 +185,11 @@ async function handleTask(type: string, payload: string) {
     return
   }
 
-  console.log(theme.info(`\n  Dispatching task "${type}" to ${theme.dim(placement.workerId)} (score: ${placement.score.toFixed(2)})`))
+  console.log(
+    theme.info(
+      `\n  Dispatching task "${type}" to ${theme.dim(placement.workerId)} (score: ${placement.score.toFixed(2)})`,
+    ),
+  )
   console.log()
 
   try {
@@ -223,12 +220,16 @@ async function handleInfo() {
   console.log(`  ${theme.bold("ID:")}         ${theme.dim(local.id)}`)
   console.log(`  ${theme.bold("Hostname:")}   ${theme.dim(local.hostname)}`)
   console.log(`  ${theme.bold("Port:")}       ${theme.dim(String(local.port))}`)
-  console.log(`  ${theme.bold("Status:")}     ${local.status === "ready" ? theme.success(local.status) : theme.warn(local.status)}`)
+  console.log(
+    `  ${theme.bold("Status:")}     ${local.status === "ready" ? theme.success(local.status) : theme.warn(local.status)}`,
+  )
   console.log(`  ${theme.bold("Role:")}       ${theme.accent(currentPool.isLeader() ? "leader" : "worker")}`)
   console.log(`  ${theme.bold("Leader:")}     ${leader ? theme.dim(leader.id) : theme.warn("none")}`)
   console.log(`  ${theme.bold("CPU:")}        ${theme.dim(String(local.capacity.cpu))}`)
   console.log(`  ${theme.bold("Memory:")}     ${theme.dim(`${local.capacity.memory} MB`)}`)
   console.log(`  ${theme.bold("Agents:")}     ${theme.dim(`${local.capacity.agents}/${local.capacity.maxAgents}`)}`)
-  console.log(`  ${theme.bold("Tags:")}       ${local.tags.length > 0 ? theme.dim(local.tags.join(", ")) : theme.dim("none")}`)
+  console.log(
+    `  ${theme.bold("Tags:")}       ${local.tags.length > 0 ? theme.dim(local.tags.join(", ")) : theme.dim("none")}`,
+  )
   console.log()
 }

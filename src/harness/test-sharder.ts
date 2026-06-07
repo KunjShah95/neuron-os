@@ -19,7 +19,7 @@ export type ShardStrategyType = "contiguous" | "round_robin" | "capacity_based"
 export interface ShardStrategy {
   type: ShardStrategyType
   totalShards: number
-  workers?: WorkerInfo[]          // Required for capacity_based
+  workers?: WorkerInfo[] // Required for capacity_based
 }
 
 export interface ShardResult {
@@ -103,9 +103,7 @@ export class TestSharder {
       0,
     )
 
-    const weights = workers.map((w) =>
-      (Math.max(1, w.capacity.cpu) * Math.max(1, w.capacity.memory)) / totalCapacity,
-    )
+    const weights = workers.map((w) => (Math.max(1, w.capacity.cpu) * Math.max(1, w.capacity.memory)) / totalCapacity)
 
     // Assign tests proportionally
     const assignments: TestCase[][] = workers.map(() => [])

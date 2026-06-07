@@ -20,6 +20,7 @@
 | [Agent System (deep-dive)](architecture/agent-system.md) | Agent lifecycle, IPC protocol, auto-recovery, hooks |
 | [Memory System (deep-dive)](architecture/memory-system.md) | Long-term memory, facts, daily logs, vector search, AgentMemory |
 | [Sandbox System](architecture/sandbox.md) | Filesystem, process, and Docker isolation layers |
+| [Security Whitepaper](security-whitepaper.md) | Formal enterprise security document with threat model, encryption, RBAC, compliance mapping |
 
 ## Extending
 

@@ -48,16 +48,18 @@ function createMockGraph() {
     return store.get(name)
   })
 
-  const mockAddRelationship = mock((_sourceId: string, _targetId: string, _type: string, _weight: number): GraphRelationship => {
-    return {
-      id: "rel-mock",
-      sourceId: _sourceId,
-      targetId: _targetId,
-      type: _type,
-      weight: _weight,
-      createdAt: "2025-01-01T00:00:00.000Z",
-    }
-  })
+  const mockAddRelationship = mock(
+    (_sourceId: string, _targetId: string, _type: string, _weight: number): GraphRelationship => {
+      return {
+        id: "rel-mock",
+        sourceId: _sourceId,
+        targetId: _targetId,
+        type: _type,
+        weight: _weight,
+        createdAt: "2025-01-01T00:00:00.000Z",
+      }
+    },
+  )
 
   const mockGetStats = mock(() => ({
     entityCount: store.size,
@@ -128,8 +130,26 @@ describe("GraphIntegration", () => {
       confidence: 0.8,
     }
     mockGraph.extractEntities.mockReturnValue([
-      { id: "ent-mock-e1", name: "AgentEngine", type: "concept", context: "", source: "", createdAt: "", updatedAt: "", confidence: 0.5 },
-      { id: "ent-mock-e2", name: "Refactor", type: "concept", context: "", source: "", createdAt: "", updatedAt: "", confidence: 0.5 },
+      {
+        id: "ent-mock-e1",
+        name: "AgentEngine",
+        type: "concept",
+        context: "",
+        source: "",
+        createdAt: "",
+        updatedAt: "",
+        confidence: 0.5,
+      },
+      {
+        id: "ent-mock-e2",
+        name: "Refactor",
+        type: "concept",
+        context: "",
+        source: "",
+        createdAt: "",
+        updatedAt: "",
+        confidence: 0.5,
+      },
     ])
     mockGraph.getEntityByName.mockReturnValue(buildEntity)
 
@@ -142,9 +162,7 @@ describe("GraphIntegration", () => {
     })
 
     expect(mockGraph.getEntityByName).toHaveBeenCalledWith("build")
-    const typeCalls = mockGraph.addRelationship.mock.calls.filter(
-      (c: any[]) => c[2] === "related_to" && c[3] === 0.5,
-    )
+    const typeCalls = mockGraph.addRelationship.mock.calls.filter((c: any[]) => c[2] === "related_to" && c[3] === 0.5)
     expect(typeCalls.length).toBe(2)
   })
 })

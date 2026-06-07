@@ -42,15 +42,15 @@ Please output a highly condensed 'Context Snapshot'.
       const response = await generateText({
         model: this.aiModel,
         prompt: prompt,
-        temperature: 0.1
+        temperature: 0.1,
       })
 
       const compressed = response.text.trim()
       log.info(`Context compressed from ${contextSize} bytes to ${compressed.length} bytes.`)
-      
+
       // Store compressed summary in long-term memory for future retrieval
       memorySystem.appendToMemory(`[Compressed Context Snapshot for ${goal}]:\n${compressed}`)
-      
+
       return compressed
     } catch (err) {
       log.error(`Compression failed: ${err}`)

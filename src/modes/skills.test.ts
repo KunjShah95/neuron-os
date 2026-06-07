@@ -33,9 +33,7 @@ const mockRemoteSkills = [
 mock.module("../skills/remote", () => ({
   searchSkills: mock(async (query: string, _limit?: number) => {
     if (!query) return []
-    return mockRemoteSkills.filter((s) =>
-      s.name.toLowerCase().includes(query.toLowerCase()),
-    )
+    return mockRemoteSkills.filter((s) => s.name.toLowerCase().includes(query.toLowerCase()))
   }),
   fetchTopSkills: mock(async (_count?: number) => mockRemoteSkills),
   fetchRegistryStats: mock(async () => ({
@@ -108,9 +106,16 @@ Body content here.
       const idx = line.indexOf(":")
       if (idx === -1) continue
       const key = line.slice(0, idx).trim()
-      const val = line.slice(idx + 1).trim().replace(/^\[|\]$/g, "")
+      const val = line
+        .slice(idx + 1)
+        .trim()
+        .replace(/^\[|\]$/g, "")
       if (!key) continue
-      if (key === "tags") meta.tags = val.split(",").map((s) => s.trim()).filter(Boolean)
+      if (key === "tags")
+        meta.tags = val
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
       else meta[key] = val
     }
 

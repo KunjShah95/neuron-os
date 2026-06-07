@@ -15,11 +15,7 @@ export interface RouteCandidate {
   benchmarkScore: number
 }
 
-export function estimateModelCost(
-  modelName: string,
-  inputTokens: number,
-  outputTokens: number,
-): number {
+export function estimateModelCost(modelName: string, inputTokens: number, outputTokens: number): number {
   const pricing = loadPricing()
   const model = pricing.models[modelName]
   if (!model) return Infinity
@@ -29,15 +25,13 @@ export function estimateModelCost(
   return inputCost + outputCost
 }
 
-export function route(
-  options: {
-    inputTokens: number
-    outputTokens: number
-    budget: number
-    minQuality?: number
-    preferredTier?: "cheap" | "balanced" | "premium"
-  },
-): CostEstimate {
+export function route(options: {
+  inputTokens: number
+  outputTokens: number
+  budget: number
+  minQuality?: number
+  preferredTier?: "cheap" | "balanced" | "premium"
+}): CostEstimate {
   const { inputTokens, outputTokens, budget, minQuality = 0, preferredTier } = options
   const pricing = loadPricing()
 
@@ -53,9 +47,7 @@ export function route(
   }
 
   // Filter by preferred tier if specified
-  const tierFiltered = preferredTier
-    ? estimates.filter((e) => e.tier === preferredTier)
-    : estimates
+  const tierFiltered = preferredTier ? estimates.filter((e) => e.tier === preferredTier) : estimates
 
   // Within budget
   const affordable = tierFiltered.filter((e) => e.cost <= budget)
@@ -63,8 +55,7 @@ export function route(
   if (affordable.length === 0) {
     const available = estimates.map((e) => `${e.name} ($${e.cost.toFixed(4)}, ${e.tier}, score=${e.score})`).join(", ")
     throw new NoViableProviderError(
-      `No provider meets quality >=${minQuality} within budget $${budget}. ` +
-      `Available: ${available}`,
+      `No provider meets quality >=${minQuality} within budget $${budget}. ` + `Available: ${available}`,
     )
   }
 

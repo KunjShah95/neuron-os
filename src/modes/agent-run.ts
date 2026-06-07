@@ -65,9 +65,7 @@ export async function runAgentOrchestrator(
     : false
 
   // Default eval to typecheck when ratchet is on (gives a real signal)
-  const evaluation =
-    options?.evaluation ??
-    (options?.ratchet ? [{ metric: "typecheck" as const }] : undefined)
+  const evaluation = options?.evaluation ?? (options?.ratchet ? [{ metric: "typecheck" as const }] : undefined)
 
   const engine = new AgentEngine(runtime, ai, {
     maxSteps: 25,
@@ -82,11 +80,11 @@ export async function runAgentOrchestrator(
   })
 
   try {
-  // Phase 1: AI explores and plans (result is used implicitly for context)
-  await engine.chat([
-    {
-      role: "user",
-      content: `You are a code modification agent. Your task is to accomplish the following goal by exploring the codebase, planning your changes, and reporting what changes need to be made.
+    // Phase 1: AI explores and plans (result is used implicitly for context)
+    await engine.chat([
+      {
+        role: "user",
+        content: `You are a code modification agent. Your task is to accomplish the following goal by exploring the codebase, planning your changes, and reporting what changes need to be made.
 
 First, explore the codebase to understand the structure. Then describe exactly what files need to be created, modified, or deleted and what shell commands need to be run.
 
@@ -99,16 +97,16 @@ Format your response as a structured plan listing:
 - Files to modify (with full new content)
 - Files to delete
 - Shell commands to run`,
-    },
-  ])
+      },
+    ])
 
-  // Phase 2: Stage the changes based on the plan
-  // (In a full implementation, this would parse the AI's plan and stage actions)
-  // For now, we run a second round where the AI executes tools directly
-  const executionResult = await engine.chat([
-    {
-      role: "user",
-      content: `You are a code modification agent. Accomplish the following goal by using the available tools.
+    // Phase 2: Stage the changes based on the plan
+    // (In a full implementation, this would parse the AI's plan and stage actions)
+    // For now, we run a second round where the AI executes tools directly
+    const executionResult = await engine.chat([
+      {
+        role: "user",
+        content: `You are a code modification agent. Accomplish the following goal by using the available tools.
 
 Go ahead and make the changes using the tools at your disposal. Create, modify, or delete files as needed.
 
@@ -119,55 +117,55 @@ IMPORTANT SAFETY RULES:
 2. Use modify_file for changes, not create_file (unless it's a genuinely new file)
 3. Never modify files in node_modules, .git, or dist
 4. After making changes, verify they work`,
-    },
-  ])
+      },
+    ])
 
-  // Phase 3: Check for pending changes and handle approval
-  const pending = tracker.getPendingMutations()
+    // Phase 3: Check for pending changes and handle approval
+    const pending = tracker.getPendingMutations()
 
-  if (pending.length === 0) {
-    await engine.completeSession("completed")
-    return executionResult.text || "Goal complete. No file changes were needed."
-  }
-
-  // If we have a custom approval callback (e.g., Telegram), use it
-  if (callbacks?.onStaged) {
-    const approved = await callbacks.onStaged(pending)
-    if (!approved) {
-      tracker.rejectAll()
+    if (pending.length === 0) {
       await engine.completeSession("completed")
-      return "Changes were rejected. No files were modified."
+      return executionResult.text || "Goal complete. No file changes were needed."
     }
-  } else {
-    // Default: use CLI approval prompt
-    const { promptApproval } = await import("../agent/approval")
-    const approved = await promptApproval(tracker)
-    if (!approved) {
-      return "Changes were rejected. No files were modified."
+
+    // If we have a custom approval callback (e.g., Telegram), use it
+    if (callbacks?.onStaged) {
+      const approved = await callbacks.onStaged(pending)
+      if (!approved) {
+        tracker.rejectAll()
+        await engine.completeSession("completed")
+        return "Changes were rejected. No files were modified."
+      }
+    } else {
+      // Default: use CLI approval prompt
+      const { promptApproval } = await import("../agent/approval")
+      const approved = await promptApproval(tracker)
+      if (!approved) {
+        return "Changes were rejected. No files were modified."
+      }
     }
-  }
 
-  // Apply approved changes
-  const { errors } = executor.applyApproved()
+    // Apply approved changes
+    const { errors } = executor.applyApproved()
 
-  if (errors.length > 0) {
-    await engine.completeSession("failed")
-    return `Changes applied with ${errors.length} error(s):\n${errors.join("\n")}`
-  }
+    if (errors.length > 0) {
+      await engine.completeSession("failed")
+      return `Changes applied with ${errors.length} error(s):\n${errors.join("\n")}`
+    }
 
-  await engine.completeSession("completed")
+    await engine.completeSession("completed")
 
-  const summary = [
-    `✅ Changes applied successfully.`,
-    ``,
-    `Summary:`,
-    ...pending.map((a) => {
-      if (a.type === "tool_execute") return `  🖥  ${a.details.command}`
-      return `  📄 ${a.type.replace(/_/g, " ")}: ${a.path}`
-    }),
-  ].join("\n")
+    const summary = [
+      `✅ Changes applied successfully.`,
+      ``,
+      `Summary:`,
+      ...pending.map((a) => {
+        if (a.type === "tool_execute") return `  🖥  ${a.details.command}`
+        return `  📄 ${a.type.replace(/_/g, " ")}: ${a.path}`
+      }),
+    ].join("\n")
 
-  return summary
+    return summary
   } catch (err) {
     await engine.completeSession("failed")
     throw err

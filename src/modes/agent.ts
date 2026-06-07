@@ -22,8 +22,13 @@ export const agentMode: Mode = {
       lines.push("")
 
       const statusColor: Record<string, (s: string) => string> = {
-        spawning: theme.warn, running: theme.success, idle: theme.info,
-        busy: theme.accent, stopping: theme.warn, stopped: theme.muted, error: theme.error,
+        spawning: theme.warn,
+        running: theme.success,
+        idle: theme.info,
+        busy: theme.accent,
+        stopping: theme.warn,
+        stopped: theme.muted,
+        error: theme.error,
       }
 
       for (const a of agents) {
@@ -38,7 +43,12 @@ export const agentMode: Mode = {
 
         const type = a.def.agentType ? getAgentType(a.def.agentType) : null
         if (type) {
-          lines.push(`    tools: ${type.tools.filter(t => t.allow).map(t => t.name).join(", ")}`)
+          lines.push(
+            `    tools: ${type.tools
+              .filter((t) => t.allow)
+              .map((t) => t.name)
+              .join(", ")}`,
+          )
         }
         lines.push("")
       }

@@ -24,9 +24,7 @@ export class CapacityPlacer {
     const workers = this.pool.getReadyWorkers()
     if (workers.length === 0) return null
 
-    const scored = workers
-      .map((w) => ({ worker: w, score: this.score(w, request) }))
-      .filter((s) => s.score > 0)
+    const scored = workers.map((w) => ({ worker: w, score: this.score(w, request) })).filter((s) => s.score > 0)
 
     if (scored.length === 0) return null
 

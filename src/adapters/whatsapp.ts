@@ -12,17 +12,14 @@
 import twilio from "twilio"
 import type { PlatformAdapter, PlatformSendOptions } from "./types"
 import { createLogger } from "../cli/logger"
-import {
-  handleTwilioWebhook,
-  clipTwilio,
-} from "./bot-commands"
+import { handleTwilioWebhook, clipTwilio } from "./bot-commands"
 
 const log = createLogger("adapter:whatsapp")
 
 interface WhatsAppConfig {
   accountSid: string
   authToken: string
-  fromNumber: string  // Twilio WhatsApp number, e.g. "whatsapp:+14155238886"
+  fromNumber: string // Twilio WhatsApp number, e.g. "whatsapp:+14155238886"
   allowedUserIds?: string[]
   project?: string
   /** Optional HTTP server for receiving incoming messages via webhook */

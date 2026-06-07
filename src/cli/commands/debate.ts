@@ -3,9 +3,7 @@ import { globalDetector } from "../../debate/detector"
 import { listDecisionRecords, loadDecisionRecord } from "../../debate/record"
 
 export function registerDebate(program: Command): void {
-  const debate = program
-    .command("debate")
-    .description("Disagreement detection and arbitration")
+  const debate = program.command("debate").description("Disagreement detection and arbitration")
 
   debate
     .command("pending")

@@ -13,8 +13,12 @@ function hex(hexColor: string) {
 // ── Box-drawing characters ────────────────────────────────────────────
 
 export const box = {
-  tl: "╭", tr: "╮", bl: "╰", br: "╯",
-  h: "─", v: "│",
+  tl: "╭",
+  tr: "╮",
+  bl: "╰",
+  br: "╯",
+  h: "─",
+  v: "│",
   dot: "·",
   bullet: "●",
   cross: "✕",

@@ -5,7 +5,7 @@ export const RepoConfig = z.object({
   name: z.string(),
   auto_merge: z.boolean().default(false),
   model: z.string().default("claude-sonnet-4-6"),
-  budget_usd: z.number().min(0).default(0.50),
+  budget_usd: z.number().min(0).default(0.5),
   notify: z.array(z.string()).default([]),
   allowed_paths: z.array(z.string()).default([]),
   require_human_approval_comment: z.boolean().default(true),

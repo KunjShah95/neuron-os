@@ -7,6 +7,8 @@
  * and generates PR annotations. Supports pass@k for statistical rigor.
  */
 
+import { writeFileSync, mkdirSync } from "node:fs"
+import { dirname } from "node:path"
 import type { EvalReport, BaselineComparison } from "./types"
 import { BaselineManager } from "./baseline"
 
@@ -102,18 +104,12 @@ export class CIGate {
       : this.baselineManager.loadLatest(this.config.baselineModel, this.config.suite)
 
     // 3. Compare to baseline
-    const comparison = baseline
-      ? this.baselineManager.compare(aggregated, baseline)
-      : null
+    const comparison = baseline ? this.baselineManager.compare(aggregated, baseline) : null
 
     // 4. Determine pass/fail
-    const passRate = aggregated.totalTests > 0
-      ? aggregated.passed / aggregated.totalTests
-      : 0
+    const passRate = aggregated.totalTests > 0 ? aggregated.passed / aggregated.totalTests : 0
     const regressionsFound = comparison?.regressions.length ?? 0
-    const criticalRegressions = comparison?.regressions.filter(
-      (r) => r.severity === "critical",
-    ).length ?? 0
+    const criticalRegressions = comparison?.regressions.filter((r) => r.severity === "critical").length ?? 0
 
     let passed = true
     const failures: string[] = []
@@ -137,9 +133,7 @@ export class CIGate {
     // Check critical regressions
     if (criticalRegressions > this.config.criticalFailThreshold) {
       passed = false
-      failures.push(
-        `Critical regressions ${criticalRegressions} exceeds limit ${this.config.criticalFailThreshold}`,
-      )
+      failures.push(`Critical regressions ${criticalRegressions} exceeds limit ${this.config.criticalFailThreshold}`)
     }
 
     // 5. Generate summary
@@ -188,7 +182,7 @@ export class CIGate {
     if (validReports.length === 0) return reports[reports.length - 1]!
 
     const base = { ...validReports[0]! }
-    const resultMap = new Map<string, typeof base.results[0]>()
+    const resultMap = new Map<string, (typeof base.results)[0]>()
 
     for (const report of validReports) {
       for (const result of report.results) {
@@ -203,9 +197,7 @@ export class CIGate {
     base.totalTests = base.results.length
     base.passed = base.results.filter((r) => r.passed).length
     base.failed = base.totalTests - base.passed
-    base.avgScore = base.totalTests > 0
-      ? base.results.reduce((s, r) => s + r.score, 0) / base.totalTests
-      : 0
+    base.avgScore = base.totalTests > 0 ? base.results.reduce((s, r) => s + r.score, 0) / base.totalTests : 0
     base.totalCost = validReports.reduce((s, r) => s + r.totalCost, 0)
 
     // Recompute byCategory
@@ -226,9 +218,7 @@ export class CIGate {
 
   private writeReport(result: CIGateResult): void {
     try {
-      const { writeFileSync, mkdirSync } = require("node:fs")
-      const { resolve } = require("node:path")
-      const dir = require("node:path").dirname(this.config.reportPath)
+      const dir = dirname(this.config.reportPath)
       mkdirSync(dir, { recursive: true })
       writeFileSync(this.config.reportPath, JSON.stringify(result, null, 2), "utf-8")
     } catch {

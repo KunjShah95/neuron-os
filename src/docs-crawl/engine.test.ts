@@ -11,7 +11,9 @@ function makeSourceDir(): string {
   const dir = join(BASE, `src-${randomUUID().slice(0, 8)}`)
   mkdirSync(dir, { recursive: true })
 
-  writeFileSync(join(dir, "index.md"), `# Welcome
+  writeFileSync(
+    join(dir, "index.md"),
+    `# Welcome
 
 This is the homepage of our test docs.
 
@@ -29,9 +31,13 @@ def get_users():
 \`\`\`
 
 [Installation Guide](/installation)
-`, "utf-8")
+`,
+    "utf-8",
+  )
 
-  writeFileSync(join(dir, "installation.md"), `# Installation
+  writeFileSync(
+    join(dir, "installation.md"),
+    `# Installation
 
 ## Requirements
 
@@ -45,11 +51,15 @@ npm install
 \`\`\`
 
 [Home](/)
-`, "utf-8")
+`,
+    "utf-8",
+  )
 
   const nested = join(dir, "nested")
   mkdirSync(nested, { recursive: true })
-  writeFileSync(join(nested, "advanced.md"), `# Advanced Topics
+  writeFileSync(
+    join(nested, "advanced.md"),
+    `# Advanced Topics
 
 ## Configuration
 
@@ -58,7 +68,9 @@ Set your environment variables in a \`.env\` file.
 ## Performance
 
 Use caching for better performance.
-`, "utf-8")
+`,
+    "utf-8",
+  )
 
   return dir
 }

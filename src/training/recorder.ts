@@ -88,9 +88,7 @@ export class TrajectoryRecorder {
   private activeFiles = new Map<string, string>() // session_id → file path
 
   constructor(baseDir?: string) {
-    this.baseDir =
-      baseDir ??
-      resolve(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "trajectories")
+    this.baseDir = baseDir ?? resolve(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "trajectories")
     this.ensureDir()
   }
 
@@ -122,8 +120,12 @@ export class TrajectoryRecorder {
         const gapFile = join(this.baseDir, "_gaps.log")
         appendFileSync(
           gapFile,
-          JSON.stringify({ type: "trajectory_gap", ts: Date.now(), session_id: event.session_id, original_type: event.type }) +
-            "\n",
+          JSON.stringify({
+            type: "trajectory_gap",
+            ts: Date.now(),
+            session_id: event.session_id,
+            original_type: event.type,
+          }) + "\n",
           "utf-8",
         )
       } catch {

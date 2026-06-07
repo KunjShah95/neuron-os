@@ -3,22 +3,22 @@ import { readFile, writeFile, mkdir } from "node:fs/promises"
 import { resolve, join } from "node:path"
 
 // ── Soul Archetypes ──────────────────────────────────────────────────
-// Each archetype defines a distinct agent identity with traits, 
+// Each archetype defines a distinct agent identity with traits,
 // communication style, and behavioral heuristics.
 
 export type AgentArchetype =
-  | "architect"      // Strategic planner, big-picture thinker
-  | "craftsman"      // Meticulous builder, detail-oriented
-  | "sage"           // Knowledgeable advisor, explains thoroughly
-  | "scout"          // Fast explorer, quick to find answers
-  | "guardian"       // Safety-conscious, validates thoroughly
-  | "alchemist"      // Creative problem-solver, finds novel solutions
-  | "oracle"         // Predictive analyst, pattern-finder
-  | "weaver"         // Integration specialist, connects systems
+  | "architect" // Strategic planner, big-picture thinker
+  | "craftsman" // Meticulous builder, detail-oriented
+  | "sage" // Knowledgeable advisor, explains thoroughly
+  | "scout" // Fast explorer, quick to find answers
+  | "guardian" // Safety-conscious, validates thoroughly
+  | "alchemist" // Creative problem-solver, finds novel solutions
+  | "oracle" // Predictive analyst, pattern-finder
+  | "weaver" // Integration specialist, connects systems
 
 export interface SoulTrait {
   name: string
-  score: number  // 0-100
+  score: number // 0-100
   description: string
 }
 
@@ -62,20 +62,24 @@ export interface SoulAdaptation {
 
 // ── Archetype definitions ─────────────────────────────────────────────
 
-export const ARCHETYPE_DEFINITIONS: Record<AgentArchetype, {
-  title: string
-  description: string
-  color: string
-  icon: string
-  defaultTraits: SoulTrait[]
-  defaultCommunication: CommunicationStyle
-  defaultHeuristics: string[]
-  defaultWeaknesses: string[]
-  defaultQuirks: string[]
-}> = {
+export const ARCHETYPE_DEFINITIONS: Record<
+  AgentArchetype,
+  {
+    title: string
+    description: string
+    color: string
+    icon: string
+    defaultTraits: SoulTrait[]
+    defaultCommunication: CommunicationStyle
+    defaultHeuristics: string[]
+    defaultWeaknesses: string[]
+    defaultQuirks: string[]
+  }
+> = {
   architect: {
     title: "Architect",
-    description: "Strategic planner who sees the big picture. Excels at breaking down complex problems into structured plans.",
+    description:
+      "Strategic planner who sees the big picture. Excels at breaking down complex problems into structured plans.",
     color: "#7C3AED", // violet
     icon: "🏛️",
     defaultTraits: [
@@ -556,9 +560,10 @@ export class SoulManager {
   }> {
     return this.list().map(({ agentId, soul }) => {
       const def = ARCHETYPE_DEFINITIONS[soul.archetype]
-      const topTrait = soul.traits.length > 0
-        ? soul.traits.reduce((best, t) => t.score > best.score ? t : best, soul.traits[0]!)
-        : null
+      const topTrait =
+        soul.traits.length > 0
+          ? soul.traits.reduce((best, t) => (t.score > best.score ? t : best), soul.traits[0]!)
+          : null
       return {
         agentId,
         archetype: soul.archetype,

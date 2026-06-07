@@ -40,7 +40,7 @@ async function discoverTools(client: MCPClientConfig): Promise<MCPToolDef[]> {
     signal: AbortSignal.timeout(5_000),
   })
   if (!response.ok) throw new Error(`MCP ${client.name}: HTTP ${response.status}`)
-  const body = await response.json() as { tools?: MCPToolDef[] }
+  const body = (await response.json()) as { tools?: MCPToolDef[] }
   return body.tools ?? []
 }
 
@@ -73,7 +73,9 @@ export async function connectMCPClients(): Promise<number> {
           description: `[MCP:${client.name}] ${def.description || def.name}`,
           parameters: Object.entries(def.inputSchema?.properties || {}).map(([key, val]) => ({
             name: key,
-            type: ((val as { type?: string }).type === "string" || (val as { type?: string }).type === "number" || (val as { type?: string }).type === "boolean"
+            type: ((val as { type?: string }).type === "string" ||
+            (val as { type?: string }).type === "number" ||
+            (val as { type?: string }).type === "boolean"
               ? (val as { type?: string }).type
               : "string") as "string" | "number" | "boolean" | "array",
             description: (val as { description?: string }).description || "",

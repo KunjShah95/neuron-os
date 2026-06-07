@@ -52,13 +52,14 @@ export function loadConfig(): AppConfig {
       log.warn("Config validation failed, using partial config", { issues })
       // Return what we can salvage — strip invalid fields
       const cleaned: Record<string, unknown> = {}
-      for (const [key, value] of Object.entries(parsed)) {          const fieldResult = AppConfigSchema.shape[key as keyof typeof AppConfigSchema.shape]
-          if (fieldResult) {
-            const fieldCheck = fieldResult.safeParse(value)
-            if (fieldCheck.success) {
-              cleaned[key as keyof typeof cleaned] = value as never
-            }
+      for (const [key, value] of Object.entries(parsed)) {
+        const fieldResult = AppConfigSchema.shape[key as keyof typeof AppConfigSchema.shape]
+        if (fieldResult) {
+          const fieldCheck = fieldResult.safeParse(value)
+          if (fieldCheck.success) {
+            cleaned[key as keyof typeof cleaned] = value as never
           }
+        }
       }
       return cleaned as AppConfig
     }

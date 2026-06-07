@@ -17,7 +17,9 @@ describe("JudgeCalibration", () => {
   })
 
   afterEach(() => {
-    try { rmSync(testDir, { recursive: true, force: true }) } catch {}
+    try {
+      rmSync(testDir, { recursive: true, force: true })
+    } catch {}
   })
 
   it("starts with empty calibration set", () => {

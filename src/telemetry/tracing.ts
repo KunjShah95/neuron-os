@@ -27,7 +27,7 @@ export class TracingStore {
 
     this.db = new Database(dbPath)
     this.db.exec("PRAGMA journal_mode = WAL")
-    
+
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS spans (
         span_id TEXT PRIMARY KEY,
@@ -50,39 +50,49 @@ export class TracingStore {
     const fullSpan: TraceSpan = {
       ...span,
       status: "pending",
-      startTime: Date.now()
+      startTime: Date.now(),
     }
-    
-    this.db.prepare(`
+
+    this.db
+      .prepare(
+        `
       INSERT INTO spans (span_id, parent_span_id, session_id, agent_id, name, type, status, start_time, input, metadata)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      fullSpan.spanId, 
-      fullSpan.parentSpanId || null, 
-      fullSpan.sessionId, 
-      fullSpan.agentId, 
-      fullSpan.name, 
-      fullSpan.type, 
-      fullSpan.status, 
-      fullSpan.startTime, 
-      fullSpan.input || null, 
-      fullSpan.metadata ? JSON.stringify(fullSpan.metadata) : null
-    )
+    `,
+      )
+      .run(
+        fullSpan.spanId,
+        fullSpan.parentSpanId || null,
+        fullSpan.sessionId,
+        fullSpan.agentId,
+        fullSpan.name,
+        fullSpan.type,
+        fullSpan.status,
+        fullSpan.startTime,
+        fullSpan.input || null,
+        fullSpan.metadata ? JSON.stringify(fullSpan.metadata) : null,
+      )
 
     return fullSpan
   }
 
   public endSpan(spanId: string, status: "success" | "error", output?: string) {
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       UPDATE spans 
       SET status = ?, end_time = ?, output = ? 
       WHERE span_id = ?
-    `).run(status, Date.now(), output || null, spanId)
+    `,
+      )
+      .run(status, Date.now(), output || null, spanId)
   }
 
   public getSessionTraces(sessionId: string): TraceSpan[] {
-    const rows = this.db.prepare("SELECT * FROM spans WHERE session_id = ? ORDER BY start_time ASC").all(sessionId) as any[]
-    return rows.map(r => ({
+    const rows = this.db
+      .prepare("SELECT * FROM spans WHERE session_id = ? ORDER BY start_time ASC")
+      .all(sessionId) as any[]
+    return rows.map((r) => ({
       spanId: r.span_id,
       parentSpanId: r.parent_span_id,
       sessionId: r.session_id,
@@ -94,15 +104,26 @@ export class TracingStore {
       endTime: r.end_time,
       input: r.input,
       output: r.output,
-      metadata: r.metadata ? JSON.parse(r.metadata) : undefined
+      metadata: r.metadata ? JSON.parse(r.metadata) : undefined,
     }))
   }
 
-  public getStats(): { totalSpans: number; sessionCount: number; byType: Record<string, number>; byStatus: Record<string, number> } {
+  public getStats(): {
+    totalSpans: number
+    sessionCount: number
+    byType: Record<string, number>
+    byStatus: Record<string, number>
+  } {
     const total = this.db.prepare("SELECT COUNT(*) as c FROM spans").get() as { c: number }
     const sessions = this.db.prepare("SELECT COUNT(DISTINCT session_id) as c FROM spans").get() as { c: number }
-    const typeRows = this.db.prepare("SELECT type, COUNT(*) as c FROM spans GROUP BY type").all() as { type: string; c: number }[]
-    const statusRows = this.db.prepare("SELECT status, COUNT(*) as c FROM spans GROUP BY status").all() as { status: string; c: number }[]
+    const typeRows = this.db.prepare("SELECT type, COUNT(*) as c FROM spans GROUP BY type").all() as {
+      type: string
+      c: number
+    }[]
+    const statusRows = this.db.prepare("SELECT status, COUNT(*) as c FROM spans GROUP BY status").all() as {
+      status: string
+      c: number
+    }[]
     const byType: Record<string, number> = {}
     for (const r of typeRows) byType[r.type] = r.c
     const byStatus: Record<string, number> = {}
@@ -112,7 +133,7 @@ export class TracingStore {
 
   public getAllSessionIds(): string[] {
     const rows = this.db.prepare("SELECT DISTINCT session_id FROM spans").all() as { session_id: string }[]
-    return rows.map(r => r.session_id)
+    return rows.map((r) => r.session_id)
   }
 }
 

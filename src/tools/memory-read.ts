@@ -2,7 +2,8 @@ import type { Tool, ToolResult, ToolContext } from "./registry"
 
 export const memoryReadTool: Tool = {
   name: "memory_read",
-  description: "Read entries from the episodic memory store. Supports retrieval by key, session ID, or semantic search.",
+  description:
+    "Read entries from the episodic memory store. Supports retrieval by key, session ID, or semantic search.",
   parameters: [
     {
       name: "query",

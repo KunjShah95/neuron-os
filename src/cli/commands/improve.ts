@@ -10,9 +10,7 @@ export function registerImprove(program: Command) {
 
   // ── Skill subcommands ──────────────────────────────────────────────
 
-  const skill = improve
-    .command("skill")
-    .description("Manage skill candidates extracted from successful experiences")
+  const skill = improve.command("skill").description("Manage skill candidates extracted from successful experiences")
 
   skill
     .command("extract")
@@ -36,21 +34,13 @@ export function registerImprove(program: Command) {
     .description("Publish a candidate as a real skill in src/skills/")
     .action(handleSkillPublish)
 
-  skill
-    .command("reject <id>")
-    .description("Reject a skill candidate")
-    .action(handleSkillReject)
+  skill.command("reject <id>").description("Reject a skill candidate").action(handleSkillReject)
 
-  skill
-    .command("stats")
-    .description("Show skill extraction statistics")
-    .action(handleSkillStats)
+  skill.command("stats").description("Show skill extraction statistics").action(handleSkillStats)
 
   // ── Failure subcommands ────────────────────────────────────────────
 
-  const failure = improve
-    .command("failure")
-    .description("Cluster and analyze agent failures")
+  const failure = improve.command("failure").description("Cluster and analyze agent failures")
 
   failure
     .command("cluster")
@@ -64,10 +54,7 @@ export function registerImprove(program: Command) {
     .option("--severity <level>", "Filter by severity (low|medium|high|critical)")
     .action(handleFailureList)
 
-  failure
-    .command("fix <id>")
-    .description("Generate fix suggestion for a failure cluster")
-    .action(handleFailureFix)
+  failure.command("fix <id>").description("Generate fix suggestion for a failure cluster").action(handleFailureFix)
 
   failure
     .command("retry <id>")
@@ -76,9 +63,7 @@ export function registerImprove(program: Command) {
 
   // ── Adversarial subcommands ────────────────────────────────────────
 
-  const adversarial = improve
-    .command("adversarial")
-    .description("Adversarial self-play for system hardening")
+  const adversarial = improve.command("adversarial").description("Adversarial self-play for system hardening")
 
   adversarial
     .command("run")
@@ -102,24 +87,16 @@ export function registerImprove(program: Command) {
 
   // ── Scheduler subcommands ────────────────────────────────────
 
-  const scheduler = improve
-    .command("scheduler")
-    .description("Self-improvement cron scheduler management")
+  const scheduler = improve.command("scheduler").description("Self-improvement cron scheduler management")
 
   scheduler
     .command("init")
     .description("Register self-improvement cron triggers (skill extraction every 6h, failure clustering every 12h)")
     .action(handleSchedulerInit)
 
-  scheduler
-    .command("remove")
-    .description("Remove all self-improvement cron triggers")
-    .action(handleSchedulerRemove)
+  scheduler.command("remove").description("Remove all self-improvement cron triggers").action(handleSchedulerRemove)
 
-  scheduler
-    .command("status")
-    .description("Check if self-improvement scheduler is active")
-    .action(handleSchedulerStatus)
+  scheduler.command("status").description("Check if self-improvement scheduler is active").action(handleSchedulerStatus)
 
   scheduler
     .command("run <job>")
@@ -169,12 +146,18 @@ async function handleSkillList(opts: { status?: string }) {
 
   console.log(theme.heading(`\n  📋 Skill Candidates (${candidates.length})\n`))
   for (const c of candidates) {
-    const statusColor = c.status === "published" ? theme.success :
-      c.status === "validated" ? theme.info :
-      c.status === "rejected" ? theme.error :
-      theme.warn
+    const statusColor =
+      c.status === "published"
+        ? theme.success
+        : c.status === "validated"
+          ? theme.info
+          : c.status === "rejected"
+            ? theme.error
+            : theme.warn
     console.log(`  ${theme.bold(c.name)}  ${statusColor(c.status)}`)
-    console.log(`     ${theme.dim(c.id)} · ${(c.confidence * 100).toFixed(0)}% confidence · ${c.derivedFrom.length} sources`)
+    console.log(
+      `     ${theme.dim(c.id)} · ${(c.confidence * 100).toFixed(0)}% confidence · ${c.derivedFrom.length} sources`,
+    )
     console.log()
   }
 }
@@ -258,10 +241,14 @@ async function handleFailureCluster(opts: { minSize?: string }) {
 
   console.log(theme.heading(`\n  🔴 Failure Clusters (${clusters.length})\n`))
   for (const c of clusters) {
-    const severityColor = c.severity === "critical" ? theme.error :
-      c.severity === "high" ? theme.warn :
-      c.severity === "medium" ? theme.info :
-      theme.dim
+    const severityColor =
+      c.severity === "critical"
+        ? theme.error
+        : c.severity === "high"
+          ? theme.warn
+          : c.severity === "medium"
+            ? theme.info
+            : theme.dim
     console.log(`  ${severityColor(c.severity.toUpperCase())} ${theme.bold(c.name)} (${c.count} failures)`)
     console.log(`     Pattern: ${theme.dim(c.commonPattern.slice(0, 80))}`)
     console.log(`     Fix:     ${theme.text(c.suggestedFix.slice(0, 80))}`)
@@ -314,7 +301,12 @@ async function handleFailureRetry(id: string) {
 
 // ── Adversarial handlers ───────────────────────────────────────────
 
-async function handleAdversarialRun(opts: { agentTypes?: string; scenarios?: string; rounds?: string; budget?: string }) {
+async function handleAdversarialRun(opts: {
+  agentTypes?: string
+  scenarios?: string
+  rounds?: string
+  budget?: string
+}) {
   showBanner()
   const { AdversarialSelfPlay } = await import("../../improve/adversarial")
   const adv = new AdversarialSelfPlay()
@@ -376,9 +368,8 @@ async function handleAdversarialResults(opts: { limit?: string }) {
 
   console.log(theme.heading(`\n  📋 Adversarial Sessions (${sessions.length})\n`))
   for (const s of sessions) {
-    const icon = s.winner === "defender" ? theme.success("🛡") :
-      s.winner === "attacker" ? theme.error("⚔") :
-      theme.warn("=")
+    const icon =
+      s.winner === "defender" ? theme.success("🛡") : s.winner === "attacker" ? theme.error("⚔") : theme.warn("=")
     console.log(`  ${icon} ${s.scenario.slice(0, 60)}`)
     console.log(`     Winner: ${theme.bold(s.winner)} · ${s.rounds} rounds · ${s.findings.length} findings`)
     console.log(`     ${theme.dim(s.createdAt.slice(0, 10))}`)
@@ -400,9 +391,15 @@ async function handleAdversarialAnalyze() {
   console.log(`  Total scenarios:    ${stats.totalScenarios}`)
   console.log(`  Avg rounds:         ${stats.avgRounds}`)
   console.log()
-  console.log(`  Defender win rate:  ${theme.success(`${sessions.length > 0 ? ((analyzed.defenderWins / sessions.length) * 100).toFixed(0) : 0}%`)}`)
-  console.log(`  Attacker win rate:  ${theme.error(`${sessions.length > 0 ? ((analyzed.attackerWins / sessions.length) * 100).toFixed(0) : 0}%`)}`)
-  console.log(`  Draw rate:          ${theme.dim(`${sessions.length > 0 ? ((analyzed.draws / sessions.length) * 100).toFixed(0) : 0}%`)}`)
+  console.log(
+    `  Defender win rate:  ${theme.success(`${sessions.length > 0 ? ((analyzed.defenderWins / sessions.length) * 100).toFixed(0) : 0}%`)}`,
+  )
+  console.log(
+    `  Attacker win rate:  ${theme.error(`${sessions.length > 0 ? ((analyzed.attackerWins / sessions.length) * 100).toFixed(0) : 0}%`)}`,
+  )
+  console.log(
+    `  Draw rate:          ${theme.dim(`${sessions.length > 0 ? ((analyzed.draws / sessions.length) * 100).toFixed(0) : 0}%`)}`,
+  )
   console.log()
 
   if (analyzed.regressions.length > 0) {

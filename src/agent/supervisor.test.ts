@@ -11,7 +11,6 @@ import { describe, it, expect } from "bun:test"
 import { Supervisor, type SupervisorConfig } from "./supervisor"
 
 describe("Supervisor Configuration", () => {
-
   it("should construct with minimal config", () => {
     const config: SupervisorConfig = { goal: "Run tests" }
     const supervisor = new Supervisor(config)
@@ -60,11 +59,9 @@ describe("Supervisor Configuration", () => {
     // Should not throw
     expect(supervisor).toBeDefined()
   })
-
 })
 
 describe("Supervisor Defaults", () => {
-
   it("should default agentType to 'default' when not specified", () => {
     const config: SupervisorConfig = { goal: "Test" }
     const supervisor = new Supervisor(config)
@@ -87,11 +84,9 @@ describe("Supervisor Defaults", () => {
     const supervisor = new Supervisor(config)
     expect(supervisor).toBeDefined()
   })
-
 })
 
 describe("Supervisor Interface", () => {
-
   it("should expose a run method", () => {
     const config: SupervisorConfig = { goal: "Test" }
     const supervisor = new Supervisor(config)
@@ -103,5 +98,4 @@ describe("Supervisor Interface", () => {
     const supervisor = new Supervisor(config)
     expect(typeof supervisor.run).toBe("function")
   })
-
 })

@@ -3,13 +3,9 @@ import { theme } from "../theme"
 import { agentMemory } from "../../memory"
 
 export function registerAgentMemory(program: Command) {
-  const am = program
-    .command("agentmemory")
-    .alias("am")
-    .description("Manage agentmemory sidecar connection")
+  const am = program.command("agentmemory").alias("am").description("Manage agentmemory sidecar connection")
 
-  am
-    .command("status")
+  am.command("status")
     .description("Show agentmemory connection status and stats")
     .action(async () => {
       const available = await agentMemory.isAvailable()
@@ -35,8 +31,7 @@ export function registerAgentMemory(program: Command) {
       console.log(theme.dim("  Memory server:") + ` ${process.env.AGENTMEMORY_URL || "http://localhost:3111"}`)
     })
 
-  am
-    .command("search <query>")
+  am.command("search <query>")
     .description("Search agentmemory with semantic query")
     .option("-l, --limit <n>", "Max results", "5")
     .action(async (query: string, opts: { limit?: string }) => {
@@ -64,8 +59,7 @@ export function registerAgentMemory(program: Command) {
       }
     })
 
-  am
-    .command("connect")
+  am.command("connect")
     .description("Test connection to agentmemory server")
     .action(async () => {
       console.log(theme.info("  Testing agentmemory connection..."))

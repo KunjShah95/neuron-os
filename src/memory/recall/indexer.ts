@@ -42,14 +42,7 @@ export class FTS5Indexer {
         VALUES (?, ?, ?, ?, ?, ?)
       `)
 
-      stmt.run(
-        turn.sessionId,
-        turn.turnId,
-        turn.ts,
-        turn.role,
-        turn.content,
-        (turn.entities ?? []).join(" "),
-      )
+      stmt.run(turn.sessionId, turn.turnId, turn.ts, turn.role, turn.content, (turn.entities ?? []).join(" "))
 
       // Upsert session metadata
       const metaStmt = this.db.prepare(`

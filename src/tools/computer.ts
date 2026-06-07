@@ -10,14 +10,26 @@ function takeScreenshot(): string {
   if (platform === "darwin") {
     execSync(`screencapture -x -C "${tmp}"`, { timeout: 10000 })
   } else if (platform === "linux") {
-    try { execSync(`import -window root "${tmp}" 2>/dev/null`, { timeout: 10000 }) }
-    catch { try { execSync(`maim "${tmp}" 2>/dev/null`, { timeout: 10000 }) } catch { return "" } }
+    try {
+      execSync(`import -window root "${tmp}" 2>/dev/null`, { timeout: 10000 })
+    } catch {
+      try {
+        execSync(`maim "${tmp}" 2>/dev/null`, { timeout: 10000 })
+      } catch {
+        return ""
+      }
+    }
   } else if (platform === "win32") {
-    execSync(`powershell -Command "Add-Type -AssemblyName System.Windows.Forms; $bmp = [Drawing.Bitmap]::new([System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width, [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Height); $gfx = [Drawing.Graphics]::FromImage($bmp); $gfx.CopyFromScreen(0, 0, 0, 0, $bmp.Size); $bmp.Save('${tmp}')"`, { timeout: 15000 })
+    execSync(
+      `powershell -Command "Add-Type -AssemblyName System.Windows.Forms; $bmp = [Drawing.Bitmap]::new([System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width, [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Height); $gfx = [Drawing.Graphics]::FromImage($bmp); $gfx.CopyFromScreen(0, 0, 0, 0, $bmp.Size); $bmp.Save('${tmp}')"`,
+      { timeout: 15000 },
+    )
   }
   const data = readFileSync(tmp)
   // Best-effort cleanup of temp screenshot
-  try { unlinkSync(tmp) } catch {}
+  try {
+    unlinkSync(tmp)
+  } catch {}
   return data.toString("base64")
 }
 
@@ -25,7 +37,9 @@ function mouseAction(action: string, x?: number, y?: number): void {
   const platform = process.platform
   if (platform === "darwin") {
     if (action === "mouse_move") {
-      execSync(`osascript -e 'tell application "System Events" to set position of mouse to {${x},${y}}'`, { timeout: 5000 })
+      execSync(`osascript -e 'tell application "System Events" to set position of mouse to {${x},${y}}'`, {
+        timeout: 5000,
+      })
     } else {
       execSync(`osascript -e 'tell application "System Events" to click at {${x},${y}}'`, { timeout: 5000 })
     }
@@ -36,9 +50,10 @@ function mouseAction(action: string, x?: number, y?: number): void {
       execSync(`xdotool click 1`, { timeout: 5000 })
     }
   } else if (platform === "win32") {
-    const script = action === "mouse_move"
-      ? `[System.Windows.Forms.Cursor]::Position = New-Object Drawing.Point(${x},${y})`
-      : `[System.Windows.Forms.Cursor]::Position = New-Object Drawing.Point(${x},${y}); [System.Windows.Forms.SendKeys]::SendWait('{Click}')`
+    const script =
+      action === "mouse_move"
+        ? `[System.Windows.Forms.Cursor]::Position = New-Object Drawing.Point(${x},${y})`
+        : `[System.Windows.Forms.Cursor]::Position = New-Object Drawing.Point(${x},${y}); [System.Windows.Forms.SendKeys]::SendWait('{Click}')`
     execSync(`powershell -Command "Add-Type -AssemblyName System.Windows.Forms; ${script}"`, { timeout: 10000 })
   }
 }
@@ -60,7 +75,16 @@ function keypressFn(key: string): void {
   if (platform === "linux") {
     execSync(`xdotool key ${key}`, { timeout: 5000 })
   } else if (platform === "win32") {
-    const keyMap: Record<string, string> = { enter: "{ENTER}", tab: "{TAB}", escape: "{ESC}", backspace: "{BACKSPACE}", up: "{UP}", down: "{DOWN}", left: "{LEFT}", right: "{RIGHT}" }
+    const keyMap: Record<string, string> = {
+      enter: "{ENTER}",
+      tab: "{TAB}",
+      escape: "{ESC}",
+      backspace: "{BACKSPACE}",
+      up: "{UP}",
+      down: "{DOWN}",
+      left: "{LEFT}",
+      right: "{RIGHT}",
+    }
     const k = keyMap[key] || key
     execSync(`powershell -Command "[System.Windows.Forms.SendKeys]::SendWait('${k}')"`, { timeout: 5000 })
   } else {
@@ -80,7 +104,13 @@ export const computerTool: Tool = {
   name: "computer",
   description: "Control the computer — view screen, move mouse, click, type, scroll, press keys",
   parameters: [
-    { name: "action", type: "string", description: "Action: screenshot, mouse_move, left_click, right_click, double_click, drag, type, keypress, scroll", required: true },
+    {
+      name: "action",
+      type: "string",
+      description:
+        "Action: screenshot, mouse_move, left_click, right_click, double_click, drag, type, keypress, scroll",
+      required: true,
+    },
     { name: "coordinate", type: "array", description: "[x, y] for mouse actions", required: false },
     { name: "text", type: "string", description: "Text to type", required: false },
     { name: "key", type: "string", description: "Key combo like ctrl+s, enter", required: false },

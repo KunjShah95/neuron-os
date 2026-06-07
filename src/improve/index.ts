@@ -1,9 +1,8 @@
 export { SkillExtractor, skillExtractor } from "./skill-extractor"
 export { FailureClusterer, failureClusterer } from "./failure-cluster"
 export { AdversarialSelfPlay, adversarialSelfPlay } from "./adversarial"
-export type {
-  SkillCandidate,
-  FailureCluster,
-  SelfPlayConfig,
-  SelfPlayResult,
-} from "./types"
+export { EvalValidator, evalValidator } from "./eval-validator"
+export type { ValidationResult, BatchValidationResult, ValidationConfig } from "./eval-validator"
+export { SkillMonitor, skillMonitor } from "./skill-monitor"
+export type { SkillPerformanceRecord, SkillPerformanceSummary, SkillMonitorConfig } from "./skill-monitor"
+export type { SkillCandidate, FailureCluster, SelfPlayConfig, SelfPlayResult } from "./types"

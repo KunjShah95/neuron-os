@@ -67,7 +67,7 @@ export function createInitialChatState(agentType?: string): ChatState {
     messages: [
       {
         role: "assistant",
-        content: agentType 
+        content: agentType
           ? `Hello! I'm Aegis AI (${agentType} mode). How can I help you today?\n\nTry asking me to write code, explain concepts, or help with your projects.`
           : "Hello! I'm Aegis AI. How can I help you today?\n\nTry asking me to write code, explain concepts, or help with your projects.",
         timestamp: new Date().toLocaleTimeString(),
@@ -160,13 +160,20 @@ export function saveChatSession(state: ChatState) {
     const record = {
       id: state.sessionId,
       createdAt: new Date().toISOString(),
-      messages: state.messages.map((m) => ({ role: m.role, content: m.content, timestamp: m.timestamp, status: m.status })),
-        providerConfig: state.config ? {
-          provider: state.config.provider,
-          model: state.config.model,
-          maxTokens: state.config.maxTokens,
-          apiKeyHint: undefined,
-        } : undefined,
+      messages: state.messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+        timestamp: m.timestamp,
+        status: m.status,
+      })),
+      providerConfig: state.config
+        ? {
+            provider: state.config.provider,
+            model: state.config.model,
+            maxTokens: state.config.maxTokens,
+            apiKeyHint: undefined,
+          }
+        : undefined,
       environment: envSnapshot,
       agentTraces: [] as { agentId?: string; event: string; data?: any; timestamp: string }[],
     }
@@ -175,7 +182,12 @@ export function saveChatSession(state: ChatState) {
       for (const [id, inst] of agentManager.agents) {
         const recent = (inst.log || []).slice(-10)
         for (const l of recent) {
-          traces.push({ agentId: id, event: "agent:log", data: { level: l.level, text: l.text, stream: l.stream }, timestamp: new Date(l.timestamp).toISOString() })
+          traces.push({
+            agentId: id,
+            event: "agent:log",
+            data: { level: l.level, text: l.text, stream: l.stream },
+            timestamp: new Date(l.timestamp).toISOString(),
+          })
         }
       }
       record.agentTraces = traces
@@ -188,7 +200,11 @@ export function saveChatSession(state: ChatState) {
   }
 }
 
-export function loadChatStateFromSession(sessionId: string, record: import("../memory/sessionStore").SessionRecord, agentType?: string): ChatState {
+export function loadChatStateFromSession(
+  sessionId: string,
+  record: import("../memory/sessionStore").SessionRecord,
+  agentType?: string,
+): ChatState {
   const history = record.messages.filter((m) => m.role === "user").map((m) => m.content)
   return {
     messages: record.messages.map((m) => ({
@@ -261,5 +277,3 @@ export function rewindToCheckpoint(state: ChatState, index: number): boolean {
   state.dirty = true
   return true
 }
-
-

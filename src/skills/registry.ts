@@ -126,13 +126,13 @@ export class SkillRegistry {
         const key = match[1]
         const value = match[2]
         if (!key || !value) continue
-        
+
         if (key === "tags" || key === "dependencies") {
           // Parse array: [item1, item2] or item1, item2
           const cleaned = value.replace(/^\[|\]$/g, "")
           metadata[key] = cleaned.split(",").map((s) => s.trim())
         } else {
-          (metadata as any)[key] = value.trim()
+          ;(metadata as any)[key] = value.trim()
         }
       }
     }
@@ -162,9 +162,7 @@ export class SkillRegistry {
     const entries = this.getManifest()
     if (entries.length === 0) return ""
 
-    return entries
-      .map((skill) => `- **${skill.name}** — ${skill.description} (${skill.path}/SKILL.md)`)
-      .join("\n")
+    return entries.map((skill) => `- **${skill.name}** — ${skill.description} (${skill.path}/SKILL.md)`).join("\n")
   }
 
   async injectSkill(name: string, ctx: SkillContext): Promise<string | null> {

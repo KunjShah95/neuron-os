@@ -123,12 +123,10 @@ export class AgentRuntime {
       return "No relevant memories found."
     }
 
-    return results
-      .map((r) => `**[${r.source}]** ${r.timestamp}\n\n${r.content}`)
-      .join("\n\n---\n\n")
+    return results.map((r) => `**[${r.source}]** ${r.timestamp}\n\n${r.content}`).join("\n\n---\n\n")
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   setAllowedTools(_tools: string[]): void {
     // TODO: implement tool filtering based on allowed list
   }
@@ -176,7 +174,8 @@ export class AgentRuntime {
     const type = this.context.agentType || "aegis"
 
     const instructions: Record<string, string> = {
-      build: "You are a build agent. Focus on implementing features, fixing bugs, and writing code. Use tools to read, write, and execute.",
+      build:
+        "You are a build agent. Focus on implementing features, fixing bugs, and writing code. Use tools to read, write, and execute.",
       plan: "You are a planning agent. Analyze requirements and create implementation plans. Use read-only tools to explore the codebase.",
       read: "You are a read agent. Quickly find and retrieve file contents. Use grep and glob to locate relevant code.",
       write: "You are a write agent. Create and modify files based on specifications.",
@@ -199,10 +198,18 @@ export class AgentRuntime {
   }
 }
 
-export function createAgentRuntime(agentId: string, agentType?: string, cwd?: string, memorySystem?: MemorySystem): AgentRuntime {
-  return new AgentRuntime({
-    agentId,
-    agentType,
-    cwd: cwd || process.cwd(),
-  }, memorySystem)
+export function createAgentRuntime(
+  agentId: string,
+  agentType?: string,
+  cwd?: string,
+  memorySystem?: MemorySystem,
+): AgentRuntime {
+  return new AgentRuntime(
+    {
+      agentId,
+      agentType,
+      cwd: cwd || process.cwd(),
+    },
+    memorySystem,
+  )
 }

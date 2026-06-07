@@ -9,13 +9,26 @@
  * Export surface for the evolution system.
  */
 
-export { distill, clusterBySequence, loadRecentEpisodes, DISTILLER_CRON_NAME, DISTILLER_CRON_SCHEDULE, DISTILLER_CRON_GOAL } from "./distiller"
+export {
+  distill,
+  clusterBySequence,
+  loadRecentEpisodes,
+  DISTILLER_CRON_NAME,
+  DISTILLER_CRON_SCHEDULE,
+  DISTILLER_CRON_GOAL,
+} from "./distiller"
 export type { DistillResult } from "./distiller"
 
 export { gate } from "./quality-gate"
 export type { QualityGateDecision } from "./types"
 
-export { recordPostMortem, loadPostMortems, generatePatchFromFailures, applyPatch, isSelfImprovementEnabled } from "./self-improvement"
+export {
+  recordPostMortem,
+  loadPostMortems,
+  generatePatchFromFailures,
+  applyPatch,
+  isSelfImprovementEnabled,
+} from "./self-improvement"
 
 export { retireSkill, retireUnderperformers, checkRetirementEligibility, cleanArchive } from "./retirement"
 export type { RetirementCheck } from "./retirement"

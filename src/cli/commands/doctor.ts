@@ -63,12 +63,18 @@ async function handleDoctor(opts: { json?: boolean; verbose?: boolean }) {
 
   // ── Summary ───────────────────────────────────────────────────────
   if (opts.json) {
-    console.log(JSON.stringify({
-      timestamp: new Date().toISOString(),
-      version: await getVersionString(),
-      checks: results,
-      summary: summarizeResults(results),
-    }, null, 2))
+    console.log(
+      JSON.stringify(
+        {
+          timestamp: new Date().toISOString(),
+          version: await getVersionString(),
+          checks: results,
+          summary: summarizeResults(results),
+        },
+        null,
+        2,
+      ),
+    )
     return
   }
 
@@ -80,7 +86,8 @@ async function handleDoctor(opts: { json?: boolean; verbose?: boolean }) {
 
   for (const [name, check] of Object.entries(results)) {
     const label = name.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())
-    const icon = check.status === "pass" ? theme.success("✓") : check.status === "warn" ? theme.warn("!") : theme.error("✗")
+    const icon =
+      check.status === "pass" ? theme.success("✓") : check.status === "warn" ? theme.warn("!") : theme.error("✗")
     const color = check.status === "pass" ? theme.dim : check.status === "warn" ? theme.warn : theme.error
     console.log(`  ${icon} ${color(label.padEnd(22))} ${check.message}`)
     if (opts.verbose && check.detail) {
@@ -156,7 +163,11 @@ function checkEnvironment(): CheckResult {
   }
 
   if (issues.length === 0 && warnings.length === 0) {
-    return { status: "pass", message: `${process.platform} ${process.arch}`, detail: `PID: ${process.pid}, Uptime: ${Math.floor(process.uptime())}s` }
+    return {
+      status: "pass",
+      message: `${process.platform} ${process.arch}`,
+      detail: `PID: ${process.pid}, Uptime: ${Math.floor(process.uptime())}s`,
+    }
   }
   const msg = [...issues, ...warnings].join("; ")
   return { status: warnings.length > 0 ? "warn" : "fail", message: msg }
@@ -178,9 +189,17 @@ function checkDataDirectories(): CheckResult {
 
   const missing = results.filter((r) => !r.exists)
   if (missing.length > 0) {
-    return { status: "warn", message: `${results.length - missing.length}/${results.length} exist`, detail: `Missing: ${missing.map((m) => m.name).join(", ")}` }
+    return {
+      status: "warn",
+      message: `${results.length - missing.length}/${results.length} exist`,
+      detail: `Missing: ${missing.map((m) => m.name).join(", ")}`,
+    }
   }
-  return { status: "pass", message: `All ${results.length} directories OK`, detail: results.map((r) => `${r.name}`).join(", ") }
+  return {
+    status: "pass",
+    message: `All ${results.length} directories OK`,
+    detail: results.map((r) => `${r.name}`).join(", "),
+  }
 }
 
 async function checkVault(): Promise<CheckResult> {
@@ -202,7 +221,11 @@ async function checkSessions(): Promise<CheckResult> {
   try {
     const { sessionStore } = await import("../../memory/session-persistence")
     const stats = sessionStore.getStats()
-    return { status: "pass", message: `${stats.totalSessions} session(s), ${stats.totalMessages} message(s)`, detail: `${stats.activeSessions} active` }
+    return {
+      status: "pass",
+      message: `${stats.totalSessions} session(s), ${stats.totalMessages} message(s)`,
+      detail: `${stats.activeSessions} active`,
+    }
   } catch (err: any) {
     return { status: "fail", message: "Session store unavailable", detail: err.message }
   }
@@ -212,7 +235,11 @@ async function checkAudit(): Promise<CheckResult> {
   try {
     const { auditStore } = await import("../../audit/store")
     const stats = auditStore.getStats()
-    return { status: "pass", message: `${stats.totalEntries} entries, ${stats.totalSessions} session(s)`, detail: `Types: ${Object.keys(stats.byType).length}` }
+    return {
+      status: "pass",
+      message: `${stats.totalEntries} entries, ${stats.totalSessions} session(s)`,
+      detail: `Types: ${Object.keys(stats.byType).length}`,
+    }
   } catch (err: any) {
     return { status: "fail", message: "Audit store unavailable", detail: err.message }
   }
@@ -222,7 +249,11 @@ async function checkExperience(): Promise<CheckResult> {
   try {
     const { experienceStore } = await import("../../experience/store")
     const stats = experienceStore.getStats()
-    return { status: "pass", message: `${stats.totalExperiences} experience(s), ${stats.avgReward.toFixed(2)} avg reward`, detail: `${stats.successCount} success, ${stats.failureCount} failed` }
+    return {
+      status: "pass",
+      message: `${stats.totalExperiences} experience(s), ${stats.avgReward.toFixed(2)} avg reward`,
+      detail: `${stats.successCount} success, ${stats.failureCount} failed`,
+    }
   } catch (err: any) {
     return { status: "fail", message: "Experience store unavailable", detail: err.message }
   }
@@ -233,10 +264,18 @@ async function checkMCPServers(): Promise<CheckResult> {
     const { getMCPClients } = await import("../../mcp/client")
     const clients = getMCPClients()
     if (clients.length === 0) {
-      return { status: "pass", message: "No MCP servers configured", detail: "Optional — configure in aegis.config.json" }
+      return {
+        status: "pass",
+        message: "No MCP servers configured",
+        detail: "Optional — configure in aegis.config.json",
+      }
     }
     const connected = clients.filter((c) => c.enabled !== false).length
-    return { status: "pass", message: `${connected} MCP server(s) configured`, detail: clients.map((c) => c.name).join(", ") }
+    return {
+      status: "pass",
+      message: `${connected} MCP server(s) configured`,
+      detail: clients.map((c) => c.name).join(", "),
+    }
   } catch {
     return { status: "pass", message: "MCP not configured", detail: "Optional feature" }
   }

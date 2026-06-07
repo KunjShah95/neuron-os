@@ -15,34 +15,36 @@ export interface ProviderConfig {
 
 function loadAIConfig(): AIConfig {
   const cfg = loadConfig()
-  const provider = (process.env.AEGIS_AI_PROVIDER
-    || process.env.AEGIS_DEFAULT_PROVIDER
-    || process.env.DEFAULT_AI_PROVIDER
-    || process.env.AI_PROVIDER
-    || cfg.provider
-    || "anthropic") as AIProviderType
-  const model = process.env.AEGIS_AI_MODEL
-    || process.env.AEGIS_DEFAULT_MODEL
-    || process.env.DEFAULT_AI_MODEL
-    || process.env.AI_MODEL
-    || cfg.model
-    || "claude-sonnet-4-20250514"
-  const apiKey = process.env.AEGIS_AI_API_KEY
-    || process.env.ANTHROPIC_API_KEY
-    || process.env.OPENAI_API_KEY
-    || process.env.OPENROUTER_API_KEY
-    || process.env.GOOGLE_GENERATIVE_AI_API_KEY
-    || process.env.GROQ_API_KEY
-    || process.env.MISTRAL_API_KEY
-    || process.env.DEEPSEEK_API_KEY
-    || cfg.apiKey
+  const provider = (process.env.AEGIS_AI_PROVIDER ||
+    process.env.AEGIS_DEFAULT_PROVIDER ||
+    process.env.DEFAULT_AI_PROVIDER ||
+    process.env.AI_PROVIDER ||
+    cfg.provider ||
+    "anthropic") as AIProviderType
+  const model =
+    process.env.AEGIS_AI_MODEL ||
+    process.env.AEGIS_DEFAULT_MODEL ||
+    process.env.DEFAULT_AI_MODEL ||
+    process.env.AI_MODEL ||
+    cfg.model ||
+    "claude-sonnet-4-20250514"
+  const apiKey =
+    process.env.AEGIS_AI_API_KEY ||
+    process.env.ANTHROPIC_API_KEY ||
+    process.env.OPENAI_API_KEY ||
+    process.env.OPENROUTER_API_KEY ||
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+    process.env.GROQ_API_KEY ||
+    process.env.MISTRAL_API_KEY ||
+    process.env.DEEPSEEK_API_KEY ||
+    cfg.apiKey
   return {
     provider,
     model,
     apiKey,
     baseUrl: process.env.AI_BASE_URL || cfg.baseUrl,
-    temperature: process.env.AI_TEMPERATURE ? Number(process.env.AI_TEMPERATURE) : cfg.temperature ?? 0.7,
-    maxTokens: process.env.AI_MAX_TOKENS ? Number(process.env.AI_MAX_TOKENS) : cfg.maxTokens ?? 8192,
+    temperature: process.env.AI_TEMPERATURE ? Number(process.env.AI_TEMPERATURE) : (cfg.temperature ?? 0.7),
+    maxTokens: process.env.AI_MAX_TOKENS ? Number(process.env.AI_MAX_TOKENS) : (cfg.maxTokens ?? 8192),
     fallbacks: parseFallbacksFromEnv(),
   }
 }
@@ -72,7 +74,10 @@ export async function streamResponse(
   signal?: AbortSignal,
 ): Promise<void> {
   if (!engine) {
-    setStreamingError(state, "No AI engine configured. Run `aegis setup` or set the API key environment variable for your provider.")
+    setStreamingError(
+      state,
+      "No AI engine configured. Run `aegis setup` or set the API key environment variable for your provider.",
+    )
     return
   }
 

@@ -21,12 +21,7 @@ export class WhisperLocalProvider implements STTProvider {
   }
 
   private get modelDir(): string {
-    const dir = join(
-      process.env.HOME || process.env.USERPROFILE || "~",
-      ".aegis",
-      "models",
-      "whisper",
-    )
+    const dir = join(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "models", "whisper")
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
     return dir
   }
@@ -35,9 +30,7 @@ export class WhisperLocalProvider implements STTProvider {
     try {
       const { spawnSync } = await import("node:child_process")
       const result = spawnSync(this.binaryPath, ["--help"], { timeout: 5000 })
-      return result.status === 0
-        ? { ok: true }
-        : { ok: false, reason: "whisper.cpp binary not found on PATH" }
+      return result.status === 0 ? { ok: true } : { ok: false, reason: "whisper.cpp binary not found on PATH" }
     } catch {
       return { ok: false, reason: "whisper.cpp binary not available" }
     }
@@ -61,16 +54,14 @@ export class WhisperLocalProvider implements STTProvider {
       const modelPath = pathJoin(this.modelDir, `ggml-${model}.bin`)
       const lang = opts.language ?? "en"
 
-      const result = spawnSync(this.binaryPath, [
-        "-f", tmpFile,
-        "-m", modelPath,
-        "-l", lang,
-        "-otxt",
-        "--no-prints",
-      ], { timeout: 30000 })
+      const result = spawnSync(this.binaryPath, ["-f", tmpFile, "-m", modelPath, "-l", lang, "-otxt", "--no-prints"], {
+        timeout: 30000,
+      })
 
       // Cleanup temp file
-      try { unlinkSync(tmpFile) } catch {}
+      try {
+        unlinkSync(tmpFile)
+      } catch {}
 
       if (result.status !== 0) {
         return { text: "", duration_ms: Date.now() - start, confidence: 0 }

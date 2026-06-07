@@ -63,7 +63,7 @@ export function createEmailAdapter(config: EmailConfig): PlatformAdapter {
 
       await transporter.sendMail({
         from: config.from,
-        to: opts.channelId,  // channelId holds the recipient email address
+        to: opts.channelId, // channelId holds the recipient email address
         subject: "Neuron OS Notification",
         text: opts.text.replace(/\*([^*]+)\*/g, "$1"), // strip markdown bold
         replyTo: opts.replyToId,

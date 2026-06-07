@@ -3,6 +3,7 @@ import Hero from "./sections/Hero"
 import StatsBar from "./sections/StatsBar"
 import FeaturesBento from "./sections/FeaturesBento"
 import TerminalDemo from "./sections/TerminalDemo"
+import ComparisonSection from "./sections/ComparisonSection"
 import Timeline from "./sections/Timeline"
 import Recipes from "./sections/Recipes"
 import Docs from "./sections/Docs"
@@ -22,6 +23,7 @@ export default function App() {
       <StatsBar />
       <FeaturesBento />
       <TerminalDemo />
+      <ComparisonSection />
       <Timeline />
       <Recipes />
       <Docs />

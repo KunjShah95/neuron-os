@@ -17,9 +17,27 @@ interface CommandEntry {
 }
 
 const NON_MODE_COMMANDS: CommandEntry[] = [
-  { name: "ask", description: "Ask about the codebase", needsArg: true, argPrompt: "Your question", argPlaceholder: "How does the config system work?" },
-  { name: "plan", description: "Generate implementation plan", needsArg: true, argPrompt: "Your goal", argPlaceholder: "Add dark mode to the dashboard" },
-  { name: "agent-run", description: "Run approval-based agent orchestration", needsArg: true, argPrompt: "Goal for agent", argPlaceholder: "Refactor the auth module" },
+  {
+    name: "ask",
+    description: "Ask about the codebase",
+    needsArg: true,
+    argPrompt: "Your question",
+    argPlaceholder: "How does the config system work?",
+  },
+  {
+    name: "plan",
+    description: "Generate implementation plan",
+    needsArg: true,
+    argPrompt: "Your goal",
+    argPlaceholder: "Add dark mode to the dashboard",
+  },
+  {
+    name: "agent-run",
+    description: "Run approval-based agent orchestration",
+    needsArg: true,
+    argPrompt: "Goal for agent",
+    argPlaceholder: "Refactor the auth module",
+  },
   { name: "telegram", description: "Start Telegram bot", longRunning: true },
 ]
 
@@ -152,7 +170,7 @@ export async function runWakeup(program?: Command): Promise<void> {
   while (true) {
     const allCommands = getCommands()
     const options = [
-      ...allCommands.map(c => ({
+      ...allCommands.map((c) => ({
         value: c.name,
         label: c.name.padEnd(14),
         hint: c.description + (c.longRunning ? " (Ctrl+C to return)" : ""),
@@ -168,7 +186,7 @@ export async function runWakeup(program?: Command): Promise<void> {
 
     if (isCancel(choice) || choice === "__exit__") break
 
-    const entry = allCommands.find(c => c.name === choice)
+    const entry = allCommands.find((c) => c.name === choice)
     if (!entry) continue
 
     const cmdArgs: string[] = [entry.name]

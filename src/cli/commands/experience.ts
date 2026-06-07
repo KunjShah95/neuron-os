@@ -8,10 +8,7 @@ export function registerExperience(program: Command) {
     .alias("exp")
     .description("Experience replay buffer — track agent trajectories for skill learning")
 
-  exp
-    .command("stats")
-    .description("Show experience store statistics")
-    .action(handleExpStats)
+  exp.command("stats").description("Show experience store statistics").action(handleExpStats)
 
   exp
     .command("list")
@@ -83,7 +80,8 @@ async function handleExpList(opts: { limit?: string; project?: string }) {
 
   console.log(theme.heading(`\n  📋 Recent Experiences (${experiences.length})\n`))
   for (const e of experiences) {
-    const icon = e.outcome === "success" ? theme.success("✓") : e.outcome === "failed" ? theme.error("✗") : theme.warn("~")
+    const icon =
+      e.outcome === "success" ? theme.success("✓") : e.outcome === "failed" ? theme.error("✗") : theme.warn("~")
     console.log(`  ${icon} ${e.goal.slice(0, 60)}`)
     console.log(`     ${theme.dim(`${e.startedAt.slice(0, 10)} · ${e.actionCount} actions · reward ${e.reward}`)}`)
   }
@@ -172,13 +170,20 @@ async function handleExpRetry(opts: { maxRetries?: string; strategy?: string; dr
     console.log(theme.heading("  Retries Created:\n"))
     for (const r of attempted) {
       console.log(`  ${theme.warn("↻")} ${r.goal.slice(0, 60)}`)
-      console.log(`     ${theme.dim(`${r.originalExperienceId.slice(0, 8)} → ${r.newExperienceId?.slice(0, 8)} [${r.strategy}]`)}`)
+      console.log(
+        `     ${theme.dim(`${r.originalExperienceId.slice(0, 8)} → ${r.newExperienceId?.slice(0, 8)} [${r.strategy}]`)}`,
+      )
       console.log()
     }
   }
 }
 
-async function handleExpAutoExtract(opts: { minConfidence?: string; minReps?: string; autoApply?: boolean; ratchet?: boolean }) {
+async function handleExpAutoExtract(opts: {
+  minConfidence?: string
+  minReps?: string
+  autoApply?: boolean
+  ratchet?: boolean
+}) {
   await showBanner()
   const { ExperienceReplay } = await import("../../experience/replay")
   const replay = new ExperienceReplay()
@@ -202,7 +207,9 @@ async function handleExpAutoExtract(opts: { minConfidence?: string; minReps?: st
     return
   }
 
-  console.log(`  Found ${theme.bold(String(extractions.length))} skill candidates (≥${minConfidence}% confidence, ≥${minReps} reps)\n`)
+  console.log(
+    `  Found ${theme.bold(String(extractions.length))} skill candidates (≥${minConfidence}% confidence, ≥${minReps} reps)\n`,
+  )
 
   for (const s of extractions) {
     const bar = "█".repeat(Math.round(s.confidence / 10)) + "░".repeat(10 - Math.round(s.confidence / 10))

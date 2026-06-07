@@ -17,11 +17,21 @@ function createMockAdapter(name: string): PlatformAdapter & { messages: string[]
   const state = { messages: [] as string[], started: false, stopped: false }
   return {
     name,
-    get messages() { return state.messages },
-    get started() { return state.started },
-    get stopped() { return state.stopped },
-    async start() { state.started = true },
-    async stop() { state.stopped = true },
+    get messages() {
+      return state.messages
+    },
+    get started() {
+      return state.started
+    },
+    get stopped() {
+      return state.stopped
+    },
+    async start() {
+      state.started = true
+    },
+    async stop() {
+      state.stopped = true
+    },
     async send(opts: { channelId: string; text: string; replyToId?: string }) {
       state.messages.push(`[${name}:${opts.channelId}] ${opts.text}`)
     },
@@ -261,5 +271,4 @@ describe("MultiPlatformGateway", () => {
     }
     expect(msg.replyToId).toBe("parent-msg")
   })
-
 })

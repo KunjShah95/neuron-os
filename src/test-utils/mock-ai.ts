@@ -112,10 +112,7 @@ export async function createTestEngine(
   const memory = new MemorySystem(dir)
   await memory.initialize()
 
-  const runtime = new AgentRuntime(
-    { agentId: "engine-test", agentType: "build", cwd: dir },
-    memory,
-  )
+  const runtime = new AgentRuntime({ agentId: "engine-test", agentType: "build", cwd: dir }, memory)
 
   const ai = createMockAI(aiResponse)
   const engine = new AgentEngine(runtime, ai, engineConfig)

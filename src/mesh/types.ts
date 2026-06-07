@@ -14,22 +14,17 @@ import type { Outcome } from "../experience/store"
 // ── Agent Roles ───────────────────────────────────────────────────────
 
 export type AgentRole =
-  | "researcher"    // Explores codebase, gathers context
-  | "implementer"   // Makes changes to the codebase
-  | "reviewer"      // Reviews changes for quality
-  | "tester"        // Verifies changes work
-  | "architect"     // Designs the approach
-  | "debugger"      // Fixes specific issues
-  | "coordinator"   // Orchestrates other agents
+  | "researcher" // Explores codebase, gathers context
+  | "implementer" // Makes changes to the codebase
+  | "reviewer" // Reviews changes for quality
+  | "tester" // Verifies changes work
+  | "architect" // Designs the approach
+  | "debugger" // Fixes specific issues
+  | "coordinator" // Orchestrates other agents
 
 // ── Topologies ────────────────────────────────────────────────────────
 
-export type MeshTopology =
-  | "sequential"
-  | "fan-out"
-  | "debate"
-  | "ensemble"
-  | "supervisor"
+export type MeshTopology = "sequential" | "fan-out" | "debate" | "ensemble" | "supervisor"
 
 // ── Agent Node ────────────────────────────────────────────────────────
 
@@ -37,10 +32,10 @@ export interface MeshAgent {
   id: string
   role: AgentRole
   goal: string
-  model?: string           // Specific model for this agent
-  provider?: string        // Specific provider for this agent
-  dependsOn: string[]      // IDs of agents that must complete first
-  timeout?: number         // Max execution time in ms
+  model?: string // Specific model for this agent
+  provider?: string // Specific provider for this agent
+  dependsOn: string[] // IDs of agents that must complete first
+  timeout?: number // Max execution time in ms
   config?: Record<string, unknown>
 }
 
@@ -83,12 +78,7 @@ export interface SupervisorConfig {
   reviewRequired: boolean
 }
 
-export type MeshConfig =
-  | SequentialConfig
-  | FanOutConfig
-  | DebateConfig
-  | EnsembleConfig
-  | SupervisorConfig
+export type MeshConfig = SequentialConfig | FanOutConfig | DebateConfig | EnsembleConfig | SupervisorConfig
 
 // ── Results ───────────────────────────────────────────────────────────
 
@@ -118,16 +108,16 @@ export interface MeshRunResult {
 // ── Evaluator ─────────────────────────────────────────────────────────
 
 export type EvaluationMetric =
-  | "tests-pass"      // Test suite passed/failed
-  | "lint-clean"      // Linter produced no errors
-  | "typecheck"       // TypeScript compilation passed
-  | "build"           // Build succeeded
-  | "custom-script"   // Custom evaluation script
-  | "manual"          // Human review
+  | "tests-pass" // Test suite passed/failed
+  | "lint-clean" // Linter produced no errors
+  | "typecheck" // TypeScript compilation passed
+  | "build" // Build succeeded
+  | "custom-script" // Custom evaluation script
+  | "manual" // Human review
 
 export interface EvaluationCriteria {
   metric: EvaluationMetric
-  script?: string      // For custom-script metric
-  threshold?: number   // Success threshold (e.g., 80% test pass)
+  script?: string // For custom-script metric
+  threshold?: number // Success threshold (e.g., 80% test pass)
   maxRetries?: number
 }

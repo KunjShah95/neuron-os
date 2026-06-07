@@ -10,19 +10,13 @@ import { renderAgentList } from "./tui/components/agent-list"
 import { renderActivityLog } from "./tui/components/activity-log"
 import { renderStatusBar } from "./tui/components/status-bar"
 import { renderCommandBar } from "./tui/components/command-bar"
-import {
-  createInitialState,
-  addLogEntry,
-  updateMetrics,
-  setAgentStatus,
-} from "./tui/store"
+import { createInitialState, addLogEntry, updateMetrics, setAgentStatus } from "./tui/store"
 
 function stripAnsi(s: string): string {
   return s.replace(/\u001b\[[0-9;]*m/g, "")
 }
 
 describe("Dashboard Tests", () => {
-
   // ══════════════════════════════════════════════════════════════════
   //  1. Layout
   // ══════════════════════════════════════════════════════════════════
@@ -40,7 +34,7 @@ describe("Dashboard Tests", () => {
     expect(layout.log.height).toBe(contentHeight)
 
     const expectedAgentsWidth = Math.min(30, Math.max(10, Math.floor(100 * 0.25)))
-    const expectedA2uiWidth = Math.min(30, Math.max(10, Math.floor(100 * 0.20)))
+    const expectedA2uiWidth = Math.min(30, Math.max(10, Math.floor(100 * 0.2)))
     expect(layout.agents.width).toBe(expectedAgentsWidth)
     expect(layout.a2ui.width).toBe(expectedA2uiWidth)
     expect(layout.log.width).toBe(100 - expectedAgentsWidth - 1 - expectedA2uiWidth - 1)
@@ -82,12 +76,18 @@ describe("Dashboard Tests", () => {
     // Populated agent list
     const populatedState = createInitialState()
     populatedState.agents.set("agent-1", {
-      id: "agent-1", name: "test-agent", status: "running",
-      lastActivity: new Date().toLocaleTimeString(), pid: 1234,
+      id: "agent-1",
+      name: "test-agent",
+      status: "running",
+      lastActivity: new Date().toLocaleTimeString(),
+      pid: 1234,
     })
     populatedState.agents.set("agent-2", {
-      id: "agent-2", name: "idle-agent", status: "idle",
-      lastActivity: new Date().toLocaleTimeString(), pid: 5678,
+      id: "agent-2",
+      name: "idle-agent",
+      status: "idle",
+      lastActivity: new Date().toLocaleTimeString(),
+      pid: 5678,
     })
 
     const populatedLines = renderAgentList(populatedState, agentRegion)

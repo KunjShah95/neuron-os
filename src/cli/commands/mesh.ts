@@ -3,9 +3,7 @@ import { theme } from "../theme"
 import { showBanner } from "../banner"
 
 export function registerMesh(program: Command) {
-  const mesh = program
-    .command("mesh")
-    .description("Multi-agent mesh — coordinate agent swarms")
+  const mesh = program.command("mesh").description("Multi-agent mesh — coordinate agent swarms")
 
   mesh
     .command("run")
@@ -24,18 +22,16 @@ export function registerMesh(program: Command) {
     .argument("<script>", "Evaluation script to run")
     .action(handleMeshEval)
 
-  mesh
-    .command("cancel <runId>")
-    .description("Cancel a running mesh")
-    .action(handleMeshCancel)
+  mesh.command("cancel <runId>").description("Cancel a running mesh").action(handleMeshCancel)
 
-  mesh
-    .command("list")
-    .description("List running meshes")
-    .action(handleMeshList)
+  mesh.command("list").description("List running meshes").action(handleMeshList)
 }
 
-async function handleMeshRun(topology: string, goal: string, opts: { agents?: string; model?: string; timeout?: string }) {
+async function handleMeshRun(
+  topology: string,
+  goal: string,
+  opts: { agents?: string; model?: string; timeout?: string },
+) {
   await showBanner()
   const count = Math.min(10, Math.max(1, parseInt(opts.agents ?? "3", 10) || 3))
 
@@ -116,7 +112,9 @@ async function handleMeshRun(topology: string, goal: string, opts: { agents?: st
     const result = await orchestrator.run(config)
 
     console.log(theme.success("  ✅ Mesh run completed\n"))
-    console.log(`  Outcome: ${result.overallOutcome === "success" ? theme.success("success") : result.overallOutcome === "partial" ? theme.warn("partial") : theme.error("failed")}`)
+    console.log(
+      `  Outcome: ${result.overallOutcome === "success" ? theme.success("success") : result.overallOutcome === "partial" ? theme.warn("partial") : theme.error("failed")}`,
+    )
     console.log(`  Agents:  ${result.agentResults.length}`)
     console.log(`  Time:    ${(result.totalDurationMs / 1000).toFixed(1)}s`)
     console.log()
@@ -141,7 +139,9 @@ async function handleMeshEval(runId: string, script: string) {
     const result = await evaluator.quickEval(runId, "mesh evaluation", script)
 
     console.log(theme.heading("  Evaluation Results\n"))
-    console.log(`  Score:  ${result.overallPass ? theme.success("PASS") : theme.error("FAIL")} (${Math.round(result.overallScore * 100)}%)`)
+    console.log(
+      `  Score:  ${result.overallPass ? theme.success("PASS") : theme.error("FAIL")} (${Math.round(result.overallScore * 100)}%)`,
+    )
     console.log(`  ${result.summary}`)
     console.log()
 

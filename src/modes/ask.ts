@@ -25,7 +25,9 @@ function resolveApiKey(provider: string): string | undefined {
 }
 
 function buildAIConfig(): AIConfig {
-  const provider = (process.env.AEGIS_AI_PROVIDER || process.env.AEGIS_DEFAULT_PROVIDER || "anthropic") as AIProviderType
+  const provider = (process.env.AEGIS_AI_PROVIDER ||
+    process.env.AEGIS_DEFAULT_PROVIDER ||
+    "anthropic") as AIProviderType
   const model = process.env.AEGIS_AI_MODEL || process.env.AEGIS_DEFAULT_MODEL || getDefaultModel(provider)
   return {
     provider,

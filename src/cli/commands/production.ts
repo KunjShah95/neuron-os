@@ -36,13 +36,9 @@ export function registerProduction(program: Command): void {
     .description("Production hardening features: RBAC, vault, SLO, traces, background agents")
 
   // ── RBAC ──────────────────────────────────────────────────────────
-  const rbacCmd = production
-    .command("rbac")
-    .description("Role-based access control management")
+  const rbacCmd = production.command("rbac").description("Role-based access control management")
 
-  const userCmd = rbacCmd
-    .command("user")
-    .description("Manage RBAC users")
+  const userCmd = rbacCmd.command("user").description("Manage RBAC users")
 
   userCmd
     .command("create")
@@ -50,9 +46,7 @@ export function registerProduction(program: Command): void {
     .argument("<name>", "User display name")
     .option("-r, --roles <roles>", "Comma-separated initial roles")
     .action(async (name: string, opts) => {
-      const roles = opts.roles
-        ? (opts.roles.split(",").map((s: string) => s.trim()) as RoleName[])
-        : []
+      const roles = opts.roles ? (opts.roles.split(",").map((s: string) => s.trim()) as RoleName[]) : []
       const user = rbac.createUser(name, roles)
       console.log(`\n  User created: ${user.id} (${user.name})\n`)
     })
@@ -82,9 +76,7 @@ export function registerProduction(program: Command): void {
       }
     })
 
-  const keyCmd = rbacCmd
-    .command("key")
-    .description("Manage API keys")
+  const keyCmd = rbacCmd.command("key").description("Manage API keys")
 
   keyCmd
     .command("generate")
@@ -154,9 +146,7 @@ export function registerProduction(program: Command): void {
     })
 
   // ── Vault ─────────────────────────────────────────────────────────
-  const vaultCmd = production
-    .command("vault")
-    .description("Encrypted credential vault management")
+  const vaultCmd = production.command("vault").description("Encrypted credential vault management")
 
   vaultCmd
     .command("init")
@@ -263,7 +253,9 @@ export function registerProduction(program: Command): void {
       try {
         const loader = new VaultEnvLoader(vault)
         loader.loadAsEnv([entryName])
-        console.log(`\n  Loaded "${entryName}" as AEGIS_VAULT_${entryName.toUpperCase().replace(/[^a-zA-Z0-9_]/g, "_")}\n`)
+        console.log(
+          `\n  Loaded "${entryName}" as AEGIS_VAULT_${entryName.toUpperCase().replace(/[^a-zA-Z0-9_]/g, "_")}\n`,
+        )
       } catch (err: any) {
         console.log(`\n  ❌ ${err.message}\n`)
       }
@@ -278,20 +270,25 @@ export function registerProduction(program: Command): void {
       console.log(`  Locked:     ${stats.locked}`)
       console.log(`  Entries:    ${stats.totalEntries}`)
       console.log(`  Expired:    ${stats.expired}`)
-      console.log(`  Types:      ${Object.entries(stats.types).map(([k, v]) => `${k}: ${v}`).join(", ")}\n`)
+      console.log(
+        `  Types:      ${Object.entries(stats.types)
+          .map(([k, v]) => `${k}: ${v}`)
+          .join(", ")}\n`,
+      )
     })
 
   // ── SLO ───────────────────────────────────────────────────────────
-  const sloCmd = production
-    .command("slo")
-    .description("Service Level Objective management")
+  const sloCmd = production.command("slo").description("Service Level Objective management")
 
   sloCmd
     .command("register")
     .description("Register an SLO")
     .argument("<name>", "SLO name")
     .requiredOption("--target <n>", "Target value (e.g. 0.999 for 99.9%)", parseFloat)
-    .requiredOption("--metric <m>", "Metric type: uptime, success_rate, error_rate, latency_p50, latency_p95, latency_p99")
+    .requiredOption(
+      "--metric <m>",
+      "Metric type: uptime, success_rate, error_rate, latency_p50, latency_p95, latency_p99",
+    )
     .option("--window <days>", "Rolling window in days", "30")
     .option("--desc <text>", "Description")
     .option("--threshold <n>", "Threshold for latency metrics (ms)", parseFloat)
@@ -317,7 +314,9 @@ export function registerProduction(program: Command): void {
         if (result) {
           const icon = result.met ? "✓" : "✗"
           console.log(`\n  ${icon} ${result.name}`)
-          console.log(`     Current: ${(result.current * 100).toFixed(2)}% (target: ${(result.target * 100).toFixed(2)}%)`)
+          console.log(
+            `     Current: ${(result.current * 100).toFixed(2)}% (target: ${(result.target * 100).toFixed(2)}%)`,
+          )
           const burn = slo.getBurnRate(result.name)
           if (burn) console.log(`     Burn rate: ${burn.rate.toFixed(2)}x (time remaining: ${burn.timeRemaining})`)
           console.log(`     Window: ${result.windowDays}d, data points: ${result.history.length}`)
@@ -400,9 +399,7 @@ export function registerProduction(program: Command): void {
     })
 
   // ── Traces ───────────────────────────────────────────────────────
-  const traceCmd = production
-    .command("trace")
-    .description("Trace span querying")
+  const traceCmd = production.command("trace").description("Trace span querying")
 
   traceCmd
     .command("query")
@@ -435,9 +432,7 @@ export function registerProduction(program: Command): void {
     })
 
   // ── Background Agents ────────────────────────────────────────────
-  const bgCmd = production
-    .command("background")
-    .description("Background agent management")
+  const bgCmd = production.command("background").description("Background agent management")
 
   bgCmd
     .command("list")

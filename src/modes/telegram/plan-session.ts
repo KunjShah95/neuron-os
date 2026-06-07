@@ -21,10 +21,7 @@ const UNCHECKED = "⬜"
  * Build the plan message text showing steps with their selection status.
  */
 export function planMessage(session: PlanSession): string {
-  const lines: string[] = [
-    `*📋 Plan: ${session.plan.goal.slice(0, 80)}*`,
-    "",
-  ]
+  const lines: string[] = [`*📋 Plan: ${session.plan.goal.slice(0, 80)}*`, ""]
 
   if (session.plan.researchSummary) {
     lines.push(`*Research:* ${session.plan.researchSummary.slice(0, 200)}`)
@@ -55,10 +52,7 @@ export function planKeyboard(session: PlanSession) {
     rows.push([Markup.button.callback(`${checked} Step ${i + 1}`, `plan_toggle:${step.id}`)])
   }
 
-  rows.push([
-    Markup.button.callback("✅ All", "plan_all"),
-    Markup.button.callback("⬜ None", "plan_none"),
-  ])
+  rows.push([Markup.button.callback("✅ All", "plan_all"), Markup.button.callback("⬜ None", "plan_none")])
 
   rows.push([Markup.button.callback("🚀 Execute Selected", "plan_proceed")])
 

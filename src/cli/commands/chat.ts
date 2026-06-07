@@ -15,7 +15,10 @@ export function registerChat(program: Command) {
     .command("chat")
     .alias("c")
     .description("Start an interactive CLI chat session")
-    .option("-t, --type <type>", "Agent type (build, plan, read, write, test, validate, review, debug, document, refactor, deploy, monitor, explore)")
+    .option(
+      "-t, --type <type>",
+      "Agent type (build, plan, read, write, test, validate, review, debug, document, refactor, deploy, monitor, explore)",
+    )
     .option("--provider <provider>", "AI provider to use")
     .option("--model <model>", "AI model to use")
     .action(handleChat)
@@ -23,35 +26,35 @@ export function registerChat(program: Command) {
 
 function loadAIConfig(overrideProvider?: string, overrideModel?: string): AIConfig {
   const cfg = loadConfig()
-  const provider = (overrideProvider
-    || process.env.AEGIS_AI_PROVIDER
-    || process.env.AEGIS_DEFAULT_PROVIDER
-    || process.env.DEFAULT_AI_PROVIDER
-    || process.env.AI_PROVIDER
-    || cfg.provider
-    || "anthropic") as AIProviderType
-  const model = overrideModel
-    || process.env.AEGIS_AI_MODEL
-    || process.env.AEGIS_DEFAULT_MODEL
-    || process.env.DEFAULT_AI_MODEL
-    || process.env.AI_MODEL
-    || cfg.model
-    || "claude-sonnet-4-20250514"
+  const provider = (overrideProvider ||
+    process.env.AEGIS_AI_PROVIDER ||
+    process.env.AEGIS_DEFAULT_PROVIDER ||
+    process.env.DEFAULT_AI_PROVIDER ||
+    process.env.AI_PROVIDER ||
+    cfg.provider ||
+    "anthropic") as AIProviderType
+  const model =
+    overrideModel ||
+    process.env.AEGIS_AI_MODEL ||
+    process.env.AEGIS_DEFAULT_MODEL ||
+    process.env.DEFAULT_AI_MODEL ||
+    process.env.AI_MODEL ||
+    cfg.model ||
+    "claude-sonnet-4-20250514"
   return {
     provider,
     model,
-    apiKey: process.env.AEGIS_AI_API_KEY
-      || process.env.ANTHROPIC_API_KEY
-      || process.env.OPENAI_API_KEY
-      || process.env.OPENROUTER_API_KEY
-      || process.env.GOOGLE_GENERATIVE_AI_API_KEY
-      || process.env.GROQ_API_KEY
-      || process.env.MISTRAL_API_KEY
-      || process.env.DEEPSEEK_API_KEY
-      || cfg.apiKey,
-    baseUrl: process.env.AEGIS_AI_BASE_URL
-      || process.env.AI_BASE_URL
-      || cfg.baseUrl,
+    apiKey:
+      process.env.AEGIS_AI_API_KEY ||
+      process.env.ANTHROPIC_API_KEY ||
+      process.env.OPENAI_API_KEY ||
+      process.env.OPENROUTER_API_KEY ||
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+      process.env.GROQ_API_KEY ||
+      process.env.MISTRAL_API_KEY ||
+      process.env.DEEPSEEK_API_KEY ||
+      cfg.apiKey,
+    baseUrl: process.env.AEGIS_AI_BASE_URL || process.env.AI_BASE_URL || cfg.baseUrl,
     temperature: cfg.temperature ?? 0.7,
     maxTokens: cfg.maxTokens ?? 8192,
   }
@@ -67,31 +70,39 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
 
   if (opts.type && !isValidAgentType(opts.type)) {
     console.error(theme.error(`\n  Unknown agent type: ${opts.type}`))
-    console.error(theme.muted(`  Available types: build, plan, read, write, test, validate, review, debug, document, refactor, deploy, monitor, explore\n`))
+    console.error(
+      theme.muted(
+        `  Available types: build, plan, read, write, test, validate, review, debug, document, refactor, deploy, monitor, explore\n`,
+      ),
+    )
     return
   }
 
   const agentType = opts.type
   const cfg = loadConfig()
   const chatConfig: ChatConfig = {
-    provider: opts.provider
-      || process.env.AEGIS_AI_PROVIDER
-      || process.env.AEGIS_DEFAULT_PROVIDER
-      || process.env.DEFAULT_AI_PROVIDER
-      || process.env.AI_PROVIDER
-      || cfg.provider
-      || "anthropic",
-    model: opts.model
-      || process.env.AEGIS_AI_MODEL
-      || process.env.AEGIS_DEFAULT_MODEL
-      || process.env.DEFAULT_AI_MODEL
-      || process.env.AI_MODEL
-      || cfg.model
-      || "claude-sonnet-4-20250514",
+    provider:
+      opts.provider ||
+      process.env.AEGIS_AI_PROVIDER ||
+      process.env.AEGIS_DEFAULT_PROVIDER ||
+      process.env.DEFAULT_AI_PROVIDER ||
+      process.env.AI_PROVIDER ||
+      cfg.provider ||
+      "anthropic",
+    model:
+      opts.model ||
+      process.env.AEGIS_AI_MODEL ||
+      process.env.AEGIS_DEFAULT_MODEL ||
+      process.env.DEFAULT_AI_MODEL ||
+      process.env.AI_MODEL ||
+      cfg.model ||
+      "claude-sonnet-4-20250514",
   }
 
   console.log(`  ${theme.info("Chat session started")}`)
-  console.log(`  ${theme.muted(`Agent: ${agentType || "default"} · Provider: ${chatConfig.provider} · Model: ${chatConfig.model}`)}`)
+  console.log(
+    `  ${theme.muted(`Agent: ${agentType || "default"} · Provider: ${chatConfig.provider} · Model: ${chatConfig.model}`)}`,
+  )
   console.log(`  ${theme.muted("Type /help for commands, Ctrl+C to quit")}`)
   console.log()
 
@@ -123,7 +134,9 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
     }
     process.stdin.resume()
     process.stdin.setEncoding("utf-8")
-  } catch { /* best-effort */ }
+  } catch {
+    /* best-effort */
+  }
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -178,7 +191,9 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
               const cfg = loadConfig()
               cfg.provider = parts[1]
               saveConfig(cfg)
-            } catch { /* ignore */ }
+            } catch {
+              /* ignore */
+            }
             console.log(`  ${theme.success(`Provider set to ${parts[1]}`)}`)
           } else {
             console.log(`  ${theme.muted(`Current provider: ${chatConfig.provider}`)}`)
@@ -199,7 +214,9 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
               const cfg = loadConfig()
               cfg.model = parts[1]
               saveConfig(cfg)
-            } catch { /* ignore */ }
+            } catch {
+              /* ignore */
+            }
             console.log(`  ${theme.success(`Model set to ${parts[1]}`)}`)
           } else {
             console.log(`  ${theme.muted(`Current model: ${chatConfig.model}`)}`)

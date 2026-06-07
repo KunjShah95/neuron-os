@@ -10,11 +10,7 @@ import { randomUUID } from "node:crypto"
 import { runAgentOrchestrator } from "../modes/agent-run"
 import { Evaluator } from "../mesh/evaluator"
 import type { EvaluationCriteria } from "../mesh/types"
-import type {
-  BenchTask,
-  BenchTaskResult,
-  BenchRunRecord,
-} from "./types"
+import type { BenchTask, BenchTaskResult, BenchRunRecord } from "./types"
 
 export interface BenchRunnerConfig {
   cwd?: string
@@ -24,10 +20,7 @@ export interface BenchRunnerConfig {
   dryRun?: boolean
 }
 
-export async function runBenchTask(
-  task: BenchTask,
-  config?: BenchRunnerConfig,
-): Promise<BenchTaskResult> {
+export async function runBenchTask(task: BenchTask, config?: BenchRunnerConfig): Promise<BenchTaskResult> {
   const start = Date.now()
   const cwd = config?.cwd ?? process.cwd()
   const log = (msg: string) => config?.onProgress?.(msg)
@@ -71,19 +64,14 @@ export async function runBenchTask(
   }
 }
 
-export async function runBenchSuite(
-  tasks: BenchTask[],
-  config?: BenchRunnerConfig,
-): Promise<BenchRunRecord> {
+export async function runBenchSuite(tasks: BenchTask[], config?: BenchRunnerConfig): Promise<BenchRunRecord> {
   const results: BenchTaskResult[] = []
   for (const task of tasks) {
     results.push(await runBenchTask(task, config))
   }
   const passed = results.filter((r) => r.passed).length
   const total = results.length
-  const avgScore = total
-    ? Math.round((results.reduce((s, r) => s + r.score, 0) / total) * 100) / 100
-    : 0
+  const avgScore = total ? Math.round((results.reduce((s, r) => s + r.score, 0) / total) * 100) / 100 : 0
 
   return {
     runId: `bench-${Date.now().toString(36)}`,

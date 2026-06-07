@@ -70,7 +70,7 @@ export interface WorkerTaskResult {
 export const DEFAULT_DISTRIBUTED_CONFIG: DistributedEvalConfig = {
   shardCount: 4,
   shardStrategy: "round_robin",
-  workerTimeout: 600_000,          // 10 minutes
+  workerTimeout: 600_000, // 10 minutes
   retryFailedShards: true,
   maxRetries: 2,
   gatherTraces: true,
@@ -137,9 +137,7 @@ export class DistributedEvalRunner {
         const retryWorkers = this.pool.getReadyWorkers()
         const retryShards = remaining.map((f) => ({
           shardIndex: f.shardIndex,
-          tests: tests.filter(
-            (t) => f.shardIndex === shards.findIndex((s) => s.tests.includes(t)),
-          ),
+          tests: tests.filter((t) => f.shardIndex === shards.findIndex((s) => s.tests.includes(t))),
         }))
 
         const retryResults = await this.dispatchShards(retryShards, retryWorkers, model)
@@ -176,9 +174,7 @@ export class DistributedEvalRunner {
 
     for (let i = 0; i < shards.length; i++) {
       const shard = shards[i]!
-      const worker = workers.length > 0
-        ? workers[i % workers.length]
-        : null
+      const worker = workers.length > 0 ? workers[i % workers.length] : null
 
       if (!worker) {
         // No workers available — run locally
@@ -333,9 +329,7 @@ export class DistributedEvalRunner {
     const passed = this.results.filter((r) => r.passed).length
     const totalCost = this.results.reduce((s, r) => s + r.totalCost, 0)
     const totalDurationMs = Date.now() - this.startTime
-    const avgScore = totalTests > 0
-      ? this.results.reduce((s, r) => s + r.score, 0) / totalTests
-      : 0
+    const avgScore = totalTests > 0 ? this.results.reduce((s, r) => s + r.score, 0) / totalTests : 0
 
     // Group by category
     const byCategory: EvalReport["byCategory"] = {} as EvalReport["byCategory"]
@@ -348,11 +342,11 @@ export class DistributedEvalRunner {
       if (r.passed) byCategory[cat]!.passed++
     }
     for (const [cat, info] of Object.entries(byCategory)) {
-      info.avgScore = info.total > 0
-        ? this.results
-            .filter((r) => (r.test.category ?? "smoke") === cat)
-            .reduce((s, r) => s + r.score, 0) / info.total
-        : 0
+      info.avgScore =
+        info.total > 0
+          ? this.results.filter((r) => (r.test.category ?? "smoke") === cat).reduce((s, r) => s + r.score, 0) /
+            info.total
+          : 0
     }
 
     return {
@@ -401,56 +395,56 @@ export interface EvalWorkerOptions {
  * Register an eval-shard task handler on a worker pool.
  * Call this on each worker node to enable it to receive and execute eval shards.
  */
-export function registerEvalWorker(
-  pool: WorkerPool,
-  opts?: EvalWorkerOptions,
-): void {
+export function registerEvalWorker(pool: WorkerPool, opts?: EvalWorkerOptions): void {
   const executeTest = opts?.runTestFn ?? runTest
 
-  pool.on("task", async (event: { taskId: string; taskType: string; taskPayload: WorkerTaskPayload; sourceWorkerId: string }) => {
-    if (event.taskType !== "eval-shard") return
+  pool.on(
+    "task",
+    async (event: { taskId: string; taskType: string; taskPayload: WorkerTaskPayload; sourceWorkerId: string }) => {
+      if (event.taskType !== "eval-shard") return
 
-    const { shardIndex, tests, config } = event.taskPayload
-    const shardStart = Date.now()
+      const { shardIndex, tests, config } = event.taskPayload
+      const shardStart = Date.now()
 
-    const results: EvalResult[] = []
-    for (const test of tests) {
-      try {
-        const result = await executeTest(test, {
-          runnerConfig: config.runnerConfig,
-        })
-        results.push(result)
-      } catch (err) {
-        results.push({
-          test,
-          passed: false,
-          score: 0,
-          grades: [],
-          output: "",
-          trace: [],
-          steps: 0,
-          totalTokens: 0,
-          totalCost: 0,
-          durationMs: 0,
-          error: err instanceof Error ? err.message : String(err),
-          model: config.model ?? "unknown",
-          agentType: "harness",
-          timestamp: new Date().toISOString(),
-          metadata: {},
-        })
+      const results: EvalResult[] = []
+      for (const test of tests) {
+        try {
+          const result = await executeTest(test, {
+            runnerConfig: config.runnerConfig,
+          })
+          results.push(result)
+        } catch (err) {
+          results.push({
+            test,
+            passed: false,
+            score: 0,
+            grades: [],
+            output: "",
+            trace: [],
+            steps: 0,
+            totalTokens: 0,
+            totalCost: 0,
+            durationMs: 0,
+            error: err instanceof Error ? err.message : String(err),
+            model: config.model ?? "unknown",
+            agentType: "harness",
+            timestamp: new Date().toISOString(),
+            metadata: {},
+          })
+        }
       }
-    }
 
-    const workerResult: WorkerTaskResult = {
-      shardIndex,
-      workerId: pool.getLocalInfo().id,
-      results,
-      durationMs: Date.now() - shardStart,
-      workerStatus: "ready",
-    }
+      const workerResult: WorkerTaskResult = {
+        shardIndex,
+        workerId: pool.getLocalInfo().id,
+        results,
+        durationMs: Date.now() - shardStart,
+        workerStatus: "ready",
+      }
 
-    pool.sendTaskResult(event.taskId, workerResult)
-  })
+      pool.sendTaskResult(event.taskId, workerResult)
+    },
+  )
 }
 
 // ── Utility ──────────────────────────────────────────────────────
@@ -459,8 +453,14 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`Operation timed out after ${ms}ms`)), ms)
     promise.then(
-      (val) => { clearTimeout(timer); resolve(val) },
-      (err) => { clearTimeout(timer); reject(err) },
+      (val) => {
+        clearTimeout(timer)
+        resolve(val)
+      },
+      (err) => {
+        clearTimeout(timer)
+        reject(err)
+      },
     )
   })
 }

@@ -11,11 +11,8 @@
 
 import type { Command } from "commander"
 
-
 export function registerTrigger(program: Command): void {
-  const trigger = program
-    .command("trigger")
-    .description("Manage event-driven triggers")
+  const trigger = program.command("trigger").description("Manage event-driven triggers")
 
   trigger
     .command("list")
@@ -184,9 +181,7 @@ export function registerTrigger(program: Command): void {
 
   // ── Background agent subcommands ─────────────────────────────────
 
-  const background = trigger
-    .command("background")
-    .description("Manage background agents")
+  const background = trigger.command("background").description("Manage background agents")
 
   background
     .command("list")

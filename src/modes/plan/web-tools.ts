@@ -34,14 +34,15 @@ export function createWebTools(tracker: ActionTracker): Record<string, any> {
       execute: async (args: any) => {
         const res = await getClient().search(args.query, { limit: args.limit ?? 5, sources: ["web"] })
         const items = (res.web ?? []).slice(0, args.limit ?? 5)
-        const out = items
-          .map((d: any, i: number) => {
-            const title = ("title" in d && d.title) || "(untitled)"
-            const url = ("url" in d && d.url) || ""
-            const snip = ("snippet" in d && d.snippet) || ""
-            return `${i + 1}. ${title}\n ${url}\n ${snip}`
-          })
-          .join("\n\n") || "(no result)"
+        const out =
+          items
+            .map((d: any, i: number) => {
+              const title = ("title" in d && d.title) || "(untitled)"
+              const url = ("url" in d && d.url) || ""
+              const snip = ("snippet" in d && d.snippet) || ""
+              return `${i + 1}. ${title}\n ${url}\n ${snip}`
+            })
+            .join("\n\n") || "(no result)"
         tracker.log({
           type: "code_analysis",
           path: `web_search:${args.query}`,

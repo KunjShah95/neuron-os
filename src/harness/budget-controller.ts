@@ -66,10 +66,14 @@ export class BudgetController {
     if (preferred) return preferred
 
     const affordable = (this.config.tieredModels ?? [])
-      .filter(t => t.maxCostUsd <= budgetRemaining)
+      .filter((t) => t.maxCostUsd <= budgetRemaining)
       .sort((a, b) => a.maxCostUsd - b.maxCostUsd)
 
-    return affordable[0]?.model ?? this.config.tieredModels?.[this.config.tieredModels.length - 1]?.model ?? "claude-sonnet-4-6"
+    return (
+      affordable[0]?.model ??
+      this.config.tieredModels?.[this.config.tieredModels.length - 1]?.model ??
+      "claude-sonnet-4-6"
+    )
   }
 
   /**

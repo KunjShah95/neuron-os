@@ -35,8 +35,8 @@ export class Supervisor {
       script: "src/agent/agent-worker.ts", // or whichever script is the main worker wrapper
       args: [this.config.goal],
       env: {
-        AEGIS_SUPERVISOR_MODE: "true"
-      }
+        AEGIS_SUPERVISOR_MODE: "true",
+      },
     }
 
     try {

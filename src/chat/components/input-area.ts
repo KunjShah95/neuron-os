@@ -37,5 +37,10 @@ export function renderChatHint(state: ChatState, region: ChatRegion): string {
   if (state.ui.shellMode) {
     return theme.accent(cliTruncate(` $ Shell mode: Enter to execute | /shell to exit`, region.width))
   }
-  return theme.muted(cliTruncate(` ${box.dot} Enter send | Alt+Enter newline | ${box.arrow}${box.arrow} history | Ctrl+P picker`, region.width))
+  return theme.muted(
+    cliTruncate(
+      ` ${box.dot} Enter send | Alt+Enter newline | ${box.arrow}${box.arrow} history | Ctrl+P picker`,
+      region.width,
+    ),
+  )
 }

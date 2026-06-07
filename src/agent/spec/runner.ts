@@ -6,6 +6,9 @@ import { createAgentRuntime } from "../runtime"
 import { AIProviderManager, resolveApiKey } from "../../ai"
 import type { AIProviderType } from "../../ai/models"
 import { AgentEngine } from "../engine"
+import { writeFileSync, existsSync, mkdirSync, readFileSync } from "node:fs"
+import { join } from "node:path"
+import { homedir } from "node:os"
 
 export interface RunResult {
   sessionId: string
@@ -58,7 +61,9 @@ export async function runSpec(spec: AgentSpec, input: RunInput): Promise<RunResu
   }
 
   const messages = [
-    ...(spec.spec.system_prompt.template ? [{ role: "system" as const, content: spec.spec.system_prompt.template }] : []),
+    ...(spec.spec.system_prompt.template
+      ? [{ role: "system" as const, content: spec.spec.system_prompt.template }]
+      : []),
     ...(input.files && input.files.length > 0
       ? input.files.map((f) => ({ role: "user" as const, content: `Read these files as context:\n${f}` }))
       : []),
@@ -85,9 +90,6 @@ interface RunRecord {
 
 function persistRunRecord(sessionId: string, specHash: string, spec: AgentSpec, input: RunInput): void {
   try {
-    const { writeFileSync, existsSync, mkdirSync } = require("fs")
-    const { join } = require("path")
-    const { homedir } = require("os")
     const dir = join(homedir(), ".aegis", "runs")
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
     const record: RunRecord = { sessionId, specHash, spec, input, timestamp: new Date().toISOString() }
@@ -99,9 +101,6 @@ function persistRunRecord(sessionId: string, specHash: string, spec: AgentSpec, 
 
 export function getRunRecord(sessionId: string): RunRecord | null {
   try {
-    const { readFileSync, existsSync } = require("fs")
-    const { join } = require("path")
-    const { homedir } = require("os")
     const path = join(homedir(), ".aegis", "runs", `${sessionId}.json`)
     if (!existsSync(path)) return null
     return JSON.parse(readFileSync(path, "utf-8"))

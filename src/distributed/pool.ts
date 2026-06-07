@@ -24,7 +24,10 @@ export class WorkerPool extends EventEmitter {
   private leaderSocket: Socket | null = null
   private started = false
   private _localInfo: WorkerInfo | null = null
-  private pendingTasks: Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }> = new Map()
+  private pendingTasks: Map<
+    string,
+    { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }
+  > = new Map()
 
   constructor(config: ClusterConfig) {
     super()
@@ -366,8 +369,9 @@ export class WorkerPool extends EventEmitter {
     // If no leader connection, promote self
     if (!this.leaderSocket) {
       // Check if there are other nodes with higher IDs
-      const higherNodes = Array.from(this.workers.values())
-        .filter((w) => w.id > this.config.nodeId && w.status !== "offline")
+      const higherNodes = Array.from(this.workers.values()).filter(
+        (w) => w.id > this.config.nodeId && w.status !== "offline",
+      )
 
       if (higherNodes.length === 0) {
         // We win the election
@@ -425,9 +429,7 @@ export class WorkerPool extends EventEmitter {
   }
 
   getReadyWorkers(): WorkerInfo[] {
-    return Array.from(this.workers.values()).filter(
-      (w) => w.status === "ready" && w.id !== this.config.nodeId,
-    )
+    return Array.from(this.workers.values()).filter((w) => w.status === "ready" && w.id !== this.config.nodeId)
   }
 
   isLeader(): boolean {

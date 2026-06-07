@@ -184,7 +184,9 @@ If you find nothing wrong, return []`,
     log.warn(`Adversarial agent failed: ${err}`)
     if (!resolved) {
       resolved = true
-      try { await agentManager.kill(agentId) } catch {}
+      try {
+        await agentManager.kill(agentId)
+      } catch {}
     }
     return []
   }

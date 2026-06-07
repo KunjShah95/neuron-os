@@ -62,7 +62,9 @@ export class CredentialVault {
       )
     `)
 
-    const saltRow = this.db.prepare("SELECT value FROM vault_config WHERE key = 'salt'").get() as { value: string } | undefined
+    const saltRow = this.db.prepare("SELECT value FROM vault_config WHERE key = 'salt'").get() as
+      | { value: string }
+      | undefined
     if (saltRow) {
       this.salt = Buffer.from(saltRow.value, "hex")
     }
@@ -130,12 +132,7 @@ export class CredentialVault {
     return "v-" + Date.now().toString(36) + "-" + randomBytes(4).toString("hex")
   }
 
-  store(
-    name: string,
-    value: string,
-    type: VaultEntry["type"],
-    metadata?: Partial<VaultEntry["metadata"]>,
-  ): VaultEntry {
+  store(name: string, value: string, type: VaultEntry["type"], metadata?: Partial<VaultEntry["metadata"]>): VaultEntry {
     this.ensureUnlocked()
     const { encryptedValue, iv, authTag } = this.encrypt(value)
     const id = this.nextId()
@@ -148,10 +145,14 @@ export class CredentialVault {
       tags: metadata?.tags ?? [],
     }
 
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       INSERT INTO entries (id, name, type, encrypted_value, iv, auth_tag, metadata_json)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(id, name, type, encryptedValue, iv, authTag, JSON.stringify(entryMeta))
+    `,
+      )
+      .run(id, name, type, encryptedValue, iv, authTag, JSON.stringify(entryMeta))
 
     log.info("Credential stored", { name, type, id })
     return {
@@ -171,7 +172,9 @@ export class CredentialVault {
     const row = this.db.prepare("SELECT * FROM entries WHERE id = ?").get(id) as Record<string, unknown> | undefined
     if (!row) return null
 
-    this.db.prepare("UPDATE entries SET access_count = access_count + 1, last_accessed_at = ? WHERE id = ?").run(new Date().toISOString(), id)
+    this.db
+      .prepare("UPDATE entries SET access_count = access_count + 1, last_accessed_at = ? WHERE id = ?")
+      .run(new Date().toISOString(), id)
 
     const entry = this.rowToEntry(row)
     const value = this.decrypt(entry.encryptedValue, entry.iv, entry.authTag)
@@ -183,7 +186,9 @@ export class CredentialVault {
     const row = this.db.prepare("SELECT * FROM entries WHERE name = ?").get(name) as Record<string, unknown> | undefined
     if (!row) return null
 
-    this.db.prepare("UPDATE entries SET access_count = access_count + 1, last_accessed_at = ? WHERE name = ?").run(new Date().toISOString(), name)
+    this.db
+      .prepare("UPDATE entries SET access_count = access_count + 1, last_accessed_at = ? WHERE name = ?")
+      .run(new Date().toISOString(), name)
 
     const entry = this.rowToEntry(row)
     const value = this.decrypt(entry.encryptedValue, entry.iv, entry.authTag)
@@ -221,10 +226,14 @@ export class CredentialVault {
     const now = new Date().toISOString()
     const meta = { ...existing.entry.metadata, updatedAt: now }
 
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       UPDATE entries SET encrypted_value = ?, iv = ?, auth_tag = ?, metadata_json = ?, access_count = 0
       WHERE name = ?
-    `).run(encryptedValue, iv, authTag, JSON.stringify(meta), name)
+    `,
+      )
+      .run(encryptedValue, iv, authTag, JSON.stringify(meta), name)
 
     log.info("Credential rotated", { name })
     return {
@@ -239,28 +248,38 @@ export class CredentialVault {
 
   getExpiredEntries(): VaultEntry[] {
     const now = new Date().toISOString()
-    const rows = this.db.prepare(
-      "SELECT * FROM entries WHERE json_extract(metadata_json, '$.expiresAt') IS NOT NULL AND json_extract(metadata_json, '$.expiresAt') < ?",
-    ).all(now) as Record<string, unknown>[]
+    const rows = this.db
+      .prepare(
+        "SELECT * FROM entries WHERE json_extract(metadata_json, '$.expiresAt') IS NOT NULL AND json_extract(metadata_json, '$.expiresAt') < ?",
+      )
+      .all(now) as Record<string, unknown>[]
     return rows.map((r) => this.rowToEntry(r))
   }
 
   getStats(): { totalEntries: number; types: Record<string, number>; expired: number; locked: boolean } {
     const total = (this.db.prepare("SELECT COUNT(*) as c FROM entries").get() as { c: number }).c
-    const typeRows = this.db.prepare("SELECT type, COUNT(*) as c FROM entries GROUP BY type").all() as { type: string; c: number }[]
+    const typeRows = this.db.prepare("SELECT type, COUNT(*) as c FROM entries GROUP BY type").all() as {
+      type: string
+      c: number
+    }[]
     const types: Record<string, number> = {}
     for (const r of typeRows) {
       types[r.type] = r.c
     }
     const now = new Date().toISOString()
-    const expired = (this.db.prepare(
-      "SELECT COUNT(*) as c FROM entries WHERE json_extract(metadata_json, '$.expiresAt') IS NOT NULL AND json_extract(metadata_json, '$.expiresAt') < ?",
-    ).all(now) as { c: number }[])[0]?.c ?? 0
+    const expired =
+      (
+        this.db
+          .prepare(
+            "SELECT COUNT(*) as c FROM entries WHERE json_extract(metadata_json, '$.expiresAt') IS NOT NULL AND json_extract(metadata_json, '$.expiresAt') < ?",
+          )
+          .all(now) as { c: number }[]
+      )[0]?.c ?? 0
     return { totalEntries: total, types, expired, locked: !this._isUnlocked }
   }
 
   private rowToEntry(row: Record<string, unknown>): VaultEntry {
-    const meta = JSON.parse(row.metadata_json as string || "{}")
+    const meta = JSON.parse((row.metadata_json as string) || "{}")
     return {
       id: row.id as string,
       name: row.name as string,

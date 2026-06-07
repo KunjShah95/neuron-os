@@ -4,11 +4,7 @@ import { showBanner } from "../banner"
 import { toolRegistry } from "../../tools"
 
 export function registerComputer(program: Command) {
-  program
-    .command("computer")
-    .alias("pc")
-    .description("Computer use status and control")
-    .action(handleComputer)
+  program.command("computer").alias("pc").description("Computer use status and control").action(handleComputer)
 }
 
 async function handleComputer() {

@@ -32,9 +32,15 @@ export function registerWebhook(program: Command) {
 }
 
 async function handleWebhook(opts: {
-  port?: string; host?: string; secret?: string; githubToken?: string
-  review?: boolean; fix?: boolean
-  twilio?: boolean; generic?: boolean; genericSecret?: string
+  port?: string
+  host?: string
+  secret?: string
+  githubToken?: string
+  review?: boolean
+  fix?: boolean
+  twilio?: boolean
+  generic?: boolean
+  genericSecret?: string
 }) {
   showBanner()
   await credentialVault.initialize()
@@ -65,7 +71,9 @@ async function handleWebhook(opts: {
     }
 
     if (!twilioSmsConfig && !twilioWhatsAppConfig) {
-      console.log(theme.warn("  ⚠ No Twilio numbers configured. Set TWILIO_PHONE_NUMBER and/or TWILIO_WHATSAPP_NUMBER in vault."))
+      console.log(
+        theme.warn("  ⚠ No Twilio numbers configured. Set TWILIO_PHONE_NUMBER and/or TWILIO_WHATSAPP_NUMBER in vault."),
+      )
     }
   }
 
@@ -101,9 +109,15 @@ async function handleWebhook(opts: {
   console.log()
 
   if (useAdapter) {
-    console.log(`  Twilio SMS:    ${twilioSmsConfig ? theme.success(`/webhook/twilio/sms (port ${port + 1})`) : theme.warn("disabled")}`)
-    console.log(`  Twilio WhatsApp: ${twilioWhatsAppConfig ? theme.success(`/webhook/twilio/whatsapp (port ${port + 1})`) : theme.warn("disabled")}`)
-    console.log(`  Generic:       ${opts.generic ? theme.success(`/webhook/generic (port ${port + 1})`) : theme.warn("disabled")}`)
+    console.log(
+      `  Twilio SMS:    ${twilioSmsConfig ? theme.success(`/webhook/twilio/sms (port ${port + 1})`) : theme.warn("disabled")}`,
+    )
+    console.log(
+      `  Twilio WhatsApp: ${twilioWhatsAppConfig ? theme.success(`/webhook/twilio/whatsapp (port ${port + 1})`) : theme.warn("disabled")}`,
+    )
+    console.log(
+      `  Generic:       ${opts.generic ? theme.success(`/webhook/generic (port ${port + 1})`) : theme.warn("disabled")}`,
+    )
     console.log()
   }
 
@@ -118,14 +132,17 @@ async function handleWebhook(opts: {
 
       // Health check
       if (url.pathname === "/health" && request.method === "GET") {
-        return new Response(JSON.stringify({
-          status: "ok",
-          gitHubWebhook: `http://${host}:${port}/api/v1/webhook/github`,
-          twilioEndpoints: useAdapter ? `http://${host}:${port + 1}/webhook/twilio/...` : undefined,
-        }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        })
+        return new Response(
+          JSON.stringify({
+            status: "ok",
+            gitHubWebhook: `http://${host}:${port}/api/v1/webhook/github`,
+            twilioEndpoints: useAdapter ? `http://${host}:${port + 1}/webhook/twilio/...` : undefined,
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        )
       }
 
       return handler(request)
@@ -141,7 +158,8 @@ async function handleWebhook(opts: {
   console.log(`  ${theme.dim("  POST /api/v1/webhook/github    — GitHub webhooks")}`)
   console.log(`  ${theme.dim("  POST /api/v1/webhook/gitlab    — GitLab webhooks")}`)
   if (twilioSmsConfig) console.log(`  ${theme.dim(`  POST /webhook/twilio/sms       — Twilio SMS (port ${port + 1})`)}`)
-  if (twilioWhatsAppConfig) console.log(`  ${theme.dim(`  POST /webhook/twilio/whatsapp  — Twilio WhatsApp (port ${port + 1})`)}`)
+  if (twilioWhatsAppConfig)
+    console.log(`  ${theme.dim(`  POST /webhook/twilio/whatsapp  — Twilio WhatsApp (port ${port + 1})`)}`)
   if (opts.generic) console.log(`  ${theme.dim(`  POST /webhook/generic          — Generic JSON (port ${port + 1})`)}`)
   console.log()
   console.log(theme.dim("  Press Ctrl+C to stop"))

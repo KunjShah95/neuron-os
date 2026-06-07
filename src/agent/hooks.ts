@@ -18,12 +18,7 @@ export class HookRegistry {
   private hooks: HookRegistration[] = []
 
   /** Register a hook function. */
-  register(
-    point: HookPoint,
-    phase: HookPhase,
-    fn: HookFn,
-    opts?: { priority?: number; label?: string },
-  ): this {
+  register(point: HookPoint, phase: HookPhase, fn: HookFn, opts?: { priority?: number; label?: string }): this {
     this.hooks.push({
       point,
       phase,

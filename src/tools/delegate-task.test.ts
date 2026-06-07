@@ -15,7 +15,7 @@ mock.module("../agent/manager", () => ({
     spawn: mockSpawn,
     routeIpc: mockRouteIpc,
     sendIpc: mockSendIpc,
-  }
+  },
 }))
 
 function makeCtx(overrides: Partial<ToolContext> = {}): ToolContext {
@@ -60,20 +60,14 @@ describe("delegateTaskTool", () => {
 
   describe("agent name lookup parsing", () => {
     it("should parse name: prefix as name lookup", async () => {
-      await delegateTaskTool.execute(
-        { goal: "test", agentType: "name:my-agent" },
-        makeCtx(),
-      )
+      await delegateTaskTool.execute({ goal: "test", agentType: "name:my-agent" }, makeCtx())
 
       expect(mockFindAgentByName).toHaveBeenCalledWith("my-agent")
       expect(mockFindAgentByType).not.toHaveBeenCalled()
     })
 
     it("should parse plain string as type lookup", async () => {
-      await delegateTaskTool.execute(
-        { goal: "test", agentType: "build" },
-        makeCtx(),
-      )
+      await delegateTaskTool.execute({ goal: "test", agentType: "build" }, makeCtx())
 
       expect(mockFindAgentByType).toHaveBeenCalledWith("build")
       expect(mockFindAgentByName).not.toHaveBeenCalled()
@@ -91,7 +85,8 @@ describe("delegateTaskTool", () => {
       )
 
       expect(mockRouteIpc).toHaveBeenCalledWith(
-        "source-id", "existing-id",
+        "source-id",
+        "existing-id",
         expect.objectContaining({
           type: "dispatch",
           payload: expect.objectContaining({
@@ -116,19 +111,15 @@ describe("delegateTaskTool", () => {
         makeCtx({ agentId: "source-id" }),
       )
 
-      expect(mockSpawn).toHaveBeenCalledWith(
-        expect.objectContaining({ agentType: "read" }),
-      )
+      expect(mockSpawn).toHaveBeenCalledWith(expect.objectContaining({ agentType: "read" }))
 
       expect(mockRouteIpc).toHaveBeenCalledWith(
-        "source-id", "spawned-agent-id",
+        "source-id",
+        "spawned-agent-id",
         expect.objectContaining({ type: "dispatch" }),
       )
 
-      expect(mockSendIpc).toHaveBeenCalledWith(
-        "spawned-agent-id",
-        expect.objectContaining({ type: "shutdown" }),
-      )
+      expect(mockSendIpc).toHaveBeenCalledWith("spawned-agent-id", expect.objectContaining({ type: "shutdown" }))
 
       expect(result.success).toBe(true)
       expect(result.metadata?.spawned).toBe(true)

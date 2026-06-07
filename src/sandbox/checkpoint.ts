@@ -17,17 +17,17 @@ export class CheckpointManager {
   public createCheckpoint(taskId: string, sourceDir: string): string {
     const checkpointId = `${taskId}-${Date.now()}`
     const destDir = join(this.checkpointsDir, checkpointId)
-    
+
     log.info(`Creating checkpoint for task ${taskId} at ${destDir}`)
-    
+
     // Copy the entire source directory to the checkpoint directory
-    cpSync(sourceDir, destDir, { 
-      recursive: true, 
+    cpSync(sourceDir, destDir, {
+      recursive: true,
       filter: (src) => {
         // Skip node_modules and .git for speed/size
         if (src.includes("node_modules") || src.includes(".git")) return false
         return true
-      }
+      },
     })
 
     return checkpointId

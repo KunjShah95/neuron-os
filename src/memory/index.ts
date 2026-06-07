@@ -18,7 +18,15 @@ export type { UnifiedResult, UnifiedQuery, UnifiedStoreStats } from "./unified-q
 // Dialectic user model
 export { DialecticEngine, dialecticEngine } from "./user-model/dialectic"
 export { HonchoAdapter, honchoAdapter } from "./user-model/honcho-adapter"
-export type { UserModel, DialecticProposal, DialecticResult, HonchoSyncResult, UserPreference, RecurringTopic, AuditEntry } from "./user-model/types"
+export type {
+  UserModel,
+  DialecticProposal,
+  DialecticResult,
+  HonchoSyncResult,
+  UserPreference,
+  RecurringTopic,
+  AuditEntry,
+} from "./user-model/types"
 export { EMPTY_USER_MODEL } from "./user-model/types"
 
 // Knowledge graph

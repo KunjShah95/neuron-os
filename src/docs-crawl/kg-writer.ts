@@ -14,7 +14,9 @@ export class KnowledgeGraphWriter {
       this.writePage(pp, siteName)
     }
 
-    log.info(`KG: ${result.processed.length} pages, ${countEntities(result.processed)} entities, ${countRelationships(result.processed)} relationships`)
+    log.info(
+      `KG: ${result.processed.length} pages, ${countEntities(result.processed)} entities, ${countRelationships(result.processed)} relationships`,
+    )
   }
 
   private writePage(pp: ProcessedPage, siteName: string): void {

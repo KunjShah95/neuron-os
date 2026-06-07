@@ -62,9 +62,7 @@ export class UnifiedMemoryQuery {
     const limit = query.limit ?? 5
     const minScore = query.minScore ?? 0.3
 
-    const results = await Promise.all(
-      stores.map((store) => this.searchStore(store, query.query, limit)),
-    )
+    const results = await Promise.all(stores.map((store) => this.searchStore(store, query.query, limit)))
 
     return this.mergeResults(results.flat(), minScore)
   }
@@ -232,9 +230,7 @@ export class UnifiedMemoryQuery {
     try {
       const stats = this._experienceStore.getStats()
       const successRate =
-        stats.totalExperiences > 0
-          ? Math.round((stats.successCount / stats.totalExperiences) * 100)
-          : 0
+        stats.totalExperiences > 0 ? Math.round((stats.successCount / stats.totalExperiences) * 100) : 0
       return { total: stats.totalExperiences, successRate }
     } catch {
       return { total: 0, successRate: 0 }
@@ -252,10 +248,7 @@ export class UnifiedMemoryQuery {
 
   // ── Merge / dedup / rank ──────────────────────────────────────────
 
-  private static mergeResults(
-    results: UnifiedResult[],
-    minScore: number,
-  ): UnifiedResult[] {
+  private static mergeResults(results: UnifiedResult[], minScore: number): UnifiedResult[] {
     const seen = new Set<string>()
 
     return results
@@ -272,7 +265,7 @@ export class UnifiedMemoryQuery {
   private static contentHash(content: string): string {
     let hash = 0
     for (let i = 0; i < content.length; i++) {
-      hash = ((hash << 5) - hash) + content.charCodeAt(i)
+      hash = (hash << 5) - hash + content.charCodeAt(i)
       hash = hash & hash
     }
     return String(hash)

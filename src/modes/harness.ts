@@ -38,11 +38,13 @@ export const harnessMode: Mode = {
       lines.push(`  ${theme.muted("Press R to run all tests")}`)
 
       if (lastResults.length > 0) {
-        const passed = lastResults.filter(r => r.passed).length
-        const failed = lastResults.filter(r => !r.passed).length
+        const passed = lastResults.filter((r) => r.passed).length
+        const failed = lastResults.filter((r) => !r.passed).length
         lines.push("")
         lines.push(`  ${theme.heading("Last Run")}`)
-        lines.push(`  ${theme.success(`  ${passed} passed`)}${failed > 0 ? `, ${theme.error(`${failed} failed`)}` : ""}`)
+        lines.push(
+          `  ${theme.success(`  ${passed} passed`)}${failed > 0 ? `, ${theme.error(`${failed} failed`)}` : ""}`,
+        )
         for (const r of lastResults) {
           const icon = r.passed ? theme.success("✓") : theme.error("✗")
           lines.push(`  ${icon} ${r.test.name} ${theme.muted(`(${r.durationMs}ms, ${r.steps} steps)`)}`)
@@ -60,7 +62,7 @@ export const harnessMode: Mode = {
 export function runHarnessTests(): void {
   const tests = discoverTests()
   if (tests.length > 0) {
-    runSuite(tests).then(results => {
+    runSuite(tests).then((results) => {
       lastResults = results
     })
   }

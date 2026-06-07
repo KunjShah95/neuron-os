@@ -106,7 +106,12 @@ export class EvalSuite {
         } else if (trimmed.startsWith("judge_prompt: |")) {
           section = "judge_prompt"
         } else if (section === "input") {
-          if (trimmed.startsWith("expected_files:") || trimmed.startsWith("verification:") || trimmed.startsWith("timeout_ms:") || trimmed.startsWith("judge_prompt:")) {
+          if (
+            trimmed.startsWith("expected_files:") ||
+            trimmed.startsWith("verification:") ||
+            trimmed.startsWith("timeout_ms:") ||
+            trimmed.startsWith("judge_prompt:")
+          ) {
             section = null
           } else if (trimmed && !trimmed.startsWith("#")) {
             input += (input ? "\n" : "") + trimmed

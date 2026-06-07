@@ -31,7 +31,10 @@ async function handleSlack(opts: { token?: string; appToken?: string; project?: 
 
   const allowedUserIdsRaw = await credentialVault.get("SLACK_ALLOWED_USERS", "global")
   const allowedUserIds = allowedUserIdsRaw
-    ? allowedUserIdsRaw.split(",").map((s: string) => s.trim()).filter(Boolean)
+    ? allowedUserIdsRaw
+        .split(",")
+        .map((s: string) => s.trim())
+        .filter(Boolean)
     : undefined
 
   console.log(theme.info("\n  Starting Slack bot adapter…"))
@@ -39,7 +42,12 @@ async function handleSlack(opts: { token?: string; appToken?: string; project?: 
   console.log(theme.muted(`  Allowed users: ${allowedUserIds?.length ? allowedUserIds.join(", ") : "all"}`))
   console.log()
 
-  const adapter = createSlackAdapter({ botToken, appToken: appToken || undefined, allowedUserIds, project: opts.project })
+  const adapter = createSlackAdapter({
+    botToken,
+    appToken: appToken || undefined,
+    allowedUserIds,
+    project: opts.project,
+  })
   await adapter.start()
 
   console.log(theme.success("  ✓ Slack adapter is running"))

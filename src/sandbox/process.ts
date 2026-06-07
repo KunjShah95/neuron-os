@@ -27,8 +27,12 @@ export class ProcessSandbox implements Sandbox {
     this.allowedCommands = config?.allowedCommands || []
   }
 
-  get enabled(): boolean { return this._enabled }
-  set enabled(v: boolean) { this._enabled = v }
+  get enabled(): boolean {
+    return this._enabled
+  }
+  set enabled(v: boolean) {
+    this._enabled = v
+  }
 
   restrictPath(originalPath: string): string | null {
     return originalPath
@@ -45,7 +49,7 @@ export class ProcessSandbox implements Sandbox {
     }
     if (this.allowedCommands.length > 0) {
       const cmdName = cmd.split(/\s+/)[0] || ""
-      const allowed = this.allowedCommands.some(a => cmdName === a || cmd.startsWith(a))
+      const allowed = this.allowedCommands.some((a) => cmdName === a || cmd.startsWith(a))
       if (!allowed) {
         this.deniedOps.push({ operation: "command", target: cmd.slice(0, 100), timestamp: new Date().toISOString() })
         if (this.deniedOps.length > 20) this.deniedOps.shift()
@@ -57,7 +61,11 @@ export class ProcessSandbox implements Sandbox {
 
   status(): SandboxStatus {
     const lines = this._enabled
-      ? [`Temp dir: ${this.tempDir}`, `Allowed commands: ${this.allowedCommands.length > 0 ? this.allowedCommands.join(", ") : "all except dangerous"}`, `Recent denials: ${this.deniedOps.length}`]
+      ? [
+          `Temp dir: ${this.tempDir}`,
+          `Allowed commands: ${this.allowedCommands.length > 0 ? this.allowedCommands.join(", ") : "all except dangerous"}`,
+          `Recent denials: ${this.deniedOps.length}`,
+        ]
       : ["Sandbox disabled"]
     return { type: "process", active: this._enabled, info: lines }
   }
@@ -68,6 +76,8 @@ export class ProcessSandbox implements Sandbox {
 
   cleanup(): void {
     // Best-effort cleanup — temp dir will be cleaned by OS if this fails
-    try { rmSync(this.tempDir, { recursive: true, force: true }) } catch {}
+    try {
+      rmSync(this.tempDir, { recursive: true, force: true })
+    } catch {}
   }
 }

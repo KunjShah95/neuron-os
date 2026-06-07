@@ -31,12 +31,7 @@ const AGENT_TYPE_COMPLEXITY: Record<string, TaskProfile["complexity"]> = {
 
 export class PreflightEstimator {
   static estimate(request: PreflightRequest): PreflightEstimate {
-    const {
-      goal,
-      agentType = "build",
-      estimatedTokens = 3000,
-      preferredTier = "balanced",
-    } = request
+    const { goal, agentType = "build", estimatedTokens = 3000, preferredTier = "balanced" } = request
 
     const similar = experienceStore.searchByGoalSimilarity(goal, 10)
 
@@ -71,9 +66,7 @@ export class PreflightEstimator {
 
     const freshCost = costEstimate[preferredTier]
 
-    const estimatedCost = similarTasks.length > 0
-      ? freshCost * 0.6 + avgHistoricalCost * 0.4
-      : freshCost
+    const estimatedCost = similarTasks.length > 0 ? freshCost * 0.6 + avgHistoricalCost * 0.4 : freshCost
 
     const totalSpent = billingTracker.getTotalSpend()
     const budgetLimit = billingTracker.getBudgetLimit()
@@ -101,15 +94,14 @@ export class PreflightEstimator {
       blockAt?: number
     },
   ): PreflightEstimate {
-    const warnAt = thresholds?.warnAt ?? 0.50
-    const blockAt = thresholds?.blockAt ?? 5.00
+    const warnAt = thresholds?.warnAt ?? 0.5
+    const blockAt = thresholds?.blockAt ?? 5.0
 
     if (estimate.wouldExceedBudget) {
       return {
         ...estimate,
         recommendation: "block",
-        reasoning:
-          `Estimated cost $${estimate.estimatedCost.toFixed(4)} exceeds remaining budget $${estimate.remainingBudget.toFixed(4)}`,
+        reasoning: `Estimated cost $${estimate.estimatedCost.toFixed(4)} exceeds remaining budget $${estimate.remainingBudget.toFixed(4)}`,
       }
     }
 
@@ -117,8 +109,7 @@ export class PreflightEstimator {
       return {
         ...estimate,
         recommendation: "block",
-        reasoning:
-          `Estimated cost $${estimate.estimatedCost.toFixed(4)} exceeds block threshold of $${blockAt.toFixed(2)}`,
+        reasoning: `Estimated cost $${estimate.estimatedCost.toFixed(4)} exceeds block threshold of $${blockAt.toFixed(2)}`,
       }
     }
 
@@ -126,8 +117,7 @@ export class PreflightEstimator {
       return {
         ...estimate,
         recommendation: "warn",
-        reasoning:
-          `Estimated cost $${estimate.estimatedCost.toFixed(4)} exceeds warn threshold of $${warnAt.toFixed(2)}`,
+        reasoning: `Estimated cost $${estimate.estimatedCost.toFixed(4)} exceeds warn threshold of $${warnAt.toFixed(2)}`,
       }
     }
 

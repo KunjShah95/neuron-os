@@ -6,10 +6,7 @@ import { createLogger } from "../logger"
 const log = createLogger("cli:telemetry")
 
 export function registerTelemetry(program: Command) {
-  const telemetry = program
-    .command("telemetry")
-    .alias("tel")
-    .description("Manage opt-in usage telemetry (no PII)")
+  const telemetry = program.command("telemetry").alias("tel").description("Manage opt-in usage telemetry (no PII)")
 
   // ── status ─────────────────────────────────────────────────────────
 
@@ -25,7 +22,9 @@ export function registerTelemetry(program: Command) {
       console.log()
       console.log(`  ${theme.heading("Telemetry")}`)
       console.log()
-      console.log(`  ${theme.bold("Status:")}       ${stats.optedIn ? theme.success("Enabled") : theme.warn("Disabled")}`)
+      console.log(
+        `  ${theme.bold("Status:")}       ${stats.optedIn ? theme.success("Enabled") : theme.warn("Disabled")}`,
+      )
       console.log(`  ${theme.bold("Queue size:")}   ${theme.muted(String(stats.queueSize))}`)
       console.log(`  ${theme.bold("Endpoint:")}     ${theme.muted(stats.endpoint)}`)
       console.log()

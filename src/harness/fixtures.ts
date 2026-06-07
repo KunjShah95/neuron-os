@@ -28,7 +28,7 @@ const FIXTURES: Record<string, TestFixture> = {
           "package.json": JSON.stringify(
             {
               name: (params?.name as string) ?? "test-project",
-              dependencies: Object.fromEntries(deps.map(d => [d, "*"])),
+              dependencies: Object.fromEntries(deps.map((d) => [d, "*"])),
             },
             null,
             2,
@@ -56,14 +56,10 @@ const FIXTURES: Record<string, TestFixture> = {
             "import express from 'express'",
             "const app = express()",
             "app.use(express.json())",
-            ...routes.map(r => `// TODO: implement ${r}`),
+            ...routes.map((r) => `// TODO: implement ${r}`),
             "app.listen(3000)",
           ].join("\n"),
-          "package.json": JSON.stringify(
-            { name: "express-api", dependencies: { express: "*" } },
-            null,
-            2,
-          ),
+          "package.json": JSON.stringify({ name: "express-api", dependencies: { express: "*" } }, null, 2),
         },
         commands: ["npm install"],
       }

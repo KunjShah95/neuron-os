@@ -29,13 +29,14 @@ const DEFAULT_CONFIG: DistillerConfig = DistillerConfigSchema.parse({})
 
 interface TokenizedEpisode {
   episode: EpisodeRecord
-  sequence: string[]       // tool_sequence as array
-  tokens: Set<string>      // tokenized context_summary for cosine approx
-  vector: number[]         // normalized term-frequency vector
+  sequence: string[] // tool_sequence as array
+  tokens: Set<string> // tokenized context_summary for cosine approx
+  vector: number[] // normalized term-frequency vector
 }
 
 function tokenize(text: string): Set<string> {
-  const words = text.toLowerCase()
+  const words = text
+    .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, " ")
     .split(/\s+/)
     .filter(Boolean)
@@ -47,7 +48,9 @@ function buildVector(tokens: Set<string>, vocabulary: string[]): number[] {
 }
 
 function cosineSimilarity(a: number[], b: number[]): number {
-  let dot = 0, normA = 0, normB = 0
+  let dot = 0,
+    normA = 0,
+    normB = 0
   for (let i = 0; i < a.length; i++) {
     const av = a[i]!
     const bv = b[i]!
@@ -117,7 +120,9 @@ export function clusterBySequence(
     }
   }
 
-  log.info(`clustered ${episodes.length} episodes → ${clusters.length} clusters (minSize=${minSize}, minCosine=${minCosine})`)
+  log.info(
+    `clustered ${episodes.length} episodes → ${clusters.length} clusters (minSize=${minSize}, minCosine=${minCosine})`,
+  )
   return clusters
 }
 
@@ -126,13 +131,9 @@ export function clusterBySequence(
 async function synthesizeSkill(cluster: EpisodeRecord[]): Promise<{ name: string; content: string } | null> {
   const episodes = cluster.slice(0, 5) // cap at 5 for token budget
 
-  const successfulSteps = episodes
-    .map((ep) => ep.tool_sequence.join(" → "))
-    .join("\n")
+  const successfulSteps = episodes.map((ep) => ep.tool_sequence.join(" → ")).join("\n")
 
-  const contexts = episodes
-    .map((ep, i) => `${i + 1}. "${ep.context_summary}"`)
-    .join("\n")
+  const contexts = episodes.map((ep, i) => `${i + 1}. "${ep.context_summary}"`).join("\n")
 
   const name = `auto-${episodes[0]!.tool_sequence[0] || "skill"}-${Date.now().toString(36)}`
 
@@ -160,7 +161,9 @@ async function synthesizeSkill(cluster: EpisodeRecord[]): Promise<{ name: string
     "",
     "## Steps",
     "",
-    ...episodes[0]!.tool_sequence.map((step, i) => `${i + 1}. Use the \`${step}\` tool${i < episodes[0]!.tool_sequence.length - 1 ? ", then" : ""}`),
+    ...episodes[0]!.tool_sequence.map(
+      (step, i) => `${i + 1}. Use the \`${step}\` tool${i < episodes[0]!.tool_sequence.length - 1 ? ", then" : ""}`,
+    ),
     "",
     "## Notes",
     "",
@@ -282,4 +285,5 @@ export function loadRecentEpisodes(sinceMs: number): EpisodeRecord[] {
 
 export const DISTILLER_CRON_NAME = "evolution-distill"
 export const DISTILLER_CRON_SCHEDULE = "1d"
-export const DISTILLER_CRON_GOAL = "Run the evolution distillation pipeline — cluster successful sessions and emit skill candidates"
+export const DISTILLER_CRON_GOAL =
+  "Run the evolution distillation pipeline — cluster successful sessions and emit skill candidates"

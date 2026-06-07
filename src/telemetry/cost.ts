@@ -11,7 +11,7 @@ export class CostBenchmarking {
    */
   public generateReport() {
     log.info("Generating Cost Attribution & Benchmarking Report...")
-    
+
     const totalSpend = billingTracker.getTotalSpend()
     const limit = billingTracker.getBudgetLimit()
     const byModel = billingTracker.getCostByModel()
@@ -21,7 +21,7 @@ export class CostBenchmarking {
     log.info(`Total Spend: $${totalSpend.toFixed(4)} / $${limit.toFixed(2)}`)
 
     if (byModel.length > 0) {
-      log.info(`Models: ${byModel.map(m => `${m.model}=$${m.totalCost.toFixed(4)}`).join(", ")}`)
+      log.info(`Models: ${byModel.map((m) => `${m.model}=$${m.totalCost.toFixed(4)}`).join(", ")}`)
     }
 
     if (bySession.length > 0) {
