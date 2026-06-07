@@ -482,6 +482,16 @@ export class WorkerPool extends EventEmitter {
     throw new Error("No leader available")
   }
 
+  /**
+   * Send a task result back to the leader.
+   * Workers call this after processing a received task.
+   */
+  sendTaskResult(taskId: string, result: unknown): void {
+    if (this.leaderSocket) {
+      this.sendMessage(this.leaderSocket, "task-result", { taskId, result })
+    }
+  }
+
   async broadcast(message: { type: string; payload: unknown }): Promise<void> {
     const msg = { ...message, sourceWorkerId: this.config.nodeId }
     for (const [id, socket] of this.connections) {
