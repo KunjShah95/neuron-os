@@ -133,16 +133,15 @@ jobs:
           path: dashboard/dist
 
       - name: Build binary (${{ matrix.target }})
+        shell: bash
         run: |
           mkdir -p dist
-          bun build index.ts \
-            --compile \
-            --target=${{ matrix.bun_target }} \
-            --outfile=dist/${{ matrix.binary }}${{ matrix.ext }}
+          bun build index.ts --compile --target=${{ matrix.bun_target }} --outfile=dist/${{ matrix.binary }}${{ matrix.ext }}
           chmod +x dist/${{ matrix.binary }}${{ matrix.ext }} 2>/dev/null || true
           ls -lh dist/
 
       - name: Package binary (zip)
+        shell: bash
         run: |
           cd dist
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
@@ -153,9 +152,14 @@ jobs:
           ls -lh
 
       - name: Generate checksums
+        shell: bash
         run: |
           cd dist
-          sha256sum ${{ matrix.binary }}${{ matrix.ext }} > ${{ matrix.binary }}.sha256
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum ${{ matrix.binary }}${{ matrix.ext }} > ${{ matrix.binary }}.sha256
+          else
+            shasum -a 256 ${{ matrix.binary }}${{ matrix.ext }} > ${{ matrix.binary }}.sha256
+          fi
           cat ${{ matrix.binary }}.sha256
 
       - uses: actions/upload-artifact@v4
