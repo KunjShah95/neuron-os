@@ -184,18 +184,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts/binaries
-
-      - name: Download dashboard build
-        uses: actions/download-artifact@v4
-        with:
-          name: dashboard-dist
-          path: artifacts/dashboard
-
-      - name: Download website build
-        uses: actions/download-artifact@v4
-        with:
-          name: website-dist
-          path: artifacts/website
+          pattern: binary-*
+          merge-multiple: true
 
       - name: List all collected artifacts
         run: find artifacts -type f | sort
@@ -261,15 +251,24 @@ jobs:
           } > release_notes.md
           cat release_notes.md
 
+      - name: Stage release files
+        run: |
+          set -e
+          mkdir -p staging
+          # Flatten all binary artifacts (merge-multiple may not work in all cases)
+          rsync -a artifacts/binaries/ staging/ 2>/dev/null || cp -r artifacts/binaries/* staging/ 2>/dev/null || true
+          find artifacts -type f \( -name "aegis-*" -o -name "checksums.txt" \) -exec cp {} staging/ \; 2>/dev/null || true
+          cp artifacts/checksums.txt staging/ 2>/dev/null || true
+          echo "=== staging/ contents ==="
+          ls -la staging/
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2.4.0
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: ${{ steps.tag.outputs.tag }}
           body_path: release_notes.md
-          files: |
-            artifacts/binaries/aegis-*
-            artifacts/checksums.txt
+          files: staging/*
           fail_on_unmatched_files: false
           overwrite_files: true
         env:
