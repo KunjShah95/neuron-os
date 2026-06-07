@@ -61,6 +61,7 @@ import { registerRouter } from "./router"
 import { registerImprove } from "./improve"
 import { registerDistributed } from "./distributed"
 import { registerProduction } from "./production"
+import { registerDocsCrawl } from "./docs-crawl"
 
 export function registerAllCommands(program: Command) {
   registerDoctor(program)
@@ -125,4 +126,5 @@ export function registerAllCommands(program: Command) {
   registerWebhook(program)
   registerSession(program)
   registerToolset(program)
+  registerDocsCrawl(program)
 }

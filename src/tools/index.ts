@@ -29,6 +29,7 @@ import { memorySearchTool } from "./memory-search"
 import { computerTool } from "./computer"
 import { askAgentTool } from "./ask-agent"
 import { executeCodeTool } from "./execute-code"
+import { docsCrawlTool } from "../docs-crawl/tool"
 
 // Auto-register A2UI tool (import side-effect registers it)
 import "./a2ui-tool"
@@ -53,6 +54,7 @@ export function registerBuiltinTools(): void {
   toolRegistry.register(memorySearchTool)
   toolRegistry.register(computerTool)
   toolRegistry.register(executeCodeTool)
+  toolRegistry.register(docsCrawlTool)
 }
 
 // Auto-register on import

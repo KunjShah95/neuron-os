@@ -14,6 +14,7 @@ import { sandboxMode } from "./sandbox"
 import { computerMode } from "./computer"
 import { harnessMode } from "./harness"
 import { voiceMode } from "./voice"
+import { docsCrawlMode } from "./docs-crawl"
 
 export function registerAllModes() {
   registerMode(dashboardMode)
@@ -32,6 +33,7 @@ export function registerAllModes() {
   registerMode(computerMode)
   registerMode(harnessMode)
   registerMode(voiceMode)
+  registerMode(docsCrawlMode)
 }
 
 export { registerMode, listModes, getMode } from "./registry"
