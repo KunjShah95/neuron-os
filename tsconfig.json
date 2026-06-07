@@ -27,5 +27,5 @@
     "noUnusedParameters": true,
     "noPropertyAccessFromIndexSignature": false
   },
-  "exclude": ["node_modules", "agent-tui-ref", "dashboard", "out", "wanderful", "website"]
+  "exclude": ["node_modules", "agent-tui-ref", "dashboard", "out", "wanderful", "website", "**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"]
 }
