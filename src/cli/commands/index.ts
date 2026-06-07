@@ -13,6 +13,7 @@ import { registerMCP } from "./mcp"
 import { registerMemory } from "./memory"
 import { registerAgentMemory } from "./agentmemory"
 import { registerUnifiedMemory } from "./unified-memory"
+import { registerKnowledge } from "./knowledge"
 import { registerTelegram } from "./telegram"
 import { registerAsk } from "./ask"
 import { registerPlan } from "./plan"
@@ -57,6 +58,9 @@ import { registerPreflight } from "./preflight"
 import { registerPlugin } from "./plugin"
 import { registerTrigger } from "./trigger"
 import { registerRouter } from "./router"
+import { registerImprove } from "./improve"
+import { registerDistributed } from "./distributed"
+import { registerProduction } from "./production"
 
 export function registerAllCommands(program: Command) {
   registerDoctor(program)
@@ -76,6 +80,7 @@ export function registerAllCommands(program: Command) {
   registerPlugin(program)
   registerTrigger(program)
   registerRouter(program)
+  registerImprove(program)
   registerPreflight(program)
   registerAudit(program)
   registerMesh(program)
@@ -100,6 +105,7 @@ export function registerAllCommands(program: Command) {
   registerMCP(program)
   registerMemory(program)
   registerUnifiedMemory(program)
+  registerKnowledge(program)
   registerAgentMemory(program)
   registerTelegram(program)
   registerAsk(program)
@@ -112,6 +118,8 @@ export function registerAllCommands(program: Command) {
   registerTelemetry(program)
   registerSetupKeys(program)
   registerPool(program)
+  registerDistributed(program)
+  registerProduction(program)
   registerResearch(program)
   registerOrchestrate(program)
   registerWebhook(program)

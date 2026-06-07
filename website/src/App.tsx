@@ -1,37 +1,36 @@
 import Navbar from "./sections/Navbar"
-import HeroSection from "./sections/HeroSection"
-import FeaturesGrid from "./sections/FeaturesGrid"
-import UseCasesSection from "./sections/UseCasesSection"
-import ArchitectureSection from "./sections/ArchitectureSection"
+import Hero from "./sections/Hero"
+import StatsBar from "./sections/StatsBar"
+import FeaturesBento from "./sections/FeaturesBento"
 import TerminalDemo from "./sections/TerminalDemo"
-import DocsSection from "./sections/DocsSection"
-import MetricsSection from "./sections/MetricsSection"
-import TechStack from "./sections/TechStack"
-import ChangelogSection from "./sections/ChangelogSection"
-import FAQSection from "./sections/FAQSection"
-import CTASection from "./sections/CTASection"
+import Timeline from "./sections/Timeline"
+import Recipes from "./sections/Recipes"
+import Docs from "./sections/Docs"
+import Journal from "./sections/Journal"
+import Testimonials from "./sections/Testimonials"
+import EcosystemStrip from "./sections/EcosystemStrip"
+import FAQ from "./sections/FAQ"
+import CTA from "./sections/CTA"
 import Footer from "./sections/Footer"
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-base text-white overflow-x-hidden font-body relative">
+    <div className="min-h-screen bg-base text-white overflow-x-hidden font-sans relative">
       <div className="noise-overlay" />
-
       <Navbar />
-      <HeroSection />
-      <div className="bg-base/85 backdrop-blur-md">
-        <FeaturesGrid />
-        <UseCasesSection />
-        <ArchitectureSection />
-        <TerminalDemo />
-        <DocsSection />
-        <MetricsSection />
-        <TechStack />
-        <ChangelogSection />
-        <FAQSection />
-        <CTASection />
-        <Footer />
-      </div>
+      <Hero />
+      <StatsBar />
+      <FeaturesBento />
+      <TerminalDemo />
+      <Timeline />
+      <Recipes />
+      <Docs />
+      <Journal />
+      <Testimonials />
+      <EcosystemStrip />
+      <FAQ />
+      <CTA />
+      <Footer />
     </div>
   )
 }

@@ -20,3 +20,15 @@ export { DialecticEngine, dialecticEngine } from "./user-model/dialectic"
 export { HonchoAdapter, honchoAdapter } from "./user-model/honcho-adapter"
 export type { UserModel, DialecticProposal, DialecticResult, HonchoSyncResult, UserPreference, RecurringTopic, AuditEntry } from "./user-model/types"
 export { EMPTY_USER_MODEL } from "./user-model/types"
+
+// Knowledge graph
+export { KnowledgeGraph, knowledgeGraph } from "./graph"
+export type { GraphEntity, GraphRelationship, GraphQuery } from "./graph"
+
+// Memory namespaces
+export { MemoryNamespaceManager, memoryNamespaceManager } from "./namespace"
+export type { MemoryNamespace, NamespaceEntry } from "./namespace"
+
+// Knowledge synthesizer
+export { KnowledgeSynthesizer } from "./synthesize"
+export type { SynthesisRequest, SynthesisResult, SynthesisSource } from "./synthesize"

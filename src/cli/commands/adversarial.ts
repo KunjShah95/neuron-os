@@ -201,6 +201,7 @@ async function handleRun(opts: { all?: boolean; json?: boolean; category?: strin
 
     try {
       const result = await runTest({
+        id: task.id,
         name: task.id,
         prompt: task.input,
         tags: [task.category],

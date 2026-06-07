@@ -119,6 +119,7 @@ async function handleRun(
     if (!opts.json) process.stdout.write(`  ${task.id} ... `)
     try {
       const result = await runTest({
+        id: task.id,
         name: task.id,
         prompt: task.input,
         tags: [task.category],

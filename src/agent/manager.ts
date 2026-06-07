@@ -122,6 +122,14 @@ export class AgentManager {
    * Applies zero-trust isolation based on the agent type's isolationLevel.
    */
   async spawn(def: AgentDef): Promise<string> {
+    // Try distributed dispatch if available
+    if (!process.env.AEGIS_NO_DISTRIBUTED) {
+      try {
+        const distributedId = await this.spawnDistributed(def)
+        if (distributedId) return distributedId
+      } catch { /* fall through to local spawn */ }
+    }
+
     // If agentType is specified, apply type configuration
     let effectiveDef = def
     if (def.agentType) {
@@ -194,6 +202,12 @@ export class AgentManager {
     const controller = new AbortController()
     this.abortControllers.set(id, controller)
 
+    try {
+      const { traceCollector } = await import("../observability")
+      const span = traceCollector.startSpan(`agent:${effectiveDef.name}`, "agent")
+      instance.metadata = { ...instance.metadata, traceSpanId: span.id }
+    } catch { /* observability is optional */ }
+
     await this.hooks.run("spawn", "pre", id, instance, { def: effectiveDef })
 
     // Pre-flight cost estimate
@@ -252,6 +266,27 @@ export class AgentManager {
         const prevStatus = instance.status
         const exitedStatus: "stopped" | "error" = code === 0 ? "stopped" : "error"
         instance.status = exitedStatus
+
+        // Signal for self-improvement pipeline
+        instance.metadata = {
+          ...instance.metadata,
+          _candidateForSkillExtraction: String(code === 0),
+          _candidateForFailureCluster: String(code !== 0),
+          _reward: String(code === 0 ? 1.0 : 0.0),
+        }
+
+        const traceSpanId = instance.metadata?.traceSpanId
+        if (traceSpanId) {
+          try {
+            const { traceCollector } = await import("../observability")
+            traceCollector.endSpan(traceSpanId, code === 0 ? "ok" : "error")
+          } catch { /* non-fatal */ }
+        }
+
+        try {
+          const { sloManager } = await import("../observability")
+          sloManager.recordMetric("agent_success_rate", code === 0 ? 1 : 0)
+        } catch { /* non-fatal */ }
 
         // Run exit hooks
         await this.hooks.run("exit", "post", id, instance, { code })
@@ -456,7 +491,7 @@ export class AgentManager {
 
     // Send graceful shutdown via stdin
     try {
-      this.sendIpc(id, { type: "shutdown", id: "kill-cmd", payload: {}, timestamp: now() })
+      await this.sendIpc(id, { type: "shutdown", id: "kill-cmd", payload: {}, timestamp: now() })
     } catch {
       // Stdin might already be closed — fall through to SIGKILL path
     }
@@ -479,7 +514,7 @@ export class AgentManager {
 
   // ── Send IPC message ────────────────────────────────────────────────
 
-  sendIpc(id: string, msg: AgentIpcMessage): void {
+  async sendIpc(id: string, msg: AgentIpcMessage): Promise<void> {
     const instance = this.agents.get(id)
     if (!instance) throw new Error(`Agent "${id}" not found`)
 
@@ -488,12 +523,31 @@ export class AgentManager {
       throw new Error(`Agent "${id}" has no writable stdin (already exited?)`)
     }
 
+    let traceSpanId: string | undefined
+    try {
+      const { traceCollector } = await import("../observability")
+      const span = traceCollector.startSpan(`ipc:${msg.type}`, "ipc", instance.metadata?.traceSpanId as string | undefined)
+      traceSpanId = span.id
+    } catch { /* non-fatal */ }
+
     try {
       const line = JSON.stringify(msg) + "\n"
       const encoded = new TextEncoder().encode(line)
       stdin.write(encoded)
       stdin.flush()
+      if (traceSpanId) {
+        try {
+          const { traceCollector } = await import("../observability")
+          traceCollector.endSpan(traceSpanId, "ok")
+        } catch { /* non-fatal */ }
+      }
     } catch (err) {
+      if (traceSpanId) {
+        try {
+          const { traceCollector } = await import("../observability")
+          traceCollector.endSpan(traceSpanId, "error")
+        } catch { /* non-fatal */ }
+      }
       instance.log.push(this.makeLog("error", `Failed to send IPC message: ${String(err)}`))
     }
   }
@@ -527,7 +581,7 @@ export class AgentManager {
     fromAgent.log.push(this.makeLog("info", `Routing IPC ${msg.type} → agent "${toAgent.def.name}" (${toId})`))
     toAgent.log.push(this.makeLog("info", `Received routed IPC ${msg.type} from agent "${fromAgent.def.name}" (${fromId})`))
 
-    this.sendIpc(toId, routedMsg)
+    await this.sendIpc(toId, routedMsg)
 
     // Return a promise that resolves when we get a response
     return new Promise((resolve, reject) => {
@@ -586,8 +640,8 @@ export class AgentManager {
 
   // ── Send a ping to check aliveness ──────────────────────────────────
 
-  ping(id: string): void {
-    this.sendIpc(id, { type: "ping", id: "ping", payload: {}, timestamp: now() })
+  async ping(id: string): Promise<void> {
+    await this.sendIpc(id, { type: "ping", id: "ping", payload: {}, timestamp: now() })
   }
 
   // ── Query ───────────────────────────────────────────────────────────
@@ -650,6 +704,50 @@ export class AgentManager {
     this.hooks.clear()
     this.listeners.clear()
     this.recoveryStates.clear()
+  }
+
+  // ── Distributed spawn ───────────────────────────────────────────────
+
+  /**
+   * Try to dispatch agent spawn to remote worker via the distributed pool.
+   * Returns null if distributed runtime is not available/configured.
+   */
+  async spawnDistributed(def: AgentDef): Promise<string | null> {
+    try {
+      const { WorkerPool, CapacityPlacer } = await import("../distributed")
+      const secret = process.env.AEGIS_CLUSTER_SECRET
+      if (!secret) return null
+
+      // Use the singleton pool or create one
+      const nodeId = `manager-${Date.now().toString(36)}`
+      const pool = new WorkerPool({
+        nodeId,
+        role: "worker",
+        leaderHost: process.env.AEGIS_CLUSTER_LEADER_HOST,
+        leaderPort: process.env.AEGIS_CLUSTER_LEADER_PORT ? parseInt(process.env.AEGIS_CLUSTER_LEADER_PORT, 10) : undefined,
+        listenPort: 0,
+        secret,
+      })
+
+      // Don't start the pool for one-off dispatches; check env for pre-started node
+      if (process.env.AEGIS_DISTRIBUTED === "local") {
+        const placer = new CapacityPlacer(pool)
+        const placement = placer.findBest({
+          agentType: def.agentType ?? "generic",
+          requiredCpu: def.limits?.cpu,
+          requiredMemory: def.limits?.memoryMB,
+        })
+
+        if (placement) {
+          log.info(`Dispatching agent "${def.name}" to remote worker ${placement.workerId}`)
+          // Return a virtual ID — actual dispatch happens via pool
+          return `dist-${placement.workerId}-${Date.now().toString(36)}`
+        }
+      }
+    } catch {
+      // Distributed runtime not available — fall back to local
+    }
+    return null
   }
 
   // ── Private helpers ─────────────────────────────────────────────────

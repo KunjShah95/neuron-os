@@ -2,7 +2,7 @@
 
 *The Operating System for Autonomous AI Agents*
 
-[![Version](https://img.shields.io/badge/version-0.2.0-blue)]()
+[![Version](https://img.shields.io/badge/version-0.10.0-blue)]()
 [![Roadmap](https://img.shields.io/badge/roadmap-1--year%20plan-purple)]()
 [![Status](https://img.shields.io/badge/status-active%20development-orange)]()
 [![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.3.14-black)]()
@@ -53,12 +53,22 @@ Run `aegis` (no args) for the interactive mode picker, or launch directly:
 | Skills | `skills` | `sk` | Browse and manage skills |
 | Config | `config` | `cfg` | Credential vault and settings |
 | Cron | `cron` | | Scheduled job management |
-| Memory | `memory` | | Long-term memory & vector search |
+| Memory | `memory` | | Long-term memory, vector search, knowledge graph |
 | AgentMemory | `agentmemory` | `am` | Hybrid BM25+Vector+Graph sidecar |
 | Agent Manager | `agent` | `a` | Spawn, kill, inspect agents |
 | Setup | `setup` | | Interactive configuration wizard |
 | API Server | `serve` | | HTTP REST API + WebSocket |
 | MCP | `mcp` | | Model Context Protocol client/server |
+| Cost | `cost` | | Per-task, per-agent cost attribution |
+| Router | `router` | | Auto-select cheapest provider per task |
+| Estimate | `estimate` | | Pre-flight cost check before spawning |
+| Insights | `insights` | | Cross-DB analytics across all stores |
+| Benchmark | `benchmark` | | Agent quality regression detection |
+| Bench | `bench` | | Provider benchmark comparison |
+| Improve | `improve` | | Self-learning: skill extraction, failure clustering |
+| Production | `production` | | RBAC, vault, SLO, traces, background agents |
+| Distributed | `distributed` | | Multi-host worker pool, leader election |
+| Router | `router` | | Model router for cheapest viable provider |
 
 ### Web Frontends
 
@@ -106,24 +116,44 @@ One interface, eight chat platforms. All behind `src/adapters/gateway.ts`:
 - Email (SMTP/Nodemailer)
 - Webhook (generic + GitHub)
 
-### AI Providers (6)
+### AI Providers (13)
 
-Anthropic, OpenAI, DeepSeek, Mistral, Azure OpenAI, Together AI, Ollama (local), and custom endpoints. Switch at runtime in chat TUI with `/provider set <name>`.
+Anthropic, OpenAI, DeepSeek, Groq, Gemini, Mistral, Azure OpenAI, Together AI, Ollama (local), OpenRouter, xAI, Cohere, Perplexity — plus custom endpoints. Auto-routed by cost with `aegis router route`. Switch at runtime in chat TUI with `/provider set <name>`.
 
 ### Core Features
 
 - **Typed IPC Protocol** — JSON-line messages over stdin/stdout with heartbeat, auto-recovery (exponential backoff)
 - **Lifecycle Hooks** — pre/post hooks for spawn, kill, message, error, exit events
 - **HMAC-signed REST API** — timing-safe comparison, replay-protection window
-- **Session Persistence** — SQLite-backed session store with resume, export, prune
+- **Session Persistence** — SQLite-backed session store with resume, export, prune, merge
+- **Knowledge Graph** — SQLite-backed entity-relationship store with auto-extraction from sessions
 - **Vector Memory** — TF-IDF + cosine similarity for semantic search across conversations
+- **Unified Memory Query** — Single interface across FTS5 recall, vector, sessions, experience, and graph stores
 - **AgentMemory Sidecar** — Optional hybrid BM25+Vector+Graph engine (95.2% R@5 on LongMemEval-S)
+- **Cross-Session Synthesis** — `aegis memory synthesize <topic>` merges knowledge across all memory stores
+- **Per-Agent Namespaces** — TTL-managed memory scoped by agent type with auto-archival
 - **MCP Integration** — Client and server for Model Context Protocol tool interoperability
 - **Tool-based Security** — Per-agent-type tool permissions with pattern-restricted bash
 - **Skill System** — Extensible skills with local registry and marketplace API
 - **Cron Engine** — Scheduled jobs with heartbeat monitoring
-- **Cost Attribution** — Per-task, per-agent, per-session token tracking (v0.7.0+)
+- **Trigger Engine** — Cron, file_watch, webhook, condition, and gateway_command triggers
+- **Background Agents** — File-watching and scheduled background agent execution
+- **Cost Attribution** — Per-task, per-agent, per-session token tracking with USD pricing
+- **Model Router** — Auto-selects cheapest viable provider per task type using real pricing data
+- **Pre-Flight Cost Check** — Estimates cost before spawning, blocks if over threshold
+- **Provider Benchmarking** — `aegis bench providers` compares all 13 providers on quality/cost
 - **Auto-Recovery** — Configurable retries with exponential backoff and per-agent state tracking
+- **Experience Replay** — Auto-retry failed runs with adaptive strategies, auto-extract skills
+- **Self-Improvement Scheduler** — Cron-driven skill extraction (6h) and failure clustering (12h)
+- **Adversarial Self-Play** — Red-team agents challenge defenders, finds regressions
+- **Distributed Runtime** — Multi-host worker pool with bully leader election and encrypted transport
+- **Capacity-Aware Placement** — Workers self-report CPU/memory/GPU, scheduler picks best host
+- **Role-Based Access Control** — Admin/operator/developer/viewer roles with SHA-256 hashed API keys
+- **Encrypted Credential Vault** — AES-256-GCM secrets with scrypt-derived master key and key rotation
+- **SLO Tracking** — Rolling-window uptime, latency, error rate with burn rate calculation
+- **Distributed Tracing** — SQLite-backed trace spans with parent-child relationships
+- **Production Dashboard** — Aggregated view of SLOs, costs, failures, and agent health
+- **Cross-DB Insights** — Joins audit, billing, experience, and telemetry databases
 
 ---
 
@@ -176,11 +206,20 @@ graph TD
 | Wizard | `src/wizard/` | Interactive setup flows |
 | Tools | `src/tools/` | Tool registry and 8 built-in tool implementations |
 | Skills | `src/skills/` | Skill loading, registry, and remote API client |
-| Memory | `src/memory/` | Session persistence, memory system, vector search |
+| Memory | `src/memory/` | Session persistence, knowledge graph, vector, namespaces, synthesis |
+| Experience | `src/experience/` | Experience replay buffer, retrieval, skill curation |
+| Economy | `src/economy/` | Cost routing, pricing registry, budget guard, pre-flight checks |
+| Improve | `src/improve/` | Skill extraction, failure clustering, adversarial self-play |
+| Distributed | `src/distributed/` | Worker pool, encrypted transport, capacity placement, management |
 | Adapters | `src/adapters/` | 8-platform gateway (Discord, Slack, Telegram, etc.) |
-| API | `src/api/` | HTTP REST API server with HMAC authentication |
-| AI | `src/ai/` | Provider manager, factory, model references |
-| Cron | `src/cron/` | Cron engine (add, remove, list, heartbeat) |
+| API | `src/api/` | HTTP REST API server with HMAC + RBAC authentication |
+| AI | `src/ai/` | Provider manager (13 providers), factory, model references |
+| Auth | `src/auth/` | RBAC role management, API key auth, HTTP middleware |
+| Vault | `src/vault/` | AES-256-GCM credential vault, env loader, provider bridge |
+| Observability | `src/observability/` | SLO tracking, distributed tracing, production dashboard |
+| Triggers | `src/triggers/` | Cron, file_watch, webhook, condition, background agents |
+| Audit | `src/audit/` | Append-only audit logging for all agent actions |
+| Billing | `src/billing/` | Per-LLM-call cost tracking, budget enforcement |
 
 ---
 
@@ -189,10 +228,14 @@ graph TD
 - **Per-agent tool permissions** — read, write, edit, bash, grep, glob, web_fetch, web_search, read_skill
 - **Pattern-restricted bash** — test, validate, deploy agents can only run approved command patterns
 - **HMAC-signed API** — all REST endpoints require signed requests with replay protection
+- **RBAC** — Admin/operator/developer/viewer roles with SHA-256 hashed API keys; permission checks on every route
 - **Auditable** — all agent actions logged with timestamps to append-only audit log
-- **Encrypted vault** — AES-256-GCM credential storage with key rotation support
+- **Encrypted credential vault** — AES-256-GCM with scrypt-derived master key, per-entry random IVs, key rotation
+- **Distributed transport encryption** — AES-256-GCM between workers with SHA-256 derived shared key
+- **Vault-to-provider bridge** — API keys stored in vault auto-sync to provider resolution at unlock
 - **User-level permissions** — agents operate with the user's filesystem permissions
 - **Local by default** — all agents run locally unless explicitly configured otherwise
+- **Zero-trust isolation** — Docker container sandboxing for high-risk agent types
 
 ---
 
@@ -205,12 +248,22 @@ graph TD
 | `ANTHROPIC_API_KEY` | For Anthropic | Anthropic API key |
 | `OPENAI_API_KEY` | For OpenAI | OpenAI API key |
 | `DEEPSEEK_API_KEY` | For DeepSeek | DeepSeek API key |
+| `GROQ_API_KEY` | For Groq | Groq API key |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | For Gemini | Google Gemini API key |
 | `MISTRAL_API_KEY` | For Mistral | Mistral API key |
-| `AZURE_OPENAI_KEY` | For Azure | Azure OpenAI key |
-| `TOGETHER_API_KEY` | For Together AI | Together AI key |
+| `AZURE_OPENAI_API_KEY` | For Azure | Azure OpenAI key |
+| `TOGETHERAI_API_KEY` | For Together AI | Together AI key |
+| `OPENROUTER_API_KEY` | For OpenRouter | OpenRouter API key |
+| `XAI_API_KEY` | For xAI | xAI API key |
+| `COHERE_API_KEY` | For Cohere | Cohere API key |
+| `PERPLEXITY_API_KEY` | For Perplexity | Perplexity API key |
 | `OLLAMA_URL` | For Ollama | Base URL for local Ollama server |
 | `AEGIS_DEFAULT_PROVIDER` | Optional | Default provider name |
 | `AEGIS_LOG_LEVEL` | Optional | Log level: debug, info, warn, error |
+| `AEGIS_MODEL_ROUTER` | Optional | Set to `disabled` to bypass model routing |
+| `AEGIS_PREFLIGHT` | Optional | Set to `disabled` to skip pre-flight cost checks |
+| `AEGIS_DISTRIBUTED` | Optional | Enable distributed runtime worker pool |
+| `AEGIS_CLUSTER_SECRET` | Optional | Shared secret for distributed transport encryption |
 | `AGENTMEMORY_URL` | Optional | agentmemory sidecar URL (default: http://localhost:3111) |
 | `AGENTMEMORY_SECRET` | Optional | Bearer token for agentmemory auth |
 | `AGENTMEMORY_ENABLED` | Optional | Set to `false` to disable |
@@ -289,126 +342,134 @@ docker compose --profile dev up
 
 ---
 
-## 1-Year Roadmap (2026-2027)
+## Roadmap (2026-2027)
 
-Neuron OS is evolving from a local agent runtime into a **production-ready autonomous agent operating system**. The roadmap below breaks the next year into quarterly milestones with clear deliverables and exit criteria.
+Neuron OS has shipped 4 major milestones since v0.2.0. The roadmap below shows what's built and what's next.
 
-### ✅ Q2 2026 — Multi-Platform Gateway (v0.6.0) — **SHIPPED**
+### ✅ v0.7.0 — Cost Attribution & Benchmarking — **SHIPPED**
 
 **What we delivered:**
-- 8 first-class adapters (Discord, Slack, SMS, Voice, WhatsApp, Email, Webhook, Bot-Commands)
-- HMAC-signed REST API with replay protection
-- Per-adapter test coverage
-- `aegis gateway start` multi-adapter daemon
-- Marketing website with docs, changelog, FAQ
-- Web dashboard with 12 routes, real-time agents, session management
+- `aegis cost {total,models,sessions,history,budget,report}` CLI with real USD pricing
+- `aegis benchmark {run,status,baseline}` with regression detection and CI-compatible JSON output
+- `aegis bench providers "<task>"` — benchmarks all 13 providers on quality + cost
+- `aegis insights` — cross-DB analytics joining audit, billing, experience, and telemetry stores
+- `aegis router route/list/suggest` — auto-selects cheapest viable provider per task type
+- `aegis estimate` — pre-flight cost estimation before agent spawning, with warn/block thresholds
+- Model router wired into agent spawning — `AEGIS_MODEL_HINT` auto-set to cheapest provider
+- 13 providers tracked in pricing registry with real per-1k-token costs
 
 ---
 
-### 🔨 Q3 2026 — Stabilization & Cost Control (v0.3.x → v0.7.0)
+### ✅ v0.8.0 — Knowledge Graph & Long-Term Memory — **SHIPPED**
 
-**Theme:** Harden the core, control costs, know what every agent spends.
-
-| Milestone | Deliverable | Exit Criteria |
-|-----------|-------------|---------------|
-| **CI/CD Hardening** | Full test matrix (Linux, macOS, Windows) | All PRs blocked on green CI |
-| **Test Coverage** | 80% line coverage across `src/` | `bun run test` passes with ≥80% |
-| **SQLite Cost Store** | Per-agent, per-task token tracking | `aegis cost week` shows real data |
-| **Budget Enforcement** | Hard/soft budgets with auto-throttle | Agent stops at budget limit |
-| **Provider Router** | Auto-select cheapest capable provider | Benchmark data drives routing |
-| **Cost Alerts** | Dashboard cost charts + spike detection | Slack/Discord alerts on budget breach |
-| **Config Validation** | JSON Schema for all config files | `aegis doctor` validates config |
-
-**Key features:**
-- 13 LLM provider cost tracking (Anthropic, OpenAI, DeepSeek, Mistral, Azure, Together AI, Ollama, and more)
-- Docker production builds with multi-arch support (AMD64, ARM64)
-- Agent auto-recovery stress testing
-- Windows Terminal support polish
+**What we delivered:**
+- SQLite-backed knowledge graph with entity extraction, relationship linking, confidence scoring
+- Per-agent memory namespaces with TTL-based expiry and archival
+- Cross-session knowledge synthesis (`aegis memory synthesize <topic>`) across 5 stores
+- Unified Memory Query — single interface searching FTS5 recall, vector memory, sessions, experience, and graph
+- Auto-extraction from agent sessions — every completed session populates the knowledge graph
+- `aegis memory graph {add-entity,link,search,related,stats}`
+- `aegis memory ns {create,add,query,prune}`
 
 ---
 
-### 🧠 Q4 2026 — Intelligence & Memory (v0.8.0)
+### ✅ v0.9.0 — Distributed Runtime — **SHIPPED**
 
-**Theme:** Agents that remember, learn, and improve.
-
-| Milestone | Deliverable | Exit Criteria |
-|-----------|-------------|---------------|
-| **Episodic Memory** | Session history with semantic search | Query by meaning, not keyword |
-| **Knowledge Graph** | Structured facts with provenance | Every fact cites its source session |
-| **Skill Evolution** | Auto-extract skills from successful runs | Passing skills auto-published |
-| **Experience Replay** | Failure clustering + pattern detection | Same failure never happens twice |
-| **Memory Namespaces** | Per-project, per-agent TTL + archival | `aegis memory synthesize <topic>` works |
-| **Dashboard v2** | Knowledge graph visualization | Web app shows memory as graph |
-
-**Key features:**
-- BM25 + Vector + Graph hybrid search (AgentMemory sidecar at 95.2% R@5)
-- Per-project memory namespaces with TTL
-- Cross-session knowledge synthesis
-- Adversarial self-play with red-team findings registry
-- Agent answers questions about projects from 30+ days ago
+**What we delivered:**
+- Multi-host worker pool with TCP-based leader election (bully algorithm)
+- AES-256-GCM encrypted transport between workers with SHA-256 key derivation
+- Capacity-aware placement — workers self-report CPU, memory, GPU; scheduler scores and picks best host
+- Remote management HTTP API (6 routes: health, workers, task dispatch, election)
+- Worker heartbeat monitoring with automatic timeout
+- `aegis distributed {start,status,workers,task,info}`
+- Distributed spawn integration in AgentManager — auto-dispatches to remote workers when configured
+- HMAC-signed management API with optional `X-Aegis-Signature` header
 
 ---
 
-### 🌐 Q1 2027 — Distribution & Teams (v0.9.0)
+### ✅ v0.10.0 — Self-Improving Agents — **SHIPPED**
 
-**Theme:** Run anywhere. Work together.
-
-| Milestone | Deliverable | Exit Criteria |
-|-----------|-------------|---------------|
-| **Multi-Host Runtime** | Leader + worker pool across machines | `replicas: 10` distributes across 3 hosts |
-| **Encrypted Transport** | Noise protocol for worker communication | Wireshark shows encrypted payloads |
-| **RBAC v1** | Per-role tool permissions + audit | `aegis rbac assign` works end-to-end |
-| **Plugin Marketplace** | Signed plugins with version resolution | Install from registry: `aegis plugin install <name>` |
-| **Background Agents** | File-watching + event-driven triggers | Save file → build agent auto-spawns |
-| **WebSocket Gateway** | Real-time multi-user dashboards | Multiple users see same agent state |
-
-**Key features:**
-- Agent-to-agent IPC for typed multi-agent trees
-- Coordinator election for dynamic team formation
-- Disagreement resolution with debate topology
-- Cross-team memory with explicit access policies
+**What we delivered:**
+- Skill candidate extraction from successful experiences — clustering by embedding similarity
+- Failure clustering by goal + tag overlap with severity scoring
+- Adversarial self-play — 8 scenario templates, attacker vs defender, regression detection
+- Auto-skill packaging — validated candidates published to `src/skills/auto-*.ts`
+- Self-improvement scheduler — cron-driven skill extraction (every 6h) and failure clustering (every 12h)
+- `aegis improve skill {extract,list,validate,publish,reject,stats}`
+- `aegis improve failure {cluster,list,fix,retry}`
+- `aegis improve adversarial {run,results,analyze}`
+- `aegis improve scheduler {init,remove,status,run}`
+- Wired into agent lifecycle — completed agents flagged for skill extraction; failed agents flagged for clustering
 
 ---
 
-### 🏭 Q2 2027 — Production-Ready (v1.0.0)
+### ✅ v1.0.0 — Production-Ready — **SHIPPED**
 
-**Theme:** Ship it. Sleep at night.
-
-| Milestone | Deliverable | Exit Criteria |
-|-----------|-------------|---------------|
-| **SLA Dashboards** | 99th percentile latency, uptime, error rate | Public status page |
-| **Incident Playbooks** | Automated runbooks for common failures | `aegis incident` generates report |
-| **Hardened Vault** | AES-256-GCM with key rotation | Key rotation without downtime |
-| **E2E Observability** | Traces, metrics, logs in one queryable store | Jaeger/Zipkin-compatible export |
-| **Sandboxed Execution** | Docker-based agent sandboxes | Untrusted code runs isolated |
-| **Certification** | Security audit + performance benchmarks | Third-party audit report published |
-
-**Exit criteria for v1.0.0:**
-- A 50-engineer team can adopt Aegis as their primary agent platform without vendor involvement
-- The 99th percentile of "why did this agent do that?" is answerable in under 5 minutes
-- 99.9% uptime with automated recovery for all critical paths
+**What we delivered:**
+- RBAC with admin/operator/developer/viewer roles, SHA-256 hashed API keys, route-permission mapping
+- Encrypted credential vault — AES-256-GCM with scrypt-derived master key, per-entry IVs, expiration tracking
+- Vault-to-provider bridge — API keys in vault auto-sync to provider resolution at unlock
+- SLO tracking — rolling-window uptime, latency, error rate with burn rate calculation
+- Distributed tracing — SQLite-backed trace spans with parent-child relationships
+- Production dashboard — aggregated SLOs, costs, failures, agent health
+- `aegis serve --auth` — RBAC-enabled HTTP server with permission checks on all routes (17 route patterns)
+- `aegis production {rbac,vault,slo,dashboard,trace,background}`
+- Background agents — file-watching and scheduled agents via TriggerEngine
+- `aegis trigger background {list,register}`
+- Event-driven triggers already existed: cron, file_watch, webhook, condition, gateway_command
 
 ---
 
-### 🚀 Beyond v1.0.0 — The Long Game
+### 🔮 H2 2026 — Plugin Marketplace & WebSocket Gateway
 
-**Self-Improving Runtime (Karpathy-delta closure)**
-- Skill candidate extraction from successful patterns
-- Failure clustering and prioritized improvement suggestions
-- Auto-skill packaging with quality gates
-- Adversarial self-play (red-team agents feed regressions back)
+**Theme:** Extend without forks. Collaborate in real-time.
 
-**Tool-Level Economy**
-- Per-tool pricing registry (compute, API, I/O costs)
-- Budgeted agents with self-throttling
-- Cross-provider cost router at runtime
-- Public `quality / USD` benchmarks per provider
+| Milestone | Deliverable | 
+|-----------|-------------|
+| **Plugin Registry** | Signed plugins with version resolution, dependency management |
+| **Plugin CLI** | `aegis plugin {publish,install,list,remove}` with signature verification |
+| **WebSocket Gateway** | Real-time multi-user dashboards with per-user agent state |
+| **Multi-User Sessions** | Shared agent workspaces with activity streaming |
 
-**Multi-Agent Teams at Scale**
-- Typed multi-agent trees (inputs, outputs, preconditions)
-- Coordinator election by capability
-- Disagreement resolution with debate topology
-- Cross-team memory with explicit access policies
+---
+
+### 🔮 Q1 2027 — Multi-Agent Teams at Scale
+
+**Theme:** Teams form and dissolve around tasks, not topology.
+
+| Milestone | Deliverable |
+|-----------|-------------|
+| **Typed Multi-Agent Trees** | Agents declare inputs, outputs, preconditions |
+| **Coordinator Election** | Dynamic lead agent selection by capability matching |
+| **Debate Topology** | Third-agent arbitration for agent disagreement resolution |
+| **Cross-Team Memory** | Team A's learnings queryable by Team B with explicit access policies |
+
+---
+
+### 🔮 Q2 2027 — Tool-Level Economy & Agent Bidding
+
+**Theme:** Every action has a price. Every dollar has a benchmark.
+
+| Milestone | Deliverable |
+|-----------|-------------|
+| **Per-Tool Pricing** | Every tool has compute/API/I/O cost + latency profile |
+| **Budgeted Agents** | `budget_usd` on task def; agent self-throttles spend |
+| **Spot Routing** | Cross-provider cost router picks current cheapest provider |
+| **Public Benchmarks** | `quality / USD` leaderboard per provider per task class |
+| **Cost Spike Alerts** | Automated Slack/Discord alerts on budget breach |
+
+---
+
+### 🔮 H2 2027 — Self-Improving Runtime (Karpathy-Delta Closure)
+
+**Theme:** The system closes the loop — extract, validate, publish, repeat.
+
+| Milestone | Deliverable |
+|-----------|-------------|
+| **Auto-Skill Packaging** | Passing skill candidates auto-published with quality gates |
+| **Failure Prioritization** | Grouped failures ranked by frequency and blast radius |
+| **Adversarial Regression** | Red-team findings auto-fed into system prompts as known patterns |
+| **Dashboard v2** | Knowledge graph visualization in web app
 
 ---
 

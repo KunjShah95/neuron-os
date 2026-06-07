@@ -3,6 +3,16 @@ import type { LanguageModel } from "ai"
 import type { AIProviderType } from "./models"
 import { getProviderFactory } from "./providers"
 
+const vaultOverrides = new Map<string, string>()
+
+export function setVaultCredential(provider: string, apiKey: string): void {
+  vaultOverrides.set(provider, apiKey)
+}
+
+export function clearVaultCredentials(): void {
+  vaultOverrides.clear()
+}
+
 export type AIProvider = AIProviderType
 
 export interface AIConfig {
@@ -33,6 +43,9 @@ export interface AIResponse {
 }
 
 export function resolveApiKey(provider: string): string | undefined {
+  const override = vaultOverrides.get(provider)
+  if (override) return override
+
   const envMap: Record<string, string> = {
     anthropic: "ANTHROPIC_API_KEY",
     openai: "OPENAI_API_KEY",

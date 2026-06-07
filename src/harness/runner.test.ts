@@ -4,6 +4,7 @@ import type { TestCase } from "./types"
 describe("Runner Tests", () => {
 
   const testCase: TestCase = {
+    id: "smoke-test",
     name: "smoke-test",
     prompt: "Run echo hello",
     tags: ["smoke"],
