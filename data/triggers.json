@@ -1,0 +1,41 @@
+[
+  {
+    "name": "agent",
+    "type": "gateway_command",
+    "config": {
+      "command": "agent"
+    },
+    "action": {
+      "mode": "queue-task",
+      "goal": "{{rest}}",
+      "priority": "normal"
+    },
+    "enabled": true,
+    "tags": [
+      "builtin"
+    ],
+    "id": "builtin-agent",
+    "createdAt": "2026-06-07T05:12:43.330Z",
+    "fireCount": 2,
+    "lastFiredAt": "2026-06-07T05:49:42.381Z"
+  },
+  {
+    "name": "ping",
+    "type": "gateway_command",
+    "config": {
+      "command": "ping"
+    },
+    "action": {
+      "mode": "run-command",
+      "goal": "echo pong"
+    },
+    "enabled": true,
+    "tags": [
+      "builtin"
+    ],
+    "id": "builtin-ping",
+    "createdAt": "2026-06-07T05:12:43.330Z",
+    "fireCount": 2,
+    "lastFiredAt": "2026-06-07T05:49:42.386Z"
+  }
+]

@@ -100,7 +100,7 @@ export function registerPricing(program: Command): void {
     })
 
   // leaderboard subcommands
-  const bench = program
+  const bench = pricing
     .command("bench")
     .description("Benchmark suite and leaderboard")
 
