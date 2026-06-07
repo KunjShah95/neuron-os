@@ -57,3 +57,44 @@ export { SandboxPolicyManager, SANDBOX_POLICIES } from "./sandbox-policy"
 
 // ── Flaky Manager ────────────────────────────────────────────────
 export { FlakyManager } from "./flaky-manager"
+
+// ── Grader Suite (Phase 2) ──────────────────────────────────────
+export { GraderSuite, getGraderSuite, DEFAULT_GRADER_SUITE_CONFIG } from "./grader"
+export type { GraderSuiteConfig, GraderContext } from "./grader/types"
+export {
+  deterministicGrade,
+  stringMatchGrader,
+  fileCheckGrader,
+  exitCodeGrader,
+  stepCountGrader,
+  tokenBudgetGrader,
+  diffGrader,
+} from "./grader/deterministic"
+export {
+  rubricGrader,
+  safetyGrader,
+  compareGrader,
+  multiJudgeConsensus,
+} from "./grader/llm"
+export {
+  typeCheckGrader,
+  testGrader,
+  lintGrader,
+  customScriptGrader,
+} from "./grader/code"
+export {
+  computeCompositeScore,
+  isPassing,
+  normalizeWeights,
+  DEFAULT_COMPOSITE_CONFIG,
+} from "./grader/composite"
+export { JudgeCalibration, createDefaultCalibrationSet } from "./grader/calibration"
+export type {
+  DeterministicGraderConfig,
+  LLMGraderConfig,
+  CodeGraderConfig,
+  CompositeScoringConfig,
+  CalibrationExample,
+  CalibrationResult,
+  DriftReport,
+} from "./grader/types"

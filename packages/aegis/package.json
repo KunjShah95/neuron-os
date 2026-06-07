@@ -1,0 +1,16 @@
+{
+  "name": "aegis",
+  "version": "0.2.1",
+  "description": "Aegis — AI operating system for the terminal",
+  "type": "module",
+  "bin": {
+    "aegis": "./bin/aegis.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "bin/",
+    "README.md"
+  ]
+}

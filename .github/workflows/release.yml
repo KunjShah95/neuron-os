@@ -107,7 +107,6 @@ jobs:
           - { target: darwin-x64,        os: macos-13,      ext: '',  binary: aegis-darwin-x64,        bun_target: bun-darwin-x64 }
           - { target: darwin-arm64,      os: macos-14,      ext: '',  binary: aegis-darwin-arm64,      bun_target: bun-darwin-arm64 }
           - { target: windows-x64,       os: windows-latest, ext: '.exe', binary: aegis-windows-x64,    bun_target: bun-windows-x64 }
-          - { target: windows-arm64,     os: windows-latest, ext: '.exe', binary: aegis-windows-arm64,  bun_target: bun-windows-aarch64 }
 
     steps:
       - uses: actions/checkout@v4
@@ -252,7 +251,8 @@ jobs:
             echo "| macOS | x64 | \`aegis-darwin-x64\` |"
             echo "| macOS | arm64 (Apple Silicon) | \`aegis-darwin-arm64\` |"
             echo "| Windows | x64 | \`aegis-windows-x64.exe\` |"
-            echo "| Windows | arm64 | \`aegis-windows-arm64.exe\` |"
+            echo ""
+            echo "> Note: Windows arm64 binaries are not yet published. Bun's cross-compile to windows-aarch64 from an x64 runner cannot extract the aarch64 executable. The shim will report a clear error on unsupported platforms."
             echo ""
             echo "### Checksums"
             echo '```'

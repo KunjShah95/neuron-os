@@ -6,6 +6,8 @@ import type { TestCase, EvalResult, ToolTrace, RunnerConfig } from "./types"
 import { BudgetController } from "./budget-controller"
 import { FlakyManager } from "./flaky-manager"
 import { HarnessSandboxManager } from "./sandbox"
+import { GraderSuite } from "./grader"
+import type { GraderSuiteConfig } from "./grader/types"
 
 const DEFAULT_MODEL = process.env.HARNESS_MODEL || "claude-sonnet-4-20250514"
 
@@ -16,6 +18,7 @@ export interface HarnessRunnerConfig {
   runnerConfig?: Partial<RunnerConfig>
   signal?: AbortSignal
   budgetController?: BudgetController
+  graderConfig?: Partial<GraderSuiteConfig>
 }
 
 // ── Single Test Runner ──────────────────────────────────────────
@@ -68,26 +71,16 @@ export async function runTest(test: TestCase, config?: HarnessRunnerConfig): Pro
     // Capture sandbox diff
     const sandboxSnapshot = await sandboxManager.snapshotDiff(sandbox)
 
-    // Compute pass/fail
-    const passed = evaluatePassFail(test, output.text, traces)
-    const score = passed ? 1.0 : 0.0
-
     // Record cost (if budget controller provided via suite runner, or use local)
     const totalCost = estimateCost(model, traces, output.text)
     const bc = config?.budgetController ?? new BudgetController()
     bc.recordCost(totalCost)
 
-    await engine.completeSession(passed ? "completed" : "failed")
-
-    // Cleanup sandbox
-    if (test.cleanup !== false) {
-      await sandboxManager.cleanup(sandbox)
-    }
-
-    return {
+    // Build raw EvalResult without grades yet
+    const rawResult: EvalResult = {
       test,
-      passed,
-      score,
+      passed: false,
+      score: 0,
       grades: [],
       output: output.text,
       trace: traces,
@@ -101,6 +94,21 @@ export async function runTest(test: TestCase, config?: HarnessRunnerConfig): Pro
       metadata: {},
       sandboxSnapshot,
     }
+
+    // Run grader suite (Phase 2 integration)
+    const graderSuite = config?.graderConfig
+      ? new GraderSuite({ ...config.graderConfig, workDir: sandbox.workDir })
+      : new GraderSuite({ workDir: sandbox.workDir })
+    const gradedResult = await graderSuite.grade(rawResult)
+
+    await engine.completeSession(gradedResult.passed ? "completed" : "failed")
+
+    // Cleanup sandbox
+    if (test.cleanup !== false) {
+      await sandboxManager.cleanup(sandbox)
+    }
+
+    return gradedResult
   } catch (err) {
     return {
       test,
@@ -208,41 +216,12 @@ export async function runSuite(
 /**
  * Legacy runTest signature for backward compatibility.
  */
+/** @deprecated Use runTest instead */
 export async function runTestLegacy(test: TestCase, config?: HarnessRunnerConfig): Promise<EvalResult> {
   return runTest(test, config)
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
-
-function evaluatePassFail(test: TestCase, output: string, traces: ToolTrace[]): boolean {
-  if (!test.expected) return true
-
-  const exp = test.expected
-
-  // Pattern check
-  if (exp.pattern) {
-    try {
-      const regex = new RegExp(exp.pattern, "i")
-      if (!regex.test(output) && !traces.some(t => regex.test(t.result))) return false
-    } catch {
-      if (!output.includes(exp.pattern)) return false
-    }
-  }
-
-  // Step budget check
-  if (exp.maxSteps && traces.length > exp.maxSteps) return false
-
-  // Token budget check
-  if (exp.maxTokens) {
-    const totalTokens = traces.reduce((sum, t) => sum + (t.tokenCost ?? 0), 0)
-    if (totalTokens > exp.maxTokens) return false
-  }
-
-  // Minimal score check (deferred to Phase 2 grader — pass for now)
-  // if (exp.minScore !== undefined && score < exp.minScore) return false
-
-  return true
-}
 
 function estimateCost(model: string, _traces: ToolTrace[], _output: string): number {
   // Simple cost estimation based on model
