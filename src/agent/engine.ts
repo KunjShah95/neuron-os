@@ -231,11 +231,7 @@ export class AgentEngine {
           this.evaluationCriteria,
         )
         reward = evalResult.overallScore
-        outcome = evalResult.overallPass
-          ? "success"
-          : evalResult.overallScore > 0
-            ? "partial"
-            : "failed"
+        outcome = evalResult.overallPass ? "success" : evalResult.overallScore > 0 ? "partial" : "failed"
         metrics.evaluation = evalResult
       } catch (err) {
         log.warn("Evaluator failed, falling back to neutral reward", { error: String(err) })
@@ -418,14 +414,14 @@ export class AgentEngine {
     const allTools = toolRegistry.list()
     const lines = ["You have access to the following tools:", ""]
     for (const t of allTools) {
-      const params = t.parameters
-        .map((p) => `${p.name}${p.required ? "" : "?"}: ${p.type}`)
-        .join(", ")
+      const params = t.parameters.map((p) => `${p.name}${p.required ? "" : "?"}: ${p.type}`).join(", ")
       lines.push(`- **${t.name}**: ${t.description}`)
       if (params) lines.push(`  Parameters: ${params}`)
       lines.push("")
     }
-    lines.push("When you need to accomplish a task, call the appropriate tool. The tool results will be provided to you in subsequent messages.")
+    lines.push(
+      "When you need to accomplish a task, call the appropriate tool. The tool results will be provided to you in subsequent messages.",
+    )
     return lines.join("\n")
   }
 
@@ -465,7 +461,8 @@ export class AgentEngine {
     // Persist incoming user messages
     const lastUserMsg = messages.findLast((m) => m.role === "user")
     if (lastUserMsg) {
-      const content = typeof lastUserMsg.content === "string" ? lastUserMsg.content : JSON.stringify(lastUserMsg.content)
+      const content =
+        typeof lastUserMsg.content === "string" ? lastUserMsg.content : JSON.stringify(lastUserMsg.content)
       this.persistMessage("user", content)
     }
 
@@ -508,7 +505,8 @@ export class AgentEngine {
     // Persist incoming user messages
     const lastUserMsg = messages.findLast((m) => m.role === "user")
     if (lastUserMsg) {
-      const content = typeof lastUserMsg.content === "string" ? lastUserMsg.content : JSON.stringify(lastUserMsg.content)
+      const content =
+        typeof lastUserMsg.content === "string" ? lastUserMsg.content : JSON.stringify(lastUserMsg.content)
       this.persistMessage("user", content)
     }
 

@@ -44,7 +44,10 @@ export interface WebhookEvent {
 
 // ── Event Parsing ─────────────────────────────────────────────────────
 
-function parseGitHubEvent(event: string, payload: Record<string, unknown>): {
+function parseGitHubEvent(
+  event: string,
+  payload: Record<string, unknown>,
+): {
   action: string
   repo: string
   branch?: string

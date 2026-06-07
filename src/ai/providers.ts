@@ -45,7 +45,9 @@ registerProvider("ollama", (config: AIConfig) => {
 
 registerProvider("gemini", (config: AIConfig) => {
   const { apiKey, baseUrl } = config
-  return createOpenAI({ apiKey, baseURL: baseUrl ?? "https://generativelanguage.googleapis.com/v1beta/openai" }).chat(config.model)
+  return createOpenAI({ apiKey, baseURL: baseUrl ?? "https://generativelanguage.googleapis.com/v1beta/openai" }).chat(
+    config.model,
+  )
 })
 
 registerProvider("groq", (config: AIConfig) => {

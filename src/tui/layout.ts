@@ -20,7 +20,7 @@ export function calculateLayout(rows: number, cols: number): Layout {
   const commandHeight = 1
   const contentHeight = Math.max(1, rows - headerHeight - statusHeight - commandHeight)
   const agentsWidth = Math.min(30, Math.max(10, Math.floor(cols * 0.25)))
-  const a2uiWidth = Math.min(30, Math.max(10, Math.floor(cols * 0.20)))
+  const a2uiWidth = Math.min(30, Math.max(10, Math.floor(cols * 0.2)))
   const dividerWidth = 1
 
   const agentsEndX = agentsWidth

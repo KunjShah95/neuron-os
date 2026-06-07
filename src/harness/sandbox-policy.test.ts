@@ -149,10 +149,7 @@ describe("SandboxPolicyManager", () => {
   })
 
   it("should detect GitHub personal access tokens", () => {
-    const secrets = manager.detectSecrets(
-      SANDBOX_POLICIES.standard,
-      "ghp_abc123def456ghi789jkl012mno345pqr678st",
-    )
+    const secrets = manager.detectSecrets(SANDBOX_POLICIES.standard, "ghp_abc123def456ghi789jkl012mno345pqr678st")
     expect(secrets.length).toBeGreaterThan(0)
   })
 
@@ -170,18 +167,12 @@ describe("SandboxPolicyManager", () => {
   })
 
   it("should detect password assignments", () => {
-    const secrets = manager.detectSecrets(
-      SANDBOX_POLICIES.standard,
-      'const password = "super-secret-123"',
-    )
+    const secrets = manager.detectSecrets(SANDBOX_POLICIES.standard, 'const password = "super-secret-123"')
     expect(secrets.length).toBeGreaterThan(0)
   })
 
   it("should detect token assignments", () => {
-    const secrets = manager.detectSecrets(
-      SANDBOX_POLICIES.standard,
-      "token = 'my-secret-auth-token-value'",
-    )
+    const secrets = manager.detectSecrets(SANDBOX_POLICIES.standard, "token = 'my-secret-auth-token-value'")
     expect(secrets.length).toBeGreaterThan(0)
   })
 

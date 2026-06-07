@@ -4,7 +4,7 @@ import { resolve, join, basename } from "node:path"
 import { existsSync } from "node:fs"
 import { homedir } from "node:os"
 import { theme } from "../theme"
-
+import { fetchTopSkills, searchSkills } from "../../skills/remote"
 
 const REGISTRY_DIR = join(homedir(), ".aegis", "registry")
 const INDEX_PATH = join(REGISTRY_DIR, "index.json")
@@ -89,7 +89,7 @@ export function registerPlugin(program: Command): void {
         const content = await readFile(skillMdPath, "utf-8")
         const match = content.match(/^---\n[\s\S]*?description:\s*(.+)\n[\s\S]*?\n---/)
         if (match?.[1]) description = match[1].trim()
-      } catch { }
+      } catch {}
 
       const manifest = makeManifest(name, description, options.version || "1.0.0")
 
@@ -207,5 +207,111 @@ export function registerPlugin(program: Command): void {
       }
 
       console.log(`  ${theme.accent(`Removed "${name}" from registry.`)}\n`)
+    })
+
+  // ── plugin search <query> ──────────────────────────────────────────
+
+  pluginCmd
+    .command("search")
+    .description("Search the remote plugin marketplace (skills.sh)")
+    .argument("<query>", "Search query")
+    .option("-l, --limit <number>", "Max results", "10")
+    .action(async (query: string, options: { limit?: string }) => {
+      const limit = parseInt(options.limit || "10", 10) || 10
+      console.log(`\n  ${theme.heading("Searching plugin marketplace for:")} ${query}\n`)
+
+      const results = await searchSkills(query, limit)
+      if (results.length === 0) {
+        console.log(`  ${theme.muted("No results found. Try a different query.")}\n`)
+        return
+      }
+
+      for (const skill of results) {
+        const installs = skill.installs ? ` ${theme.muted(`${skill.installs.toLocaleString()} installs`)}` : ""
+        const tagStr = skill.tags?.length > 0 ? ` ${theme.muted(skill.tags.map((t) => `#${t}`).join(" "))}` : ""
+        console.log(`  ${theme.textBright(skill.name)}${installs}${tagStr}`)
+        if (skill.description) {
+          console.log(`    ${theme.muted(skill.description)}`)
+        }
+        console.log("")
+      }
+      console.log(`  ${theme.muted("Install with: aegis plugin install-from-url <url>")}\n`)
+    })
+
+  // ── plugin browse ──────────────────────────────────────────────────
+
+  pluginCmd
+    .command("browse")
+    .description("Browse trending plugins in the marketplace (skills.sh)")
+    .option("-l, --limit <number>", "Max results", "20")
+    .action(async (options: { limit?: string }) => {
+      const limit = parseInt(options.limit || "20", 10) || 20
+      console.log(`\n  ${theme.heading("Trending Plugins on skills.sh")}\n`)
+
+      const results = await fetchTopSkills(limit)
+      if (results.length === 0) {
+        console.log(`  ${theme.muted("Marketplace unavailable. Set SKILLS_API_URL or try again later.")}\n`)
+        return
+      }
+
+      for (let i = 0; i < results.length; i++) {
+        const skill = results[i]!
+        const installs = skill.installs ? ` ${theme.muted(`${skill.installs.toLocaleString()} installs`)}` : ""
+        const tagStr = skill.tags?.length > 0 ? ` ${theme.muted(skill.tags.map((t) => `#${t}`).join(" "))}` : ""
+        console.log(`  ${(i + 1).toString().padStart(2, " ")}. ${theme.textBright(skill.name)}${installs}${tagStr}`)
+        if (skill.description) {
+          console.log(`     ${theme.muted(skill.description)}`)
+        }
+        console.log("")
+      }
+      console.log(`  ${theme.muted("Install with: aegis plugin install-from-url <url>")}\n`)
+    })
+
+  // ── plugin install-from-url <url> ──────────────────────────────────
+
+  pluginCmd
+    .command("install-from-url")
+    .description("Install a plugin from a git URL (GitHub, GitLab, etc.)")
+    .argument("<url>", "Git repository URL")
+    .option("--name <name>", "Plugin name (default: repo name)")
+    .option("--ref <ref>", "Branch, tag, or commit", "main")
+    .option("-f, --force", "Overwrite existing skill directory", false)
+    .action(async (url: string, options: { name?: string; ref?: string; force?: boolean }) => {
+      const repoName = options.name || basename(url.replace(/\.git$/, ""))
+      const ref = options.ref || "main"
+
+      console.log(`\n  ${theme.heading(`Installing plugin from: ${url}`)}\n`)
+      console.log(`  ${theme.muted(`Cloning ${ref} branch into local registry...`)}`)
+
+      const destDir = resolve(PACKAGES_DIR, repoName)
+      if (existsSync(destDir)) {
+        if (!options.force) {
+          console.log(`  ${theme.muted(`Plugin "${repoName}" already exists. Use --force to reinstall.`)}\n`)
+          return
+        }
+        await rm(destDir, { recursive: true })
+      }
+
+      await mkdir(destDir, { recursive: true })
+
+      try {
+        const { execSync } = await import("node:child_process")
+        execSync(`git clone --depth 1 --branch ${ref} ${url} ${destDir}`, { stdio: "pipe", timeout: 60000 })
+
+        // Register in the index
+        const manifest = makeManifest(repoName, `Installed from ${url}`, "1.0.0")
+        manifest.author = `git:${url}`
+        const index = await readIndex()
+        index.plugins[repoName] = manifest
+        await writeIndex(index)
+
+        console.log(`  ${theme.accent(`✅ Installed "${repoName}" from ${url}`)}\n`)
+      } catch (err) {
+        // Clean up on failure
+        if (existsSync(destDir)) {
+          await rm(destDir, { recursive: true, force: true })
+        }
+        console.log(`  ${theme.error(`Failed to install: ${err}`)}\n`)
+      }
     })
 }

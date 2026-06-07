@@ -33,15 +33,16 @@ export function registerOrchestrate(program: Command) {
 
           console.log(theme.heading("  Decomposition Plan"))
           console.log()
-          console.log(`  ${theme.bold(`${plan.subTasks.length} sub-tasks`)} in ${theme.bold(`${plan.parallelGroups.length} parallel groups`)}`)
+          console.log(
+            `  ${theme.bold(`${plan.subTasks.length} sub-tasks`)} in ${theme.bold(`${plan.parallelGroups.length} parallel groups`)}`,
+          )
           console.log()
 
           for (const [i, group] of plan.parallelGroups.entries()) {
             console.log(`  ${theme.accent(`Group ${i + 1}`)} (${group.length} task(s)):`)
             for (const task of group) {
-              const complexityColor = task.complexity === "simple" ? theme.dim
-                : task.complexity === "medium" ? theme.info
-                : theme.warn
+              const complexityColor =
+                task.complexity === "simple" ? theme.dim : task.complexity === "medium" ? theme.info : theme.warn
               console.log(`    ${theme.bold(task.title)}`)
               console.log(`      ${task.description.slice(0, 120)}`)
               console.log(`      ${complexityColor(task.complexity)}`)

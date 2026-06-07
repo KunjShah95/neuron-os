@@ -145,11 +145,7 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
   bot.use(async (ctx, next) => {
     if (!ctx.from) return
     const userId = String(ctx.from.id)
-    if (
-      config.allowedUserIds &&
-      config.allowedUserIds.length > 0 &&
-      !config.allowedUserIds.includes(userId)
-    ) {
+    if (config.allowedUserIds && config.allowedUserIds.length > 0 && !config.allowedUserIds.includes(userId)) {
       await ctx.reply("⛔ Unauthorized. Your user ID is not allowed to use this bot.")
       return
     }
@@ -170,10 +166,9 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
   bot.command("ask", async (ctx) => {
     const question = commandArg(ctx.message.text, "ask")
     if (!question) {
-      await ctx.reply(
-        "Usage: `/ask <question>`\n\nExample: `/ask How does the agent system work?`",
-        { parse_mode: "Markdown" },
-      )
+      await ctx.reply("Usage: `/ask <question>`\n\nExample: `/ask How does the agent system work?`", {
+        parse_mode: "Markdown",
+      })
       return
     }
 
@@ -184,13 +179,9 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       const { runAskOrchestrator } = await import("../modes/ask")
       const answer = await runAskOrchestrator(question, undefined, config.project)
 
-      await ctx.telegram.editMessageText(
-        ctx.chat!.id,
-        statusMsg.message_id,
-        undefined,
-        clip(answer, 4000),
-        { parse_mode: "Markdown" },
-      )
+      await ctx.telegram.editMessageText(ctx.chat!.id, statusMsg.message_id, undefined, clip(answer, 4000), {
+        parse_mode: "Markdown",
+      })
     } catch (err: any) {
       await ctx.telegram.editMessageText(
         ctx.chat!.id,
@@ -205,10 +196,9 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
   bot.command("agent", async (ctx) => {
     const goal = commandArg(ctx.message.text, "agent")
     if (!goal) {
-      await ctx.reply(
-        "Usage: `/agent <goal>`\n\nExample: `/agent Add a health check endpoint`",
-        { parse_mode: "Markdown" },
-      )
+      await ctx.reply("Usage: `/agent <goal>`\n\nExample: `/agent Add a health check endpoint`", {
+        parse_mode: "Markdown",
+      })
       return
     }
 
@@ -216,43 +206,47 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
 
     try {
       const { runAgentOrchestrator } = await import("../modes/agent-run")
-      const result = await runAgentOrchestrator(goal, {
-        onStaged: async (pending) => {
-          // Send summary with inline approval keyboard
-          const summary = pending
-            .map((a) => {
-              if (a.type === "tool_execute") return `🖥  Shell: ${a.details.command}`
-              return `📄 ${a.type.replace(/_/g, " ")}: ${a.path}`
-            })
-            .join("\n")
+      const result = await runAgentOrchestrator(
+        goal,
+        {
+          onStaged: async (pending) => {
+            // Send summary with inline approval keyboard
+            const summary = pending
+              .map((a) => {
+                if (a.type === "tool_execute") return `🖥  Shell: ${a.details.command}`
+                return `📄 ${a.type.replace(/_/g, " ")}: ${a.path}`
+              })
+              .join("\n")
 
-          await ctx.telegram.editMessageText(
-            ctx.chat!.id,
-            statusMsg.message_id,
-            undefined,
-            `📋 *${pending.length} Change(s) Staged*\n\n${clip(summary, 2000)}\n\nReview and approve:`,
-            {
-              parse_mode: "Markdown",
-              ...Markup.inlineKeyboard([
-                [Markup.button.callback("📋 Show Diff", `agent_diff:${ctx.message.message_id}`)],
-                [
-                  Markup.button.callback("✅ Accept All", `agent_accept:${ctx.message.message_id}`),
-                  Markup.button.callback("❌ Reject All", `agent_reject:${ctx.message.message_id}`),
-                ],
-              ]),
-            },
-          )
+            await ctx.telegram.editMessageText(
+              ctx.chat!.id,
+              statusMsg.message_id,
+              undefined,
+              `📋 *${pending.length} Change(s) Staged*\n\n${clip(summary, 2000)}\n\nReview and approve:`,
+              {
+                parse_mode: "Markdown",
+                ...Markup.inlineKeyboard([
+                  [Markup.button.callback("📋 Show Diff", `agent_diff:${ctx.message.message_id}`)],
+                  [
+                    Markup.button.callback("✅ Accept All", `agent_accept:${ctx.message.message_id}`),
+                    Markup.button.callback("❌ Reject All", `agent_reject:${ctx.message.message_id}`),
+                  ],
+                ]),
+              },
+            )
 
-          // Wait for user decision (handled by callback queries below)
-          // Entries are auto-evicted after 5 minutes via cleanup interval
-          return new Promise<boolean>((resolve) => {
-            approvalCallbacks.set(ctx.message.message_id, {
-              resolve,
-              createdAt: Date.now(),
+            // Wait for user decision (handled by callback queries below)
+            // Entries are auto-evicted after 5 minutes via cleanup interval
+            return new Promise<boolean>((resolve) => {
+              approvalCallbacks.set(ctx.message.message_id, {
+                resolve,
+                createdAt: Date.now(),
+              })
             })
-          })
+          },
         },
-      }, config.project)
+        config.project,
+      )
 
       // Send final result
       await ctx.telegram.editMessageText(
@@ -278,15 +272,15 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
     const { listProviders } = await import("../ai/providers")
 
     const registered = listProviders()
-    const lines: string[] = [
-      "*🤖 Available AI Providers*",
-      "",
-    ]
+    const lines: string[] = ["*🤖 Available AI Providers*", ""]
 
     for (const provider of registered) {
       const refs = (MODEL_REFERENCES as Record<string, any>)[provider]
       const models = refs?.length
-        ? refs.slice(0, 4).map((m: any) => `  • \`${m.id}\` — ${m.label}`).join("\n")
+        ? refs
+            .slice(0, 4)
+            .map((m: any) => `  • \`${m.id}\` — ${m.label}`)
+            .join("\n")
         : "  • (custom models)"
       lines.push(`*${provider.charAt(0).toUpperCase() + provider.slice(1)}*`)
       lines.push(models)
@@ -319,13 +313,9 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       const { runSearch } = await import("../modes/search")
       const result = await runSearch({ scope: "memory", query, maxResults: 5 })
 
-      await ctx.telegram.editMessageText(
-        ctx.chat!.id,
-        statusMsg.message_id,
-        undefined,
-        clip(result, 4000),
-        { parse_mode: "Markdown" },
-      )
+      await ctx.telegram.editMessageText(ctx.chat!.id, statusMsg.message_id, undefined, clip(result, 4000), {
+        parse_mode: "Markdown",
+      })
     } catch (err: any) {
       await ctx.telegram.editMessageText(
         ctx.chat!.id,
@@ -344,15 +334,15 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
 
     if (!raw) {
       await ctx.reply(
-        "Usage: `/search <query>` — searches codebase, memory, and web\n"
-        + "Use `/search code <q>` for codebase only\n"
-        + "Use `/search memory <q>` for memory & facts only\n"
-        + "Use `/search web <q>` for web search only\n\n"
-        + "Examples:\n"
-        + "`/search web latest AI news`\n"
-        + "`/search memory agent manager`\n"
-        + "`/search code database`\n"
-        + "`/search How does the agent system work?`",
+        "Usage: `/search <query>` — searches codebase, memory, and web\n" +
+          "Use `/search code <q>` for codebase only\n" +
+          "Use `/search memory <q>` for memory & facts only\n" +
+          "Use `/search web <q>` for web search only\n\n" +
+          "Examples:\n" +
+          "`/search web latest AI news`\n" +
+          "`/search memory agent manager`\n" +
+          "`/search code database`\n" +
+          "`/search How does the agent system work?`",
         { parse_mode: "Markdown" },
       )
       return
@@ -369,13 +359,9 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       const { runSearch } = await import("../modes/search")
       const result = await runSearch({ scope, query, maxResults: 8 })
 
-      await ctx.telegram.editMessageText(
-        ctx.chat!.id,
-        statusMsg.message_id,
-        undefined,
-        clip(result, 4000),
-        { parse_mode: "Markdown" },
-      )
+      await ctx.telegram.editMessageText(ctx.chat!.id, statusMsg.message_id, undefined, clip(result, 4000), {
+        parse_mode: "Markdown",
+      })
     } catch (err: any) {
       await ctx.telegram.editMessageText(
         ctx.chat!.id,
@@ -392,7 +378,7 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
     if (!goal) {
       await ctx.reply(
         "Usage: `/plan <goal>`\n\nExample: `/plan Add user authentication`" +
-        "\n\nThis generates a structured plan with selectable steps."
+          "\n\nThis generates a structured plan with selectable steps.",
       )
       return
     }
@@ -412,16 +398,10 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
         selected: new Set(plan.steps.map((s: any) => s.id)),
       }
 
-      await ctx.telegram.editMessageText(
-        ctx.chat!.id,
-        statusMsg.message_id,
-        undefined,
-        planMessage(session),
-        {
-          parse_mode: "Markdown",
-          ...planKeyboard(session),
-        },
-      )
+      await ctx.telegram.editMessageText(ctx.chat!.id, statusMsg.message_id, undefined, planMessage(session), {
+        parse_mode: "Markdown",
+        ...planKeyboard(session),
+      })
 
       planSessions.set(ctx.chat!.id, session)
     } catch (err: any) {
@@ -461,16 +441,13 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       const result = await generateText({
         model: ai.getModel(),
         prompt: msg,
-        system: "You are a helpful AI assistant integrated into a development tool called Neuron OS. Answer concisely and accurately.",
+        system:
+          "You are a helpful AI assistant integrated into a development tool called Neuron OS. Answer concisely and accurately.",
       })
 
-      await ctx.telegram.editMessageText(
-        ctx.chat!.id,
-        statusMsg.message_id,
-        undefined,
-        clip(result.text, 4000),
-        { parse_mode: "Markdown" },
-      )
+      await ctx.telegram.editMessageText(ctx.chat!.id, statusMsg.message_id, undefined, clip(result.text, 4000), {
+        parse_mode: "Markdown",
+      })
     } catch (err: any) {
       await ctx.telegram.editMessageText(
         ctx.chat!.id,
@@ -533,9 +510,7 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
         // Case-insensitive search
         if (existsSync(docsDir)) {
           const files = await readdir(docsDir)
-          const match = files.find(
-            (f: string) => f.toLowerCase() === `${topic.toLowerCase()}.md`,
-          )
+          const match = files.find((f: string) => f.toLowerCase() === `${topic.toLowerCase()}.md`)
           if (match) {
             content = await readFile(resolve(docsDir, match), "utf-8")
           }
@@ -543,9 +518,7 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       }
 
       if (!content) {
-        await ctx.reply(
-          `❌ Documentation for "${topic}" not found.\nUse \`/docs all\` to see available docs.`,
-        )
+        await ctx.reply(`❌ Documentation for "${topic}" not found.\nUse \`/docs all\` to see available docs.`)
         return
       }
 
@@ -565,16 +538,16 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
     if (!raw) {
       await ctx.reply(
         "Usage: `/research <goal>`\n\n" +
-        "Launches a Karpathy-style autonomous research loop that:\n" +
-        "1. Explores the codebase and proposes changes\n" +
-        "2. Implements and tests them\n" +
-        "3. Keeps only changes that improve the outcome (ratchet mechanism)\n" +
-        "4. Reverts changes that degrade it\n\n" +
-        "Examples:\n" +
-        "`/research Optimize the database query layer`\n" +
-        "`/research Add comprehensive error handling to the API`\n" +
-        "`/research Improve the test coverage for the agent module`\n\n" +
-        "*Requires:* AI provider API key",
+          "Launches a Karpathy-style autonomous research loop that:\n" +
+          "1. Explores the codebase and proposes changes\n" +
+          "2. Implements and tests them\n" +
+          "3. Keeps only changes that improve the outcome (ratchet mechanism)\n" +
+          "4. Reverts changes that degrade it\n\n" +
+          "Examples:\n" +
+          "`/research Optimize the database query layer`\n" +
+          "`/research Add comprehensive error handling to the API`\n" +
+          "`/research Improve the test coverage for the agent module`\n\n" +
+          "*Requires:* AI provider API key",
         { parse_mode: "Markdown" },
       )
       return
@@ -598,13 +571,11 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
           // Send progress update via edit the status message (limited to ~10 updates)
           const elapsed = Math.floor((Date.now() - startTime) / 1000)
           const progressMsg = `🧪 Research in progress...\n\n${progress.slice(0, 200)}\n\n⏱ ${elapsed}s elapsed`
-          ctx.telegram.editMessageText(
-            ctx.chat!.id,
-            statusMsg.message_id,
-            undefined,
-            clip(progressMsg, 4000),
-            { parse_mode: "Markdown" },
-          ).catch(() => {})
+          ctx.telegram
+            .editMessageText(ctx.chat!.id, statusMsg.message_id, undefined, clip(progressMsg, 4000), {
+              parse_mode: "Markdown",
+            })
+            .catch(() => {})
         },
       )
 
@@ -624,13 +595,9 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
         ),
       ].join("\n")
 
-      await ctx.telegram.editMessageText(
-        ctx.chat!.id,
-        statusMsg.message_id,
-        undefined,
-        clip(summary, 4000),
-        { parse_mode: "Markdown" },
-      )
+      await ctx.telegram.editMessageText(ctx.chat!.id, statusMsg.message_id, undefined, clip(summary, 4000), {
+        parse_mode: "Markdown",
+      })
     } catch (err: any) {
       await ctx.telegram.editMessageText(
         ctx.chat!.id,
@@ -663,23 +630,15 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       const entries: Array<{ command: string; timestamp: string; args?: string }> = JSON.parse(raw)
 
       if (entries.length === 0) {
-        await ctx.reply(
-          "*📜 Command History*\n\nNo commands recorded yet.",
-          { parse_mode: "Markdown" },
-        )
+        await ctx.reply("*📜 Command History*\n\nNo commands recorded yet.", { parse_mode: "Markdown" })
         return
       }
 
-      const lines = [
-        `*📜 Command History (last ${Math.min(entries.length, 20)})*`,
-        "",
-      ]
+      const lines = [`*📜 Command History (last ${Math.min(entries.length, 20)})*`, ""]
 
       const recent = entries.slice(-20).reverse()
       for (const entry of recent) {
-        const time = entry.timestamp
-          ? new Date(entry.timestamp).toLocaleString().slice(0, 16)
-          : ""
+        const time = entry.timestamp ? new Date(entry.timestamp).toLocaleString().slice(0, 16) : ""
         const cmd = entry.args ? `${entry.command} ${entry.args}` : entry.command
         lines.push(`• \`${time}\` — \`${cmd.slice(0, 60)}\``)
       }
@@ -720,9 +679,10 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       const tools = toolRegistry.list()
 
       // Show env var keys (mask values) for global entries
-      const envLines = globalEntries.length > 0
-        ? globalEntries.map((e) => `  • \`${e.key}\` — set`).join("\n")
-        : "  • (none configured)"
+      const envLines =
+        globalEntries.length > 0
+          ? globalEntries.map((e) => `  • \`${e.key}\` — set`).join("\n")
+          : "  • (none configured)"
 
       const lines = [
         "*⚙️ System Configuration*",
@@ -741,7 +701,10 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
         "",
         "*Tools*",
         `  • ${tools.length} tools registered`,
-        tools.slice(0, 10).map((t) => `  • \`${t.name}\` — ${t.description}`).join("\n"),
+        tools
+          .slice(0, 10)
+          .map((t) => `  • \`${t.name}\` — ${t.description}`)
+          .join("\n"),
         "",
         "_Configure: `aegis setup-keys`_",
       ].join("\n")
@@ -766,10 +729,7 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
         return
       }
 
-      const lines = [
-        `*⏰ Cron Jobs (${jobs.length})*`,
-        "",
-      ]
+      const lines = [`*⏰ Cron Jobs (${jobs.length})*`, ""]
       for (const job of jobs) {
         const typeInfo = job.agentType ? ` [${job.agentType}]` : ""
         lines.push(`*${job.name}* — every \`${job.schedule}\`${typeInfo}`)
@@ -797,10 +757,7 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
         return
       }
 
-      const lines = [
-        `*🧩 Installed Skills (${manifest.length})*`,
-        "",
-      ]
+      const lines = [`*🧩 Installed Skills (${manifest.length})*`, ""]
       for (const skill of manifest) {
         const desc = skill.description ? ` — ${skill.description}` : ""
         lines.push(`• *${skill.name}*${desc}`)
@@ -826,19 +783,21 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
         return
       }
 
-      const lines = [
-        `*🤖 Running Agents (${agents.length})*`,
-        "",
-      ]
+      const lines = [`*🤖 Running Agents (${agents.length})*`, ""]
 
       for (const a of agents) {
         const emoji =
-          a.status === "running" ? "🟢" :
-          a.status === "spawning" ? "🟡" :
-          a.status === "idle" ? "🔵" :
-          a.status === "busy" ? "🟠" :
-          a.status === "error" ? "🔴" :
-          "⚪"
+          a.status === "running"
+            ? "🟢"
+            : a.status === "spawning"
+              ? "🟡"
+              : a.status === "idle"
+                ? "🔵"
+                : a.status === "busy"
+                  ? "🟠"
+                  : a.status === "error"
+                    ? "🔴"
+                    : "⚪"
         const uptime = a.spawnTime ? `${Math.floor((Date.now() - a.spawnTime) / 1000)}s` : "-"
         const typeInfo = a.def.agentType ? ` [${a.def.agentType}]` : ""
         const tagInfo = a.def.tags?.length ? ` \`${a.def.tags.join("` `")}\`` : ""
@@ -878,38 +837,25 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       }
 
       if (!target) {
-        await ctx.reply(
-          `❌ Agent "${arg}" not found.\nUse \`/agents\` to see running agents.`,
-          { parse_mode: "Markdown" },
-        )
+        await ctx.reply(`❌ Agent "${arg}" not found.\nUse \`/agents\` to see running agents.`, {
+          parse_mode: "Markdown",
+        })
         return
       }
 
       const logs = agentManager.getLogs(target.id, { tail: 15 })
 
       if (logs.length === 0) {
-        await ctx.reply(
-          `*📋 Logs for \`${target.def.name}\`*\n\nNo log entries yet.`,
-          { parse_mode: "Markdown" },
-        )
+        await ctx.reply(`*📋 Logs for \`${target.def.name}\`*\n\nNo log entries yet.`, { parse_mode: "Markdown" })
         return
       }
 
-      const lines = [
-        `*📋 Logs for \`${target.def.name}\`*`,
-        `Status: \`${target.status}\``,
-        "",
-      ]
+      const lines = [`*📋 Logs for \`${target.def.name}\`*`, `Status: \`${target.status}\``, ""]
 
       for (const entry of logs) {
         const levelEmoji =
-          entry.level === "error" ? "🔴" :
-          entry.level === "warn" ? "🟡" :
-          entry.level === "success" ? "🟢" :
-          "⚪"
-        const time = entry.timestamp
-          ? new Date(entry.timestamp).toISOString().slice(11, 19)
-          : ""
+          entry.level === "error" ? "🔴" : entry.level === "warn" ? "🟡" : entry.level === "success" ? "🟢" : "⚪"
+        const time = entry.timestamp ? new Date(entry.timestamp).toISOString().slice(11, 19) : ""
         lines.push(`${levelEmoji} \`${time}\` ${entry.text.slice(0, 200)}`)
       }
 
@@ -1004,10 +950,7 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       entry.resolve(true)
       approvalCallbacks.delete(msgId)
       await ctx.answerCbQuery("Changes approved!")
-      await ctx.editMessageText(
-        "✅ Changes approved. Applying...",
-        { parse_mode: "Markdown" },
-      )
+      await ctx.editMessageText("✅ Changes approved. Applying...", { parse_mode: "Markdown" })
     } else {
       await ctx.answerCbQuery("Session expired or already resolved")
     }
@@ -1020,10 +963,7 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       entry.resolve(false)
       approvalCallbacks.delete(msgId)
       await ctx.answerCbQuery("Changes rejected")
-      await ctx.editMessageText(
-        "❌ Changes rejected. No files were modified.",
-        { parse_mode: "Markdown" },
-      )
+      await ctx.editMessageText("❌ Changes rejected. No files were modified.", { parse_mode: "Markdown" })
     } else {
       await ctx.answerCbQuery("Session expired or already resolved")
     }

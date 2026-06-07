@@ -20,9 +20,7 @@ export class PiperLocalProvider implements TTSProvider {
     try {
       const { spawnSync } = await import("node:child_process")
       const result = spawnSync(this.binaryPath, ["--help"], { timeout: 5000 })
-      return result.status === 0
-        ? { ok: true }
-        : { ok: false, reason: "Piper binary not found" }
+      return result.status === 0 ? { ok: true } : { ok: false, reason: "Piper binary not found" }
     } catch {
       return { ok: false, reason: "Piper binary not available" }
     }

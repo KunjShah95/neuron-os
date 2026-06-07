@@ -67,10 +67,7 @@ export const webSearchTool: Tool = {
     const query = String(params.query ?? "").trim()
     if (!query) return { success: false, output: "", error: "Query parameter is required" }
     const count = Math.min(Number(params.count ?? 5) || 5, 20)
-    return runFirecrawl(
-      () => getClient().search(query, { limit: count }),
-      { query, count, backend: "firecrawl" },
-    )
+    return runFirecrawl(() => getClient().search(query, { limit: count }), { query, count, backend: "firecrawl" })
   },
 }
 
@@ -85,10 +82,7 @@ export const fetchUrlTool: Tool = {
     const url = String(params.url ?? "").trim()
     if (!url) return { success: false, output: "", error: "URL parameter is required" }
     const format = String(params.format ?? "markdown")
-    return runFirecrawl(
-      () => getClient().scrape(url, { formats: [format] }),
-      { url, format, backend: "firecrawl" },
-    )
+    return runFirecrawl(() => getClient().scrape(url, { formats: [format] }), { url, format, backend: "firecrawl" })
   },
 }
 
@@ -103,9 +97,10 @@ export const webCrawlTool: Tool = {
     const url = String(params.url ?? "").trim()
     if (!url) return { success: false, output: "", error: "URL parameter is required" }
     const limit = Math.min(Number(params.limit ?? 5) || 5, 50)
-    return runFirecrawl(
-      () => getClient().crawl(url, { limit, scrapeOptions: { formats: ["markdown"] } }),
-      { url, limit, backend: "firecrawl" },
-    )
+    return runFirecrawl(() => getClient().crawl(url, { limit, scrapeOptions: { formats: ["markdown"] } }), {
+      url,
+      limit,
+      backend: "firecrawl",
+    })
   },
 }

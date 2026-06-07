@@ -15,7 +15,9 @@ import { homedir } from "node:os"
 const OPT_IN_FILE = join(homedir(), ".aegis", "telemetry-opt-in")
 
 function clearOptInFile() {
-  try { if (existsSync(OPT_IN_FILE)) unlinkSync(OPT_IN_FILE) } catch {}
+  try {
+    if (existsSync(OPT_IN_FILE)) unlinkSync(OPT_IN_FILE)
+  } catch {}
 }
 
 function writeOptInFile(value: "1" | "0") {

@@ -22,7 +22,9 @@ export function loadFindings(taskId?: string, sinceDays?: number): Finding[] {
   const all: Finding[] = []
   const files = taskId
     ? [join(FINDINGS_DIR, `${taskId}.jsonl`)]
-    : readdirSync(FINDINGS_DIR).filter((f) => f.endsWith(".jsonl")).map((f) => join(FINDINGS_DIR, f))
+    : readdirSync(FINDINGS_DIR)
+        .filter((f) => f.endsWith(".jsonl"))
+        .map((f) => join(FINDINGS_DIR, f))
 
   const cutoff = sinceDays ? Date.now() - sinceDays * 86400_000 : 0
 

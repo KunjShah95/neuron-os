@@ -27,7 +27,7 @@ export class FlakyManager {
    * failed but the retry passed, the test is marked as flaky.
    */
   recordRun(testId: string, firstAttempt: EvalResult, retryResult?: EvalResult): void {
-    let record = this.records.get(testId) ?? this.createRecord(testId)
+    const record = this.records.get(testId) ?? this.createRecord(testId)
     record.totalRuns++
 
     if (retryResult && !firstAttempt.passed && retryResult.passed) {

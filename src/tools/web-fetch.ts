@@ -50,7 +50,12 @@ export const webFetchTool: Tool = {
       const contentType = response.headers.get("content-type") || ""
       let content: string
 
-      if (contentType.includes("text") || contentType.includes("json") || contentType.includes("xml") || contentType.includes("html")) {
+      if (
+        contentType.includes("text") ||
+        contentType.includes("json") ||
+        contentType.includes("xml") ||
+        contentType.includes("html")
+      ) {
         content = await response.text()
       } else {
         const buffer = await response.arrayBuffer()

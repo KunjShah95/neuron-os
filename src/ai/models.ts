@@ -3,7 +3,21 @@ export interface ModelOption {
   label: string
 }
 
-export type AIProviderType = "anthropic" | "openai" | "deepseek" | "ollama" | "custom" | "gemini" | "groq" | "openrouter" | "mistral" | "azure" | "togetherai" | "xai" | "cohere" | "perplexity"
+export type AIProviderType =
+  | "anthropic"
+  | "openai"
+  | "deepseek"
+  | "ollama"
+  | "custom"
+  | "gemini"
+  | "groq"
+  | "openrouter"
+  | "mistral"
+  | "azure"
+  | "togetherai"
+  | "xai"
+  | "cohere"
+  | "perplexity"
 
 export const MODEL_REFERENCES: Record<AIProviderType, ModelOption[]> = {
   anthropic: [
@@ -94,19 +108,33 @@ export function getDefaultModel(provider: AIProviderType): string {
 
 export function getProviderBaseUrl(provider: AIProviderType, userBaseUrl?: string): string | undefined {
   switch (provider) {
-    case "anthropic": return "https://api.anthropic.com/v1"
-    case "openai": return "https://api.openai.com/v1"
-    case "deepseek": return "https://api.deepseek.com/v1"
-    case "ollama": return "http://localhost:11434"
-    case "gemini": return "https://generativelanguage.googleapis.com/v1beta/openai"
-    case "groq": return "https://api.groq.com/openai/v1"
-    case "openrouter": return "https://openrouter.ai/api/v1"
-    case "mistral": return "https://api.mistral.ai/v1"
-    case "azure": return userBaseUrl
-    case "togetherai": return "https://api.together.ai/v1"
-    case "xai": return "https://api.x.ai/v1"
-    case "cohere": return "https://api.cohere.com/v1"
-    case "perplexity": return "https://api.perplexity.ai"
-    case "custom": return userBaseUrl
+    case "anthropic":
+      return "https://api.anthropic.com/v1"
+    case "openai":
+      return "https://api.openai.com/v1"
+    case "deepseek":
+      return "https://api.deepseek.com/v1"
+    case "ollama":
+      return "http://localhost:11434"
+    case "gemini":
+      return "https://generativelanguage.googleapis.com/v1beta/openai"
+    case "groq":
+      return "https://api.groq.com/openai/v1"
+    case "openrouter":
+      return "https://openrouter.ai/api/v1"
+    case "mistral":
+      return "https://api.mistral.ai/v1"
+    case "azure":
+      return userBaseUrl
+    case "togetherai":
+      return "https://api.together.ai/v1"
+    case "xai":
+      return "https://api.x.ai/v1"
+    case "cohere":
+      return "https://api.cohere.com/v1"
+    case "perplexity":
+      return "https://api.perplexity.ai"
+    case "custom":
+      return userBaseUrl
   }
 }

@@ -73,9 +73,7 @@ export class ProviderBenchmark {
 
     let cheapest: ProviderBenchResult | null = null
     if (successful.length > 0) {
-      cheapest = successful.reduce((a, b) =>
-        (a.costUsd ?? Infinity) < (b.costUsd ?? Infinity) ? a : b,
-      )
+      cheapest = successful.reduce((a, b) => ((a.costUsd ?? Infinity) < (b.costUsd ?? Infinity) ? a : b))
     }
 
     return {

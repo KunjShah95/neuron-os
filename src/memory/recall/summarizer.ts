@@ -21,9 +21,7 @@ export class Summarizer {
   async summarize(hits: RecallHit[]): Promise<string> {
     if (hits.length === 0) return ""
 
-    const joined = hits
-      .map((h) => `[${h.role.toUpperCase()}] ${h.content}`)
-      .join("\n---\n")
+    const joined = hits.map((h) => `[${h.role.toUpperCase()}] ${h.content}`).join("\n---\n")
 
     try {
       const summary = await this.callWithTimeout(joined)
@@ -45,10 +43,9 @@ export class Summarizer {
     try {
       // Try using the AI provider
       const { createAIProvider } = await import("../../ai/provider")
-      // @ts-ignore — training module uses evolving AI provider API
-      const provider = createAIProvider({ provider: "openrouter", model: "claude-sonnet-4-6" })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const provider: any = createAIProvider({ provider: "openrouter", model: "claude-sonnet-4-6" })
 
-      // @ts-ignore — complete() API may differ by provider
       const response = await provider.complete({
         system:
           "You are summarizing prior conversation context for an AI agent. Be terse. Preserve entities, decisions, and unresolved questions. Output ONLY the summary, no preamble.",
@@ -72,9 +69,7 @@ export class Summarizer {
    * Fallback: truncate raw hits to fit within the token budget.
    */
   private rawFallback(hits: RecallHit[]): string {
-    const raw = hits
-      .map((h) => `[${h.role.toUpperCase()}] ${h.content}`)
-      .join("\n")
+    const raw = hits.map((h) => `[${h.role.toUpperCase()}] ${h.content}`).join("\n")
 
     // Rough token estimation (4 chars per token)
     const budget = this.config.summaryTokenBudget * 4

@@ -1,7 +1,16 @@
 import ansiEscapes from "ansi-escapes"
 import { calculateChatLayout } from "./layout"
 import { renderChatHeader, renderMessages, renderInputArea, renderChatHint, renderPicker } from "./components"
-import { createInitialChatState, loadChatStateFromSession, addUserMessage, addAssistantMessage, finalizeStreamingMessage, saveChatSession, createCheckpoint, rewindToCheckpoint } from "./store"
+import {
+  createInitialChatState,
+  loadChatStateFromSession,
+  addUserMessage,
+  addAssistantMessage,
+  finalizeStreamingMessage,
+  saveChatSession,
+  createCheckpoint,
+  rewindToCheckpoint,
+} from "./store"
 import type { PickerItem } from "./store"
 import { parseChatKey, handleChatKey } from "./input"
 import { streamResponse, createEngine } from "./provider"
@@ -97,7 +106,9 @@ export async function startChat(agentType?: AgentTypeName) {
               cfg.provider = item.provider
               cfg.model = item.id
               saveConfig(cfg)
-            } catch { /* ignore */ }
+            } catch {
+              /* ignore */
+            }
           }
           state.ui.showPicker = false
           state.dirty = true
@@ -157,7 +168,10 @@ export async function startChat(agentType?: AgentTypeName) {
             }
           } catch (e) {
             const last = state.messages[state.messages.length - 1]
-            if (last) { last.content = `Error: ${e instanceof Error ? e.message : String(e)}`; last.status = "error" }
+            if (last) {
+              last.content = `Error: ${e instanceof Error ? e.message : String(e)}`
+              last.status = "error"
+            }
           }
           state.dirty = true
           break
@@ -231,7 +245,10 @@ export async function startChat(agentType?: AgentTypeName) {
             addUserMessage(state, text)
             addAssistantMessage(state)
             const last = state.messages[state.messages.length - 1]
-            if (last) { last.content = `Checkpoint saved (${state.checkpoints.length} total)${label ? `: "${label}"` : ""}`; last.status = "complete" }
+            if (last) {
+              last.content = `Checkpoint saved (${state.checkpoints.length} total)${label ? `: "${label}"` : ""}`
+              last.status = "complete"
+            }
             state.dirty = true
             break
           }
@@ -240,7 +257,10 @@ export async function startChat(agentType?: AgentTypeName) {
               addUserMessage(state, text)
               addAssistantMessage(state)
               const last = state.messages[state.messages.length - 1]
-              if (last) { last.content = "No checkpoints saved. Use /checkpoint save [label] to create one."; last.status = "complete" }
+              if (last) {
+                last.content = "No checkpoints saved. Use /checkpoint save [label] to create one."
+                last.status = "complete"
+              }
               state.dirty = true
               break
             }
@@ -248,7 +268,10 @@ export async function startChat(agentType?: AgentTypeName) {
             addUserMessage(state, text)
             addAssistantMessage(state)
             const last = state.messages[state.messages.length - 1]
-            if (last) { last.content = `Checkpoints:\n${lines.join("\n")}\n\nUse /rewind <n> to restore.`; last.status = "complete" }
+            if (last) {
+              last.content = `Checkpoints:\n${lines.join("\n")}\n\nUse /rewind <n> to restore.`
+              last.status = "complete"
+            }
             state.dirty = true
             break
           }
@@ -261,17 +284,26 @@ export async function startChat(agentType?: AgentTypeName) {
             addUserMessage(state, text)
             addAssistantMessage(state)
             const last = state.messages[state.messages.length - 1]
-            if (last) { last.content = "Usage: /rewind <checkpoint-number>. Use /checkpoint list to see available checkpoints."; last.status = "complete" }
+            if (last) {
+              last.content = "Usage: /rewind <checkpoint-number>. Use /checkpoint list to see available checkpoints."
+              last.status = "complete"
+            }
           } else if (rewindToCheckpoint(state, n)) {
             addUserMessage(state, text)
             addAssistantMessage(state)
             const last = state.messages[state.messages.length - 1]
-            if (last) { last.content = `Rewound to checkpoint #${n}.`; last.status = "complete" }
+            if (last) {
+              last.content = `Rewound to checkpoint #${n}.`
+              last.status = "complete"
+            }
           } else {
             addUserMessage(state, text)
             addAssistantMessage(state)
             const last = state.messages[state.messages.length - 1]
-            if (last) { last.content = `Checkpoint #${n} not found. Use /checkpoint list to see available checkpoints.`; last.status = "complete" }
+            if (last) {
+              last.content = `Checkpoint #${n} not found. Use /checkpoint list to see available checkpoints.`
+              last.status = "complete"
+            }
           }
           state.dirty = true
           break
@@ -282,7 +314,10 @@ export async function startChat(agentType?: AgentTypeName) {
           addUserMessage(state, text)
           addAssistantMessage(state)
           const last = state.messages[state.messages.length - 1]
-          if (last) { last.content = state.ui.shellMode ? "Shell mode ON. Type commands to execute." : "Shell mode OFF."; last.status = "complete" }
+          if (last) {
+            last.content = state.ui.shellMode ? "Shell mode ON. Type commands to execute." : "Shell mode OFF."
+            last.status = "complete"
+          }
           state.dirty = true
           break
         }
@@ -328,7 +363,10 @@ export async function startChat(agentType?: AgentTypeName) {
               addUserMessage(state, text)
               addAssistantMessage(state)
               const last = state.messages[state.messages.length - 1]
-              if (last) { last.content = "Usage: /sessions load <session-id>"; last.status = "complete" }
+              if (last) {
+                last.content = "Usage: /sessions load <session-id>"
+                last.status = "complete"
+              }
               state.dirty = true
               break
             }
@@ -338,7 +376,10 @@ export async function startChat(agentType?: AgentTypeName) {
               addUserMessage(state, text)
               addAssistantMessage(state)
               const last = state.messages[state.messages.length - 1]
-              if (last) { last.content = `Session "${id}" not found.`; last.status = "complete" }
+              if (last) {
+                last.content = `Session "${id}" not found.`
+                last.status = "complete"
+              }
               state.dirty = true
               break
             }
@@ -413,7 +454,12 @@ export async function startChat(agentType?: AgentTypeName) {
 
       // Picker panel
       if (layout.picker && state.ui.showPicker) {
-        const pickerLines = renderPicker(layout.picker, state.ui.pickerItems, state.ui.pickerIndex, state.config.provider || "")
+        const pickerLines = renderPicker(
+          layout.picker,
+          state.ui.pickerItems,
+          state.ui.pickerIndex,
+          state.config.provider || "",
+        )
         for (let y = 0; y < layout.picker.height; y++) {
           output += ansiEscapes.cursorTo(layout.picker.x, layout.picker.y + y)
           output += pickerLines[y] ?? ""
@@ -443,7 +489,9 @@ export async function startChat(agentType?: AgentTypeName) {
     process.stdin.off("data", onData)
     try {
       process.stdin.setRawMode(wasRaw ?? false)
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     process.stdin.pause()
     saveChatSession(state)
     process.stdout.write(ansiEscapes.exitAlternativeScreen)

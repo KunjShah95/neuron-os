@@ -43,7 +43,10 @@ async function handleVoice(opts: {
     process.exit(1)
   }
 
-  const voice = (opts.voice || (await credentialVault.get("TWILIO_VOICE_VOICE", "global")) || "alice") as "man" | "woman" | "alice"
+  const voice = (opts.voice || (await credentialVault.get("TWILIO_VOICE_VOICE", "global")) || "alice") as
+    | "man"
+    | "woman"
+    | "alice"
   const language = opts.language || (await credentialVault.get("TWILIO_VOICE_LANGUAGE", "global")) || "en-US"
   const maxDuration = parseInt(opts.maxDuration ?? "30", 10)
 

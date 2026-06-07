@@ -2,9 +2,7 @@ import type { Command } from "commander"
 import { ModelRouter } from "../../economy/model-router"
 
 export function registerRouter(program: Command): void {
-  const router = program
-    .command("router")
-    .description("Model routing — auto-select cheapest provider/model for tasks")
+  const router = program.command("router").description("Model routing — auto-select cheapest provider/model for tasks")
 
   router
     .command("route")
@@ -58,12 +56,7 @@ export function registerRouter(program: Command): void {
       console.log("Provider".padEnd(16), "Model".padEnd(22), "Tier".padEnd(10), "Cost (1k in + 500 out)")
       console.log("-".repeat(66))
       for (const item of items) {
-        console.log(
-          item.provider.padEnd(14),
-          item.model.padEnd(20),
-          item.tier.padEnd(8),
-          `$${item.cost.toFixed(4)}`,
-        )
+        console.log(item.provider.padEnd(14), item.model.padEnd(20), item.tier.padEnd(8), `$${item.cost.toFixed(4)}`)
       }
     })
 

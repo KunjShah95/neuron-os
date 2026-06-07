@@ -15,11 +15,7 @@ function activeSandbox(): Sandbox | null {
 }
 
 export function registerSandbox(program: Command) {
-  program
-    .command("sandbox")
-    .alias("sb")
-    .description("Sandbox status and controls")
-    .action(handleSandbox)
+  program.command("sandbox").alias("sb").description("Sandbox status and controls").action(handleSandbox)
 }
 
 async function handleSandbox() {

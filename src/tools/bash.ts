@@ -6,7 +6,6 @@ function shellCmd(command: string): string[] {
   return platform() === "win32" ? ["cmd", "/c", command] : ["bash", "-c", command]
 }
 
-
 export const bashTool: Tool = {
   name: "bash",
   description: "Execute shell commands",

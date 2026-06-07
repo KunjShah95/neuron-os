@@ -61,7 +61,12 @@ import { registerRouter } from "./router"
 import { registerImprove } from "./improve"
 import { registerDistributed } from "./distributed"
 import { registerProduction } from "./production"
+import { registerEval } from "./eval"
 import { registerDocsCrawl } from "./docs-crawl"
+import { registerImproveValidate } from "./improve-validate"
+import { registerImproveMonitor } from "./improve-monitor"
+import { registerGolden } from "./golden"
+import { registerMultiAgent } from "./multi-agent-scenarios"
 
 export function registerAllCommands(program: Command) {
   registerDoctor(program)
@@ -121,10 +126,15 @@ export function registerAllCommands(program: Command) {
   registerPool(program)
   registerDistributed(program)
   registerProduction(program)
+  registerEval(program)
   registerResearch(program)
   registerOrchestrate(program)
   registerWebhook(program)
   registerSession(program)
   registerToolset(program)
+  registerImproveValidate(program)
+  registerImproveMonitor(program)
+  registerGolden(program)
+  registerMultiAgent(program)
   registerDocsCrawl(program)
 }

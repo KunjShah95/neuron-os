@@ -10,7 +10,6 @@ import { describe, it, expect } from "bun:test"
 import { type PlanGraph, type PlanNode } from "./planner"
 
 describe("PlanNode Interface", () => {
-
   it("should create a basic node with empty dependencies", () => {
     const node: PlanNode = {
       id: "node-1",
@@ -55,11 +54,9 @@ describe("PlanNode Interface", () => {
     expect(graph.nodes.length).toBe(2)
     expect(graph.nodes[1]!.dependencies).toEqual(["a"])
   })
-
 })
 
 describe("PlanGraph validation", () => {
-
   it("should handle empty graph", () => {
     const graph: PlanGraph = { nodes: [] }
     expect(graph.nodes.length).toBe(0)
@@ -109,5 +106,4 @@ describe("PlanGraph validation", () => {
     // All nodes have empty dependencies, so all are dispatchable
     expect(graph.nodes.length).toBe(3)
   })
-
 })

@@ -24,7 +24,10 @@ const DEFAULT_CONFIG = DistillerConfigSchema.parse({})
 
 // ── LLM-as-Judge ───────────────────────────────────────────────────────
 
-async function llmJudge(candidate: SkillCandidate, timeoutMs: number): Promise<{ verdict: "pass" | "fail" | "skipped"; reason?: string }> {
+async function llmJudge(
+  candidate: SkillCandidate,
+  timeoutMs: number,
+): Promise<{ verdict: "pass" | "fail" | "skipped"; reason?: string }> {
   try {
     const { createAIProvider } = await import("../../ai")
     const provider = process.env.AEGIS_AI_PROVIDER || "openai"
@@ -38,7 +41,10 @@ async function llmJudge(candidate: SkillCandidate, timeoutMs: number): Promise<{
 
     const evidenceSummary = candidate.evidence
       .slice(0, 3)
-      .map((ep, i) => `[${i + 1}] outcome=${ep.outcome} seq=${ep.tool_sequence.join("→")} context="${ep.context_summary.slice(0, 100)}"`)
+      .map(
+        (ep, i) =>
+          `[${i + 1}] outcome=${ep.outcome} seq=${ep.tool_sequence.join("→")} context="${ep.context_summary.slice(0, 100)}"`,
+      )
       .join("\n")
 
     const prompt = [
@@ -59,10 +65,10 @@ async function llmJudge(candidate: SkillCandidate, timeoutMs: number): Promise<{
       "Fail if: the skill is too specific, hallucinated steps, vague/ambiguous, or the evidence doesn't support it.",
     ].join("\n")
 
-    const result = await Promise.race([
+    const result = (await Promise.race([
       ai.generate([{ role: "user", content: prompt }]),
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), timeoutMs)),
-    ]) as { text: string }
+    ])) as { text: string }
 
     const parsed = JSON.parse(result.text.trim())
     if (parsed.verdict === "pass" || parsed.verdict === "fail") {
@@ -82,7 +88,10 @@ async function llmJudge(candidate: SkillCandidate, timeoutMs: number): Promise<{
 
 // ── Regression suite ───────────────────────────────────────────────────
 
-async function runRegression(candidate: SkillCandidate, _passThreshold: number): Promise<{ passRate: number; passed: number; total: number }> {
+async function runRegression(
+  candidate: SkillCandidate,
+  _passThreshold: number,
+): Promise<{ passRate: number; passed: number; total: number }> {
   // For each evidence episode, we check: does the skill content cover the
   // tool_sequence that was actually used? A simple heuristic for v1:
   // the skill's "Steps" section should mention all tools in the sequence.
@@ -96,9 +105,9 @@ async function runRegression(candidate: SkillCandidate, _passThreshold: number):
     // Check that the skill mentions each tool in the sequence
     const allToolsMentioned = ep.tool_sequence.every((tool) => content.includes(tool.toLowerCase()))
     // Check that the skill mentions the general context
-    const contextMentioned = ep.context_summary.split(/\s+/).some((word) =>
-      word.length > 4 && content.includes(word.toLowerCase()),
-    )
+    const contextMentioned = ep.context_summary
+      .split(/\s+/)
+      .some((word) => word.length > 4 && content.includes(word.toLowerCase()))
 
     if (allToolsMentioned && contextMentioned) {
       passed++
@@ -137,13 +146,17 @@ export async function gate(
   const effectiveJudgePassed = judge.verdict === "skipped" ? regressionPassed : judgePassed
   const passed = effectiveJudgePassed && regressionPassed
 
-  log.info(`quality gate result: ${passed ? "✅ approved" : "❌ rejected"} (judge=${judge.verdict}, regression=${Math.round(regression.passRate * 100)}%)`)
+  log.info(
+    `quality gate result: ${passed ? "✅ approved" : "❌ rejected"} (judge=${judge.verdict}, regression=${Math.round(regression.passRate * 100)}%)`,
+  )
 
   return {
     passed,
     judge,
     regression,
     action: passed ? "approve" : "reject",
-    diff: passed ? null : `quality gate failed: judge=${judge.verdict}, regression=${Math.round(regression.passRate * 100)}%`,
+    diff: passed
+      ? null
+      : `quality gate failed: judge=${judge.verdict}, regression=${Math.round(regression.passRate * 100)}%`,
   }
 }

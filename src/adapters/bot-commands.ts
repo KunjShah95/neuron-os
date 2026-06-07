@@ -185,16 +185,20 @@ export async function handleAgent(goal: string, project?: string): Promise<Comma
 
   try {
     const { runAgentOrchestrator } = await import("../modes/agent-run")
-    const result = await runAgentOrchestrator(goal, {
-      onStaged: async (_pending) => {
-        // ⚠️ AUTO-APPROVAL: All staged changes are automatically applied.
-        // This is the default for text-only platforms (Discord, Slack, etc.)
-        // that cannot render interactive approval UIs.
-        // Each adapter can override handleAgent to implement platform-specific
-        // approval flows (e.g., Telegram's inline keyboards).
-        return true
+    const result = await runAgentOrchestrator(
+      goal,
+      {
+        onStaged: async (_pending) => {
+          // ⚠️ AUTO-APPROVAL: All staged changes are automatically applied.
+          // This is the default for text-only platforms (Discord, Slack, etc.)
+          // that cannot render interactive approval UIs.
+          // Each adapter can override handleAgent to implement platform-specific
+          // approval flows (e.g., Telegram's inline keyboards).
+          return true
+        },
       },
-    }, project)
+      project,
+    )
     return { text: `✅ *Done*\n\n${clip(result, 3500)}` }
   } catch (err: any) {
     return { text: `❌ Error: ${err.message ?? String(err)}` }
@@ -207,15 +211,15 @@ export async function handleModels(): Promise<CommandResult> {
   const { listProviders } = await import("../ai/providers")
 
   const registered = listProviders()
-  const lines: string[] = [
-    "*🤖 Available AI Providers*",
-    "",
-  ]
+  const lines: string[] = ["*🤖 Available AI Providers*", ""]
 
   for (const provider of registered) {
     const refs = (MODEL_REFERENCES as Record<string, any>)[provider]
     const models = refs?.length
-      ? refs.slice(0, 4).map((m: any) => `  • \`${m.id}\` — ${m.label}`).join("\n")
+      ? refs
+          .slice(0, 4)
+          .map((m: any) => `  • \`${m.id}\` — ${m.label}`)
+          .join("\n")
       : "  • (custom models)"
     lines.push(`*${provider.charAt(0).toUpperCase() + provider.slice(1)}*`)
     lines.push(models)
@@ -250,15 +254,16 @@ export async function handleMemory(query: string): Promise<CommandResult> {
 export async function handleSearch(raw: string): Promise<CommandResult> {
   if (!raw) {
     return {
-      text: "Usage: `/search <query>` — searches codebase, memory, and web\n"
-        + "Use `/search code <q>` for codebase only\n"
-        + "Use `/search memory <q>` for memory & facts only\n"
-        + "Use `/search web <q>` for web search only\n\n"
-        + "Examples:\n"
-        + "`/search web latest AI news`\n"
-        + "`/search memory agent manager`\n"
-        + "`/search code database`\n"
-        + "`/search How does the agent system work?`",
+      text:
+        "Usage: `/search <query>` — searches codebase, memory, and web\n" +
+        "Use `/search code <q>` for codebase only\n" +
+        "Use `/search memory <q>` for memory & facts only\n" +
+        "Use `/search web <q>` for web search only\n\n" +
+        "Examples:\n" +
+        "`/search web latest AI news`\n" +
+        "`/search memory agent manager`\n" +
+        "`/search code database`\n" +
+        "`/search How does the agent system work?`",
     }
   }
 
@@ -287,9 +292,7 @@ export async function handlePlan(goal: string): Promise<CommandResult> {
     const { generatePlanForGoal } = await import("../modes/plan/orchestrator")
     const { plan } = await generatePlanForGoal(goal)
 
-    const steps = plan.steps.map((s: any, i: number) =>
-      `${i + 1}. *${s.description || "(step)"}*`
-    ).join("\n\n")
+    const steps = plan.steps.map((s: any, i: number) => `${i + 1}. *${s.description || "(step)"}*`).join("\n\n")
 
     return {
       text: `*📋 Plan: ${plan.goal}*\n\n${steps}\n\n_${plan.steps.length} steps generated_`,
@@ -321,7 +324,8 @@ export async function handleChat(msg: string): Promise<CommandResult> {
     const result = await generateText({
       model: ai.getModel(),
       prompt: msg,
-      system: "You are a helpful AI assistant integrated into a development tool called Neuron OS. Answer concisely and accurately.",
+      system:
+        "You are a helpful AI assistant integrated into a development tool called Neuron OS. Answer concisely and accurately.",
     })
 
     return { text: clip(result.text, 4000) }
@@ -372,9 +376,7 @@ export async function handleDocs(topic: string): Promise<CommandResult> {
       content = await readFile(filePath, "utf-8")
     } else if (existsSync(docsDir)) {
       const files = await readdir(docsDir)
-      const match = files.find(
-        (f: string) => f.toLowerCase() === `${topic.toLowerCase()}.md`,
-      )
+      const match = files.find((f: string) => f.toLowerCase() === `${topic.toLowerCase()}.md`)
       if (match) {
         content = await readFile(resolve(docsDir, match), "utf-8")
       }
@@ -397,17 +399,18 @@ export async function handleDocs(topic: string): Promise<CommandResult> {
 export async function handleResearch(raw: string): Promise<CommandResult> {
   if (!raw) {
     return {
-      text: "Usage: `/research <goal>`\n\n"
-        + "Launches a Karpathy-style autonomous research loop that:\n"
-        + "1. Explores the codebase and proposes changes\n"
-        + "2. Implements and tests them\n"
-        + "3. Keeps only changes that improve the outcome (ratchet mechanism)\n"
-        + "4. Reverts changes that degrade it\n\n"
-        + "Examples:\n"
-        + "`/research Optimize the database query layer`\n"
-        + "`/research Add comprehensive error handling to the API`\n"
-        + "`/research Improve the test coverage for the agent module`\n\n"
-        + "*Requires:* AI provider API key",
+      text:
+        "Usage: `/research <goal>`\n\n" +
+        "Launches a Karpathy-style autonomous research loop that:\n" +
+        "1. Explores the codebase and proposes changes\n" +
+        "2. Implements and tests them\n" +
+        "3. Keeps only changes that improve the outcome (ratchet mechanism)\n" +
+        "4. Reverts changes that degrade it\n\n" +
+        "Examples:\n" +
+        "`/research Optimize the database query layer`\n" +
+        "`/research Add comprehensive error handling to the API`\n" +
+        "`/research Improve the test coverage for the agent module`\n\n" +
+        "*Requires:* AI provider API key",
     }
   }
 
@@ -470,16 +473,11 @@ export async function handleHistory(): Promise<CommandResult> {
       return { text: "*📜 Command History*\n\nNo commands recorded yet." }
     }
 
-    const lines = [
-      `*📜 Command History (last ${Math.min(entries.length, 20)})*`,
-      "",
-    ]
+    const lines = [`*📜 Command History (last ${Math.min(entries.length, 20)})*`, ""]
 
     const recent = entries.slice(-20).reverse()
     for (const entry of recent) {
-      const time = entry.timestamp
-        ? new Date(entry.timestamp).toLocaleString().slice(0, 16)
-        : ""
+      const time = entry.timestamp ? new Date(entry.timestamp).toLocaleString().slice(0, 16) : ""
       const cmd = entry.args ? `${entry.command} ${entry.args}` : entry.command
       lines.push(`• \`${time}\` — \`${cmd.slice(0, 60)}\``)
     }
@@ -519,9 +517,8 @@ export async function handleConfig(): Promise<CommandResult> {
     const telemetry = getTelemetryStats()
     const tools = toolRegistry.list()
 
-    const envLines = globalEntries.length > 0
-      ? globalEntries.map((e) => `  • \`${e.key}\` — set`).join("\n")
-      : "  • (none configured)"
+    const envLines =
+      globalEntries.length > 0 ? globalEntries.map((e) => `  • \`${e.key}\` — set`).join("\n") : "  • (none configured)"
 
     const lines = [
       "*⚙️ System Configuration*",
@@ -540,7 +537,10 @@ export async function handleConfig(): Promise<CommandResult> {
       "",
       "*Tools*",
       `  • ${tools.length} tools registered`,
-      tools.slice(0, 10).map((t: any) => `  • \`${t.name}\` — ${t.description}`).join("\n"),
+      tools
+        .slice(0, 10)
+        .map((t: any) => `  • \`${t.name}\` — ${t.description}`)
+        .join("\n"),
       "",
       "_Configure: `aegis setup-keys`_",
     ].join("\n")
@@ -563,10 +563,7 @@ export async function handleCron(): Promise<CommandResult> {
       }
     }
 
-    const lines = [
-      `*⏰ Cron Jobs (${jobs.length})*`,
-      "",
-    ]
+    const lines = [`*⏰ Cron Jobs (${jobs.length})*`, ""]
     for (const job of jobs) {
       const typeInfo = job.agentType ? ` [${job.agentType}]` : ""
       lines.push(`*${job.name}* — every \`${job.schedule}\`${typeInfo}`)
@@ -592,10 +589,7 @@ export async function handleSkill(): Promise<CommandResult> {
       }
     }
 
-    const lines = [
-      `*🧩 Installed Skills (${manifest.length})*`,
-      "",
-    ]
+    const lines = [`*🧩 Installed Skills (${manifest.length})*`, ""]
     for (const skill of manifest) {
       const desc = skill.description ? ` — ${skill.description}` : ""
       lines.push(`• *${skill.name}*${desc}`)
@@ -619,19 +613,21 @@ export async function handleAgents(): Promise<CommandResult> {
       }
     }
 
-    const lines = [
-      `*🤖 Running Agents (${agents.length})*`,
-      "",
-    ]
+    const lines = [`*🤖 Running Agents (${agents.length})*`, ""]
 
     for (const a of agents) {
       const emoji =
-        a.status === "running" ? "🟢" :
-        a.status === "spawning" ? "🟡" :
-        a.status === "idle" ? "🔵" :
-        a.status === "busy" ? "🟠" :
-        a.status === "error" ? "🔴" :
-        "⚪"
+        a.status === "running"
+          ? "🟢"
+          : a.status === "spawning"
+            ? "🟡"
+            : a.status === "idle"
+              ? "🔵"
+              : a.status === "busy"
+                ? "🟠"
+                : a.status === "error"
+                  ? "🔴"
+                  : "⚪"
       const uptime = a.spawnTime ? `${Math.floor((Date.now() - a.spawnTime) / 1000)}s` : "-"
       const typeInfo = a.def.agentType ? ` [${a.def.agentType}]` : ""
       const tagInfo = a.def.tags?.length ? ` \`${a.def.tags.join("` `")}\`` : ""
@@ -678,21 +674,12 @@ export async function handleLogs(arg: string): Promise<CommandResult> {
       }
     }
 
-    const lines = [
-      `*📋 Logs for \`${target.def.name}\`*`,
-      `Status: \`${target.status}\``,
-      "",
-    ]
+    const lines = [`*📋 Logs for \`${target.def.name}\`*`, `Status: \`${target.status}\``, ""]
 
     for (const entry of logs) {
       const levelEmoji =
-        entry.level === "error" ? "🔴" :
-        entry.level === "warn" ? "🟡" :
-        entry.level === "success" ? "🟢" :
-        "⚪"
-      const time = entry.timestamp
-        ? new Date(entry.timestamp).toISOString().slice(11, 19)
-        : ""
+        entry.level === "error" ? "🔴" : entry.level === "warn" ? "🟡" : entry.level === "success" ? "🟢" : "⚪"
+      const time = entry.timestamp ? new Date(entry.timestamp).toISOString().slice(11, 19) : ""
       lines.push(`${levelEmoji} \`${time}\` ${entry.text.slice(0, 200)}`)
     }
 
@@ -805,16 +792,10 @@ export async function handleTwilioWebhook(
   }
 
   // Strip platform prefix from From number (e.g. "whatsapp:")
-  const userId = opts.stripPrefix
-    ? rawFrom.replace(opts.stripPrefix, "")
-    : rawFrom
+  const userId = opts.stripPrefix ? rawFrom.replace(opts.stripPrefix, "") : rawFrom
 
   // Auth check
-  if (
-    config.allowedUserIds &&
-    config.allowedUserIds.length > 0 &&
-    !config.allowedUserIds.includes(userId)
-  ) {
+  if (config.allowedUserIds && config.allowedUserIds.length > 0 && !config.allowedUserIds.includes(userId)) {
     return new Response("OK", { status: 200 })
   }
 

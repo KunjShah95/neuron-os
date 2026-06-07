@@ -12,12 +12,7 @@
 
 import type { PlatformAdapter, PlatformSendOptions } from "./types"
 import { createLogger } from "../cli/logger"
-import {
-  WELCOME_MSG,
-  HELP_MSG,
-  getCommandHandler,
-  clip,
-} from "./bot-commands"
+import { WELCOME_MSG, HELP_MSG, getCommandHandler, clip } from "./bot-commands"
 
 const log = createLogger("adapter:signal")
 
@@ -58,14 +53,13 @@ export function createSignalAdapter(config: SignalConfig): PlatformAdapter {
 
   async function pollMessages(): Promise<void> {
     try {
-      const response = await fetch(
-        `${config.apiUrl}/v1/receive/${encodeURIComponent(config.fromNumber)}?timeout=10`,
-        { signal: AbortSignal.timeout(15_000) },
-      )
+      const response = await fetch(`${config.apiUrl}/v1/receive/${encodeURIComponent(config.fromNumber)}?timeout=10`, {
+        signal: AbortSignal.timeout(15_000),
+      })
 
       if (!response.ok) return
 
-      const messages = await response.json() as Array<{
+      const messages = (await response.json()) as Array<{
         envelope: {
           source: string
           timestamp: number
@@ -83,11 +77,7 @@ export function createSignalAdapter(config: SignalConfig): PlatformAdapter {
         lastReceiveTimestamp = Math.max(lastReceiveTimestamp, msg.envelope.timestamp)
 
         // Auth check
-        if (
-          config.allowedUserIds &&
-          config.allowedUserIds.length > 0 &&
-          !config.allowedUserIds.includes(source)
-        ) {
+        if (config.allowedUserIds && config.allowedUserIds.length > 0 && !config.allowedUserIds.includes(source)) {
           continue
         }
 

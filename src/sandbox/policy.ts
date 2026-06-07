@@ -56,13 +56,13 @@ export class PolicyEngine {
         }
       }
     }
-    
+
     // If strictMode is on, default is deny unless explicitly allowed
     if (this.strictMode) {
       log.warn(`Policy strictly blocked ${action} on target: ${target}`)
       return false
     }
-    
+
     return true
   }
 

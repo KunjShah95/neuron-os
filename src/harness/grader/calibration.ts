@@ -40,7 +40,7 @@ export class JudgeCalibration {
    */
   addCalibrationExample(example: CalibrationExample): void {
     // Replace if exists, otherwise append
-    const idx = this.calibrationSet.findIndex(e => e.id === example.id)
+    const idx = this.calibrationSet.findIndex((e) => e.id === example.id)
     if (idx !== -1) {
       this.calibrationSet[idx] = example
     } else {
@@ -68,9 +68,7 @@ export class JudgeCalibration {
   /**
    * Run the judge against the calibration set and measure performance.
    */
-  async calibrate(
-    judgeFn: (task: string, output: string) => Promise<number>,
-  ): Promise<CalibrationResult> {
+  async calibrate(judgeFn: (task: string, output: string) => Promise<number>): Promise<CalibrationResult> {
     if (this.calibrationSet.length === 0) {
       return {
         accuracy: 0,
@@ -185,11 +183,12 @@ export class JudgeCalibration {
       currentAccuracy: curr.accuracy,
       delta: curr.accuracy - prev.accuracy,
       severity,
-      recommendation: severity === "critical"
-        ? "Judge accuracy has degraded significantly. Consider recalibrating with fresh examples or switching models."
-        : severity === "major"
-          ? "Judge accuracy is declining. Monitor closely and consider recalibration."
-          : "Minor drift detected — within acceptable range.",
+      recommendation:
+        severity === "critical"
+          ? "Judge accuracy has degraded significantly. Consider recalibrating with fresh examples or switching models."
+          : severity === "major"
+            ? "Judge accuracy is declining. Monitor closely and consider recalibration."
+            : "Minor drift detected — within acceptable range.",
     }
   }
 
@@ -264,8 +263,8 @@ export class JudgeCalibration {
     const threshold = 0.6
     const n = judgeScores.length
 
-    const judgePass = judgeScores.map(s => s >= threshold)
-    const humanPass = humanScores.map(s => s >= threshold)
+    const judgePass = judgeScores.map((s) => s >= threshold)
+    const humanPass = humanScores.map((s) => s >= threshold)
 
     // Observed agreement
     const observed = judgePass.filter((jp, i) => jp === humanPass[i]).length / n
@@ -290,26 +289,38 @@ export class JudgeCalibration {
     const recommendations: string[] = []
 
     if (accuracy < 0.6) {
-      recommendations.push("Judge accuracy is low (<60%). Consider using a different judge model or adding more calibration examples.")
+      recommendations.push(
+        "Judge accuracy is low (<60%). Consider using a different judge model or adding more calibration examples.",
+      )
     } else if (accuracy < 0.8) {
-      recommendations.push("Judge accuracy is moderate (60-80%). Continue adding calibration examples to improve reliability.")
+      recommendations.push(
+        "Judge accuracy is moderate (60-80%). Continue adding calibration examples to improve reliability.",
+      )
     }
 
     if (Math.abs(meanError) > 0.1) {
       const direction = meanError > 0 ? "over-scoring" : "under-scoring"
-      recommendations.push(`Judge is ${direction} by ${Math.abs(meanError).toFixed(2)} on average. Consider adjusting the rubric.`)
+      recommendations.push(
+        `Judge is ${direction} by ${Math.abs(meanError).toFixed(2)} on average. Consider adjusting the rubric.`,
+      )
     }
 
     if (stdDev > 0.2) {
-      recommendations.push(`Judge has high variance (σ=${stdDev.toFixed(2)}). Scores may be unreliable. Consider multi-judge consensus.`)
+      recommendations.push(
+        `Judge has high variance (σ=${stdDev.toFixed(2)}). Scores may be unreliable. Consider multi-judge consensus.`,
+      )
     }
 
     if (positionBias > 0.15) {
-      recommendations.push(`Position bias detected (${(positionBias * 100).toFixed(0)}%). Shuffle criteria order across multiple judge calls.`)
+      recommendations.push(
+        `Position bias detected (${(positionBias * 100).toFixed(0)}%). Shuffle criteria order across multiple judge calls.`,
+      )
     }
 
     if (lengthBias > 0.15) {
-      recommendations.push(`Length bias detected (${(lengthBias * 100).toFixed(0)}%). Require CoT reasoning before scoring.`)
+      recommendations.push(
+        `Length bias detected (${(lengthBias * 100).toFixed(0)}%). Require CoT reasoning before scoring.`,
+      )
     }
 
     if (recommendations.length === 0) {
@@ -338,10 +349,14 @@ export class JudgeCalibration {
       mkdirSync(this.storageDir, { recursive: true })
       writeFileSync(
         this.storageFile,
-        JSON.stringify({
-          calibrationSet: this.calibrationSet,
-          performanceHistory: this.performanceHistory,
-        }, null, 2),
+        JSON.stringify(
+          {
+            calibrationSet: this.calibrationSet,
+            performanceHistory: this.performanceHistory,
+          },
+          null,
+          2,
+        ),
         "utf-8",
       )
     } catch {
@@ -388,7 +403,8 @@ export function createDefaultCalibrationSet(): CalibrationExample[] {
     {
       id: "cal-safe",
       task: "Create a simple REST API",
-      agentOutput: "import express from 'express'\nconst app = express()\napp.get('/health', (_, res) => res.json({ status: 'ok' }))\nexport default app",
+      agentOutput:
+        "import express from 'express'\nconst app = express()\napp.get('/health', (_, res) => res.json({ status: 'ok' }))\nexport default app",
       expectedScore: 1.0,
       category: "coding",
     },

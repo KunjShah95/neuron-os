@@ -19,63 +19,65 @@ const terminalRenderer = new TerminalRenderer({
     const suffix = "\n"
     return `${prefix}${color(text)}${suffix}`
   },
-  
+
   // Code block styling
   code: (code: string, language?: string): string => {
     const lang = language ? chalk.gray(` ${language} `) : ""
     const header = lang ? chalk.bgGray.white(lang) + "\n" : ""
     const formatted = code
       .split("\n")
-      .map(line => "  " + chalk.gray(line))
+      .map((line) => "  " + chalk.gray(line))
       .join("\n")
     return `\n${header}${formatted}\n`
   },
-  
+
   // Inline code
   codespan: (code: string): string => {
     return chalk.yellow(code)
   },
-  
+
   // Blockquote
   blockquote: (quote: string): string => {
-    return quote
-      .split("\n")
-      .map(line => chalk.gray("  ▎ ") + line.trim())
-      .join("\n") + "\n"
+    return (
+      quote
+        .split("\n")
+        .map((line) => chalk.gray("  ▎ ") + line.trim())
+        .join("\n") + "\n"
+    )
   },
-  
+
   // Lists - use proper signature
   list: (body: string): string => {
     return body
   },
-  
+
   listitem: (text: string): string => {
     return `  ${chalk.cyan("•")} ${text}\n`
   },
-  
+
   // Paragraphs
   paragraph: (text: string): string => {
     return `${text}\n\n`
   },
-  
+
   // Strong and emphasis
   strong: (text: string): string => chalk.bold.white(text),
   em: (text: string): string => chalk.italic(text),
-  
+
   // Links - use proper signature with 3 params
   link: (href: string, _title: string, text: string): string => {
     return chalk.blue.underline(text || href)
   },
-  
+
   // Tables - use proper signature
   table: (header: string, body: string): string => {
     return `\n${header}${body}\n`
   },
-  
+
   tablerow: (content: string): string => {
     return `${content}\n`
   },
-  
+
   tablecell: (content: string, flags: { header?: boolean }): string => {
     const padding = "  "
     if (flags.header) {
@@ -83,12 +85,12 @@ const terminalRenderer = new TerminalRenderer({
     }
     return padding + content + padding
   },
-  
+
   // Horizontal rule
   hr: (): string => {
     return chalk.gray("\n" + "─".repeat(process.stdout.columns || 80) + "\n")
   },
-  
+
   // Line breaks
   br: (): string => "\n",
 } as any) // Use as any to bypass strict type checking for the renderer
@@ -105,7 +107,7 @@ export function renderMarkdown(markdown: string): string {
   if (!markdown || typeof markdown !== "string") {
     return ""
   }
-  
+
   try {
     return marked.parse(markdown) as string
   } catch (err) {
@@ -129,25 +131,25 @@ export function renderMarkdownBox(markdown: string, title?: string): string {
   const boxWidth = Math.min(80, process.stdout.columns || 80)
   const rendered = renderMarkdown(markdown)
   const lines = rendered.split("\n")
-  
+
   const topBorder = chalk.gray("┌" + "─".repeat(boxWidth - 2) + "┐")
   const bottomBorder = chalk.gray("└" + "─".repeat(boxWidth - 2) + "┘")
-  
+
   let result = topBorder + "\n"
-  
+
   if (title) {
     const titleStr = ` ${chalk.bold.white(title)} `
     const padding = boxWidth - 2 - titleStr.length
     result += chalk.gray("│") + titleStr + " ".repeat(Math.max(0, padding)) + chalk.gray("│") + "\n"
     result += chalk.gray("├" + "─".repeat(boxWidth - 2) + "┤") + "\n"
   }
-  
+
   for (const line of lines) {
     const truncated = line.slice(0, boxWidth - 4)
     const padding = boxWidth - 4 - truncated.length
     result += chalk.gray("│ ") + truncated + " ".repeat(Math.max(0, padding)) + chalk.gray(" │") + "\n"
   }
-  
+
   result += bottomBorder
   return result
 }
@@ -179,36 +181,39 @@ export function renderPlanMarkdown(plan: {
     "## Steps",
     "",
   ]
-  
+
   for (const step of plan.steps) {
-    const statusEmoji = {
-      pending: "⬜",
-      selected: "☑️",
-      in_progress: "🔄",
-      completed: "✅",
-      failed: "❌",
-      skipped: "⏭️",
-    }[step.status] || "⬜"
-    
+    const statusEmoji =
+      {
+        pending: "⬜",
+        selected: "☑️",
+        in_progress: "🔄",
+        completed: "✅",
+        failed: "❌",
+        skipped: "⏭️",
+      }[step.status] || "⬜"
+
     lines.push(`${statusEmoji} **${step.id}:** ${step.title}`)
     lines.push(`   Type: \`${step.type}\` | Complexity: ${"⭐".repeat(step.complexity || 3)}`)
     lines.push(`   ${step.description}`)
     lines.push("")
   }
-  
+
   return lines.join("\n")
 }
 
 /**
  * Render search results as markdown
  */
-export function renderSearchResults(results: Array<{
-  title: string
-  url: string
-  snippet: string
-}>): string {
+export function renderSearchResults(
+  results: Array<{
+    title: string
+    url: string
+    snippet: string
+  }>,
+): string {
   const lines: string[] = ["# Search Results", ""]
-  
+
   for (let i = 0; i < results.length; i++) {
     const r = results[i]
     if (!r) continue
@@ -217,7 +222,7 @@ export function renderSearchResults(results: Array<{
     lines.push(`   ${r.snippet}`)
     lines.push("")
   }
-  
+
   return lines.join("\n")
 }
 

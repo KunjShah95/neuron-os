@@ -5,7 +5,13 @@ export type { AgentContext } from "./runtime"
 export { loadSoul, soulManager, SoulManager, ARCHETYPE_DEFINITIONS } from "./soul"
 export type { AgentSoul, AgentArchetype, SoulTrait, CommunicationStyle, SoulAdaptation } from "./soul"
 export { capabilityRegistry, CapabilityRegistry } from "./capability-registry"
-export type { Capability, CapabilityCategory, AgentCapabilityRegistration, CapabilityMatch, TaskRoute } from "./capability-registry"
+export type {
+  Capability,
+  CapabilityCategory,
+  AgentCapabilityRegistration,
+  CapabilityMatch,
+  TaskRoute,
+} from "./capability-registry"
 export { AgentEngine } from "./engine"
 export type { AgentEngineConfig } from "./engine"
 export { sessionStore, SessionStore } from "../memory/session-persistence"
@@ -18,11 +24,7 @@ export {
   getSubagentTypes,
   isValidAgentType,
 } from "./agent-types"
-export type {
-  AgentTypeName,
-  AgentType,
-  ToolPermission,
-} from "./agent-types"
+export type { AgentTypeName, AgentType, ToolPermission } from "./agent-types"
 
 // Action tracking + approval system
 export { ActionTracker } from "./action-tracker"

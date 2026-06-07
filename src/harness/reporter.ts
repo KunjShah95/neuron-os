@@ -10,21 +10,18 @@ function ensureDir(): void {
 
 // ── Report Generation ───────────────────────────────────────────
 
-export function generateReport(
-  results: EvalResult[],
-  suite: string = "default",
-): EvalReport {
-  const passed = results.filter(r => r.passed)
-  const failed = results.filter(r => !r.passed)
+export function generateReport(results: EvalResult[], suite: string = "default"): EvalReport {
+  const passed = results.filter((r) => r.passed)
+  const failed = results.filter((r) => !r.passed)
   const total = results.length
 
   // Compute by-category breakdown
-  const categories = new Set(results.map(r => r.test.category ?? "capability"))
+  const categories = new Set(results.map((r) => r.test.category ?? "capability"))
   const byCategory = {} as Record<TestCategory, { total: number; passed: number; avgScore: number }>
 
   for (const cat of categories as Set<string>) {
-    const catResults = results.filter(r => (r.test.category ?? "capability") === cat)
-    const catPassed = catResults.filter(r => r.passed)
+    const catResults = results.filter((r) => (r.test.category ?? "capability") === cat)
+    const catPassed = catResults.filter((r) => r.passed)
     byCategory[cat as TestCategory] = {
       total: catResults.length,
       passed: catPassed.length,
@@ -62,8 +59,8 @@ export function generateJsonReport(results: EvalResult[]): string {
 
 export function generateMarkdownReport(results: EvalResult[]): string {
   const report = generateReport(results)
-  const passed = results.filter(r => r.passed)
-  const failed = results.filter(r => !r.passed)
+  const passed = results.filter((r) => r.passed)
+  const failed = results.filter((r) => !r.passed)
   const total = results.length
 
   let md = `# Harness Report\n\n`
@@ -130,37 +127,47 @@ export function generateMarkdownReport(results: EvalResult[]): string {
 
 export function generateHtmlReport(results: EvalResult[]): string {
   const report = generateReport(results)
-  const passed = results.filter(r => r.passed)
-  const failed = results.filter(r => !r.passed)
+  const passed = results.filter((r) => r.passed)
+  const failed = results.filter((r) => !r.passed)
 
-  const passRate = report.totalTests > 0
-    ? ((report.passed / report.totalTests) * 100).toFixed(1)
-    : "0.0"
+  const passRate = report.totalTests > 0 ? ((report.passed / report.totalTests) * 100).toFixed(1) : "0.0"
 
-  const failureRows = failed.map(r => `
+  const failureRows = failed
+    .map(
+      (r) => `
     <tr class="failure-row">
       <td>${escapeHtml(r.test.name)}</td>
       <td>${r.error ? escapeHtml(r.error) : "Unknown"}</td>
       <td>${r.steps}</td>
       <td>${r.durationMs}ms</td>
       <td>$${r.totalCost.toFixed(4)}</td>
-    </tr>`).join("\n")
+    </tr>`,
+    )
+    .join("\n")
 
-  const passedRows = passed.map(r => `
+  const passedRows = passed
+    .map(
+      (r) => `
     <tr class="passed-row">
       <td>${escapeHtml(r.test.name)}</td>
       <td>${r.durationMs}ms</td>
       <td>${r.steps} steps</td>
       <td>$${r.totalCost.toFixed(4)}</td>
-    </tr>`).join("\n")
+    </tr>`,
+    )
+    .join("\n")
 
-  const categoryRows = Object.entries(report.byCategory).map(([cat, stats]) => `
+  const categoryRows = Object.entries(report.byCategory)
+    .map(
+      ([cat, stats]) => `
     <tr>
       <td>${escapeHtml(cat)}</td>
       <td>${stats.total}</td>
       <td>${stats.passed}</td>
       <td>${stats.avgScore.toFixed(2)}</td>
-    </tr>`).join("\n")
+    </tr>`,
+    )
+    .join("\n")
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -222,28 +229,40 @@ export function generateHtmlReport(results: EvalResult[]): string {
     </div>
   </div>
 
-  ${Object.keys(report.byCategory).length > 0 ? `
+  ${
+    Object.keys(report.byCategory).length > 0
+      ? `
   <h2>Categories</h2>
   <table>
     <tr><th>Category</th><th>Total</th><th>Passed</th><th>Avg Score</th></tr>
     ${categoryRows}
-  </table>` : ""}
+  </table>`
+      : ""
+  }
 
-  ${failed.length > 0 ? `
+  ${
+    failed.length > 0
+      ? `
   <h2>Failures (${failed.length})</h2>
   <table>
     <tr><th>Test</th><th>Error</th><th>Steps</th><th>Duration</th><th>Cost</th></tr>
     ${failureRows}
-  </table>` : ""}
+  </table>`
+      : ""
+  }
 
-  ${passed.length > 0 ? `
+  ${
+    passed.length > 0
+      ? `
   <h2>Passed (${passed.length})</h2>
   <div class="section">
     <table>
       <tr><th>Test</th><th>Duration</th><th>Steps</th><th>Cost</th></tr>
       ${passedRows}
     </table>
-  </div>` : ""}
+  </div>`
+      : ""
+  }
 </body>
 </html>`
 }
@@ -251,15 +270,17 @@ export function generateHtmlReport(results: EvalResult[]): string {
 // ── Streaming ───────────────────────────────────────────────────
 
 export function streamResult(result: EvalResult): string {
-  return JSON.stringify({
-    event: "test_result",
-    testId: result.test.id,
-    name: result.test.name,
-    passed: result.passed,
-    score: result.score,
-    durationMs: result.durationMs,
-    error: result.error ?? null,
-  }) + "\n"
+  return (
+    JSON.stringify({
+      event: "test_result",
+      testId: result.test.id,
+      name: result.test.name,
+      passed: result.passed,
+      score: result.score,
+      durationMs: result.durationMs,
+      error: result.error ?? null,
+    }) + "\n"
+  )
 }
 
 // ── File Writing ────────────────────────────────────────────────
@@ -267,21 +288,9 @@ export function streamResult(result: EvalResult): string {
 export function writeReports(results: EvalResult[]): void {
   ensureDir()
 
-  writeFileSync(
-    resolve(REPORT_DIR, "harness-report.json"),
-    generateJsonReport(results),
-    "utf-8",
-  )
-  writeFileSync(
-    resolve(REPORT_DIR, "harness-report.md"),
-    generateMarkdownReport(results),
-    "utf-8",
-  )
-  writeFileSync(
-    resolve(REPORT_DIR, "harness-report.html"),
-    generateHtmlReport(results),
-    "utf-8",
-  )
+  writeFileSync(resolve(REPORT_DIR, "harness-report.json"), generateJsonReport(results), "utf-8")
+  writeFileSync(resolve(REPORT_DIR, "harness-report.md"), generateMarkdownReport(results), "utf-8")
+  writeFileSync(resolve(REPORT_DIR, "harness-report.html"), generateHtmlReport(results), "utf-8")
 }
 
 export function writeReport(report: EvalReport, outputDir?: string): void {
@@ -294,9 +303,5 @@ export function writeReport(report: EvalReport, outputDir?: string): void {
 // ── Helper ──────────────────────────────────────────────────────
 
 function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
 }

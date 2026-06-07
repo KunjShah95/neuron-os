@@ -57,9 +57,7 @@ const PROVIDERS: ProviderConfig[] = [
     defaultBaseUrl: "https://api.openai.com/v1",
     needsBaseUrl: false,
     testKey: async (apiKey, baseUrl) => {
-      const url = baseUrl
-        ? `${baseUrl.replace(/\/+$/, "")}/models`
-        : "https://api.openai.com/v1/models"
+      const url = baseUrl ? `${baseUrl.replace(/\/+$/, "")}/models` : "https://api.openai.com/v1/models"
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 10000)
       try {
@@ -83,9 +81,7 @@ const PROVIDERS: ProviderConfig[] = [
     defaultBaseUrl: "https://api.deepseek.com/v1",
     needsBaseUrl: false,
     testKey: async (apiKey, baseUrl) => {
-      const url = baseUrl
-        ? `${baseUrl.replace(/\/+$/, "")}/models`
-        : "https://api.deepseek.com/v1/models"
+      const url = baseUrl ? `${baseUrl.replace(/\/+$/, "")}/models` : "https://api.deepseek.com/v1/models"
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 10000)
       try {
@@ -186,9 +182,7 @@ const PROVIDERS: ProviderConfig[] = [
     needsBaseUrl: true,
     baseUrlLabel: "Ollama server URL",
     testKey: async (_apiKey, baseUrl) => {
-      const url = baseUrl
-        ? `${baseUrl.replace(/\/+$/, "")}/api/tags`
-        : "http://localhost:11434/api/tags"
+      const url = baseUrl ? `${baseUrl.replace(/\/+$/, "")}/api/tags` : "http://localhost:11434/api/tags"
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 5000)
       try {
@@ -233,9 +227,7 @@ const PROVIDERS: ProviderConfig[] = [
     needsBaseUrl: true,
     baseUrlLabel: "Azure resource endpoint (replace {resource} with your resource name)",
     testKey: async (apiKey, baseUrl) => {
-      const url = baseUrl
-        ? `${baseUrl.replace(/\/+$/, "")}/openai/models?api-version=2024-02-15-preview`
-        : ""
+      const url = baseUrl ? `${baseUrl.replace(/\/+$/, "")}/openai/models?api-version=2024-02-15-preview` : ""
       if (!url) return { ok: false, error: "Azure endpoint URL is required" }
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 10000)
@@ -291,12 +283,12 @@ async function setupTelegramBot(): Promise<void> {
   if (!configure) return
 
   p.note(
-    "To get a Telegram bot token:\n"
-    + "1. Open Telegram and search for @BotFather\n"
-    + "2. Send /newbot and follow the prompts\n"
-    + "3. Copy the API token BotFather gives you\n"
-    + "4. Optionally set /setprivacy to Disabled (so the bot can read all messages)\n"
-    + "\nThe token looks like: 1234567890:ABCdefGHIjklMNOpqrsTUVwxyz",
+    "To get a Telegram bot token:\n" +
+      "1. Open Telegram and search for @BotFather\n" +
+      "2. Send /newbot and follow the prompts\n" +
+      "3. Copy the API token BotFather gives you\n" +
+      "4. Optionally set /setprivacy to Disabled (so the bot can read all messages)\n" +
+      "\nThe token looks like: 1234567890:ABCdefGHIjklMNOpqrsTUVwxyz",
     "Getting a Bot Token from @BotFather",
   )
 
@@ -527,10 +519,10 @@ async function runSetupKeysWizard(): Promise<void> {
 
     // ── Next steps ─────────────────────────────────────────────────────
     p.outro(
-      "All keys configured! They're encrypted with AES-256-GCM in ~/.aegis/vault.enc.\n"
-        + "Start the Telegram bot: `aegis telegram`\n"
-        + "View stored credentials: `aegis config list`\n"
-        + "Reconfigure anytime: `aegis setup-keys`",
+      "All keys configured! They're encrypted with AES-256-GCM in ~/.aegis/vault.enc.\n" +
+        "Start the Telegram bot: `aegis telegram`\n" +
+        "View stored credentials: `aegis config list`\n" +
+        "Reconfigure anytime: `aegis setup-keys`",
     )
   } catch (err) {
     if (err instanceof WizardCancelledError) {

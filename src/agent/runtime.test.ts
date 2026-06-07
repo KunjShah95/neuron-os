@@ -3,7 +3,6 @@ import { createAgentRuntime } from "./runtime"
 import { toolRegistry } from "../tools"
 
 describe("Runtime Tests", () => {
-
   it("should build system prompt with expected content", async () => {
     const runtime = createAgentRuntime("runtime-test", "build", process.cwd())
     const prompt = await runtime.buildSystemPrompt()
@@ -27,5 +26,4 @@ describe("Runtime Tests", () => {
     expect(result.success).toBe(true)
     expect(result.output.includes("Code Review")).toBe(true)
   })
-
 })

@@ -47,8 +47,7 @@ async function handlePreflight(
     return
   }
 
-  const recIcon =
-    final.recommendation === "proceed" ? "✅" : final.recommendation === "warn" ? "⚠️" : "🚫"
+  const recIcon = final.recommendation === "proceed" ? "✅" : final.recommendation === "warn" ? "⚠️" : "🚫"
 
   console.log(theme.heading("\n  \u{1F4CB} Pre-flight Estimate\n"))
   console.log(`  Goal:      ${theme.bold(goal.slice(0, 80))}`)
@@ -60,9 +59,7 @@ async function handlePreflight(
   console.log(`  Spent:     ${theme.text(`$${final.totalSpent.toFixed(4)}`)}`)
   console.log(
     `  Remaining: ${
-      final.remainingBudget > 0
-        ? theme.success(`$${final.remainingBudget.toFixed(4)}`)
-        : theme.error("$0.00")
+      final.remainingBudget > 0 ? theme.success(`$${final.remainingBudget.toFixed(4)}`) : theme.error("$0.00")
     }`,
   )
   console.log()

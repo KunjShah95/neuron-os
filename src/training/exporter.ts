@@ -39,9 +39,7 @@ export class TrajectoryExporter {
   private baseDir: string
 
   constructor(baseDir?: string) {
-    this.baseDir =
-      baseDir ??
-      resolve(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "trajectories")
+    this.baseDir = baseDir ?? resolve(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "trajectories")
   }
 
   /**
@@ -54,8 +52,7 @@ export class TrajectoryExporter {
     try {
       if (!existsSync(this.baseDir)) return sessions
 
-      const files = readdirSync(this.baseDir)
-        .filter((f) => f.endsWith(".jsonl") && !f.startsWith("_"))
+      const files = readdirSync(this.baseDir).filter((f) => f.endsWith(".jsonl") && !f.startsWith("_"))
 
       for (const file of files) {
         const sid = file.replace(".jsonl", "")

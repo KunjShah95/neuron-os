@@ -14,39 +14,30 @@ export function registerUnifiedMemory(program: Command): void {
     .option("--stores <stores>", `Comma-separated: ${STORE_NAMES.join(",")} (default: all)`)
     .option("--store <name>", `Search only one store: ${STORE_NAMES.join("|")}`)
     .option("--limit <n>", "Results per store", (v) => parseInt(v, 10), 5)
-    .action(
-      async (
-        question: string,
-        opts: { stores?: string; store?: string; limit: number },
-      ) => {
-        const stores = opts.store
-          ? [opts.store]
-          : opts.stores
-            ? opts.stores.split(",").map((s) => s.trim())
-            : undefined
+    .action(async (question: string, opts: { stores?: string; store?: string; limit: number }) => {
+      const stores = opts.store ? [opts.store] : opts.stores ? opts.stores.split(",").map((s) => s.trim()) : undefined
 
-        const results = await UnifiedMemoryQuery.search({
-          query: question,
-          stores: stores as any,
-          limit: opts.limit,
-        })
+      const results = await UnifiedMemoryQuery.search({
+        query: question,
+        stores: stores as any,
+        limit: opts.limit,
+      })
 
-        if (results.length === 0) {
-          console.log(theme.dim("  No matching memory found."))
-          return
+      if (results.length === 0) {
+        console.log(theme.dim("  No matching memory found."))
+        return
+      }
+
+      for (const r of results) {
+        const tag = theme.accent(`[${r.store}]`)
+        const pct = theme.dim(`(${(r.score * 100).toFixed(0)}%)`)
+        console.log(`  ${tag} ${pct}  ${r.content.slice(0, 200)}`)
+        if (r.sessionId) {
+          console.log(`    ${theme.dim(`session: ${r.sessionId}`)}`)
         }
-
-        for (const r of results) {
-          const tag = theme.accent(`[${r.store}]`)
-          const pct = theme.dim(`(${(r.score * 100).toFixed(0)}%)`)
-          console.log(`  ${tag} ${pct}  ${r.content.slice(0, 200)}`)
-          if (r.sessionId) {
-            console.log(`    ${theme.dim(`session: ${r.sessionId}`)}`)
-          }
-          console.log()
-        }
-      },
-    )
+        console.log()
+      }
+    })
 
   mem
     .command("status")

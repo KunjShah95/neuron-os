@@ -1,14 +1,17 @@
 import type { Command } from "commander"
 import { theme } from "../theme"
 import { agentManager } from "../../agent/manager"
-import { getAgentType, isValidAgentType, getPrimaryAgentTypes, getSubagentTypes, type AgentTypeName } from "../../agent/agent-types"
+import {
+  getAgentType,
+  isValidAgentType,
+  getPrimaryAgentTypes,
+  getSubagentTypes,
+  type AgentTypeName,
+} from "../../agent/agent-types"
 import type { AgentLogLevel } from "../../agent/types"
 
 export function registerAgent(program: Command) {
-  const agent = program
-    .command("agent")
-    .alias("a")
-    .description("Manage AI agents")
+  const agent = program.command("agent").alias("a").description("Manage AI agents")
 
   // ── types ──────────────────────────────────────────────────────────
   agent
@@ -85,58 +88,76 @@ export function registerAgent(program: Command) {
   agent
     .command("spawn <name>")
     .description("Spawn a new agent")
-    .option("--type <type>", "Agent type (build, plan, read, write, test, validate, review, debug, document, refactor, deploy, monitor, explore)")
+    .option(
+      "--type <type>",
+      "Agent type (build, plan, read, write, test, validate, review, debug, document, refactor, deploy, monitor, explore)",
+    )
     .option("--script <path>", "Path to worker script", "src/agent/agent-worker.ts")
     .option("--tag <tags...>", "Tags to assign")
     .option("--timeout <ms>", "Stop timeout in ms")
     .option("--retries <n>", "Auto-recovery max retries (0 to disable)", "5")
     .option("--backoff <ms>", "Auto-recovery base backoff in ms", "1000")
-    .action(async (name: string, opts: {
-      type?: string; script?: string; tag?: string[]; timeout?: string; retries?: string; backoff?: string
-    }) => {
-      // Validate type if provided
-      if (opts.type && !isValidAgentType(opts.type)) {
-        console.log(theme.error(`  Unknown agent type: ${opts.type}`))
-        console.log(theme.dim("  Run 'aegis agent types' to see available types"))
-        process.exit(1)
-      }
-
-      console.log(theme.info(`  Spawning agent "${name}"…`))
-
-      const retries = parseInt(opts.retries ?? "5", 10)
-
-      try {
-        const id = await agentManager.spawn({
-          name,
-          agentType: opts.type as AgentTypeName | undefined,
-          script: opts.script ?? "src/agent/agent-worker.ts",
-          tags: opts.tag,
-          stopTimeout: opts.timeout ? parseInt(opts.timeout, 10) : undefined,
-          recovery: retries > 0 ? {
-            maxRetries: retries,
-            backoffMs: parseInt(opts.backoff ?? "1000", 10),
-          } : undefined,
-        })
-
-        const instance = agentManager.get(id)!
-        console.log(theme.success(`  ✓ Agent "${name}" spawned successfully`))
-        console.log(`    id:     ${theme.dim(id)}`)
-        console.log(`    pid:    ${theme.dim(String(instance.pid))}`)
-        if (instance.def.agentType) {
-          const type = getAgentType(instance.def.agentType)
-          console.log(`    type:   ${theme.accent(instance.def.agentType)}${type ? theme.dim(` (${type.mode})`) : ""}`)
+    .action(
+      async (
+        name: string,
+        opts: {
+          type?: string
+          script?: string
+          tag?: string[]
+          timeout?: string
+          retries?: string
+          backoff?: string
+        },
+      ) => {
+        // Validate type if provided
+        if (opts.type && !isValidAgentType(opts.type)) {
+          console.log(theme.error(`  Unknown agent type: ${opts.type}`))
+          console.log(theme.dim("  Run 'aegis agent types' to see available types"))
+          process.exit(1)
         }
-        console.log(`    script: ${theme.dim(instance.def.script)}`)
-        if (retries > 0) {
-          console.log(`    recovery: ${theme.dim(`${retries} retries, ${opts.backoff ?? "1000"}ms base backoff`)}`)
-        } else {
-          console.log(`    recovery: ${theme.dim("disabled")}`)
+
+        console.log(theme.info(`  Spawning agent "${name}"…`))
+
+        const retries = parseInt(opts.retries ?? "5", 10)
+
+        try {
+          const id = await agentManager.spawn({
+            name,
+            agentType: opts.type as AgentTypeName | undefined,
+            script: opts.script ?? "src/agent/agent-worker.ts",
+            tags: opts.tag,
+            stopTimeout: opts.timeout ? parseInt(opts.timeout, 10) : undefined,
+            recovery:
+              retries > 0
+                ? {
+                    maxRetries: retries,
+                    backoffMs: parseInt(opts.backoff ?? "1000", 10),
+                  }
+                : undefined,
+          })
+
+          const instance = agentManager.get(id)!
+          console.log(theme.success(`  ✓ Agent "${name}" spawned successfully`))
+          console.log(`    id:     ${theme.dim(id)}`)
+          console.log(`    pid:    ${theme.dim(String(instance.pid))}`)
+          if (instance.def.agentType) {
+            const type = getAgentType(instance.def.agentType)
+            console.log(
+              `    type:   ${theme.accent(instance.def.agentType)}${type ? theme.dim(` (${type.mode})`) : ""}`,
+            )
+          }
+          console.log(`    script: ${theme.dim(instance.def.script)}`)
+          if (retries > 0) {
+            console.log(`    recovery: ${theme.dim(`${retries} retries, ${opts.backoff ?? "1000"}ms base backoff`)}`)
+          } else {
+            console.log(`    recovery: ${theme.dim("disabled")}`)
+          }
+        } catch (err) {
+          console.log(theme.error(`  ✗ Failed to spawn agent: ${err instanceof Error ? err.message : String(err)}`))
+          process.exit(1)
         }
-      } catch (err) {
-        console.log(theme.error(`  ✗ Failed to spawn agent: ${err instanceof Error ? err.message : String(err)}`))
-        process.exit(1)
-      }
-    })
+      },
+    )
 
   // ── kill ──────────────────────────────────────────────────────────
   agent
@@ -225,10 +246,17 @@ export function registerAgent(program: Command) {
       console.log(`  ${theme.bold("status:")}      ${instance.status}`)
       if (instance.def.agentType) {
         const type = getAgentType(instance.def.agentType)
-        console.log(`  ${theme.bold("type:")}        ${theme.accent(instance.def.agentType)}${type ? theme.dim(` (${type.mode})`) : ""}`)
+        console.log(
+          `  ${theme.bold("type:")}        ${theme.accent(instance.def.agentType)}${type ? theme.dim(` (${type.mode})`) : ""}`,
+        )
         if (type) {
           console.log(`  ${theme.bold("description:")} ${type.description}`)
-          console.log(`  ${theme.bold("tools:")}       ${type.tools.filter(t => t.allow).map(t => t.name).join(", ")}`)
+          console.log(
+            `  ${theme.bold("tools:")}       ${type.tools
+              .filter((t) => t.allow)
+              .map((t) => t.name)
+              .join(", ")}`,
+          )
           if (type.modelHint) {
             console.log(`  ${theme.bold("model:")}       ${type.modelHint}`)
           }
@@ -244,7 +272,9 @@ export function registerAgent(program: Command) {
         console.log(`  ${theme.bold("tags:")}        ${instance.def.tags.join(", ")}`)
       }
       if (instance.def.limits) {
-        console.log(`  ${theme.bold("limits:")}      cpu:${instance.def.limits.cpu ?? "none"} mem:${instance.def.limits.memoryMB ?? "none"}MB`)
+        console.log(
+          `  ${theme.bold("limits:")}      cpu:${instance.def.limits.cpu ?? "none"} mem:${instance.def.limits.memoryMB ?? "none"}MB`,
+        )
       }
     })
 }
@@ -252,9 +282,7 @@ export function registerAgent(program: Command) {
 // ── Helper ─────────────────────────────────────────────────────────────
 
 function findAgent(name: string) {
-  const byName = Array.from(agentManager.agents.values()).find(
-    (a) => a.def.name === name || a.id === name,
-  )
+  const byName = Array.from(agentManager.agents.values()).find((a) => a.def.name === name || a.id === name)
   if (!byName) {
     console.log(theme.error(`  Agent "${name}" not found`))
     process.exit(1)

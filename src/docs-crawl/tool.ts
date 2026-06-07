@@ -4,7 +4,8 @@ import { CrawlEngine } from "./engine"
 
 export const docsCrawlTool: Tool = {
   name: "docs_crawl",
-  description: "Crawl a documentation website and store structured content in the knowledge graph and/or disk. Use this to ingest documentation for later Q&A retrieval.",
+  description:
+    "Crawl a documentation website and store structured content in the knowledge graph and/or disk. Use this to ingest documentation for later Q&A retrieval.",
   parameters: [
     { name: "url", type: "string", description: "URL to crawl", required: true },
     { name: "mode", type: "string", description: "qa, kg, or both (default: qa)" },
@@ -13,7 +14,8 @@ export const docsCrawlTool: Tool = {
   ],
   async execute(params: Record<string, unknown>, _ctx: ToolContext): Promise<ToolResult> {
     const url = String(params.url ?? "").trim()
-    if (!url) return { success: false, output: "", error: "url parameter is required", metadata: { tool: "docs_crawl" } }
+    if (!url)
+      return { success: false, output: "", error: "url parameter is required", metadata: { tool: "docs_crawl" } }
 
     try {
       const config = buildConfig({
@@ -30,10 +32,16 @@ export const docsCrawlTool: Tool = {
         `Crawled ${result.stats.succeeded} pages from ${url}`,
         result.stats.failed > 0 ? ` (${result.stats.failed} failed)` : "",
         `Mode: ${config.mode}`,
-        result.processed.length > 0 ? `${result.processed.reduce((s, p) => s + p.sections.length, 0)} sections extracted` : "",
-        result.processed.length > 0 ? `${result.processed.reduce((s, p) => s + p.entities.length, 0)} entities extracted` : "",
+        result.processed.length > 0
+          ? `${result.processed.reduce((s, p) => s + p.sections.length, 0)} sections extracted`
+          : "",
+        result.processed.length > 0
+          ? `${result.processed.reduce((s, p) => s + p.entities.length, 0)} entities extracted`
+          : "",
         `Output: ${config.outputDir}`,
-      ].filter(Boolean).join("\n")
+      ]
+        .filter(Boolean)
+        .join("\n")
 
       return {
         success: true,

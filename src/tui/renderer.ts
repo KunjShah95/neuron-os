@@ -1,6 +1,15 @@
 import ansiEscapes from "ansi-escapes"
 import { calculateLayout } from "./layout"
-import { renderHeader, renderAgentList, renderActivityLog, renderStatusBar, renderCommandBar, renderProviders, renderSessions, renderA2uiPanel } from "./components"
+import {
+  renderHeader,
+  renderAgentList,
+  renderActivityLog,
+  renderStatusBar,
+  renderCommandBar,
+  renderProviders,
+  renderSessions,
+  renderA2uiPanel,
+} from "./components"
 import { createInitialState, updateMetrics, addLogEntry } from "./store"
 import { parseKey, handleKey } from "./input"
 import { executeCommand } from "./commands"
@@ -147,7 +156,9 @@ export async function startDashboard() {
     process.stdin.off("data", onData)
     try {
       process.stdin.setRawMode(wasRaw ?? false)
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     process.stdin.pause()
     process.stdout.write(ansiEscapes.exitAlternativeScreen)
     process.stdout.write(ansiEscapes.cursorShow)

@@ -29,7 +29,9 @@ export async function showInfoScreen(
     let output = ansiEscapes.cursorHide + ansiEscapes.cursorTo(0, 0)
 
     const hint = options?.back ? " ↑↓ scroll  Esc back  Ctrl+Q quit " : " ↑↓ scroll  Ctrl+Q quit "
-    const headerLine = theme.muted(`╭─ ${title} ${"─".repeat(Math.max(0, cols - title.length - hint.length - 4))} ${hint}╮`)
+    const headerLine = theme.muted(
+      `╭─ ${title} ${"─".repeat(Math.max(0, cols - title.length - hint.length - 4))} ${hint}╮`,
+    )
     output += headerLine + "\n"
 
     const visibleRows = rows - 2
@@ -46,7 +48,9 @@ export async function showInfoScreen(
     }
 
     if (lines.length > visibleRows) {
-      const scrollInfo = theme.muted(`  ${start + 1}-${end} of ${lines.length} (${Math.round((end / lines.length) * 100)}%)`)
+      const scrollInfo = theme.muted(
+        `  ${start + 1}-${end} of ${lines.length} (${Math.round((end / lines.length) * 100)}%)`,
+      )
       output += scrollInfo
     }
 
@@ -59,7 +63,9 @@ export async function showInfoScreen(
     if (cleanedUp) return
     cleanedUp = true
     // Best-effort restore of terminal state — stdin may already be in a clean state
-    try { process.stdin.setRawMode(wasRaw ?? false) } catch {}
+    try {
+      process.stdin.setRawMode(wasRaw ?? false)
+    } catch {}
     process.stdin.pause()
     process.stdout.write(ansiEscapes.exitAlternativeScreen)
     process.stdout.write(ansiEscapes.cursorShow)
@@ -91,7 +97,12 @@ export async function showInfoScreen(
   render()
 
   await new Promise<void>((resolve) => {
-    const id = setInterval(() => { if (!running) { clearInterval(id); resolve() } }, 100)
+    const id = setInterval(() => {
+      if (!running) {
+        clearInterval(id)
+        resolve()
+      }
+    }, 100)
   })
 
   process.stdin.off("data", onData)

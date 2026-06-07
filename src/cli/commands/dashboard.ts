@@ -21,14 +21,20 @@ async function handleDashboard(opts: { json?: boolean }) {
 
   // Fetch data — tools are auto-registered on import
   const agents = agentManager.list()
-  const runningAgents = agents.filter(a => a.status === "running")
-  const stoppedAgents = agents.filter(a => a.status === "stopped")
-  const errorAgents = agents.filter(a => a.status === "error")
+  const runningAgents = agents.filter((a) => a.status === "running")
+  const stoppedAgents = agents.filter((a) => a.status === "stopped")
+  const errorAgents = agents.filter((a) => a.status === "error")
 
   const fsBox = new FilesystemSandbox({ enabled: process.env.AEGIS_SANDBOX !== "none" })
   const procBox = new ProcessSandbox({ enabled: process.env.AEGIS_SANDBOX === "process" })
   const dockerBox = new DockerSandbox({ enabled: process.env.AEGIS_SANDBOX === "docker" })
-  const activeSandbox = dockerBox.status().active ? dockerBox : procBox.status().active ? procBox : fsBox.status().active ? fsBox : null
+  const activeSandbox = dockerBox.status().active
+    ? dockerBox
+    : procBox.status().active
+      ? procBox
+      : fsBox.status().active
+        ? fsBox
+        : null
   const sandboxStatus = activeSandbox?.status()
 
   const cronJobs = await listActiveJobs()
@@ -36,33 +42,37 @@ async function handleDashboard(opts: { json?: boolean }) {
   const mem = process.memoryUsage()
   const memMB = (mem.rss / 1024 / 1024).toFixed(1)
   const uptime = Math.floor(process.uptime())
-  const runtime = process.versions.bun
-    ? `bun ${process.versions.bun}`
-    : `node ${process.version}`
+  const runtime = process.versions.bun ? `bun ${process.versions.bun}` : `node ${process.version}`
 
   const computerTool = toolRegistry.get("computer")
 
   if (opts.json) {
-    console.log(JSON.stringify({
-      system: {
-        runtime,
-        platform: process.platform,
-        arch: process.arch,
-        memory: `${memMB} MB RSS`,
-        cpus: os.cpus().length,
-        uptime: `${uptime}s`,
-        pid: process.pid,
-      },
-      agents: {
-        total: agents.length,
-        running: runningAgents.length,
-        stopped: stoppedAgents.length,
-        error: errorAgents.length,
-      },
-      sandbox: sandboxStatus ? { type: sandboxStatus.type, active: sandboxStatus.active } : null,
-      computer: computerTool !== undefined,
-      cron: cronJobs.length,
-    }, null, 2))
+    console.log(
+      JSON.stringify(
+        {
+          system: {
+            runtime,
+            platform: process.platform,
+            arch: process.arch,
+            memory: `${memMB} MB RSS`,
+            cpus: os.cpus().length,
+            uptime: `${uptime}s`,
+            pid: process.pid,
+          },
+          agents: {
+            total: agents.length,
+            running: runningAgents.length,
+            stopped: stoppedAgents.length,
+            error: errorAgents.length,
+          },
+          sandbox: sandboxStatus ? { type: sandboxStatus.type, active: sandboxStatus.active } : null,
+          computer: computerTool !== undefined,
+          cron: cronJobs.length,
+        },
+        null,
+        2,
+      ),
+    )
     return
   }
 

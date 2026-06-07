@@ -148,9 +148,11 @@ export class MemoryNamespaceManager {
   getStats(): { totalNamespaces: number; totalEntries: number; expiredEntries: number } {
     const nsCount = (this.db.prepare("SELECT COUNT(*) as c FROM namespaces").get() as { c: number }).c
     const entryCount = (this.db.prepare("SELECT COUNT(*) as c FROM namespace_entries").get() as { c: number }).c
-    const expired = (this.db.prepare(
-      "SELECT COUNT(*) as c FROM namespace_entries WHERE expires_at < ? AND archived = 0",
-    ).get(new Date().toISOString()) as { c: number }).c
+    const expired = (
+      this.db
+        .prepare("SELECT COUNT(*) as c FROM namespace_entries WHERE expires_at < ? AND archived = 0")
+        .get(new Date().toISOString()) as { c: number }
+    ).c
 
     return { totalNamespaces: nsCount, totalEntries: entryCount, expiredEntries: expired }
   }
@@ -179,9 +181,11 @@ export class MemoryNamespaceManager {
   }
 
   listEntries(namespaceId: string, limit = 50): NamespaceEntry[] {
-    const rows = this.db.prepare(
-      "SELECT * FROM namespace_entries WHERE namespace_id = ? AND archived = 0 ORDER BY created_at DESC LIMIT ?",
-    ).all(namespaceId, limit) as Record<string, unknown>[]
+    const rows = this.db
+      .prepare(
+        "SELECT * FROM namespace_entries WHERE namespace_id = ? AND archived = 0 ORDER BY created_at DESC LIMIT ?",
+      )
+      .all(namespaceId, limit) as Record<string, unknown>[]
     return rows.map((r) => this.rowToEntry(r))
   }
 

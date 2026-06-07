@@ -3,9 +3,7 @@ import { theme } from "../theme"
 import { showBanner } from "../banner"
 
 export function registerTrain(program: Command) {
-  const train = program
-    .command("train")
-    .description("Training trajectory management — export and manage training data")
+  const train = program.command("train").description("Training trajectory management — export and manage training data")
 
   train
     .command("export")
@@ -17,12 +15,7 @@ export function registerTrain(program: Command) {
     .action(handleTrainExport)
 }
 
-async function handleTrainExport(opts: {
-  format?: string
-  since?: string
-  output?: string
-  session?: string
-}) {
+async function handleTrainExport(opts: { format?: string; since?: string; output?: string; session?: string }) {
   showBanner()
 
   const { TrajectoryExporter } = await import("../../training/exporter")

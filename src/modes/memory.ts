@@ -36,7 +36,7 @@ export const memoryMode: Mode = {
     lines.push(`  ${theme.heading("Facts")}`)
     const grouped: Record<string, typeof allFacts> = {}
     for (const f of allFacts) {
-      (grouped[f.category] ??= []).push(f)
+      ;(grouped[f.category] ??= []).push(f)
     }
     if (Object.keys(grouped).length === 0) {
       lines.push(`  ${theme.muted("No facts extracted yet.")}`)

@@ -17,7 +17,15 @@ export function registerCrawlJobs(): void {
   }
 }
 
-function registerSiteJob(site: { name: string; schedule: string; url?: string; path?: string; depth?: number; limit?: number; mode?: string }): void {
+function registerSiteJob(site: {
+  name: string
+  schedule: string
+  url?: string
+  path?: string
+  depth?: number
+  limit?: number
+  mode?: string
+}): void {
   log.info(`Registering crawl job: ${site.name} (every ${site.schedule})`)
 
   const timer = setInterval(async () => {

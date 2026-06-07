@@ -89,9 +89,10 @@ export class SessionStore {
    */
   constructor(dbPath?: string, project?: string) {
     // Resolve DB path: explicit > project-scoped > default (cwd-based)
-    const resolvedPath = dbPath
-      ?? (project ? getProjectSessionDb(project) : undefined)
-      ?? join(process.cwd(), "data", "sessions", "sessions.db")
+    const resolvedPath =
+      dbPath ??
+      (project ? getProjectSessionDb(project) : undefined) ??
+      join(process.cwd(), "data", "sessions", "sessions.db")
 
     const dir = join(resolvedPath, "..")
     if (!existsSync(dir)) {
@@ -197,11 +198,26 @@ export class SessionStore {
     const fields: string[] = []
     const values: unknown[] = []
 
-    if (updates.name !== undefined) { fields.push("name = ?"); values.push(updates.name) }
-    if (updates.status !== undefined) { fields.push("status = ?"); values.push(updates.status) }
-    if (updates.goal !== undefined) { fields.push("goal = ?"); values.push(updates.goal) }
-    if (updates.metadata !== undefined) { fields.push("metadata = ?"); values.push(JSON.stringify(updates.metadata)) }
-    if (updates.agentType !== undefined) { fields.push("agent_type = ?"); values.push(updates.agentType) }
+    if (updates.name !== undefined) {
+      fields.push("name = ?")
+      values.push(updates.name)
+    }
+    if (updates.status !== undefined) {
+      fields.push("status = ?")
+      values.push(updates.status)
+    }
+    if (updates.goal !== undefined) {
+      fields.push("goal = ?")
+      values.push(updates.goal)
+    }
+    if (updates.metadata !== undefined) {
+      fields.push("metadata = ?")
+      values.push(JSON.stringify(updates.metadata))
+    }
+    if (updates.agentType !== undefined) {
+      fields.push("agent_type = ?")
+      values.push(updates.agentType)
+    }
 
     if (fields.length === 0) return
 
@@ -222,13 +238,12 @@ export class SessionStore {
   listSessions(status?: SessionRecord["status"]): SessionRecord[] {
     let rows: Record<string, unknown>[]
     if (status) {
-      rows = this.db.prepare(
-        "SELECT * FROM sessions WHERE status = ? ORDER BY updated_at DESC",
-      ).all(status) as Record<string, unknown>[]
+      rows = this.db.prepare("SELECT * FROM sessions WHERE status = ? ORDER BY updated_at DESC").all(status) as Record<
+        string,
+        unknown
+      >[]
     } else {
-      rows = this.db.prepare(
-        "SELECT * FROM sessions ORDER BY updated_at DESC",
-      ).all() as Record<string, unknown>[]
+      rows = this.db.prepare("SELECT * FROM sessions ORDER BY updated_at DESC").all() as Record<string, unknown>[]
     }
     return rows.map((r) => this.rowToSession(r))
   }
@@ -278,24 +293,29 @@ export class SessionStore {
   // ── State ──────────────────────────────────────────────────────────
 
   setState(sessionId: string, key: string, value: string): void {
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       INSERT INTO session_state (session_id, key, value)
       VALUES (?, ?, ?)
       ON CONFLICT(session_id, key) DO UPDATE SET value = excluded.value
-    `).run(sessionId, key, value)
+    `,
+      )
+      .run(sessionId, key, value)
   }
 
   getState(sessionId: string, key: string): string | null {
-    const row = this.db.prepare(
-      "SELECT value FROM session_state WHERE session_id = ? AND key = ?",
-    ).get(sessionId, key) as { value: string } | null
+    const row = this.db
+      .prepare("SELECT value FROM session_state WHERE session_id = ? AND key = ?")
+      .get(sessionId, key) as { value: string } | null
     return row?.value ?? null
   }
 
   getAllState(sessionId: string): Record<string, string> {
-    const rows = this.db.prepare(
-      "SELECT key, value FROM session_state WHERE session_id = ?",
-    ).all(sessionId) as { key: string; value: string }[]
+    const rows = this.db.prepare("SELECT key, value FROM session_state WHERE session_id = ?").all(sessionId) as {
+      key: string
+      value: string
+    }[]
 
     const result: Record<string, string> = {}
     for (const row of rows) result[row.key] = row.value
@@ -315,13 +335,14 @@ export class SessionStore {
   restoreRecentSessions(count = 10, status?: SessionRecord["status"]): SessionRecord[] {
     let rows: Record<string, unknown>[]
     if (status) {
-      rows = this.db.prepare(
-        "SELECT * FROM sessions WHERE status = ? ORDER BY updated_at DESC LIMIT ?",
-      ).all(status, count) as Record<string, unknown>[]
+      rows = this.db
+        .prepare("SELECT * FROM sessions WHERE status = ? ORDER BY updated_at DESC LIMIT ?")
+        .all(status, count) as Record<string, unknown>[]
     } else {
-      rows = this.db.prepare(
-        "SELECT * FROM sessions ORDER BY updated_at DESC LIMIT ?",
-      ).all(count) as Record<string, unknown>[]
+      rows = this.db.prepare("SELECT * FROM sessions ORDER BY updated_at DESC LIMIT ?").all(count) as Record<
+        string,
+        unknown
+      >[]
     }
 
     return rows.map((r) => this.rowToSession(r))
@@ -435,9 +456,7 @@ export class SessionStore {
       : messages[messages.length - 1]
 
     if (!checkpointMsg) {
-      throw new Error(
-        `Cannot fork: checkpoint message ${opts?.atMessageId} not found in session "${parentId}"`,
-      )
+      throw new Error(`Cannot fork: checkpoint message ${opts?.atMessageId} not found in session "${parentId}"`)
     }
 
     // Determine which messages to copy (up to and including the checkpoint)
@@ -449,23 +468,27 @@ export class SessionStore {
     const now = Date.now()
 
     this.db.transaction(() => {
-      this.db.prepare(`
+      this.db
+        .prepare(
+          `
         INSERT INTO sessions (id, name, agent_type, goal, status, created_at, updated_at, metadata,
           parent_session_id, checkpoint_id, checkpoint_name)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        forkId,
-        opts?.name ?? `${parent.name} (fork)`,
-        parent.agentType,
-        opts?.goal ?? parent.goal,
-        "active",
-        now,
-        now,
-        JSON.stringify({ ...parent.metadata, forkedFrom: parentId, forkMessageId: checkpointMsg.id }),
-        parentId,
-        checkpointMsg.id,
-        opts?.name ?? null,
-      )
+      `,
+        )
+        .run(
+          forkId,
+          opts?.name ?? `${parent.name} (fork)`,
+          parent.agentType,
+          opts?.goal ?? parent.goal,
+          "active",
+          now,
+          now,
+          JSON.stringify({ ...parent.metadata, forkedFrom: parentId, forkMessageId: checkpointMsg.id }),
+          parentId,
+          checkpointMsg.id,
+          opts?.name ?? null,
+        )
 
       // Copy messages up to the checkpoint
       const insertMsg = this.db.prepare(`
@@ -512,9 +535,7 @@ export class SessionStore {
     const messages = this.getMessages(sessionId, 1)
     const exists = messages.some((m) => m.id === messageId)
     if (!exists) {
-      throw new Error(
-        `Cannot create checkpoint: message ${messageId} not found in session "${sessionId}"`,
-      )
+      throw new Error(`Cannot create checkpoint: message ${messageId} not found in session "${sessionId}"`)
     }
 
     // Store checkpoint as a state entry for easy querying
@@ -530,11 +551,15 @@ export class SessionStore {
    * @param parentId - The parent session to list forks for
    */
   listForks(parentId: string): SessionRecord[] {
-    const rows = this.db.prepare(`
+    const rows = this.db
+      .prepare(
+        `
       SELECT * FROM sessions
       WHERE parent_session_id = ?
       ORDER BY created_at ASC
-    `).all(parentId) as Record<string, unknown>[]
+    `,
+      )
+      .all(parentId) as Record<string, unknown>[]
 
     return rows.map((r) => this.rowToSession(r))
   }
@@ -597,19 +622,13 @@ export class SessionStore {
       }
 
       // Mark source as completed
-      this.db.prepare(
-        "UPDATE sessions SET status = 'completed', updated_at = ? WHERE id = ?",
-      ).run(Date.now(), sourceId)
+      this.db.prepare("UPDATE sessions SET status = 'completed', updated_at = ? WHERE id = ?").run(Date.now(), sourceId)
 
       // Update target timestamp
-      this.db.prepare(
-        "UPDATE sessions SET updated_at = ? WHERE id = ?",
-      ).run(Date.now(), targetId)
+      this.db.prepare("UPDATE sessions SET updated_at = ? WHERE id = ?").run(Date.now(), targetId)
     })()
 
-    log.info(
-      `Merged ${sourceMessages.length} messages from "${sourceId}" into "${targetId}"`,
-    )
+    log.info(`Merged ${sourceMessages.length} messages from "${sourceId}" into "${targetId}"`)
 
     return this.getSession(targetId)!
   }
@@ -630,9 +649,9 @@ export class SessionStore {
 
   getStats(): { totalSessions: number; activeSessions: number; totalMessages: number } {
     const sessionCount = this.db.prepare("SELECT COUNT(*) as c FROM sessions").get() as { c: number }
-    const activeCount = this.db.prepare(
-      "SELECT COUNT(*) as c FROM sessions WHERE status = 'active'",
-    ).get() as { c: number }
+    const activeCount = this.db.prepare("SELECT COUNT(*) as c FROM sessions WHERE status = 'active'").get() as {
+      c: number
+    }
     const msgCount = this.db.prepare("SELECT COUNT(*) as c FROM session_messages").get() as { c: number }
 
     return {
@@ -696,7 +715,11 @@ export function getProjectSessionStore(project?: string | null): SessionStore {
 export function removeProjectStore(project: string): void {
   const store = projectStores.get(project)
   if (store) {
-    try { store.close() } catch { /* best effort */ }
+    try {
+      store.close()
+    } catch {
+      /* best effort */
+    }
     projectStores.delete(project)
   }
 }

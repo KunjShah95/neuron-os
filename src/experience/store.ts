@@ -197,9 +197,9 @@ export class ExperienceStore {
   }
 
   getByOutcome(outcome: Outcome, limit = 50): ExperienceRecord[] {
-    const rows = this.db.prepare(
-      "SELECT * FROM experiences WHERE outcome = ? ORDER BY started_at DESC LIMIT ?",
-    ).all(outcome, limit) as Record<string, unknown>[]
+    const rows = this.db
+      .prepare("SELECT * FROM experiences WHERE outcome = ? ORDER BY started_at DESC LIMIT ?")
+      .all(outcome, limit) as Record<string, unknown>[]
     return rows.map((r) => this.rowToExperience(r))
   }
 
@@ -219,11 +219,7 @@ export class ExperienceStore {
    * Sufficient until the buffer exceeds ~10k rows. Beyond that, swap
    * in a vector index (sqlite-vss or external).
    */
-  searchByGoalSimilarity(
-    query: string,
-    limit = 5,
-    project?: string,
-  ): Array<ExperienceRecord & { similarity: number }> {
+  searchByGoalSimilarity(query: string, limit = 5, project?: string): Array<ExperienceRecord & { similarity: number }> {
     const candidates = this.listRecent(200, project)
     if (candidates.length === 0) return []
 
@@ -235,10 +231,13 @@ export class ExperienceStore {
         const sim = cosineSimilarity(queryEmbed, computeEmbedding(text))
         // Outcome boost: success gets 1.2, partial 0.9, failed 0.8, reverted 0.7
         const outcomeBoost =
-          record.outcome === "success" ? 1.2 :
-          record.outcome === "partial" ? 0.9 :
-          record.outcome === "failed" ? 0.8 :
-          0.7 // reverted
+          record.outcome === "success"
+            ? 1.2
+            : record.outcome === "partial"
+              ? 0.9
+              : record.outcome === "failed"
+                ? 0.8
+                : 0.7 // reverted
         // Reward boost: rewards above 0 get a 0.5–1.0 multiplier
         const rewardBoost = 0.5 + Math.max(0, Math.min(1, record.reward)) * 0.5
         const adjusted = sim * outcomeBoost * rewardBoost
@@ -252,9 +251,9 @@ export class ExperienceStore {
   }
 
   getActionsForExperience(id: string): ExperienceAction[] {
-    const rows = this.db.prepare(
-      "SELECT * FROM experience_actions WHERE experience_id = ? ORDER BY step_index ASC",
-    ).all(id) as Record<string, unknown>[]
+    const rows = this.db
+      .prepare("SELECT * FROM experience_actions WHERE experience_id = ? ORDER BY step_index ASC")
+      .all(id) as Record<string, unknown>[]
     return rows.map((r) => ({
       id: r.id as number,
       experienceId: r.experience_id as string,
@@ -276,9 +275,15 @@ export class ExperienceStore {
     totalActions: number
   } {
     const totals = this.db.prepare("SELECT COUNT(*) as c FROM experiences").get() as { c: number }
-    const successes = this.db.prepare("SELECT COUNT(*) as c FROM experiences WHERE outcome = 'success'").get() as { c: number }
-    const failures = this.db.prepare("SELECT COUNT(*) as c FROM experiences WHERE outcome = 'failed'").get() as { c: number }
-    const reverteds = this.db.prepare("SELECT COUNT(*) as c FROM experiences WHERE outcome = 'reverted'").get() as { c: number }
+    const successes = this.db.prepare("SELECT COUNT(*) as c FROM experiences WHERE outcome = 'success'").get() as {
+      c: number
+    }
+    const failures = this.db.prepare("SELECT COUNT(*) as c FROM experiences WHERE outcome = 'failed'").get() as {
+      c: number
+    }
+    const reverteds = this.db.prepare("SELECT COUNT(*) as c FROM experiences WHERE outcome = 'reverted'").get() as {
+      c: number
+    }
     const avgReward = this.db.prepare("SELECT COALESCE(AVG(reward), 0) as r FROM experiences").get() as { r: number }
     const actions = this.db.prepare("SELECT COUNT(*) as c FROM experience_actions").get() as { c: number }
 
@@ -442,16 +447,15 @@ export class ExperienceStore {
 
       // High success rate + consistent pattern = good skill candidate
       if (successRate > 0.7 && avgActions <= 5) {
-        const name = normalized
-          .replace(/[^a-z0-9 ]/gi, "")
-          .trim()
-          .toLowerCase()
-          .replace(/\s+/g, "-")
-          .slice(0, 40) || `auto-skill-${Date.now().toString(36)}`
+        const name =
+          normalized
+            .replace(/[^a-z0-9 ]/gi, "")
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, "-")
+            .slice(0, 40) || `auto-skill-${Date.now().toString(36)}`
 
-        const steps = [...actionPatterns.entries()]
-          .sort(([, a], [, b]) => b - a)
-          .map(([type]) => type)
+        const steps = [...actionPatterns.entries()].sort(([, a], [, b]) => b - a).map(([type]) => type)
 
         candidates.push({
           name: `auto-${name}`,
@@ -475,9 +479,10 @@ export class ExperienceStore {
   }
 
   private getFailuresForGoal(normalized: string): number {
-    const all = this.db.prepare(
-      "SELECT goal, outcome FROM experiences WHERE outcome = 'failed'",
-    ).all() as { goal: string; outcome: string }[]
+    const all = this.db.prepare("SELECT goal, outcome FROM experiences WHERE outcome = 'failed'").all() as {
+      goal: string
+      outcome: string
+    }[]
     return all.filter((e) => this.normalizeGoal(e.goal) === normalized).length
   }
 

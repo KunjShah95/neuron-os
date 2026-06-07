@@ -108,18 +108,13 @@ export function stringMatchGrader(
     grader: "deterministic",
     score,
     weight: 0.2,
-    details: found
-      ? `Pattern "${pattern}" found in output`
-      : `Pattern "${pattern}" not found in output`,
+    details: found ? `Pattern "${pattern}" found in output` : `Pattern "${pattern}" not found in output`,
   }
 }
 
 // ── File Check Grader ───────────────────────────────────────────
 
-export function fileCheckGrader(
-  config: DeterministicGraderConfig["fileCheck"],
-  context?: GraderContext,
-): GradeResult {
+export function fileCheckGrader(config: DeterministicGraderConfig["fileCheck"], context?: GraderContext): GradeResult {
   const name = "file-check"
   const snapshot = context?.sandboxSnapshot
   if (!snapshot) {
@@ -172,10 +167,7 @@ export function fileCheckGrader(
 
 // ── Exit Code Grader ────────────────────────────────────────────
 
-export function exitCodeGrader(
-  config: DeterministicGraderConfig["exitCode"],
-  _context?: GraderContext,
-): GradeResult {
+export function exitCodeGrader(config: DeterministicGraderConfig["exitCode"], _context?: GraderContext): GradeResult {
   const name = "exit-code"
   const score = 1.0 // Default: we assume success since we're grading output
   if (!config) {
@@ -216,10 +208,7 @@ export function tokenBudgetGrader(
 
 // ── Step Count Grader ───────────────────────────────────────────
 
-export function stepCountGrader(
-  config: DeterministicGraderConfig["stepBudget"],
-  context?: GraderContext,
-): GradeResult {
+export function stepCountGrader(config: DeterministicGraderConfig["stepBudget"], context?: GraderContext): GradeResult {
   const name = "step-count"
   const maxSteps = config?.maxSteps ?? context?.expected?.maxSteps
   if (!maxSteps) {
@@ -230,7 +219,7 @@ export function stepCountGrader(
   const passed = actualSteps <= maxSteps
   const ratio = maxSteps > 0 ? Math.min(actualSteps / maxSteps, 1) : 1
   // Score decreases as step count approaches the limit
-  const score = passed ? 1.0 - (ratio * 0.3) : 0.3
+  const score = passed ? 1.0 - ratio * 0.3 : 0.3
 
   return {
     name,
@@ -245,10 +234,7 @@ export function stepCountGrader(
 
 // ── Diff Grader ──────────────────────────────────────────────────
 
-export function diffGrader(
-  config: DeterministicGraderConfig["diffCheck"],
-  context?: GraderContext,
-): GradeResult {
+export function diffGrader(config: DeterministicGraderConfig["diffCheck"], context?: GraderContext): GradeResult {
   const name = "diff-check"
   if (!config) {
     return { name, grader: "deterministic", score: 1.0, weight: 0.1, details: "No diff check configured" }

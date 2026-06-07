@@ -124,12 +124,8 @@ export async function writeInsightsToMemory(): Promise<void> {
     `**Total experiences:** ${report.totalExperiences}`,
     `**Failure rate:** ${report.failureRate}%`,
     "",
-    ...report.topClusters.map(
-      (c) => `- 🔴 \`${c.clusterKey}\` — ${c.count} occurrence(s)`,
-    ),
-    ...report.skillCandidates.map(
-      (c) => `- 🧠 \`${c.name}\` — ${c.confidence}% confidence`,
-    ),
+    ...report.topClusters.map((c) => `- 🔴 \`${c.clusterKey}\` — ${c.count} occurrence(s)`),
+    ...report.skillCandidates.map((c) => `- 🧠 \`${c.name}\` — ${c.confidence}% confidence`),
     "",
   ].join("\n")
 

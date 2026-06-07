@@ -70,17 +70,33 @@ export async function generatePlan(goal: string): Promise<Plan> {
   const tools: Record<string, any> = {
     read_file: {
       description: "Read a text file from the workspace. Use a path relative to the project root.",
-      parameters: jsonSchema({ type: "object", properties: { path: { type: "string", description: "Relative file path" } }, required: ["path"] }),
+      parameters: jsonSchema({
+        type: "object",
+        properties: { path: { type: "string", description: "Relative file path" } },
+        required: ["path"],
+      }),
       execute: async (args: any) => executor.readFile(args.path),
     },
     list_files: {
       description: "List files and directories under a path.",
-      parameters: jsonSchema({ type: "object", properties: { path: { type: "string" }, recursive: { type: "boolean" } }, required: ["path"] }),
+      parameters: jsonSchema({
+        type: "object",
+        properties: { path: { type: "string" }, recursive: { type: "boolean" } },
+        required: ["path"],
+      }),
       execute: async (args: any) => executor.listFiles(args.path, args.recursive),
     },
     search_files: {
       description: 'Find files matching a glob pattern (e.g. "*.ts", "**/*.md"). Optional content substring filter.',
-      parameters: jsonSchema({ type: "object", properties: { root: { type: "string", description: "Directory to search" }, pattern: { type: "string", description: "Glob pattern using * and **" }, content_contains: { type: "string" } }, required: ["root", "pattern"] }),
+      parameters: jsonSchema({
+        type: "object",
+        properties: {
+          root: { type: "string", description: "Directory to search" },
+          pattern: { type: "string", description: "Glob pattern using * and **" },
+          content_contains: { type: "string" },
+        },
+        required: ["root", "pattern"],
+      }),
       execute: async (args: any) => executor.searchFiles(args.root, args.pattern, args.content_contains),
     },
     analyze_codebase: {

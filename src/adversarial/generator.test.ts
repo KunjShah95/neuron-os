@@ -12,8 +12,12 @@ function setup(): void {
 }
 
 function teardown(): void {
-  try { unlinkSync(TEST_TASK) } catch {}
-  try { rmdirSync(TEST_TASK_DIR) } catch {}
+  try {
+    unlinkSync(TEST_TASK)
+  } catch {}
+  try {
+    rmdirSync(TEST_TASK_DIR)
+  } catch {}
 }
 
 describe("adversarial generator", () => {

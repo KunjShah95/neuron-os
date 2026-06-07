@@ -5,10 +5,7 @@ import { discoverTests, runSuite, writeReports } from "../../harness"
 import type { EvalResult } from "../../harness"
 
 export function registerHarness(program: Command) {
-  const harness = program
-    .command("harness")
-    .alias("h")
-    .description("Agent evaluation harness")
+  const harness = program.command("harness").alias("h").description("Agent evaluation harness")
 
   harness
     .command("run")
@@ -17,15 +14,9 @@ export function registerHarness(program: Command) {
     .option("--tag <tag>", "Only run tests with this tag")
     .action(handleRun)
 
-  harness
-    .command("report")
-    .description("Export last test run report")
-    .action(handleReport)
+  harness.command("report").description("Export last test run report").action(handleReport)
 
-  harness
-    .command("status")
-    .description("Show harness status (tests found, etc.)")
-    .action(handleStatus)
+  harness.command("status").description("Show harness status (tests found, etc.)").action(handleStatus)
 
   // Default: show status
   harness.action(handleStatus)
@@ -71,11 +62,11 @@ async function handleRun(opts: { name?: string; tag?: string }) {
 
   if (opts.name) {
     const pattern = opts.name.toLowerCase()
-    tests = tests.filter(t => t.name.toLowerCase().includes(pattern))
+    tests = tests.filter((t) => t.name.toLowerCase().includes(pattern))
   }
   if (opts.tag) {
     const tag = opts.tag.toLowerCase()
-    tests = tests.filter(t => t.tags?.some(tt => tt.toLowerCase() === tag))
+    tests = tests.filter((t) => t.tags?.some((tt) => tt.toLowerCase() === tag))
   }
 
   if (tests.length === 0) {
@@ -88,8 +79,8 @@ async function handleRun(opts: { name?: string; tag?: string }) {
   const results = await runSuite(tests)
   lastResults = results
 
-  const passed = results.filter(r => r.passed).length
-  const failed = results.filter(r => !r.passed).length
+  const passed = results.filter((r) => r.passed).length
+  const failed = results.filter((r) => !r.passed).length
 
   console.log()
   for (const r of results) {
@@ -100,7 +91,9 @@ async function handleRun(opts: { name?: string; tag?: string }) {
     }
   }
   console.log()
-  console.log(`  ${theme.bold("Results:")} ${theme.success(`${passed} passed`)}${failed > 0 ? `, ${theme.error(`${failed} failed`)}` : ""}`)
+  console.log(
+    `  ${theme.bold("Results:")} ${theme.success(`${passed} passed`)}${failed > 0 ? `, ${theme.error(`${failed} failed`)}` : ""}`,
+  )
 
   if (failed > 0) {
     console.log(`  ${theme.muted("Run: aegis harness report to save results")}`)

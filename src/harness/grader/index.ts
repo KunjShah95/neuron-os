@@ -101,12 +101,7 @@ export class GraderSuite {
 
         // Multi-judge consensus if multiple judge models configured
         if (judgeModels && judgeModels.length > 1) {
-          const consensusGrade = await multiJudgeConsensus(
-            result.output,
-            judgeModels,
-            llmConfig,
-            context,
-          )
+          const consensusGrade = await multiJudgeConsensus(result.output, judgeModels, llmConfig, context)
           grades.push(consensusGrade)
         } else {
           // Single rubric grader
@@ -160,18 +155,13 @@ export class GraderSuite {
     if (context.expected) {
       const expected = context.expected
       const detConfig: DeterministicGraderConfig = {
-        stringMatch: expected.pattern
-          ? { pattern: expected.pattern, mode: "contains" as const }
-          : undefined,
-        stepBudget: expected.maxSteps
-          ? { maxSteps: expected.maxSteps }
-          : undefined,
-        tokenBudget: expected.maxTokens
-          ? { maxTokens: expected.maxTokens }
-          : undefined,
-        fileCheck: expected.filesExist || expected.filesNotExist
-          ? { filesExist: expected.filesExist, filesNotExist: expected.filesNotExist }
-          : undefined,
+        stringMatch: expected.pattern ? { pattern: expected.pattern, mode: "contains" as const } : undefined,
+        stepBudget: expected.maxSteps ? { maxSteps: expected.maxSteps } : undefined,
+        tokenBudget: expected.maxTokens ? { maxTokens: expected.maxTokens } : undefined,
+        fileCheck:
+          expected.filesExist || expected.filesNotExist
+            ? { filesExist: expected.filesExist, filesNotExist: expected.filesNotExist }
+            : undefined,
       }
       const detGrades = deterministicGrade(output, detConfig, context as GraderContext)
       grades.push(...detGrades)
@@ -224,25 +214,20 @@ export class GraderSuite {
     const expected = result.test.expected
 
     return {
-      stringMatch: expected.pattern
-        ? { pattern: expected.pattern, mode: "contains" as const }
-        : undefined,
-      stepBudget: expected.maxSteps
-        ? { maxSteps: expected.maxSteps }
-        : undefined,
-      tokenBudget: expected.maxTokens
-        ? { maxTokens: expected.maxTokens }
-        : undefined,
-      fileCheck: expected.filesExist || expected.filesNotExist
-        ? {
-            filesExist: expected.filesExist,
-            filesNotExist: expected.filesNotExist,
-          }
-        : undefined,
+      stringMatch: expected.pattern ? { pattern: expected.pattern, mode: "contains" as const } : undefined,
+      stepBudget: expected.maxSteps ? { maxSteps: expected.maxSteps } : undefined,
+      tokenBudget: expected.maxTokens ? { maxTokens: expected.maxTokens } : undefined,
+      fileCheck:
+        expected.filesExist || expected.filesNotExist
+          ? {
+              filesExist: expected.filesExist,
+              filesNotExist: expected.filesNotExist,
+            }
+          : undefined,
     }
   }
 
-  private buildCodeConfig(): {} | undefined {
+  private buildCodeConfig(): Record<string, never> | undefined {
     if (!this.config.workDir) return undefined
     return {}
   }

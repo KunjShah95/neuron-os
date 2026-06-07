@@ -65,7 +65,9 @@ export class AdversarialSelfPlay {
     this.loadSessions()
   }
 
-  generateScenarios(config: SelfPlayConfig): Array<{ id: string; description: string; attackerGoal: string; defenderGoal: string }> {
+  generateScenarios(
+    config: SelfPlayConfig,
+  ): Array<{ id: string; description: string; attackerGoal: string; defenderGoal: string }> {
     const count = Math.min(config.scenarioCount, SCENARIO_TEMPLATES.length)
     const shuffled = [...SCENARIO_TEMPLATES].sort(() => Math.random() - 0.5)
     const selected = shuffled.slice(0, count)
@@ -202,9 +204,8 @@ export class AdversarialSelfPlay {
   getStats(): { totalSessions: number; totalScenarios: number; avgRounds: number } {
     const totalSessions = this.sessions.length
     const totalScenarios = this.sessions.length
-    const avgRounds = totalSessions > 0
-      ? Math.round(this.sessions.reduce((s, r) => s + r.rounds, 0) / totalSessions)
-      : 0
+    const avgRounds =
+      totalSessions > 0 ? Math.round(this.sessions.reduce((s, r) => s + r.rounds, 0) / totalSessions) : 0
 
     return { totalSessions, totalScenarios, avgRounds }
   }

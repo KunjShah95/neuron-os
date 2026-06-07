@@ -96,20 +96,13 @@ export class RatchetRuntime {
     }
   }
 
-  async measure(
-    config: RatchetConfig,
-    previousScore?: number,
-  ): Promise<RatchetMeasureResult> {
+  async measure(config: RatchetConfig, previousScore?: number): Promise<RatchetMeasureResult> {
     const filesChanged = this.getChangedFiles(config.cwd)
 
     if (config.criteria && config.criteria.length > 0) {
       try {
         this.evaluator = new Evaluator(config.cwd)
-        const evalResult = await this.evaluator.evaluate(
-          `ratchet-${Date.now()}`,
-          "ratchet measure",
-          config.criteria,
-        )
+        const evalResult = await this.evaluator.evaluate(`ratchet-${Date.now()}`, "ratchet measure", config.criteria)
         const score = evalResult.overallScore
         let outcome: RatchetMeasureResult["outcome"] = "improved"
         if (!evalResult.overallPass && score === 0) outcome = "degraded"
@@ -137,10 +130,7 @@ export class RatchetRuntime {
           encoding: "utf8",
           timeout: 120_000,
         })
-        const failed =
-          output.includes("FAIL") ||
-          output.includes("error") ||
-          output.includes("Error")
+        const failed = output.includes("FAIL") || output.includes("error") || output.includes("Error")
         return {
           outcome: failed ? "degraded" : "improved",
           score: failed ? 0 : 1,

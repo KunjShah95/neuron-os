@@ -42,7 +42,7 @@ export async function browseHub(limit = 20): Promise<HubSkill[]> {
   try {
     const res = await fetch(`${AGENTSKILLS_IO_API}/skills?pageSize=${limit}`)
     if (!res.ok) return []
-    const body = await res.json() as { skills: HubSkill[] }
+    const body = (await res.json()) as { skills: HubSkill[] }
     return (body.skills || []).slice(0, limit)
   } catch {
     log.warn("agentskills.io browse failed (network error)")
@@ -54,7 +54,7 @@ export async function searchHub(query: string, limit = 10): Promise<HubSkill[]> 
   try {
     const res = await fetch(`${AGENTSKILLS_IO_API}/skills/search?q=${encodeURIComponent(query)}&pageSize=${limit}`)
     if (!res.ok) return []
-    const body = await res.json() as { skills: HubSkill[] }
+    const body = (await res.json()) as { skills: HubSkill[] }
     return (body.skills || []).slice(0, limit)
   } catch {
     log.warn("agentskills.io search failed (network error)")
@@ -68,7 +68,7 @@ export async function getHubSkillDetail(id: string): Promise<HubSkill | null> {
   try {
     const res = await fetch(`${AGENTSKILLS_IO_API}/skills/${encodeURIComponent(id)}`)
     if (!res.ok) return null
-    return await res.json() as HubSkill
+    return (await res.json()) as HubSkill
   } catch {
     return null
   }
@@ -122,7 +122,7 @@ export async function publishToHub(options: PublishOptions): Promise<PublishResu
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify(payload),
     })
@@ -132,7 +132,7 @@ export async function publishToHub(options: PublishOptions): Promise<PublishResu
       return { success: false, error: `HTTP ${res.status}: ${errBody}` }
     }
 
-    const result = await res.json() as { id: string; url: string }
+    const result = (await res.json()) as { id: string; url: string }
     log.info(`skill "${options.name}" published to agentskills.io: ${result.url}`)
     return { success: true, url: result.url }
   } catch (err: any) {
@@ -156,7 +156,7 @@ export async function installFromHub(id: string): Promise<{ success: boolean; pa
       return { success: false, error: `Download failed: HTTP ${res.status}` }
     }
 
-    const { content } = await res.json() as { content: string }
+    const { content } = (await res.json()) as { content: string }
 
     // Write to local skills directory
     const skillDir = join(process.cwd(), "skills", detail.name)

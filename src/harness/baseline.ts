@@ -8,8 +8,9 @@
  * Each baseline snapshots the full EvalReport for later comparison.
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from "node:fs"
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from "node:fs"
 import { resolve, join } from "node:path"
+import { execSync } from "node:child_process"
 import type { EvalReport, BaselineComparison, Regression } from "./types"
 
 // ── Types ─────────────────────────────────────────────────────────
@@ -43,9 +44,9 @@ export interface BurnRateReport {
   baselineScore: number
   currentScore: number
   totalDrop: number
-  dropRate: number              // Per day
+  dropRate: number // Per day
   estimatedDaysToFailure: number
-  budgetRemaining: number       // Allowable drop before threshold
+  budgetRemaining: number // Allowable drop before threshold
   threshold: number
 }
 
@@ -179,7 +180,6 @@ export class BaselineManager {
       for (const dir of dirs) {
         const path = join(this.config.storeDir, dir, `${id}.json`)
         if (existsSync(path)) {
-          const { unlinkSync } = require("node:fs")
           unlinkSync(path)
           this.cache.delete(dir)
           return true
@@ -202,7 +202,7 @@ export class BaselineManager {
       const baseResult = baseline.report.results.find((r) => r.test.id === curResult.test.id)
       if (!baseResult) continue
 
-      const delta = baseResult.score - curResult.score  // positive = regression
+      const delta = baseResult.score - curResult.score // positive = regression
       const absDelta = Math.abs(delta)
 
       const reg: Regression = {
@@ -227,10 +227,7 @@ export class BaselineManager {
 
     // Category deltas
     const categoryDeltas: Record<string, number> = {}
-    const allCategories = new Set([
-      ...Object.keys(current.byCategory),
-      ...Object.keys(baseline.report.byCategory),
-    ])
+    const allCategories = new Set([...Object.keys(current.byCategory), ...Object.keys(baseline.report.byCategory)])
     for (const cat of allCategories) {
       const cur = current.byCategory[cat as keyof typeof current.byCategory]
       const base = baseline.report.byCategory[cat as keyof typeof baseline.report.byCategory]
@@ -359,9 +356,7 @@ export class BaselineManager {
     const baselines = this.list(model)
     if (baselines.length <= this.config.maxBaselines) return
 
-    const sorted = baselines.sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-    )
+    const sorted = baselines.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     const toRemove = sorted.slice(this.config.maxBaselines)
 
     for (const b of toRemove) {
@@ -371,8 +366,7 @@ export class BaselineManager {
 
   private captureGitSha(): string {
     try {
-      const { execSync } = require("node:child_process")
-      return execSync("git rev-parse HEAD", { encoding: "utf-8", timeout: 3000 }).trim().slice(0, 12)
+      return execSync("git rev-parse HEAD", { encoding: "utf-8", timeout: 3000 }).toString().trim().slice(0, 12)
     } catch {
       return "unknown"
     }

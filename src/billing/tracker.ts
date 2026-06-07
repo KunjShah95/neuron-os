@@ -26,7 +26,7 @@ export class BillingTracker {
 
     this.db = new Database(dbPath)
     this.db.exec("PRAGMA journal_mode = WAL")
-    
+
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS usage (
         id TEXT PRIMARY KEY,
@@ -55,7 +55,7 @@ export class BillingTracker {
 
   public recordUsage(sessionId: string, model: string, promptTokens: number, completionTokens: number): CostRecord {
     const costUSD = (promptTokens / 1000) * COST_PER_1K_PROMPT + (completionTokens / 1000) * COST_PER_1K_COMPLETION
-    
+
     const record: CostRecord = {
       id: `usage-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
       sessionId,
@@ -63,13 +63,25 @@ export class BillingTracker {
       promptTokens,
       completionTokens,
       costUSD,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     }
 
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       INSERT INTO usage (id, session_id, model, prompt_tokens, completion_tokens, cost_usd, timestamp)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(record.id, record.sessionId, record.model, record.promptTokens, record.completionTokens, record.costUSD, record.timestamp)
+    `,
+      )
+      .run(
+        record.id,
+        record.sessionId,
+        record.model,
+        record.promptTokens,
+        record.completionTokens,
+        record.costUSD,
+        record.timestamp,
+      )
 
     return record
   }
@@ -96,7 +108,9 @@ export class BillingTracker {
    * Get cost breakdown grouped by model.
    */
   public getCostByModel(): Array<{ model: string; totalCost: number; totalTokens: number; callCount: number }> {
-    const rows = this.db.prepare(`
+    const rows = this.db
+      .prepare(
+        `
       SELECT
         model,
         SUM(cost_usd) as totalCost,
@@ -105,7 +119,9 @@ export class BillingTracker {
       FROM usage
       GROUP BY model
       ORDER BY totalCost DESC
-    `).all() as Array<{ model: string; totalCost: number; totalTokens: number; callCount: number }>
+    `,
+      )
+      .all() as Array<{ model: string; totalCost: number; totalTokens: number; callCount: number }>
     return rows
   }
 
@@ -113,7 +129,9 @@ export class BillingTracker {
    * Get cost breakdown grouped by session.
    */
   public getCostBySession(): Array<{ sessionId: string; totalCost: number; model: string; callCount: number }> {
-    const rows = this.db.prepare(`
+    const rows = this.db
+      .prepare(
+        `
       SELECT
         session_id as sessionId,
         model,
@@ -122,7 +140,9 @@ export class BillingTracker {
       FROM usage
       GROUP BY session_id, model
       ORDER BY totalCost DESC
-    `).all() as Array<{ sessionId: string; totalCost: number; model: string; callCount: number }>
+    `,
+      )
+      .all() as Array<{ sessionId: string; totalCost: number; model: string; callCount: number }>
     return rows
   }
 
@@ -131,7 +151,9 @@ export class BillingTracker {
    */
   public getCostHistory(days = 7): Array<{ date: string; totalCost: number }> {
     const cutoff = Date.now() - days * 86400000
-    const rows = this.db.prepare(`
+    const rows = this.db
+      .prepare(
+        `
       SELECT
         DATE(timestamp / 1000, 'unixepoch') as date,
         SUM(cost_usd) as totalCost
@@ -139,7 +161,9 @@ export class BillingTracker {
       WHERE timestamp >= ?
       GROUP BY date
       ORDER BY date ASC
-    `).all(cutoff) as Array<{ date: string; totalCost: number }>
+    `,
+      )
+      .all(cutoff) as Array<{ date: string; totalCost: number }>
     return rows
   }
 }

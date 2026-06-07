@@ -18,7 +18,15 @@ export function registerEmail(program: Command) {
     .action(handleEmail)
 }
 
-async function handleEmail(opts: { host?: string; port?: string; secure?: boolean; user?: string; pass?: string; from?: string; project?: string }) {
+async function handleEmail(opts: {
+  host?: string
+  port?: string
+  secure?: boolean
+  user?: string
+  pass?: string
+  from?: string
+  project?: string
+}) {
   showBanner()
   await credentialVault.initialize()
 

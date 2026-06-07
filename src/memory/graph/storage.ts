@@ -1,6 +1,6 @@
 /**
  * Knowledge Graph Storage
- * 
+ *
  * SQLite-backed storage with in-memory caching for fast graph queries.
  * Supports entity deduplication, relationship indexing, and temporal queries.
  */
@@ -25,11 +25,11 @@ export class GraphStorage {
 
   async initialize(): Promise<void> {
     await mkdir(GRAPH_DB_PATH, { recursive: true })
-    
+
     const dbFile = resolve(GRAPH_DB_PATH, "graph.db")
     this.db = new Database(dbFile)
     this.db.exec("PRAGMA journal_mode = WAL")
-    
+
     this.createSchema()
     this.loadCache()
   }
@@ -90,7 +90,7 @@ export class GraphStorage {
 
   private loadCache(): void {
     if (!this.db) return
-    
+
     // Load frequently accessed entities into memory
     const stmt = this.db.query(`
       SELECT * FROM entities 
@@ -98,7 +98,7 @@ export class GraphStorage {
       ORDER BY last_mentioned_at DESC 
       LIMIT 1000
     `)
-    
+
     const rows = stmt.all() as Array<{
       id: string
       type: EntityType
@@ -111,7 +111,7 @@ export class GraphStorage {
       mention_count: number
       embedding?: string
     }>
-    
+
     for (const row of rows) {
       this.cache.set(row.id, this.rowToEntity(row))
     }
@@ -167,12 +167,14 @@ export class GraphStorage {
 
   // ── Entity Operations ───────────────────────────────────────────────
 
-  async createEntity(entity: Omit<Entity, "id" | "createdAt" | "updatedAt" | "lastMentionedAt" | "mentionCount">): Promise<Entity> {
+  async createEntity(
+    entity: Omit<Entity, "id" | "createdAt" | "updatedAt" | "lastMentionedAt" | "mentionCount">,
+  ): Promise<Entity> {
     if (!this.db) throw new Error("Storage not initialized")
 
     const now = new Date().toISOString()
     const id = `ent-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
-    
+
     const fullEntity: Entity = {
       ...entity,
       id,
@@ -197,7 +199,7 @@ export class GraphStorage {
       fullEntity.updatedAt,
       fullEntity.lastMentionedAt,
       fullEntity.mentionCount,
-      fullEntity.embedding ? JSON.stringify(fullEntity.embedding) : null
+      fullEntity.embedding ? JSON.stringify(fullEntity.embedding) : null,
     )
 
     // Update FTS index
@@ -220,9 +222,9 @@ export class GraphStorage {
 
     const stmt = this.db.query("SELECT * FROM entities WHERE id = ?")
     const row = stmt.get(id) as Parameters<typeof this.rowToEntity>[0] | null
-    
+
     if (!row) return null
-    
+
     const entity = this.rowToEntity(row)
     this.cache.set(id, entity)
     return entity
@@ -233,7 +235,7 @@ export class GraphStorage {
 
     let sql = "SELECT * FROM entities WHERE name = ? COLLATE NOCASE"
     const params: (string | EntityType)[] = [name]
-    
+
     if (type) {
       sql += " AND type = ?"
       params.push(type)
@@ -241,7 +243,7 @@ export class GraphStorage {
 
     const stmt = this.db.query(sql)
     const row = stmt.get(...params) as Parameters<typeof this.rowToEntity>[0] | null
-    
+
     if (!row) return null
     return this.rowToEntity(row)
   }
@@ -274,7 +276,7 @@ export class GraphStorage {
       updated.lastMentionedAt,
       updated.mentionCount,
       updated.embedding ? JSON.stringify(updated.embedding) : null,
-      id
+      id,
     )
 
     this.cache.set(id, updated)
@@ -307,7 +309,7 @@ export class GraphStorage {
 
     const now = new Date().toISOString()
     const id = `rel-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
-    
+
     const fullRel: Relationship = {
       ...rel,
       id,
@@ -328,14 +330,18 @@ export class GraphStorage {
       JSON.stringify(fullRel.properties),
       fullRel.createdAt,
       fullRel.updatedAt,
-      fullRel.strength
+      fullRel.strength,
     )
 
     this.relCache.set(fullRel.id, fullRel)
     return fullRel
   }
 
-  async getRelationships(entityId: string, direction: "out" | "in" | "both" = "both", type?: RelationType): Promise<Relationship[]> {
+  async getRelationships(
+    entityId: string,
+    direction: "out" | "in" | "both" = "both",
+    type?: RelationType,
+  ): Promise<Relationship[]> {
     if (!this.db) return []
 
     const relationships: Relationship[] = []
@@ -343,7 +349,7 @@ export class GraphStorage {
     if (direction === "out" || direction === "both") {
       let sql = "SELECT * FROM relationships WHERE source_id = ?"
       const params: (string | RelationType)[] = [entityId]
-      
+
       if (type) {
         sql += " AND type = ?"
         params.push(type)
@@ -351,13 +357,13 @@ export class GraphStorage {
 
       const stmt = this.db.query(sql)
       const rows = stmt.all(...params) as Parameters<typeof this.rowToRelationship>[0][]
-      relationships.push(...rows.map(r => this.rowToRelationship(r)))
+      relationships.push(...rows.map((r) => this.rowToRelationship(r)))
     }
 
     if (direction === "in" || direction === "both") {
       let sql = "SELECT * FROM relationships WHERE target_id = ?"
       const params: (string | RelationType)[] = [entityId]
-      
+
       if (type) {
         sql += " AND type = ?"
         params.push(type)
@@ -365,7 +371,7 @@ export class GraphStorage {
 
       const stmt = this.db.query(sql)
       const rows = stmt.all(...params) as Parameters<typeof this.rowToRelationship>[0][]
-      relationships.push(...rows.map(r => this.rowToRelationship(r)))
+      relationships.push(...rows.map((r) => this.rowToRelationship(r)))
     }
 
     return relationships
@@ -377,16 +383,19 @@ export class GraphStorage {
     if (!this.db) return { entities: [], relationships: [], scores: new Map() }
 
     const entities = await this.queryEntities(query)
-    const relationships = await this.queryRelationships(query, entities.map(e => e.id))
+    const relationships = await this.queryRelationships(
+      query,
+      entities.map((e) => e.id),
+    )
     const scores = this.computeTemporalScores(entities)
 
     // Filter by min relevance
     if (query.minRelevance) {
-      const filtered = entities.filter(e => (scores.get(e.id) || 0) >= query.minRelevance!)
-      const filteredIds = new Set(filtered.map(e => e.id))
+      const filtered = entities.filter((e) => (scores.get(e.id) || 0) >= query.minRelevance!)
+      const filteredIds = new Set(filtered.map((e) => e.id))
       return {
         entities: filtered,
-        relationships: relationships.filter(r => filteredIds.has(r.sourceId) && filteredIds.has(r.targetId)),
+        relationships: relationships.filter((r) => filteredIds.has(r.sourceId) && filteredIds.has(r.targetId)),
         scores,
       }
     }
@@ -420,7 +429,7 @@ export class GraphStorage {
       sql += " WHERE " + conditions.join(" AND ")
     }
     sql += " ORDER BY mention_count DESC, last_mentioned_at DESC"
-    
+
     if (query.limit) {
       sql += " LIMIT ?"
       params.push(query.limit)
@@ -432,7 +441,7 @@ export class GraphStorage {
 
     const stmt = this.db.query(sql)
     const rows = stmt.all(...params) as Parameters<typeof this.rowToEntity>[0][]
-    return rows.map(r => this.rowToEntity(r))
+    return rows.map((r) => this.rowToEntity(r))
   }
 
   private async queryRelationships(query: GraphQuery, entityIds: string[]): Promise<Relationship[]> {
@@ -456,7 +465,7 @@ export class GraphStorage {
 
     const stmt = this.db.query(sql)
     const rows = stmt.all(...params) as Parameters<typeof this.rowToRelationship>[0][]
-    return rows.map(r => this.rowToRelationship(r))
+    return rows.map((r) => this.rowToRelationship(r))
   }
 
   private computeTemporalScores(entities: Entity[]): Map<string, number> {
@@ -467,20 +476,20 @@ export class GraphStorage {
     for (const entity of entities) {
       const lastMentioned = new Date(entity.lastMentionedAt).getTime()
       const ageMs = now - lastMentioned
-      
+
       // Exponential decay: score = 0.5^(age / halfLife)
       let score = Math.pow(0.5, ageMs / halfLifeMs)
-      
+
       // Boost for recent mentions
       if (ageMs < 7 * 24 * 60 * 60 * 1000) {
         score *= this.temporalConfig.boostRecent
       }
-      
+
       // Boost for frequently mentioned
       if (entity.mentionCount > 5) {
         score *= this.temporalConfig.boostFrequent
       }
-      
+
       scores.set(entity.id, Math.min(score, 1.0))
     }
 
@@ -502,7 +511,7 @@ export class GraphStorage {
     `)
 
     const rows = stmt.all(query, limit) as Parameters<typeof this.rowToEntity>[0][]
-    return rows.map(r => this.rowToEntity(r))
+    return rows.map((r) => this.rowToEntity(r))
   }
 
   // ── Stats & Maintenance ────────────────────────────────────────────
@@ -521,13 +530,18 @@ export class GraphStorage {
     const relCount = (this.db.query("SELECT COUNT(*) as count FROM relationships").get() as { count: number }).count
 
     const byType: Record<string, number> = {}
-    const typeRows = this.db.query("SELECT type, COUNT(*) as count FROM entities GROUP BY type").all() as Array<{ type: string; count: number }>
+    const typeRows = this.db.query("SELECT type, COUNT(*) as count FROM entities GROUP BY type").all() as Array<{
+      type: string
+      count: number
+    }>
     for (const row of typeRows) {
       byType[row.type] = row.count
     }
 
     const byRelationType: Record<string, number> = {}
-    const relTypeRows = this.db.query("SELECT type, COUNT(*) as count FROM relationships GROUP BY type").all() as Array<{ type: string; count: number }>
+    const relTypeRows = this.db
+      .query("SELECT type, COUNT(*) as count FROM relationships GROUP BY type")
+      .all() as Array<{ type: string; count: number }>
     for (const row of relTypeRows) {
       byRelationType[row.type] = row.count
     }

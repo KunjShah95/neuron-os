@@ -96,7 +96,10 @@ _aegis_completions() {
       ;;
     2)
       case \${prev} in
-        ${commands.filter((c) => c.aliases.length > 0).map((c) => `${c.name}|${c.aliases.join("|")}`).join("|")})
+        ${commands
+          .filter((c) => c.aliases.length > 0)
+          .map((c) => `${c.name}|${c.aliases.join("|")}`)
+          .join("|")})
           COMPREPLY=($(compgen -W "--help" -- "\${cur}"))
           ;;
         *)
@@ -146,5 +149,3 @@ complete -c aegis -s h -l help -d 'Display help'
 complete -c aegis -s V -l version -d 'Show version'
 `)
 }
-
-

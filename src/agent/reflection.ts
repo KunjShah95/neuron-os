@@ -23,7 +23,7 @@ export class ReflectionLoop {
 
     // Pull last N steps from audit log to understand context
     const recentEvents = auditStore.getSessionAudit(sessionId).slice(-20)
-    const contextStr = recentEvents.map(e => `[${e.eventType}] ${e.summary}`).join("\n")
+    const contextStr = recentEvents.map((e) => `[${e.eventType}] ${e.summary}`).join("\n")
 
     const prompt = `
 You are a Supervisor AI reflecting on an agent's progress.
@@ -45,12 +45,15 @@ Evaluate the progress. Provide a JSON response matching this schema:
       const response = await generateText({
         model: this.aiModel,
         prompt: prompt,
-        temperature: 0.2
+        temperature: 0.2,
       })
 
-      const rawJson = response.text.replace(/```json/g, "").replace(/```/g, "").trim()
+      const rawJson = response.text
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim()
       const result: ReflectionResult = JSON.parse(rawJson)
-      
+
       log.info(`Reflection complete: Score ${result.score}/10, Decision: ${result.decision}`)
       return result
     } catch (err) {

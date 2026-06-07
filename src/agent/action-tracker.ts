@@ -53,9 +53,7 @@ export class ActionTracker {
 
   /** Get actions that are still pending (not approved/rejected/executed). */
   getPendingMutations(): ActionLog[] {
-    return this.actions.filter(
-      (a) => a.status === "pending" && a.type !== "code_analysis",
-    )
+    return this.actions.filter((a) => a.status === "pending" && a.type !== "code_analysis")
   }
 
   /** Get actions that have been approved. */

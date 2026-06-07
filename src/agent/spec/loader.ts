@@ -4,7 +4,10 @@ import { parse } from "yaml"
 import { AgentSpec, type AgentSpec as AgentSpecType } from "./schema"
 
 export class SpecLoadError extends Error {
-  constructor(message: string, public readonly path?: string) {
+  constructor(
+    message: string,
+    public readonly path?: string,
+  ) {
     super(message)
     this.name = "SpecLoadError"
   }

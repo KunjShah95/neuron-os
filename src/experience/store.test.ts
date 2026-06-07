@@ -22,7 +22,9 @@ const createdProjects: string[] = []
 function cleanupProjects() {
   const base = join(homedir(), ".aegis", "projects")
   for (const p of createdProjects) {
-    try { rmSync(join(base, p), { recursive: true, force: true }) } catch {}
+    try {
+      rmSync(join(base, p), { recursive: true, force: true })
+    } catch {}
   }
   createdProjects.length = 0
 }
@@ -84,7 +86,9 @@ describe("ExperienceStore", () => {
   })
 
   afterEach(() => {
-    try { store.close() } catch {}
+    try {
+      store.close()
+    } catch {}
   })
 
   // ── Record ──────────────────────────────────────────────────────────
@@ -240,18 +244,19 @@ describe("ExperienceStore", () => {
     // All 3 failures must have IDENTICAL summaries for extractClusterKey to group them
     for (let i = 0; i < 3; i++) {
       const id = makeId()
-      store.recordExperience(makeExperience(project, {
-        id,
-        outcome: "failed",
-        summary: "Error: File not found in module",
-      }))
+      store.recordExperience(
+        makeExperience(project, {
+          id,
+          outcome: "failed",
+          summary: "Error: File not found in module",
+        }),
+      )
       store.addAction(makeAction(id, { outcome: "error", actionType: "file_read" }))
     }
 
     const clusters = store.computeClusterInsights(2)
     expect(clusters.length).toBeGreaterThanOrEqual(1)
-    const found = clusters.find((c: any) =>
-      c.clusterKey.toLowerCase().includes("not found"))
+    const found = clusters.find((c: any) => c.clusterKey.toLowerCase().includes("not found"))
     expect(found).toBeTruthy()
     expect(found!.count).toBe(3)
     expect(found!.topSuggestions.length).toBeGreaterThanOrEqual(1)
@@ -260,32 +265,39 @@ describe("ExperienceStore", () => {
   it("should cluster timeout failures", () => {
     // All 2 failures must have IDENTICAL summaries
     for (let i = 0; i < 2; i++) {
-      store.recordExperience(makeExperience(project, {
-        id: makeId(),
-        outcome: "failed",
-        summary: "Error: Network timeout after 30s",
-      }))
+      store.recordExperience(
+        makeExperience(project, {
+          id: makeId(),
+          outcome: "failed",
+          summary: "Error: Network timeout after 30s",
+        }),
+      )
     }
 
     const clusters = store.computeClusterInsights(2)
-    const found = clusters.find((c: any) =>
-      c.clusterKey.toLowerCase().includes("timeout"))
+    const found = clusters.find((c: any) => c.clusterKey.toLowerCase().includes("timeout"))
     expect(found).toBeTruthy()
     expect(found!.count).toBe(2)
   })
 
   it("should sort clusters by count descending", () => {
     for (let i = 0; i < 5; i++) {
-      store.recordExperience(makeExperience(project, {
-        id: makeId(), outcome: "failed",
-        summary: "Error: Type mismatch",
-      }))
+      store.recordExperience(
+        makeExperience(project, {
+          id: makeId(),
+          outcome: "failed",
+          summary: "Error: Type mismatch",
+        }),
+      )
     }
     for (let i = 0; i < 3; i++) {
-      store.recordExperience(makeExperience(project, {
-        id: makeId(), outcome: "failed",
-        summary: "Error: Network timeout",
-      }))
+      store.recordExperience(
+        makeExperience(project, {
+          id: makeId(),
+          outcome: "failed",
+          summary: "Error: Network timeout",
+        }),
+      )
     }
 
     const clusters = store.computeClusterInsights(2)
@@ -295,10 +307,13 @@ describe("ExperienceStore", () => {
   })
 
   it("should respect minClusterSize threshold", () => {
-    store.recordExperience(makeExperience(project, {
-      id: makeId(), outcome: "failed",
-      summary: "Error: Some rare error",
-    }))
+    store.recordExperience(
+      makeExperience(project, {
+        id: makeId(),
+        outcome: "failed",
+        summary: "Error: Some rare error",
+      }),
+    )
 
     const clusters = store.computeClusterInsights(2)
     const rare = clusters.find((c: any) => c.clusterKey.includes("rare"))
@@ -316,13 +331,15 @@ describe("ExperienceStore", () => {
     // All 4 must have IDENTICAL goals for normalizeGoal to group them
     for (let i = 0; i < 4; i++) {
       const id = makeId()
-      store.recordExperience(makeExperience(project, {
-        id,
-        outcome: "success",
-        goal: "Add unit test for module X",
-        reward: 1.0,
-        actionCount: 3,
-      }))
+      store.recordExperience(
+        makeExperience(project, {
+          id,
+          outcome: "success",
+          goal: "Add unit test for module X",
+          reward: 1.0,
+          actionCount: 3,
+        }),
+      )
       store.addAction(makeAction(id, { actionType: "file_read", outcome: "success" }))
       store.addAction(makeAction(id, { actionType: "file_modify", outcome: "success", stepIndex: 2 }))
       store.addAction(makeAction(id, { actionType: "shell_command", outcome: "success", stepIndex: 3 }))

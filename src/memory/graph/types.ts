@@ -1,13 +1,13 @@
 /**
  * Knowledge Graph Types
- * 
+ *
  * Entity-relationship graph for structured memory with temporal scoring.
  * Enables complex queries like "find projects related to auth from last month".
  */
 
-export type EntityType = 
+export type EntityType =
   | "person"
-  | "project" 
+  | "project"
   | "technology"
   | "concept"
   | "file"
@@ -60,24 +60,24 @@ export interface GraphQuery {
   // Entity filters
   entityTypes?: EntityType[]
   entityNames?: string[]
-  
+
   // Relationship filters
   relationTypes?: RelationType[]
-  
+
   // Temporal filters
   since?: Date
   until?: Date
-  
+
   // Traversal
   startEntity?: string
   depth?: number
-  
+
   // Text search
   textQuery?: string
-  
+
   // Scoring
   minRelevance?: number
-  
+
   // Pagination
   limit?: number
   offset?: number

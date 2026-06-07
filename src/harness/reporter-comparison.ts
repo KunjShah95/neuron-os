@@ -62,10 +62,7 @@ export class ComparisonReportGenerator {
 
     // Category deltas
     const categoryDeltas: Record<string, number> = {}
-    const allCategories = new Set([
-      ...Object.keys(current.byCategory),
-      ...Object.keys(baseline.byCategory),
-    ])
+    const allCategories = new Set([...Object.keys(current.byCategory), ...Object.keys(baseline.byCategory)])
     for (const cat of allCategories) {
       const cur = current.byCategory[cat as keyof typeof current.byCategory]
       const base = baseline.byCategory[cat as keyof typeof baseline.byCategory]
@@ -86,7 +83,13 @@ export class ComparisonReportGenerator {
     const costDelta = current.totalCost - baseline.totalCost
 
     const summary = this.buildSummary({
-      scoreDelta, passRateDelta, costDelta, regressions, improvements, newTests, removedTests,
+      scoreDelta,
+      passRateDelta,
+      costDelta,
+      regressions,
+      improvements,
+      newTests,
+      removedTests,
     } as ComparisonReport)
 
     return {
@@ -109,24 +112,31 @@ export class ComparisonReportGenerator {
     const scoreIcon = comparison.scoreDelta >= 0 ? "🟢" : "🔴"
     const scoreSign = comparison.scoreDelta >= 0 ? "+" : ""
 
-    const regRows = comparison.regressions.slice(0, 20).map((r) => {
-      const icon = r.severity === "critical" ? "🔴" : r.severity === "major" ? "🟡" : "🟢"
-      return `<tr class="reg-${r.severity}">
+    const regRows = comparison.regressions
+      .slice(0, 20)
+      .map((r) => {
+        const icon = r.severity === "critical" ? "🔴" : r.severity === "major" ? "🟡" : "🟢"
+        return `<tr class="reg-${r.severity}">
         <td>${this.escape(r.testName)}</td>
         <td>${r.baselineScore.toFixed(2)}</td>
         <td>${r.currentScore.toFixed(2)}</td>
         <td>${r.drop.toFixed(2)} ${icon}</td>
       </tr>`
-    }).join("\n")
+      })
+      .join("\n")
 
-    const impRows = comparison.improvements.slice(0, 10).map((r) =>
-      `<tr>
+    const impRows = comparison.improvements
+      .slice(0, 10)
+      .map(
+        (r) =>
+          `<tr>
         <td>${this.escape(r.testName)}</td>
         <td>${r.baselineScore.toFixed(2)}</td>
         <td>${r.currentScore.toFixed(2)}</td>
         <td>${Math.abs(r.drop).toFixed(2)} 🟢</td>
-      </tr>`
-    ).join("\n")
+      </tr>`,
+      )
+      .join("\n")
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -159,35 +169,43 @@ export class ComparisonReportGenerator {
 
   <div class="grid">
     <div class="card">
-      <div class="value ${comparison.scoreDelta >= 0 ? 'positive' : 'negative'}">${scoreSign}${comparison.scoreDelta.toFixed(3)}</div>
+      <div class="value ${comparison.scoreDelta >= 0 ? "positive" : "negative"}">${scoreSign}${comparison.scoreDelta.toFixed(3)}</div>
       <div class="label">Score Delta ${scoreIcon}</div>
     </div>
     <div class="card">
-      <div class="value ${comparison.passRateDelta >= 0 ? 'positive' : 'negative'}">${(comparison.passRateDelta >= 0 ? '+' : '')}${(comparison.passRateDelta * 100).toFixed(1)}%</div>
+      <div class="value ${comparison.passRateDelta >= 0 ? "positive" : "negative"}">${comparison.passRateDelta >= 0 ? "+" : ""}${(comparison.passRateDelta * 100).toFixed(1)}%</div>
       <div class="label">Pass Rate Delta</div>
     </div>
     <div class="card">
-      <div class="value ${comparison.costDelta <= 0 ? 'positive' : 'negative'}">${(comparison.costDelta >= 0 ? '+' : '')}$${comparison.costDelta.toFixed(2)}</div>
+      <div class="value ${comparison.costDelta <= 0 ? "positive" : "negative"}">${comparison.costDelta >= 0 ? "+" : ""}$${comparison.costDelta.toFixed(2)}</div>
       <div class="label">Cost Delta</div>
     </div>
   </div>
 
   <div class="summary">${comparison.summary}</div>
 
-  ${comparison.regressions.length > 0 ? `
+  ${
+    comparison.regressions.length > 0
+      ? `
   <h2>⚠ Regressions (${comparison.regressions.length})</h2>
   <table><tr><th>Test</th><th>Before</th><th>After</th><th>Drop</th></tr>
   ${regRows}
-  </table>` : ""}
+  </table>`
+      : ""
+  }
 
-  ${comparison.improvements.length > 0 ? `
+  ${
+    comparison.improvements.length > 0
+      ? `
   <h2>✅ Improvements (${comparison.improvements.length})</h2>
   <table><tr><th>Test</th><th>Before</th><th>After</th><th>Gain</th></tr>
   ${impRows}
-  </table>` : ""}
+  </table>`
+      : ""
+  }
 
-  ${comparison.newTests.length > 0 ? `<h2>🆕 New Tests (${comparison.newTests.length})</h2><p>${comparison.newTests.map(t => t.name).join(", ")}</p>` : ""}
-  ${comparison.removedTests.length > 0 ? `<h2>🗑 Removed Tests (${comparison.removedTests.length})</h2><p>${comparison.removedTests.map(t => t.name).join(", ")}</p>` : ""}
+  ${comparison.newTests.length > 0 ? `<h2>🆕 New Tests (${comparison.newTests.length})</h2><p>${comparison.newTests.map((t) => t.name).join(", ")}</p>` : ""}
+  ${comparison.removedTests.length > 0 ? `<h2>🗑 Removed Tests (${comparison.removedTests.length})</h2><p>${comparison.removedTests.map((t) => t.name).join(", ")}</p>` : ""}
 </body>
 </html>`
   }

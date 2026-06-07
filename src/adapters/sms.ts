@@ -12,17 +12,14 @@
 import twilio from "twilio"
 import type { PlatformAdapter, PlatformSendOptions } from "./types"
 import { createLogger } from "../cli/logger"
-import {
-  handleTwilioWebhook,
-  clipTwilio,
-} from "./bot-commands"
+import { handleTwilioWebhook, clipTwilio } from "./bot-commands"
 
 const log = createLogger("adapter:sms")
 
 interface SMSConfig {
   accountSid: string
   authToken: string
-  fromNumber: string  // Twilio phone number, e.g. "+14155552671"
+  fromNumber: string // Twilio phone number, e.g. "+14155552671"
   allowedUserIds?: string[]
   project?: string
   /** Optional HTTP server for receiving incoming SMS via webhook */

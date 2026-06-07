@@ -59,11 +59,13 @@ export class ExperienceReplay {
     this.store = store ?? experienceStore
   }
 
-  async retryFailures(options: {
-    maxRetries?: number
-    strategy?: RetryStrategy
-    dryRun?: boolean
-  } = {}): Promise<RetryResult[]> {
+  async retryFailures(
+    options: {
+      maxRetries?: number
+      strategy?: RetryStrategy
+      dryRun?: boolean
+    } = {},
+  ): Promise<RetryResult[]> {
     const maxRetries = options.maxRetries ?? 2
     const strategy = options.strategy ?? "same"
     const dryRun = options.dryRun ?? false
@@ -88,9 +90,7 @@ export class ExperienceReplay {
 
       const start = Date.now()
       const modifiedGoal = this.buildRetryGoal(failure.goal, strategy, retryCount + 1)
-      const agentType = strategy === "different-model"
-        ? this.alternateAgentType(failure.agentType)
-        : failure.agentType
+      const agentType = strategy === "different-model" ? this.alternateAgentType(failure.agentType) : failure.agentType
 
       if (dryRun) {
         results.push({
@@ -146,12 +146,14 @@ export class ExperienceReplay {
     return results
   }
 
-  async extractSkills(options: {
-    minConfidence?: number
-    minRepetitions?: number
-    dryRun?: boolean
-    autoApply?: boolean
-  } = {}): Promise<SkillExtraction[]> {
+  async extractSkills(
+    options: {
+      minConfidence?: number
+      minRepetitions?: number
+      dryRun?: boolean
+      autoApply?: boolean
+    } = {},
+  ): Promise<SkillExtraction[]> {
     const minConfidence = options.minConfidence ?? 70
     const minRepetitions = options.minRepetitions ?? 3
     const dryRun = options.dryRun ?? true
@@ -185,11 +187,13 @@ export class ExperienceReplay {
     return extractions
   }
 
-  async runFullCycle(options: {
-    retry?: boolean
-    extract?: boolean
-    ratchet?: boolean
-  } = {}): Promise<CycleResult> {
+  async runFullCycle(
+    options: {
+      retry?: boolean
+      extract?: boolean
+      ratchet?: boolean
+    } = {},
+  ): Promise<CycleResult> {
     const opts = { retry: true, extract: true, ratchet: false, ...options }
     const startedAt = Date.now()
 
@@ -267,9 +271,7 @@ export class ExperienceReplay {
 
   getPipelineStats(): PipelineStats {
     const recent = this.store.listRecent(500)
-    const retries = recent.filter((e) =>
-      e.tags.some((t) => t.startsWith("retry:")),
-    )
+    const retries = recent.filter((e) => e.tags.some((t) => t.startsWith("retry:")))
     const successes = retries.filter((e) => e.outcome === "success")
     const retriesRun = retries.length
     const retriesSuccessful = successes.length
@@ -302,12 +304,7 @@ export class ExperienceReplay {
     return next ?? "default"
   }
 
-  private buildSkillContent(candidate: {
-    name: string
-    confidence: number
-    goal: string
-    steps: string[]
-  }): string {
+  private buildSkillContent(candidate: { name: string; confidence: number; goal: string; steps: string[] }): string {
     return [
       `# ${candidate.name}`,
       "",

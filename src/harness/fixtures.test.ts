@@ -249,11 +249,11 @@ describe("FixtureManager", () => {
       const list = manager.listFixtures()
 
       expect(list.length).toBe(5)
-      expect(list.map(f => f.name)).toContain("TypeScript Project")
-      expect(list.map(f => f.name)).toContain("Express API Server")
-      expect(list.map(f => f.name)).toContain("Node Package")
-      expect(list.map(f => f.name)).toContain("Git Repository")
-      expect(list.map(f => f.name)).toContain("Python Project")
+      expect(list.map((f) => f.name)).toContain("TypeScript Project")
+      expect(list.map((f) => f.name)).toContain("Express API Server")
+      expect(list.map((f) => f.name)).toContain("Node Package")
+      expect(list.map((f) => f.name)).toContain("Git Repository")
+      expect(list.map((f) => f.name)).toContain("Python Project")
     })
 
     it("should include newly registered fixtures", () => {
@@ -266,7 +266,7 @@ describe("FixtureManager", () => {
 
       const list = manager.listFixtures()
       expect(list.length).toBe(6)
-      expect(list.find(f => f.name === "New Fixture")).toBeTruthy()
+      expect(list.find((f) => f.name === "New Fixture")).toBeTruthy()
     })
   })
 })

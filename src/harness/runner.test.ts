@@ -2,7 +2,6 @@ import { describe, it, expect } from "bun:test"
 import type { TestCase } from "./types"
 
 describe("Runner Tests", () => {
-
   const testCase: TestCase = {
     id: "smoke-test",
     name: "smoke-test",
@@ -22,5 +21,4 @@ describe("Runner Tests", () => {
     expect(typeof runner.runTest === "function").toBe(true)
     expect(typeof runner.runSuite === "function").toBe(true)
   })
-
 })

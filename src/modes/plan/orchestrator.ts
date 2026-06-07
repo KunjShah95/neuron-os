@@ -61,12 +61,23 @@ export async function runPlanModeInteractive(): Promise<void> {
     },
     create_file: {
       description: "Stage creation of a new file (not written until approval).",
-      parameters: jsonSchema({ type: "object", properties: { path: { type: "string" }, content: { type: "string" } }, required: ["path", "content"] }),
+      parameters: jsonSchema({
+        type: "object",
+        properties: { path: { type: "string" }, content: { type: "string" } },
+        required: ["path", "content"],
+      }),
       execute: async (args: any) => executor.createFile(args.path, args.content),
     },
     modify_file: {
       description: "Stage a full-file replacement (pending approval).",
-      parameters: jsonSchema({ type: "object", properties: { path: { type: "string" }, content: { type: "string", description: "Complete new file contents" } }, required: ["path", "content"] }),
+      parameters: jsonSchema({
+        type: "object",
+        properties: {
+          path: { type: "string" },
+          content: { type: "string", description: "Complete new file contents" },
+        },
+        required: ["path", "content"],
+      }),
       execute: async (args: any) => executor.modifyFile(args.path, args.content),
     },
     delete_file: {
@@ -76,12 +87,20 @@ export async function runPlanModeInteractive(): Promise<void> {
     },
     list_files: {
       description: "List files/dirs at a path.",
-      parameters: jsonSchema({ type: "object", properties: { path: { type: "string" }, recursive: { type: "boolean" } }, required: ["path"] }),
+      parameters: jsonSchema({
+        type: "object",
+        properties: { path: { type: "string" }, recursive: { type: "boolean" } },
+        required: ["path"],
+      }),
       execute: async (args: any) => executor.listFiles(args.path, args.recursive),
     },
     search_files: {
       description: "Find files matching a glob pattern.",
-      parameters: jsonSchema({ type: "object", properties: { root: { type: "string" }, pattern: { type: "string" }, content_contains: { type: "string" } }, required: ["root", "pattern"] }),
+      parameters: jsonSchema({
+        type: "object",
+        properties: { root: { type: "string" }, pattern: { type: "string" }, content_contains: { type: "string" } },
+        required: ["root", "pattern"],
+      }),
       execute: async (args: any) => executor.searchFiles(args.root, args.pattern, args.content_contains),
     },
     analyze_codebase: {

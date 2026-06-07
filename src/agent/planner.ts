@@ -16,15 +16,14 @@ export interface PlanGraph {
 }
 
 export class DAGPlanner {
-  
   /**
-   * Submits a DAG of tasks to the TaskQueue. 
+   * Submits a DAG of tasks to the TaskQueue.
    * Note: In a true implementation, dependent tasks would only be submitted
    * AFTER their dependencies complete. For this MVP, we simulate a DAG planner
    * by dispatching them in topological order or managing a state machine.
    */
   public async executePlan(plan: PlanGraph): Promise<void> {
-    const remaining = new Map(plan.nodes.map(n => [n.id, n]))
+    const remaining = new Map(plan.nodes.map((n) => [n.id, n]))
     const completed = new Set<string>()
     const inFlight = new Set<string>()
 
@@ -32,36 +31,36 @@ export class DAGPlanner {
 
     while (completed.size < plan.nodes.length) {
       // Find all nodes whose dependencies are satisfied and are not yet in-flight/completed
-      const readyNodes = Array.from(remaining.values()).filter(n => {
-        return n.dependencies.every(dep => completed.has(dep)) && !inFlight.has(n.id)
+      const readyNodes = Array.from(remaining.values()).filter((n) => {
+        return n.dependencies.every((dep) => completed.has(dep)) && !inFlight.has(n.id)
       })
 
       for (const node of readyNodes) {
         log.info(`Dispatching node ${node.id}: ${node.goal}`)
         inFlight.add(node.id)
-        
+
         // Dispatch to task queue
-        // In a real implementation we'd track the actual queue IDs, 
+        // In a real implementation we'd track the actual queue IDs,
         // but here we simulate asynchronous completion for the MVP loop.
-        const queueId = taskQueue.submit(`[${node.agentType || 'default'}] ${node.goal}`, node.priority || "normal")
-        
+        const queueId = taskQueue.submit(`[${node.agentType || "default"}] ${node.goal}`, node.priority || "normal")
+
         // Fire and forget a watcher
         this.watchTask(queueId, node.id, inFlight, completed, remaining)
       }
 
       // Wait a bit before checking again
-      await new Promise(r => setTimeout(r, 1000))
+      await new Promise((r) => setTimeout(r, 1000))
     }
 
     log.info(`DAG execution completed successfully.`)
   }
 
   private async watchTask(
-    queueId: string, 
-    nodeId: string, 
-    inFlight: Set<string>, 
-    completed: Set<string>, 
-    remaining: Map<string, PlanNode>
+    queueId: string,
+    nodeId: string,
+    inFlight: Set<string>,
+    completed: Set<string>,
+    remaining: Map<string, PlanNode>,
   ) {
     while (true) {
       const task = taskQueue.getTask(queueId)
@@ -79,7 +78,7 @@ export class DAGPlanner {
           break
         }
       }
-      await new Promise(r => setTimeout(r, 2000))
+      await new Promise((r) => setTimeout(r, 2000))
     }
   }
 }

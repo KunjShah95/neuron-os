@@ -6,7 +6,7 @@ describe("cost-router", () => {
     const result = route({
       inputTokens: 500,
       outputTokens: 200,
-      budget: 0.50,
+      budget: 0.5,
     })
     expect(result.selected).toBeDefined()
     expect(result.selected_model).toBeDefined()
@@ -14,12 +14,14 @@ describe("cost-router", () => {
   })
 
   it("throws when no provider meets quality + budget", () => {
-    expect(() => route({
-      inputTokens: 100_000,
-      outputTokens: 50_000,
-      budget: 0.001,
-      minQuality: 0.95,
-    })).toThrow(NoViableProviderError)
+    expect(() =>
+      route({
+        inputTokens: 100_000,
+        outputTokens: 50_000,
+        budget: 0.001,
+        minQuality: 0.95,
+      }),
+    ).toThrow(NoViableProviderError)
   })
 
   it("prefers preferred tier when specified", () => {

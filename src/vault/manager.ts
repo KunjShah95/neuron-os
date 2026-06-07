@@ -19,14 +19,14 @@ function vaultDir(): string {
 }
 
 const VAULT_DIR = vaultDir()
-const VAULT_FILE_ENC = resolve(VAULT_DIR, "vault.enc")       // encrypted format
-const VAULT_FILE_OLD = resolve(VAULT_DIR, "vault.json")       // legacy plaintext
+const VAULT_FILE_ENC = resolve(VAULT_DIR, "vault.enc") // encrypted format
+const VAULT_FILE_OLD = resolve(VAULT_DIR, "vault.json") // legacy plaintext
 const ENV_FILE = resolve(VAULT_DIR, "agent.env")
 const SCOPED_ENV_DIR = resolve(VAULT_DIR, "env")
 
 export class CredentialVault {
   private entries: VaultEntry[] = []
-  private _encrypted = false   // tracks whether persistence uses encryption
+  private _encrypted = false // tracks whether persistence uses encryption
 
   async initialize(): Promise<void> {
     await mkdir(VAULT_DIR, { recursive: true })
@@ -40,7 +40,7 @@ export class CredentialVault {
         if (Array.isArray(plainEntries)) {
           this.entries = plainEntries
           log.info("Migrating plaintext vault to encrypted format", { count: plainEntries.length })
-          await this.writeEncrypted()       // encrypt and write
+          await this.writeEncrypted() // encrypt and write
           await unlink(VAULT_FILE_OLD).catch(() => {})
           log.info("Legacy vault.json removed after migration")
           this._encrypted = true
@@ -87,9 +87,7 @@ export class CredentialVault {
 
   /** Write plaintext env files (for runtime consumption). */
   private async writeEnvFile(): Promise<void> {
-    const lines = this.entries
-      .filter((e) => e.scope === "global")
-      .map((e) => `${e.key}=${e.value}`)
+    const lines = this.entries.filter((e) => e.scope === "global").map((e) => `${e.key}=${e.value}`)
     await writeFile(ENV_FILE, lines.join("\n") + "\n", "utf-8")
   }
 

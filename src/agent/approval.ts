@@ -36,9 +36,7 @@ export async function promptApproval(tracker: ActionTracker): Promise<boolean> {
   if (action === "diff") {
     const groups = groupByFile(pending)
     for (const [filePath, actions] of groups) {
-      const sorted = [...actions].sort(
-        (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
-      )
+      const sorted = [...actions].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
       const { before, after } = composeBeforeAfter(sorted)
       const diff = formatPatch(filePath, before, after)
       console.log(`\n${diff}\n`)
@@ -78,10 +76,7 @@ export async function promptApproval(tracker: ActionTracker): Promise<boolean> {
 /**
  * Apply approved changes and report results.
  */
-export async function applyAndReport(
-  tracker: ActionTracker,
-  executor: AgentToolExecutor,
-): Promise<void> {
+export async function applyAndReport(tracker: ActionTracker, executor: AgentToolExecutor): Promise<void> {
   const approved = tracker.getApprovedActions()
   if (approved.length === 0) {
     p.outro("No changes to apply.")

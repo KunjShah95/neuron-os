@@ -2,7 +2,8 @@ import type { Tool, ToolResult, ToolContext } from "./registry"
 
 export const memoryWriteTool: Tool = {
   name: "memory_write",
-  description: "Write or update an entry in the episodic memory store. Persists important facts, decisions, and context across sessions.",
+  description:
+    "Write or update an entry in the episodic memory store. Persists important facts, decisions, and context across sessions.",
   parameters: [
     {
       name: "key",

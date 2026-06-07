@@ -37,9 +37,10 @@ export async function submitToLeaderboard(
   }
 }
 
-export async function fetchLeaderboard(
-  options?: { category?: string; provider?: string },
-): Promise<Array<Record<string, unknown>>> {
+export async function fetchLeaderboard(options?: {
+  category?: string
+  provider?: string
+}): Promise<Array<Record<string, unknown>>> {
   try {
     const params = new URLSearchParams()
     if (options?.category) params.set("category", options.category)

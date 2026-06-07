@@ -126,9 +126,7 @@ export class AIProviderManager {
         })
         return {
           text: result.text,
-          usage: result.usage
-            ? { totalTokens: result.usage.totalTokens ?? 0 }
-            : undefined,
+          usage: result.usage ? { totalTokens: result.usage.totalTokens ?? 0 } : undefined,
         }
       } catch (err) {
         lastErr = err

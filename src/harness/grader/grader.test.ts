@@ -52,7 +52,7 @@ describe("GraderSuite", () => {
       const suite = new GraderSuite({ skipLLM: true, enabledGraders: ["deterministic"] })
       const result = await suite.grade(makeEvalResult())
       expect(result.grades.length).toBeGreaterThan(0)
-      expect(result.grades.some(g => g.grader === "deterministic")).toBe(true)
+      expect(result.grades.some((g) => g.grader === "deterministic")).toBe(true)
     })
 
     it("computes composite score", async () => {
@@ -71,35 +71,41 @@ describe("GraderSuite", () => {
 
     it("sets passed=false when pattern not in output or traces", async () => {
       const suite = new GraderSuite({ skipLLM: true, enabledGraders: ["deterministic"] })
-      const result = await suite.grade(makeEvalResult({
-        output: "completely wrong output here",
-        trace: [{ name: "bash", params: {}, result: "also wrong", durationMs: 100 }],
-      }))
+      const result = await suite.grade(
+        makeEvalResult({
+          output: "completely wrong output here",
+          trace: [{ name: "bash", params: {}, result: "also wrong", durationMs: 100 }],
+        }),
+      )
       expect(result.passed).toBe(false)
     })
 
     it("handles empty output gracefully as failure", async () => {
       const suite = new GraderSuite({ skipLLM: true, enabledGraders: ["deterministic"] })
-      const result = await suite.grade(makeEvalResult({
-        output: "",
-        trace: [{ name: "bash", params: {}, result: "some output", durationMs: 100 }],
-      }))
+      const result = await suite.grade(
+        makeEvalResult({
+          output: "",
+          trace: [{ name: "bash", params: {}, result: "some output", durationMs: 100 }],
+        }),
+      )
       expect(result.passed).toBe(false)
     })
 
     it("handles no expected pattern gracefully", async () => {
       const suite = new GraderSuite({ skipLLM: true, enabledGraders: ["deterministic"] })
-      const result = await suite.grade(makeEvalResult({
-        test: {
-          id: "test-2",
-          name: "Test 2",
-          prompt: "Do something",
-          tags: ["test"],
-          timeout: 60000,
-        },
-        output: "any output",
-        trace: [],
-      }))
+      const result = await suite.grade(
+        makeEvalResult({
+          test: {
+            id: "test-2",
+            name: "Test 2",
+            prompt: "Do something",
+            tags: ["test"],
+            timeout: 60000,
+          },
+          output: "any output",
+          trace: [],
+        }),
+      )
       // No expected pattern → no deterministic config → no grades → neutral 0.5 → not passing
       expect(result.passed).toBe(false)
     })
@@ -108,10 +114,11 @@ describe("GraderSuite", () => {
   describe("gradeOutput", () => {
     it("returns grades for raw output with expected pattern", async () => {
       const suite = new GraderSuite({ skipLLM: true })
-      const result = await suite.gradeOutput(
-        "hello world",
-        { testId: "t1", testName: "Test 1", expected: { pattern: "world" } },
-      )
+      const result = await suite.gradeOutput("hello world", {
+        testId: "t1",
+        testName: "Test 1",
+        expected: { pattern: "world" },
+      })
       expect(result.grades.length).toBeGreaterThan(0)
       expect(result.score).toBeGreaterThan(0)
     })

@@ -175,9 +175,10 @@ export function startCronEngine(): Array<{ name: string; stop: () => void }> {
           }
         }, schedule)
         timers.push({ name: `cron-${job.name}`, stop: () => clearInterval(timer) })
-      }      } catch (err) {
-        log.warn("Failed to schedule cron job", { job: job.name, error: String(err) })
       }
+    } catch (err) {
+      log.warn("Failed to schedule cron job", { job: job.name, error: String(err) })
+    }
   }
 
   return timers

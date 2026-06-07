@@ -67,4 +67,3 @@ export async function exportSession(id: string, outPath: string): Promise<void> 
   await fs.promises.mkdir(dir, { recursive: true })
   await fs.promises.copyFile(src, absOut)
 }
-

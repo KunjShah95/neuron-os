@@ -10,14 +10,8 @@ export function registerAgentRun(program: Command) {
     .argument("<goal>", "The goal for the agent to accomplish")
     .option("--project <name>", "Use a specific project workspace (sessions, memory)")
     .option("--ratchet", "Enable git ratchet — revert agent changes on regression")
-    .option(
-      "--eval <metrics>",
-      "Comma-separated eval metrics: typecheck,tests-pass,lint-clean,build",
-    )
-    .option(
-      "--test-cmd <command>",
-      "Raw shell command used by ratchet (legacy heuristic mode)",
-    )
+    .option("--eval <metrics>", "Comma-separated eval metrics: typecheck,tests-pass,lint-clean,build")
+    .option("--test-cmd <command>", "Raw shell command used by ratchet (legacy heuristic mode)")
     .action(handleAgentRun)
 }
 

@@ -37,12 +37,7 @@ export const DEFAULT_VOICE_CONFIG: VoiceConfig = {
  */
 export function loadVoiceConfig(): VoiceConfig {
   try {
-
-    const configPath = join(
-      process.env.HOME || process.env.USERPROFILE || "~",
-      ".aegis",
-      "voice.yaml",
-    )
+    const configPath = join(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "voice.yaml")
 
     if (!existsSync(configPath)) return DEFAULT_VOICE_CONFIG
 

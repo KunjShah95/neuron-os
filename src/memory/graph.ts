@@ -170,7 +170,11 @@ export class KnowledgeGraph {
     return rows.map((r) => this.rowToEntity(r))
   }
 
-  getRelated(entityId: string, relationType?: string, depth = 1): Array<{ entity: GraphEntity; relationship: GraphRelationship }> {
+  getRelated(
+    entityId: string,
+    relationType?: string,
+    depth = 1,
+  ): Array<{ entity: GraphEntity; relationship: GraphRelationship }> {
     const visited = new Set<string>()
     const results: Array<{ entity: GraphEntity; relationship: GraphRelationship }> = []
 
@@ -221,9 +225,9 @@ export class KnowledgeGraph {
     const entityCount = (this.db.prepare("SELECT COUNT(*) as c FROM entities").get() as { c: number }).c
     const relationshipCount = (this.db.prepare("SELECT COUNT(*) as c FROM relationships").get() as { c: number }).c
 
-    const typeRows = this.db.prepare(
-      "SELECT type, COUNT(*) as count FROM entities GROUP BY type ORDER BY count DESC LIMIT 10",
-    ).all() as { type: string; count: number }[]
+    const typeRows = this.db
+      .prepare("SELECT type, COUNT(*) as count FROM entities GROUP BY type ORDER BY count DESC LIMIT 10")
+      .all() as { type: string; count: number }[]
 
     return { entityCount, relationshipCount, topTypes: typeRows }
   }
@@ -252,7 +256,27 @@ export class KnowledgeGraph {
     const capitalizedPattern = /\b([A-Z][a-zA-Z]+)\b/g
     while ((match = capitalizedPattern.exec(text)) !== null) {
       const word = match[1]!
-      if (word.length >= 3 && !["The", "This", "That", "When", "What", "Which", "Where", "How", "Why", "Will", "Can", "Has", "Had", "Did", "Was", "Were"].includes(word)) {
+      if (
+        word.length >= 3 &&
+        ![
+          "The",
+          "This",
+          "That",
+          "When",
+          "What",
+          "Which",
+          "Where",
+          "How",
+          "Why",
+          "Will",
+          "Can",
+          "Has",
+          "Had",
+          "Did",
+          "Was",
+          "Were",
+        ].includes(word)
+      ) {
         tryAdd(word, "concept")
       }
     }

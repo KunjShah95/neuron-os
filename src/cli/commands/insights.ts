@@ -8,10 +8,7 @@ export function registerInsights(program: Command) {
     .alias("i")
     .description("Cross-database intelligence — join audit, billing, experience, and telemetry")
 
-  cmd
-    .command("summary")
-    .description("High-level system status across all 4 databases")
-    .action(handleSummary)
+  cmd.command("summary").description("High-level system status across all 4 databases").action(handleSummary)
 
   cmd
     .command("sessions")
@@ -19,20 +16,11 @@ export function registerInsights(program: Command) {
     .option("-l, --limit <number>", "Number of sessions to show", "20")
     .action(handleSessions)
 
-  cmd
-    .command("agents")
-    .description("Agent performance heatmap (by agent_type)")
-    .action(handleAgents)
+  cmd.command("agents").description("Agent performance heatmap (by agent_type)").action(handleAgents)
 
-  cmd
-    .command("failures")
-    .description("Root cause: what failed, what it cost, what patterns")
-    .action(handleFailures)
+  cmd.command("failures").description("Root cause: what failed, what it cost, what patterns").action(handleFailures)
 
-  cmd
-    .command("costs")
-    .description("Cost vs outcome analysis (cheapest paths to success)")
-    .action(handleCosts)
+  cmd.command("costs").description("Cost vs outcome analysis (cheapest paths to success)").action(handleCosts)
 
   cmd
     .command("timeline")
@@ -92,7 +80,9 @@ async function handleSummary() {
   console.log(`  ${theme.bold("Telemetry Traces")}`)
   console.log(`    Spans:    ${theme.bold(String(traceStats.totalSpans))}`)
   console.log(`    Sessions: ${theme.text(String(traceStats.sessionCount))}`)
-  const statusStr = Object.entries(traceStats.byStatus).map(([s, c]) => `${s}:${c}`).join(", ")
+  const statusStr = Object.entries(traceStats.byStatus)
+    .map(([s, c]) => `${s}:${c}`)
+    .join(", ")
   console.log(`    Status:   ${theme.dim(statusStr || "none")}`)
   console.log()
 }
@@ -120,7 +110,7 @@ async function handleSessions(opts: { limit?: string }) {
   for (const r of billingRows) {
     costBySession.set(r.sessionId, (costBySession.get(r.sessionId) || 0) + r.totalCost)
   }
-  const billingSessions = new Set(billingRows.map(r => r.sessionId))
+  const billingSessions = new Set(billingRows.map((r) => r.sessionId))
 
   const allExp = experienceStore.listRecent(10000)
   const expBySession = new Map<string, { outcome: string; reward: number }>()
@@ -192,10 +182,27 @@ async function handleAgents() {
     costBySession.set(r.sessionId, (costBySession.get(r.sessionId) || 0) + r.totalCost)
   }
 
-  const agentGroups = new Map<string, { runs: number; successes: number; failures: number; totalReward: number; totalActions: number; sessions: Set<string> }>()
+  const agentGroups = new Map<
+    string,
+    {
+      runs: number
+      successes: number
+      failures: number
+      totalReward: number
+      totalActions: number
+      sessions: Set<string>
+    }
+  >()
   for (const e of allExp) {
     const key = e.agentType || "default"
-    const g = agentGroups.get(key) || { runs: 0, successes: 0, failures: 0, totalReward: 0, totalActions: 0, sessions: new Set<string>() }
+    const g = agentGroups.get(key) || {
+      runs: 0,
+      successes: 0,
+      failures: 0,
+      totalReward: 0,
+      totalActions: 0,
+      sessions: new Set<string>(),
+    }
     g.runs++
     if (e.outcome === "success") g.successes++
     if (e.outcome === "failed") g.failures++
@@ -221,15 +228,21 @@ async function handleAgents() {
     let costSessions = 0
     for (const sid of g.sessions) {
       const cost = costBySession.get(sid)
-      if (cost !== undefined) { totalCost += cost; costSessions++ }
+      if (cost !== undefined) {
+        totalCost += cost
+        costSessions++
+      }
     }
     const avgCost = costSessions > 0 ? (totalCost / costSessions).toFixed(4) : "N/A"
 
     const barLen = Math.round(successRate / 10)
-    const bar = theme.success("\u2588".repeat(Math.min(barLen, 10))) + theme.error("\u2588".repeat(Math.max(0, 10 - barLen)))
+    const bar =
+      theme.success("\u2588".repeat(Math.min(barLen, 10))) + theme.error("\u2588".repeat(Math.max(0, 10 - barLen)))
 
     console.log(`  ${theme.bold(agentType)}`)
-    console.log(`    Runs: ${g.runs}  OK: ${theme.success(String(g.successes))}  FAIL: ${theme.error(String(g.failures))}`)
+    console.log(
+      `    Runs: ${g.runs}  OK: ${theme.success(String(g.successes))}  FAIL: ${theme.error(String(g.failures))}`,
+    )
     console.log(`    Rate: ${bar} ${successRate.toFixed(0)}%`)
     console.log(`    Avg: ${avgActions} actions, reward ${avgReward}, cost $${avgCost}`)
     console.log()
@@ -306,13 +319,19 @@ async function handleCosts() {
     costBySession.set(r.sessionId, (costBySession.get(r.sessionId) || 0) + r.totalCost)
   }
 
-  const joined: Array<{ sessionId: string; cost: number; outcome: string; duration: number; actionCount: number; reward: number }> = []
+  const joined: Array<{
+    sessionId: string
+    cost: number
+    outcome: string
+    duration: number
+    actionCount: number
+    reward: number
+  }> = []
   for (const e of allExp) {
     const cost = costBySession.get(e.sessionId)
     if (cost === undefined) continue
-    const duration = e.completedAt && e.startedAt
-      ? (new Date(e.completedAt).getTime() - new Date(e.startedAt).getTime()) / 1000
-      : 0
+    const duration =
+      e.completedAt && e.startedAt ? (new Date(e.completedAt).getTime() - new Date(e.startedAt).getTime()) / 1000 : 0
     joined.push({
       sessionId: e.sessionId,
       cost,
@@ -328,13 +347,13 @@ async function handleCosts() {
     return
   }
 
-  const successes = joined.filter(j => j.outcome === "success")
-  const failures = joined.filter(j => j.outcome === "failed")
+  const successes = joined.filter((j) => j.outcome === "success")
+  const failures = joined.filter((j) => j.outcome === "failed")
 
   console.log(theme.heading(`\n  \u{1F4B0} Cost vs Outcome (${joined.length} sessions)\n`))
 
   if (successes.length > 0) {
-    const cheapest = successes.reduce((a, b) => a.cost < b.cost ? a : b)
+    const cheapest = successes.reduce((a, b) => (a.cost < b.cost ? a : b))
     console.log(`  ${theme.success("\u2713")} Cheapest success: $${cheapest.cost.toFixed(4)}`)
     console.log(`     ${cheapest.actionCount} actions, ${cheapest.duration.toFixed(0)}s`)
     console.log(`     ${theme.dim(cheapest.sessionId.slice(0, 40))}`)
@@ -342,7 +361,7 @@ async function handleCosts() {
   }
 
   if (failures.length > 0) {
-    const mostExpensive = failures.reduce((a, b) => a.cost > b.cost ? a : b)
+    const mostExpensive = failures.reduce((a, b) => (a.cost > b.cost ? a : b))
     console.log(`  ${theme.error("\u2717")} Most expensive failure: $${mostExpensive.cost.toFixed(4)}`)
     console.log(`     ${mostExpensive.actionCount} actions, ${mostExpensive.duration.toFixed(0)}s`)
     console.log(`     ${theme.dim(mostExpensive.sessionId.slice(0, 40))}`)
@@ -350,7 +369,7 @@ async function handleCosts() {
   }
 
   const bestValue = [...successes].sort(
-    (a, b) => (a.cost / Math.max(a.reward, 0.01)) - (b.cost / Math.max(b.reward, 0.01)),
+    (a, b) => a.cost / Math.max(a.reward, 0.01) - b.cost / Math.max(b.reward, 0.01),
   )[0]
   if (bestValue) {
     console.log(`  ${theme.accent("\u2605")} Best value: $${bestValue.cost.toFixed(4)} for reward ${bestValue.reward}`)
@@ -362,7 +381,9 @@ async function handleCosts() {
   const avgCost = joined.reduce((s, j) => s + j.cost, 0) / joined.length
   console.log(`  Summary:`)
   console.log(`    Avg cost per session: $${avgCost.toFixed(4)}`)
-  console.log(`    Success rate: ${successes.length}/${joined.length} (${((successes.length / joined.length) * 100).toFixed(0)}%)`)
+  console.log(
+    `    Success rate: ${successes.length}/${joined.length} (${((successes.length / joined.length) * 100).toFixed(0)}%)`,
+  )
   console.log()
 }
 
@@ -392,7 +413,7 @@ async function handleTimeline(opts: { days?: string }) {
     expByDate.set(date, existing)
   }
 
-  const costByDate = new Map(costHistory.map(c => [c.date, c.totalCost]))
+  const costByDate = new Map(costHistory.map((c) => [c.date, c.totalCost]))
 
   const allDates = new Set<string>()
   for (const d of auditByDate.keys()) allDates.add(d)

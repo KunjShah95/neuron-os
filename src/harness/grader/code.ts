@@ -81,10 +81,7 @@ export async function typeCheckGrader(
 
 // ── Test Grader ─────────────────────────────────────────────────
 
-export async function testGrader(
-  config: CodeGraderConfig["tests"],
-  context?: GraderContext,
-): Promise<GradeResult> {
+export async function testGrader(config: CodeGraderConfig["tests"], context?: GraderContext): Promise<GradeResult> {
   const name = "code-tests"
 
   if (!config?.command) {
@@ -140,10 +137,7 @@ export async function testGrader(
 
 // ── Lint Grader ─────────────────────────────────────────────────
 
-export async function lintGrader(
-  config: CodeGraderConfig["lints"],
-  context?: GraderContext,
-): Promise<GradeResult> {
+export async function lintGrader(config: CodeGraderConfig["lints"], context?: GraderContext): Promise<GradeResult> {
   const name = "code-lint"
 
   if (!config?.command) {
@@ -220,6 +214,12 @@ export async function customScriptGrader(
     return { name, grader: "code", score: config.onSuccess ?? 1.0, weight: 0.2, details: `${config.command} succeeded` }
   } catch (err) {
     const errorOutput = (err instanceof Error ? err.message : String(err)).slice(0, 300)
-    return { name, grader: "code", score: config.onFailure ?? 0.0, weight: 0.2, details: `${config.command} failed: ${errorOutput}` }
+    return {
+      name,
+      grader: "code",
+      score: config.onFailure ?? 0.0,
+      weight: 0.2,
+      details: `${config.command} failed: ${errorOutput}`,
+    }
   }
 }

@@ -16,7 +16,7 @@ const MUTATIONS = [
   "empty",
 ] as const
 
-export type MutationType = typeof MUTATIONS[number]
+export type MutationType = (typeof MUTATIONS)[number]
 
 function applyMutation(input: string, mutation: MutationType): string {
   switch (mutation) {
@@ -33,19 +33,16 @@ function applyMutation(input: string, mutation: MutationType): string {
     case "overflow":
       return `-- OVERFLOW TEST: extreme input --\nconst largeInput = "x".repeat(${10 * 1024 * 1024})\n${input.replace(/INPUT/gi, "largeInput")}\n`
     case "unicode":
-      return input.replace(/[a-zA-Z]/g, (c) =>
-        c.charCodeAt(0) > 96 ? "\u0430" : "\u0410",
-      )
+      return input.replace(/[a-zA-Z]/g, (c) => (c.charCodeAt(0) > 96 ? "\u0430" : "\u0410"))
     case "empty":
-      return input.replace(/("[^"]*")/g, '""').replace(/\d+/g, "0").replace(/\['.*?'\]/g, "[]")
+      return input
+        .replace(/("[^"]*")/g, '""')
+        .replace(/\d+/g, "0")
+        .replace(/\['.*?'\]/g, "[]")
   }
 }
 
-export function generateAdversarialEvals(
-  taskFilePath: string,
-  count: number,
-  mutations?: MutationType[],
-): string[] {
+export function generateAdversarialEvals(taskFilePath: string, count: number, mutations?: MutationType[]): string[] {
   if (!existsSync(taskFilePath)) {
     throw new Error(`Task file not found: ${taskFilePath}`)
   }

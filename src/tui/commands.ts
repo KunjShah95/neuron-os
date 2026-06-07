@@ -163,7 +163,10 @@ async function spawnAgent(state: AppState, args: string[]): Promise<void> {
           return
         }
         if (!isValidAgentType(agentType)) {
-          addLogEntry(state, { text: `Unknown agent type: "${agentType}". Use "help" to list available types.`, type: "warn" })
+          addLogEntry(state, {
+            text: `Unknown agent type: "${agentType}". Use "help" to list available types.`,
+            type: "warn",
+          })
           return
         }
         i++
@@ -246,7 +249,7 @@ async function killAgent(state: AppState, args: string[]): Promise<void> {
 function listAgents(state: AppState): void {
   const all = agentManager.list()
   if (all.length === 0) {
-    addLogEntry(state, { text: "No agents running. Use \"spawn <name>\" to launch one.", type: "info" })
+    addLogEntry(state, { text: 'No agents running. Use "spawn <name>" to launch one.', type: "info" })
     return
   }
 
@@ -297,21 +300,33 @@ function formatDuration(seconds: number): string {
 
 function showHelp(state: AppState): void {
   addLogEntry(state, { text: "Available commands:", type: "event" })
-  addLogEntry(state, { text: "  spawn <name>                  Launch an agent (default: agent-worker.ts)", type: "info" })
-  addLogEntry(state, { text: "  spawn <name> --type <type>    Launch with agent type (build, plan, read, etc.)", type: "info" })
+  addLogEntry(state, {
+    text: "  spawn <name>                  Launch an agent (default: agent-worker.ts)",
+    type: "info",
+  })
+  addLogEntry(state, {
+    text: "  spawn <name> --type <type>    Launch with agent type (build, plan, read, etc.)",
+    type: "info",
+  })
   addLogEntry(state, { text: "  spawn <name> --script <path>  Launch with custom script", type: "info" })
   addLogEntry(state, { text: "  spawn <name> --tag <tag>      Launch with tags", type: "info" })
   addLogEntry(state, { text: "  kill <name>                   Stop an agent by name", type: "info" })
   addLogEntry(state, { text: "  kill all                      Stop all running agents", type: "info" })
   addLogEntry(state, { text: "  list                          List all agents", type: "info" })
-  addLogEntry(state, { text: "  status                        Show system info (version, runtime, memory, uptime)", type: "info" })
+  addLogEntry(state, {
+    text: "  status                        Show system info (version, runtime, memory, uptime)",
+    type: "info",
+  })
   addLogEntry(state, { text: "  providers                     List configured AI providers", type: "info" })
   addLogEntry(state, { text: "  sessions                      List saved chat sessions", type: "info" })
   addLogEntry(state, { text: "  session delete <id>           Delete a saved session", type: "info" })
   addLogEntry(state, { text: "  session rename <id> <new>     Rename a session", type: "info" })
   addLogEntry(state, { text: "  session export <id> <path>    Export a session to file", type: "info" })
   addLogEntry(state, { text: "  a2ui                          List A2UI widgets by scope", type: "info" })
-  addLogEntry(state, { text: "  distill                       Run self-improvement pipeline (extract skills from sessions)", type: "info" })
+  addLogEntry(state, {
+    text: "  distill                       Run self-improvement pipeline (extract skills from sessions)",
+    type: "info",
+  })
   addLogEntry(state, { text: "  help                          Show this help", type: "info" })
   addLogEntry(state, { text: "  Ctrl+Q                        Quit dashboard", type: "info" })
 }

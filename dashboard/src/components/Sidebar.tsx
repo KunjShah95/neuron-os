@@ -12,6 +12,7 @@ const navItems: NavItem[] = [
   { path: "/a2ui/playground", label: "Playground", icon: "✦" },
   { path: "/memory", label: "Memory", icon: "◇" },
   { path: "/skills", label: "Skills", icon: "◇" },
+  { path: "/eval", label: "Eval", icon: "🧪" },
   { path: "/souls", label: "Souls", icon: "✦" },
   { path: "/capabilities", label: "Capabilities", icon: "⚡" },
   { path: "/status", label: "Status", icon: "◎" },

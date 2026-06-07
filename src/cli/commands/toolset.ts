@@ -34,8 +34,16 @@ function saveCustomToolsets(): void {
   const all = toolsetRegistry.listToolsets()
   // Only save user-defined ones (not bundled)
   const bundledNames = new Set([
-    "web", "search", "vision", "code-execution", "delegation",
-    "file-ops", "shell", "research", "full-stack", "all",
+    "web",
+    "search",
+    "vision",
+    "code-execution",
+    "delegation",
+    "file-ops",
+    "shell",
+    "research",
+    "full-stack",
+    "all",
   ])
   const custom = all.filter((t) => !bundledNames.has(t.name))
   const dir = join(homedir(), ".aegis")
@@ -46,10 +54,7 @@ function saveCustomToolsets(): void {
 export function registerToolset(program: Command): void {
   loadCustomToolsets()
 
-  const toolset = program
-    .command("toolset")
-    .alias("ts")
-    .description("Manage composable tool groups")
+  const toolset = program.command("toolset").alias("ts").description("Manage composable tool groups")
 
   toolset
     .command("list")

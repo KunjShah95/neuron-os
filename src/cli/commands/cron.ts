@@ -4,9 +4,7 @@ import { showBanner } from "../banner"
 import { addCronJob, removeCronJob, listActiveJobs, ensureHeartbeatFile, loadHeartbeatChecklist } from "../../cron"
 
 export function registerCron(program: Command) {
-  const cron = program
-    .command("cron")
-    .description("Manage scheduled jobs and heartbeat")
+  const cron = program.command("cron").description("Manage scheduled jobs and heartbeat")
 
   cron
     .command("add <name> <schedule> <goal>")

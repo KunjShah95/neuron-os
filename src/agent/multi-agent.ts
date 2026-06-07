@@ -135,7 +135,13 @@ function parsePlan(goal: string, text: string): OrchestrationPlan {
         last.description = trimmed.replace("Description:", "").trim()
       } else if (trimmed.startsWith("Dependencies:")) {
         const deps = trimmed.replace("Dependencies:", "").trim()
-        last.dependencies = deps === "none" ? [] : deps.split(",").map((d) => d.trim()).filter(Boolean)
+        last.dependencies =
+          deps === "none"
+            ? []
+            : deps
+                .split(",")
+                .map((d) => d.trim())
+                .filter(Boolean)
       } else if (trimmed.startsWith("Complexity:")) {
         const c = trimmed.replace("Complexity:", "").trim().toLowerCase()
         if (c === "simple" || c === "medium" || c === "complex") {
@@ -151,7 +157,10 @@ function parsePlan(goal: string, text: string): OrchestrationPlan {
       currentGroup = []
     } else if (parsingGroups && trimmed) {
       // Parse IDs like "1, 2, 3" or "sub-1, sub-2"
-      const ids = trimmed.split(",").map((s) => s.trim()).filter(Boolean)
+      const ids = trimmed
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
       for (const rawId of ids) {
         const idx = parseInt(rawId.replace("sub-", ""), 10) - 1
         if (idx >= 0 && idx < subTasks.length) {
@@ -228,9 +237,7 @@ export async function executePlan(plan: OrchestrationPlan): Promise<Orchestratio
     ``,
     `### Results`,
     ``,
-    ...results.map(
-      (r) => `- ${r.success ? "✅" : "❌"} **${r.title}** — ${r.summary.slice(0, 100)}`,
-    ),
+    ...results.map((r) => `- ${r.success ? "✅" : "❌"} **${r.title}** — ${r.summary.slice(0, 100)}`),
   ].join("\n")
 
   return {

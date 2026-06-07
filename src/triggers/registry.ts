@@ -15,12 +15,7 @@ const log = createLogger("triggers")
 
 // ── Types ─────────────────────────────────────────────────────────────
 
-export type TriggerType =
-  | "cron"
-  | "file_watch"
-  | "webhook"
-  | "condition"
-  | "gateway_command"
+export type TriggerType = "cron" | "file_watch" | "webhook" | "condition" | "gateway_command"
 
 export type TriggerActionMode = "spawn-agent" | "queue-task" | "run-command"
 
@@ -165,7 +160,9 @@ export class TriggerEngine {
     for (const def of defaults) {
       // Skip if a trigger with this command name is already registered
       const exists = Array.from(this.triggers.values()).some(
-        (t) => t.type === "gateway_command" && (t.config as GatewayCommandConfig).command === (def.config as GatewayCommandConfig).command,
+        (t) =>
+          t.type === "gateway_command" &&
+          (t.config as GatewayCommandConfig).command === (def.config as GatewayCommandConfig).command,
       )
       if (!exists) {
         const id = "builtin-" + def.name
@@ -193,7 +190,7 @@ export class TriggerEngine {
     }
     this.triggers.set(id, trigger)
     this.persist()
-    log.info("Trigger registered: \"" + trigger.name + "\" (" + trigger.type + ")")
+    log.info('Trigger registered: "' + trigger.name + '" (' + trigger.type + ")")
     if (trigger.enabled) {
       if (trigger.type === "cron") this.startCronTimer(trigger)
       else if (trigger.type === "file_watch") this.startFileWatch(trigger)
@@ -210,7 +207,7 @@ export class TriggerEngine {
     this.stopConditionTimer(id)
     this.triggers.delete(id)
     this.persist()
-    log.info("Trigger unregistered: \"" + trigger.name + "\" (" + id + ")")
+    log.info('Trigger unregistered: "' + trigger.name + '" (' + id + ")")
     return true
   }
 
@@ -229,7 +226,7 @@ export class TriggerEngine {
       if (enabled) this.startConditionTimer(trigger)
       else this.stopConditionTimer(id)
     }
-    log.info("Trigger \"" + trigger.name + "\" " + (enabled ? "enabled" : "disabled"))
+    log.info('Trigger "' + trigger.name + '" ' + (enabled ? "enabled" : "disabled"))
     return true
   }
 
@@ -266,12 +263,15 @@ export class TriggerEngine {
     })
   }
 
-  async fire(trigger: TriggerDef, goalOverride?: string): Promise<{ success: boolean; result?: string; error?: string }> {
+  async fire(
+    trigger: TriggerDef,
+    goalOverride?: string,
+  ): Promise<{ success: boolean; result?: string; error?: string }> {
     if (!trigger.enabled) {
       return { success: false, error: "Trigger is disabled" }
     }
     const goal = goalOverride ?? trigger.action.goal
-    log.info("Firing trigger \"" + trigger.name + "\" (" + trigger.type + ")")
+    log.info('Firing trigger "' + trigger.name + '" (' + trigger.type + ")")
     trigger.lastFiredAt = new Date().toISOString()
     trigger.fireCount++
     this.persist()
@@ -311,8 +311,12 @@ export class TriggerEngine {
               cwd: process.cwd(),
               env: { ...process.env, AEGIS_TRIGGER_ID: trigger.id, AEGIS_TRIGGER_NAME: trigger.name },
             })
-            child.stdout?.on("data", (chunk: Buffer) => { stdout += chunk.toString() })
-            child.stderr?.on("data", (chunk: Buffer) => { stderr += chunk.toString() })
+            child.stdout?.on("data", (chunk: Buffer) => {
+              stdout += chunk.toString()
+            })
+            child.stderr?.on("data", (chunk: Buffer) => {
+              stderr += chunk.toString()
+            })
             const timeout = setTimeout(() => {
               child.kill()
               resolve({ success: false, error: "Command timed out after 60s" })
@@ -339,14 +343,14 @@ export class TriggerEngine {
           return { success: false, error: "Unknown action mode: " + (trigger.action as any).mode }
       }
     } catch (err: any) {
-      log.error("Trigger \"" + trigger.name + "\" failed", { error: String(err) })
+      log.error('Trigger "' + trigger.name + '" failed', { error: String(err) })
       return { success: false, error: err?.message ?? String(err) }
     }
   }
 
   async fireById(id: string, goalOverride?: string): Promise<{ success: boolean; result?: string; error?: string }> {
     const trigger = this.triggers.get(id)
-    if (!trigger) return { success: false, error: "Trigger \"" + id + "\" not found" }
+    if (!trigger) return { success: false, error: 'Trigger "' + id + '" not found' }
     return this.fire(trigger, goalOverride)
   }
 
@@ -389,7 +393,7 @@ export class TriggerEngine {
     const cfg = trigger.config as CronConfig
     const ms = this.parseSchedule(cfg.schedule)
     if (!ms) {
-      log.warn("Invalid cron schedule for \"" + trigger.name + "\": " + cfg.schedule)
+      log.warn('Invalid cron schedule for "' + trigger.name + '": ' + cfg.schedule)
       return
     }
     const timer = setInterval(async () => {
@@ -398,7 +402,7 @@ export class TriggerEngine {
         if (hour < cfg.duringHours[0] || hour >= cfg.duringHours[1]) return
       }
       await this.fire(trigger).catch((err) => {
-        log.error("Cron trigger \"" + trigger.name + "\" fire failed", { error: String(err) })
+        log.error('Cron trigger "' + trigger.name + '" fire failed', { error: String(err) })
       })
     }, ms)
     timer.unref()
@@ -446,7 +450,7 @@ export class TriggerEngine {
           if (stillExists && cfg.events && !cfg.events.includes("create")) return
           if (!stillExists && cfg.events && !cfg.events.includes("delete")) return
         }
-        log.info("File change detected for trigger \"" + trigger.name + "\": " + fileName + " (" + eventType + ")")
+        log.info('File change detected for trigger "' + trigger.name + '": ' + fileName + " (" + eventType + ")")
         this.debouncedFire(trigger, debounceMs)
       }
       let watcher: FSWatcher
@@ -454,7 +458,7 @@ export class TriggerEngine {
         watcher = watch(watchDir, { recursive: true }, handleEvent)
       } catch (recursiveErr: any) {
         if (String(recursiveErr).includes("ERR_FEATURE_UNAVAILABLE_ON_PLATFORM")) {
-          log.warn("Recursive watch not supported, falling back to non-recursive for \"" + trigger.name + "\"")
+          log.warn('Recursive watch not supported, falling back to non-recursive for "' + trigger.name + '"')
           watcher = watch(watchDir, { recursive: false }, handleEvent)
         } else {
           throw recursiveErr
@@ -462,9 +466,9 @@ export class TriggerEngine {
       }
       watcher.unref()
       this.activeFileWatchers.set(trigger.id, watcher)
-      log.info("File watcher started for \"" + trigger.name + "\" on " + watchDir)
+      log.info('File watcher started for "' + trigger.name + '" on ' + watchDir)
     } catch (err) {
-      log.error("Failed to start file watcher for \"" + trigger.name + "\"", { error: String(err) })
+      log.error('Failed to start file watcher for "' + trigger.name + '"', { error: String(err) })
     }
   }
 
@@ -488,7 +492,7 @@ export class TriggerEngine {
     const timer = setTimeout(async () => {
       this.watchDebounceTimers.delete(key)
       await this.fire(trigger).catch((err) => {
-        log.error("File watch trigger \"" + trigger.name + "\" fire failed", { error: String(err) })
+        log.error('File watch trigger "' + trigger.name + '" fire failed', { error: String(err) })
       })
     }, debounceMs)
     this.watchDebounceTimers.set(key, timer)
@@ -525,14 +529,14 @@ export class TriggerEngine {
     try {
       value = await this.getMetricValue(cfg)
     } catch (err) {
-      log.warn("Condition check failed for \"" + trigger.name + "\"", { error: String(err) })
+      log.warn('Condition check failed for "' + trigger.name + '"', { error: String(err) })
       return
     }
     const triggered = this.compareValues(value, cfg.threshold, cfg.operator)
     if (triggered) {
-      log.info("Condition triggered for \"" + trigger.name + "\": " + value + " " + cfg.operator + " " + cfg.threshold)
+      log.info('Condition triggered for "' + trigger.name + '": ' + value + " " + cfg.operator + " " + cfg.threshold)
       await this.fire(trigger).catch((err) => {
-        log.error("Condition trigger \"" + trigger.name + "\" fire failed", { error: String(err) })
+        log.error('Condition trigger "' + trigger.name + '" fire failed', { error: String(err) })
       })
     }
   }
@@ -587,12 +591,18 @@ export class TriggerEngine {
 
   private compareValues(value: number, threshold: number, operator: string): boolean {
     switch (operator) {
-      case "gt": return value > threshold
-      case "lt": return value < threshold
-      case "gte": return value >= threshold
-      case "lte": return value <= threshold
-      case "eq": return value === threshold
-      default: return false
+      case "gt":
+        return value > threshold
+      case "lt":
+        return value < threshold
+      case "gte":
+        return value >= threshold
+      case "lte":
+        return value <= threshold
+      case "eq":
+        return value === threshold
+      default:
+        return false
     }
   }
 

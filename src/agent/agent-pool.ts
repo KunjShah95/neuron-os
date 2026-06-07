@@ -139,13 +139,16 @@ export class AgentPool {
    * Submit a task to the pool. Returns the task ID.
    * The task will be executed when a slot opens up.
    */
-  submit(goal: string, opts?: {
-    name?: string
-    priority?: TaskPriority
-    agentDef?: Partial<Omit<AgentDef, "name">>
-    timeoutMs?: number
-    tags?: string[]
-  }): string {
+  submit(
+    goal: string,
+    opts?: {
+      name?: string
+      priority?: TaskPriority
+      agentDef?: Partial<Omit<AgentDef, "name">>
+      timeoutMs?: number
+      tags?: string[]
+    },
+  ): string {
     const id = `pool-task-${nextTaskId++}-${Date.now().toString(36)}`
     const task: PoolTask = {
       id,
@@ -218,9 +221,8 @@ export class AgentPool {
       completed: total,
       failed,
       maxConcurrency: this.config.maxConcurrency,
-      utilizationPercent: this.config.maxConcurrency > 0
-        ? Math.round((this.running.size / this.config.maxConcurrency) * 100)
-        : 0,
+      utilizationPercent:
+        this.config.maxConcurrency > 0 ? Math.round((this.running.size / this.config.maxConcurrency) * 100) : 0,
     }
   }
 

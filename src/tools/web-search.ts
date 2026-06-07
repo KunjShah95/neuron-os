@@ -23,11 +23,17 @@ async function searchTavily(query: string, count: number): Promise<ToolResult> {
     return { success: false, output: "", error: `Tavily search failed with HTTP ${res.status}` }
   }
   const body: any = await res.json()
-  const results: Array<{ title: string; snippet: string; url: string }> = (body.results || []).map(
-    (r: any) => ({ title: r.title ?? "", snippet: r.content ?? "", url: r.url ?? "" }),
-  )
+  const results: Array<{ title: string; snippet: string; url: string }> = (body.results || []).map((r: any) => ({
+    title: r.title ?? "",
+    snippet: r.content ?? "",
+    url: r.url ?? "",
+  }))
   if (results.length === 0) {
-    return { success: true, output: `No search results found for "${query}".`, metadata: { query, count: 0, backend: "tavily" } }
+    return {
+      success: true,
+      output: `No search results found for "${query}".`,
+      metadata: { query, count: 0, backend: "tavily" },
+    }
   }
   const output = results
     .slice(0, count)
@@ -55,7 +61,11 @@ async function searchSerpApi(query: string, count: number): Promise<ToolResult> 
     url: r.link ?? "",
   }))
   if (results.length === 0) {
-    return { success: true, output: `No search results found for "${query}".`, metadata: { query, count: 0, backend: "serpapi" } }
+    return {
+      success: true,
+      output: `No search results found for "${query}".`,
+      metadata: { query, count: 0, backend: "serpapi" },
+    }
   }
   const output = results
     .slice(0, count)
@@ -103,7 +113,11 @@ async function searchDuckDuckGo(query: string, count: number): Promise<ToolResul
   }
 
   if (results.length === 0) {
-    return { success: true, output: `No search results found for "${query}".`, metadata: { query, count: 0, backend: "duckduckgo" } }
+    return {
+      success: true,
+      output: `No search results found for "${query}".`,
+      metadata: { query, count: 0, backend: "duckduckgo" },
+    }
   }
 
   const output = results
@@ -118,7 +132,8 @@ async function searchDuckDuckGo(query: string, count: number): Promise<ToolResul
 
 export const webSearchTool: Tool = {
   name: "web_search",
-  description: "Search the web for information using a text query. Supports DuckDuckGo (default, no key), Tavily (TAVILY_API_KEY), and SerpAPI (SERPAPI_API_KEY).",
+  description:
+    "Search the web for information using a text query. Supports DuckDuckGo (default, no key), Tavily (TAVILY_API_KEY), and SerpAPI (SERPAPI_API_KEY).",
   parameters: [
     {
       name: "query",

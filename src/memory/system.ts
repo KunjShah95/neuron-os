@@ -68,9 +68,7 @@ export class MemorySystem {
    */
   constructor(cwd: string = process.cwd(), agentMemory?: AgentMemoryConnector, project?: string) {
     // When a project is specified, use ~/.aegis/projects/<name>/memory/ instead of cwd/.aegis/memory/
-    this.memoryDir = project
-      ? getProjectMemoryDir(project)
-      : resolve(cwd, ".aegis/memory")
+    this.memoryDir = project ? getProjectMemoryDir(project) : resolve(cwd, ".aegis/memory")
     this.userFile = resolve(cwd, "user.md")
     // For project-scoped mode, MEMORY.md and user.md still come from the project root
     this.memoryFile = resolve(cwd, "MEMORY.md")
@@ -86,18 +84,14 @@ export class MemorySystem {
     await mkdir(this.autoMemoryDir, { recursive: true })
 
     if (!existsSync(this.memoryFile)) {
-      await writeFile(
-        this.memoryFile,
-        "# Aegis Memory\n\nLong-term durable facts and knowledge.\n\n",
-        "utf-8"
-      )
+      await writeFile(this.memoryFile, "# Aegis Memory\n\nLong-term durable facts and knowledge.\n\n", "utf-8")
     }
 
     if (!existsSync(this.userFile)) {
       await writeFile(
         this.userFile,
         "# User Profile\n\nYour preferences, identity, and constraints.\n\n## About You\n\n(Describe yourself — your role, communication style, what matters to you)\n\n## Never Do\n\n- \n\n## Preferences\n\n- \n",
-        "utf-8"
+        "utf-8",
       )
     }
 
@@ -239,7 +233,7 @@ export class MemorySystem {
   private async listAutoMemoryFiles(): Promise<string[]> {
     // Cache the file list for 2 seconds to avoid repeated readdir calls
     const now = Date.now()
-    if (this.cacheAutoFileList && (now - this.cacheAutoFileListTime) < 2000) {
+    if (this.cacheAutoFileList && now - this.cacheAutoFileListTime < 2000) {
       return this.cacheAutoFileList
     }
     const files = await readdir(this.autoMemoryDir)
@@ -260,7 +254,7 @@ export class MemorySystem {
 
       const formatted = `# Auto Memory\n\n**Timestamp:** ${new Date().toISOString()}\n${tag ? `**Tag:** ${tag}\n` : ""}\n${content}\n`
       await writeFile(filepath, formatted, "utf-8")
-      this.cacheAutoFileList = null  // invalidate auto file list cache
+      this.cacheAutoFileList = null // invalidate auto file list cache
     } catch (err) {
       log.error("Failed to save auto memory", { error: String(err) })
     }
@@ -278,7 +272,11 @@ export class MemorySystem {
       { regex: /(?:never|don't|do not|please don't|avoid)\s+(.+)/gi, category: "preference", confidence: 0.5 },
       { regex: /(?:we are working on|the project is|this project)\s+(.+)/gi, category: "project", confidence: 0.7 },
       { regex: /(?:always|please|make sure to|remember to)\s+(.+)/gi, category: "workflow", confidence: 0.6 },
-      { regex: /(?:we decided|the decision was|let's go with|agreed to)\s+(.+)/gi, category: "decision", confidence: 0.8 },
+      {
+        regex: /(?:we decided|the decision was|let's go with|agreed to)\s+(.+)/gi,
+        category: "decision",
+        confidence: 0.8,
+      },
       { regex: /(?:team member|reports to|works with|manages)\s+(.+)/gi, category: "relationship", confidence: 0.7 },
     ]
 
@@ -441,7 +439,13 @@ export class MemorySystem {
     if (userProfile.trim()) {
       const score = this.computeRelevance(userProfile, terms)
       if (score > 0) {
-        scored.push({ content: userProfile, timestamp: new Date().toISOString(), source: "user", category: "user-profile", score })
+        scored.push({
+          content: userProfile,
+          timestamp: new Date().toISOString(),
+          source: "user",
+          category: "user-profile",
+          score,
+        })
       }
     }
 

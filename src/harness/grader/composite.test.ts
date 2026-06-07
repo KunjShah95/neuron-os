@@ -55,9 +55,7 @@ describe("computeCompositeScore", () => {
   })
 
   it("caps score at 0.4 when a type is below threshold", () => {
-    const grades: GradeResult[] = [
-      makeGrade({ name: "a", grader: "deterministic", score: 0.1, weight: 1.0 }),
-    ]
+    const grades: GradeResult[] = [makeGrade({ name: "a", grader: "deterministic", score: 0.1, weight: 1.0 })]
     const score = computeCompositeScore(grades, {
       ...DEFAULT_COMPOSITE_CONFIG,
       thresholds: { deterministic: 0.5, llm: 0.3, code: 0.3 },
@@ -102,9 +100,7 @@ describe("normalizeWeights", () => {
   })
 
   it("preserves score values", () => {
-    const grades: GradeResult[] = [
-      makeGrade({ name: "a", grader: "deterministic", score: 0.7, weight: 2 }),
-    ]
+    const grades: GradeResult[] = [makeGrade({ name: "a", grader: "deterministic", score: 0.7, weight: 2 })]
     const normalized = normalizeWeights(grades)
     expect(normalized[0].score).toBe(0.7)
   })

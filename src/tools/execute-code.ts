@@ -28,9 +28,7 @@ function generateStubTools(stagingDir: string, allowedTools: string[]): string {
   })
 
   const isWin = platform() === "win32"
-  const ipcPath = isWin
-    ? `\\\\?\\pipe\\aegis-exec-${stagingDir.split("-").pop()}`
-    : join(stagingDir, "ipc")
+  const ipcPath = isWin ? `\\\\?\\pipe\\aegis-exec-${stagingDir.split("-").pop()}` : join(stagingDir, "ipc")
 
   return `// auto-generated — do not edit
 const IPC_PATH = ${JSON.stringify(ipcPath)}
@@ -80,7 +78,17 @@ function handleToolCall(name: string, args: unknown): unknown {
 
 function scrubEnv(): Record<string, string> {
   const env: Record<string, string> = {}
-  const allowlist = new Set(["PATH", "HOME", "LANG", "NODE_ENV", "TMPDIR", "TEMP", "BUN_RUNTIME", "USERPROFILE", "SYSTEMROOT"])
+  const allowlist = new Set([
+    "PATH",
+    "HOME",
+    "LANG",
+    "NODE_ENV",
+    "TMPDIR",
+    "TEMP",
+    "BUN_RUNTIME",
+    "USERPROFILE",
+    "SYSTEMROOT",
+  ])
   for (const key of Object.keys(process.env)) {
     if (allowlist.has(key)) {
       const val = process.env[key]
@@ -90,28 +98,22 @@ function scrubEnv(): Record<string, string> {
   return env
 }
 
-async function executeCodeScript(
-  input: ExecuteCodeInput,
-  ctx: ToolContext,
-): Promise<ExecuteCodeOutput> {
+async function executeCodeScript(input: ExecuteCodeInput, ctx: ToolContext): Promise<ExecuteCodeOutput> {
   const startTime = Date.now()
   const uuid = randomUUID()
   const stagingDir = mkdtempSync(join(tmpdir(), `aegis-exec-${uuid}`))
   const scriptPath = join(stagingDir, "script.ts")
   const isWin = platform() === "win32"
-  const ipcPath = isWin
-    ? `\\\\.\\pipe\\aegis-exec-${uuid}`
-    : join(stagingDir, "ipc")
+  const ipcPath = isWin ? `\\\\.\\pipe\\aegis-exec-${uuid}` : join(stagingDir, "ipc")
 
   try {
-    const fullCode = [
-      `import { print } from "./aegis_tools"`,
-      ``,
-      input.code,
-    ].join("\n")
+    const fullCode = [`import { print } from "./aegis_tools"`, ``, input.code].join("\n")
     writeFileSync(scriptPath, fullCode, "utf-8")
 
-    const stubCode = generateStubTools(stagingDir, ctx.permissions.map((p) => p.name))
+    const stubCode = generateStubTools(
+      stagingDir,
+      ctx.permissions.map((p) => p.name),
+    )
     writeFileSync(join(stagingDir, "aegis_tools.ts"), stubCode, "utf-8")
 
     const toolCalls: ExecuteCodeOutput["tool_calls"] = []
@@ -157,9 +159,7 @@ async function executeCodeScript(
     try {
       const exitCode = await Promise.race([
         proc.exited,
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("timeout")), timeout),
-        ),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), timeout)),
       ])
 
       const outBuf = await new Response(proc.stdout).text()

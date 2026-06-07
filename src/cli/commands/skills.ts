@@ -3,7 +3,15 @@ import { fetchTopSkills, searchSkills, fetchSkillDetail } from "../../skills/rem
 import { skillRegistry } from "../../skills/registry"
 import { theme } from "../theme"
 import { createLogger } from "../logger"
-import { distill, loadRecentEpisodes, gate, checkRetirementEligibility, retireSkill, publishToHub, browseHub } from "../../skills/evolution"
+import {
+  distill,
+  loadRecentEpisodes,
+  gate,
+  checkRetirementEligibility,
+  retireSkill,
+  publishToHub,
+  browseHub,
+} from "../../skills/evolution"
 import { existsSync, readdirSync } from "node:fs"
 import { join } from "node:path"
 
@@ -35,12 +43,8 @@ export function registerSkills(program: Command): void {
       }
 
       for (const skill of results) {
-        const tagStr = skill.tags?.length > 0
-          ? ` ${theme.muted(skill.tags.map((t: string) => `#${t}`).join(" "))}`
-          : ""
-        const installs = skill.installs
-          ? ` ${theme.muted(`${skill.installs.toLocaleString()} installs`)}`
-          : ""
+        const tagStr = skill.tags?.length > 0 ? ` ${theme.muted(skill.tags.map((t: string) => `#${t}`).join(" "))}` : ""
+        const installs = skill.installs ? ` ${theme.muted(`${skill.installs.toLocaleString()} installs`)}` : ""
         console.log(`  ${theme.textBright(skill.name)}${installs}${tagStr}`)
         if (skill.description) {
           console.log(`    ${theme.muted(skill.description)}`)
@@ -67,12 +71,8 @@ export function registerSkills(program: Command): void {
 
       for (let i = 0; i < results.length; i++) {
         const skill = results[i]!
-        const tagStr = skill.tags?.length > 0
-          ? ` ${theme.muted(skill.tags.map((t: string) => `#${t}`).join(" "))}`
-          : ""
-        const installs = skill.installs
-          ? ` ${theme.muted(`${skill.installs.toLocaleString()} installs`)}`
-          : ""
+        const tagStr = skill.tags?.length > 0 ? ` ${theme.muted(skill.tags.map((t: string) => `#${t}`).join(" "))}` : ""
+        const installs = skill.installs ? ` ${theme.muted(`${skill.installs.toLocaleString()} installs`)}` : ""
         console.log(`  ${(i + 1).toString().padStart(2, " ")}. ${theme.textBright(skill.name)}${installs}${tagStr}`)
         if (skill.description) {
           console.log(`     ${theme.muted(skill.description)}`)
@@ -142,9 +142,7 @@ export function registerSkills(program: Command): void {
 
       for (const skill of skills) {
         const tags = skill.metadata.tags
-        const tagStr = tags && tags.length > 0
-          ? ` ${theme.muted(tags.map((t) => `#${t}`).join(" "))}`
-          : ""
+        const tagStr = tags && tags.length > 0 ? ` ${theme.muted(tags.map((t) => `#${t}`).join(" "))}` : ""
         console.log(`  ${theme.textBright(skill.metadata.name)}${tagStr}`)
         if (skill.metadata.description) {
           console.log(`    ${theme.muted(skill.metadata.description)}`)
@@ -171,12 +169,16 @@ export function registerSkills(program: Command): void {
 
       if (subcommand === "run") {
         console.log(`\n  ${theme.heading("Running Evolution Distiller")}\n`)
-        const sinceMs = Date.now() - (parseInt(options.since || "24", 10) * 60 * 60 * 1000)
+        const sinceMs = Date.now() - parseInt(options.since || "24", 10) * 60 * 60 * 1000
         const episodes = loadRecentEpisodes(sinceMs)
-        console.log(`  ${theme.muted(`Loaded ${episodes.length} episodes since ${new Date(sinceMs).toISOString().slice(0, 10)}`)}`)
+        console.log(
+          `  ${theme.muted(`Loaded ${episodes.length} episodes since ${new Date(sinceMs).toISOString().slice(0, 10)}`)}`,
+        )
 
         const result = await distill(episodes)
-        console.log(`  ${theme.muted(`Found ${result.clustersFound} clusters, ${result.candidates.length} candidates`)}`)
+        console.log(
+          `  ${theme.muted(`Found ${result.clustersFound} clusters, ${result.candidates.length} candidates`)}`,
+        )
         console.log(`  ${theme.muted(`Duration: ${result.durationMs}ms`)}\n`)
 
         if (result.candidates.length === 0) {
@@ -186,12 +188,18 @@ export function registerSkills(program: Command): void {
 
         // Run quality gate on each candidate
         for (const candidate of result.candidates) {
-          console.log(`  ${theme.textBright("Candidate:")} ${candidate.name} (${candidate.evidence.length} evidence episodes)`)
+          console.log(
+            `  ${theme.textBright("Candidate:")} ${candidate.name} (${candidate.evidence.length} evidence episodes)`,
+          )
           const decision = await gate(candidate)
           if (decision.passed) {
-            console.log(`  ${theme.accent("✅ Approved")} — judge: ${decision.judge.verdict}, regression: ${Math.round(decision.regression.passRate * 100)}%`)
+            console.log(
+              `  ${theme.accent("✅ Approved")} — judge: ${decision.judge.verdict}, regression: ${Math.round(decision.regression.passRate * 100)}%`,
+            )
           } else {
-            console.log(`  ${theme.dim("❌ Rejected")} — judge: ${decision.judge.verdict}, regression: ${Math.round(decision.regression.passRate * 100)}%`)
+            console.log(
+              `  ${theme.dim("❌ Rejected")} — judge: ${decision.judge.verdict}, regression: ${Math.round(decision.regression.passRate * 100)}%`,
+            )
           }
           console.log("")
         }
@@ -203,9 +211,7 @@ export function registerSkills(program: Command): void {
 
   // ── skills hub browse ─────────────────────────────────────────────
 
-  const hubCmd = skillsCmd
-    .command("hub")
-    .description("Browse and publish skills on agentskills.io")
+  const hubCmd = skillsCmd.command("hub").description("Browse and publish skills on agentskills.io")
 
   hubCmd
     .command("browse")

@@ -122,10 +122,7 @@ toolRegistry.register({
     },
   ],
 
-  async execute(
-    params: Record<string, unknown>,
-    ctx: ToolContext,
-  ): Promise<ToolResult> {
+  async execute(params: Record<string, unknown>, ctx: ToolContext): Promise<ToolResult> {
     const type = params.type as string
     const id = params.id as string
     const scope = ctx.agentId || ctx.agentType || "default"

@@ -228,12 +228,7 @@ export class AuditRecorder {
     })
   }
 
-  recordRatchetRevert(details: {
-    files: string[]
-    previousScore: number
-    newScore: number
-    reason: string
-  }): void {
+  recordRatchetRevert(details: { files: string[]; previousScore: number; newScore: number; reason: string }): void {
     auditStore.record({
       sessionId: this.sessionId,
       project: this.project,

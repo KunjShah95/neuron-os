@@ -20,9 +20,7 @@ export const configMode: Mode = {
       lines.push(`  ${theme.heading("Stored Credentials")}`)
       lines.push("")
       for (const e of entries) {
-        const masked = e.value.length > 8
-          ? e.value.slice(0, 4) + "..." + e.value.slice(-4)
-          : "..."
+        const masked = e.value.length > 8 ? e.value.slice(0, 4) + "..." + e.value.slice(-4) : "..."
         lines.push(`  ${theme.accent(e.key.padEnd(30))} ${theme.dim(`[${e.scope}]`)} ${masked}`)
       }
     }

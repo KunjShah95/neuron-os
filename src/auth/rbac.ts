@@ -7,13 +7,23 @@ import { createLogger } from "../cli/logger"
 const log = createLogger("auth")
 
 export type Permission =
-  | "agent:spawn" | "agent:stop" | "agent:view" | "agent:modify"
-  | "memory:read" | "memory:write" | "memory:delete"
-  | "cost:view" | "cost:manage"
-  | "config:read" | "config:write"
+  | "agent:spawn"
+  | "agent:stop"
+  | "agent:view"
+  | "agent:modify"
+  | "memory:read"
+  | "memory:write"
+  | "memory:delete"
+  | "cost:view"
+  | "cost:manage"
+  | "config:read"
+  | "config:write"
   | "admin:all"
-  | "trigger:create" | "trigger:delete" | "trigger:fire"
-  | "vault:read" | "vault:write"
+  | "trigger:create"
+  | "trigger:delete"
+  | "trigger:fire"
+  | "vault:read"
+  | "vault:write"
 
 export type RoleName = "admin" | "operator" | "developer" | "viewer"
 
@@ -50,21 +60,26 @@ export class RBACManager {
     operator: {
       name: "operator",
       permissions: [
-        "agent:spawn", "agent:stop", "agent:view", "agent:modify",
-        "memory:read", "memory:write", "memory:delete",
-        "cost:view", "cost:manage",
-        "config:read", "config:write",
-        "trigger:create", "trigger:delete", "trigger:fire",
+        "agent:spawn",
+        "agent:stop",
+        "agent:view",
+        "agent:modify",
+        "memory:read",
+        "memory:write",
+        "memory:delete",
+        "cost:view",
+        "cost:manage",
+        "config:read",
+        "config:write",
+        "trigger:create",
+        "trigger:delete",
+        "trigger:fire",
         "vault:read",
       ],
     },
     developer: {
       name: "developer",
-      permissions: [
-        "agent:spawn", "agent:stop", "agent:view",
-        "memory:read",
-        "cost:view",
-      ],
+      permissions: ["agent:spawn", "agent:stop", "agent:view", "memory:read", "cost:view"],
     },
     viewer: {
       name: "viewer",
@@ -121,13 +136,17 @@ export class RBACManager {
     }
 
     const adminId = "user-admin"
-    this.db.prepare("INSERT OR IGNORE INTO users (id, name, roles_json) VALUES (?, ?, ?)").run(adminId, "admin", JSON.stringify(["admin"]))
+    this.db
+      .prepare("INSERT OR IGNORE INTO users (id, name, roles_json) VALUES (?, ?, ?)")
+      .run(adminId, "admin", JSON.stringify(["admin"]))
     log.info("Default roles and admin user seeded")
   }
 
   createUser(name: string, initialRoles: RoleName[] = []): RBACUser {
     const id = "user-" + Date.now().toString(36) + "-" + randomBytes(4).toString("hex")
-    this.db.prepare("INSERT INTO users (id, name, roles_json) VALUES (?, ?, ?)").run(id, name, JSON.stringify(initialRoles))
+    this.db
+      .prepare("INSERT INTO users (id, name, roles_json) VALUES (?, ?, ?)")
+      .run(id, name, JSON.stringify(initialRoles))
     log.info("User created", { id, name })
     return { id, name, roles: initialRoles, apiKeys: [] }
   }
@@ -171,9 +190,9 @@ export class RBACManager {
 
     const assignedRoles = roles ?? this.getUser(userId)?.roles ?? []
 
-    this.db.prepare("INSERT INTO api_keys (key_hash, user_id, label, roles_json, created_at) VALUES (?, ?, ?, ?, ?)").run(
-      keyHash, userId, label, JSON.stringify(assignedRoles), createdAt,
-    )
+    this.db
+      .prepare("INSERT INTO api_keys (key_hash, user_id, label, roles_json, created_at) VALUES (?, ?, ?, ?, ?)")
+      .run(keyHash, userId, label, JSON.stringify(assignedRoles), createdAt)
 
     log.info("API key generated for user", { userId, label })
     return {
@@ -184,7 +203,9 @@ export class RBACManager {
 
   validateApiKey(apiKey: string): { valid: boolean; user?: RBACUser; permissions?: Permission[] } {
     const keyHash = createHash("sha256").update(apiKey).digest("hex")
-    const row = this.db.prepare("SELECT * FROM api_keys WHERE key_hash = ? AND enabled = 1").get(keyHash) as Record<string, unknown> | undefined
+    const row = this.db.prepare("SELECT * FROM api_keys WHERE key_hash = ? AND enabled = 1").get(keyHash) as
+      | Record<string, unknown>
+      | undefined
     if (!row) return { valid: false }
 
     this.db.prepare("UPDATE api_keys SET last_used = ? WHERE key_hash = ?").run(new Date().toISOString(), keyHash)

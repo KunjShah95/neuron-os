@@ -8,9 +8,7 @@ import { join } from "path"
 const AUDIT_PATH = join(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "memory", "audit.jsonl")
 
 export function registerMemoryPolicy(mem: Command): void {
-  const policy = mem
-    .command("policy")
-    .description("Cross-team memory ACL — access control lists for namespaces")
+  const policy = mem.command("policy").description("Cross-team memory ACL — access control lists for namespaces")
 
   policy
     .command("init")
@@ -139,7 +137,9 @@ export function registerMemoryPolicy(mem: Command): void {
         try {
           const e = JSON.parse(entry)
           const icon = e.allowed ? "✓" : "✗"
-          console.log(`  ${icon} ${e.event.padEnd(14)} ${e.requester.padEnd(20)} ${e.namespace}${e.path ? "/" + e.path : ""}${e.tool ? " [" + e.tool + "]" : ""}`)
+          console.log(
+            `  ${icon} ${e.event.padEnd(14)} ${e.requester.padEnd(20)} ${e.namespace}${e.path ? "/" + e.path : ""}${e.tool ? " [" + e.tool + "]" : ""}`,
+          )
           console.log(`    ${e.reason}${e.rule_id ? " (" + e.rule_id + ")" : ""}`)
         } catch {
           // skip malformed entries

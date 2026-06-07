@@ -11,10 +11,10 @@ export function pathsMatchAllowlist(changedFiles: string[], allowedPaths: string
 
 export function getChangedFiles(repo: string, prNumber: number): string[] {
   try {
-    const output = execSync(
-      `gh pr view ${prNumber} --repo "${repo}" --json files --jq '.files[].path'`,
-      { encoding: "utf-8", timeout: 15_000 },
-    ).trim()
+    const output = execSync(`gh pr view ${prNumber} --repo "${repo}" --json files --jq '.files[].path'`, {
+      encoding: "utf-8",
+      timeout: 15_000,
+    }).trim()
     return output ? output.split("\n") : []
   } catch {
     return []
@@ -35,10 +35,10 @@ export function checkCiStatus(repo: string, branch: string): boolean {
 
 export function checkApprovalComment(repo: string, prNumber: number): boolean {
   try {
-    const output = execSync(
-      `gh pr view ${prNumber} --repo "${repo}" --json comments --jq '.comments[].body'`,
-      { encoding: "utf-8", timeout: 15_000 },
-    ).trim()
+    const output = execSync(`gh pr view ${prNumber} --repo "${repo}" --json comments --jq '.comments[].body'`, {
+      encoding: "utf-8",
+      timeout: 15_000,
+    }).trim()
     return output.split("\n").some((c) => c.toLowerCase().includes("lgtm"))
   } catch {
     return false
@@ -79,10 +79,10 @@ export async function autoMerge(params: {
 
   // Squash-merge
   try {
-    execSync(
-      `gh pr merge ${prNumber} --repo "${repo}" --squash --subject "[ci-fix] Auto-fix for PR #${prNumber}"`,
-      { encoding: "utf-8", timeout: 30_000 },
-    )
+    execSync(`gh pr merge ${prNumber} --repo "${repo}" --squash --subject "[ci-fix] Auto-fix for PR #${prNumber}"`, {
+      encoding: "utf-8",
+      timeout: 30_000,
+    })
     log.info(`Auto-merged PR #${prNumber} in ${repo}`)
     return true
   } catch (err) {

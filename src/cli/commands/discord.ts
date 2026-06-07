@@ -29,7 +29,10 @@ async function handleDiscord(opts: { token?: string; project?: string }) {
 
   const allowedUserIdsRaw = await credentialVault.get("DISCORD_ALLOWED_USERS", "global")
   const allowedUserIds = allowedUserIdsRaw
-    ? allowedUserIdsRaw.split(",").map((s: string) => s.trim()).filter(Boolean)
+    ? allowedUserIdsRaw
+        .split(",")
+        .map((s: string) => s.trim())
+        .filter(Boolean)
     : undefined
 
   console.log(theme.info("\n  Starting Discord bot adapter…"))

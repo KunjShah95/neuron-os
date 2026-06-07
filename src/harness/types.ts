@@ -1,12 +1,12 @@
 // ── Test Category ─────────────────────────────────────────────────
 
 export type TestCategory =
-  | "smoke"          // Fast sanity checks (run on every commit)
-  | "regression"     // Known-pass tests (detect regressions)
-  | "capability"     // New capability validation
-  | "adversarial"    // Security/robustness tests
-  | "benchmark"      // Performance/cost benchmarks
-  | "golden"         // Human-verified golden set
+  | "smoke" // Fast sanity checks (run on every commit)
+  | "regression" // Known-pass tests (detect regressions)
+  | "capability" // New capability validation
+  | "adversarial" // Security/robustness tests
+  | "benchmark" // Performance/cost benchmarks
+  | "golden" // Human-verified golden set
 
 export type TestPriority = "critical" | "high" | "medium" | "low"
 
@@ -19,35 +19,35 @@ export interface TestCase {
   prompt: string
   category?: TestCategory
   priority?: TestPriority
-  tags: string[]                // e.g. ["coding", "typescript", "file-ops"]
-  timeout: number               // ms (default: 120000)
+  tags: string[] // e.g. ["coding", "typescript", "file-ops"]
+  timeout: number // ms (default: 120000)
 
   // Expected outcomes (optional — any subset can be defined)
   expected?: {
-    pattern?: string            // Expected substring or regex in output
-    exitCode?: number           // Expected process exit code
-    filesExist?: string[]       // Files that should exist after agent run
-    filesNotExist?: string[]    // Files that should NOT exist
-    maxSteps?: number           // Fail if agent takes more steps than this
-    maxTokens?: number          // Fail if agent exceeds token budget
-    minScore?: number           // Minimum score from grader (0.0–1.0)
+    pattern?: string // Expected substring or regex in output
+    exitCode?: number // Expected process exit code
+    filesExist?: string[] // Files that should exist after agent run
+    filesNotExist?: string[] // Files that should NOT exist
+    maxSteps?: number // Fail if agent takes more steps than this
+    maxTokens?: number // Fail if agent exceeds token budget
+    minScore?: number // Minimum score from grader (0.0–1.0)
   }
 
   // Sandbox setup
   setup?: {
-    commands: string[]          // Shell commands to run before test
-    files: Record<string, string>  // Files to create (path → content)
-    env?: Record<string, string>   // Environment variables to set
+    commands: string[] // Shell commands to run before test
+    files: Record<string, string> // Files to create (path → content)
+    env?: Record<string, string> // Environment variables to set
   }
-  cleanup?: boolean             // Reset sandbox after test (default: true)
+  cleanup?: boolean // Reset sandbox after test (default: true)
 
   // Execution overrides
-  model?: string                // Override default model for this test
-  agentType?: string            // Override default agent type
-  graderWeights?: Record<string, number>  // Per-grader weight overrides
+  model?: string // Override default model for this test
+  agentType?: string // Override default agent type
+  graderWeights?: Record<string, number> // Per-grader weight overrides
 
   // Dependencies
-  dependsOn?: string[]          // Test IDs that must pass first
+  dependsOn?: string[] // Test IDs that must pass first
 
   // Metadata
   author?: string
@@ -60,24 +60,24 @@ export interface TestCase {
 export interface EvalResult {
   test: TestCase
   passed: boolean
-  score: number                 // Composite score 0.0–1.0
-  grades: GradeResult[]         // Individual grade breakdown
-  output: string                // Full agent output text
-  trace: ToolTrace[]            // All tool calls during execution
+  score: number // Composite score 0.0–1.0
+  grades: GradeResult[] // Individual grade breakdown
+  output: string // Full agent output text
+  trace: ToolTrace[] // All tool calls during execution
   steps: number
   totalTokens: number
-  totalCost: number             // USD cost estimate
+  totalCost: number // USD cost estimate
   durationMs: number
   error?: string
   model: string
   agentType: string
-  timestamp: string             // ISO 8601
+  timestamp: string // ISO 8601
   metadata: Record<string, unknown>
-  sandboxSnapshot?: SandboxSnapshot  // File state before/after
+  sandboxSnapshot?: SandboxSnapshot // File state before/after
 }
 
 export interface ToolTrace {
-  name: string                  // Tool name (e.g. "bash", "read", "write")
+  name: string // Tool name (e.g. "bash", "read", "write")
   params: Record<string, unknown>
   result: string
   durationMs: number
@@ -86,21 +86,21 @@ export interface ToolTrace {
 }
 
 export interface SandboxSnapshot {
-  before: string[]              // Files present before agent run
-  after: string[]               // Files present after agent run
-  created: string[]             // Files that were created
-  modified: string[]            // Files that were modified
-  deleted: string[]             // Files that were deleted
-  gitDiff?: string              // Raw git diff if git repo
+  before: string[] // Files present before agent run
+  after: string[] // Files present after agent run
+  created: string[] // Files that were created
+  modified: string[] // Files that were modified
+  deleted: string[] // Files that were deleted
+  gitDiff?: string // Raw git diff if git repo
 }
 
 export interface GradeResult {
-  name: string                  // e.g. "string-match", "llm-judge", "typecheck"
+  name: string // e.g. "string-match", "llm-judge", "typecheck"
   grader: GraderType
-  score: number                 // 0.0–1.0
-  weight: number                // Contribution to composite score
-  details?: string              // Human-readable explanation
-  confidence?: number           // Judge's confidence in this score
+  score: number // 0.0–1.0
+  weight: number // Contribution to composite score
+  details?: string // Human-readable explanation
+  confidence?: number // Judge's confidence in this score
 }
 
 export type GraderType = "deterministic" | "llm" | "code" | "human"
@@ -120,11 +120,14 @@ export interface EvalReport {
   totalCost: number
   totalDurationMs: number
   results: EvalResult[]
-  byCategory: Record<TestCategory, {
-    total: number
-    passed: number
-    avgScore: number
-  }>
+  byCategory: Record<
+    TestCategory,
+    {
+      total: number
+      passed: number
+      avgScore: number
+    }
+  >
   regressions: Regression[]
   baselineComparison?: BaselineComparison
   metadata: Record<string, unknown>
@@ -135,7 +138,7 @@ export interface Regression {
   testName: string
   baselineScore: number
   currentScore: number
-  drop: number                  // baseline - current
+  drop: number // baseline - current
   severity: "minor" | "major" | "critical"
 }
 
@@ -145,19 +148,19 @@ export interface BaselineComparison {
   overallScoreDelta: number
   categoryDeltas: Record<string, number>
   regressions: Regression[]
-  improvements: Regression[]    // Negative regression = improvement
+  improvements: Regression[] // Negative regression = improvement
 }
 
 // ── Runner Types ─────────────────────────────────────────────────
 
 export interface RunnerConfig {
-  concurrency: number           // Parallel test count (default: os.cpus().length)
+  concurrency: number // Parallel test count (default: os.cpus().length)
   mode: "sequential" | "parallel" | "sharded"
-  shard?: { index: number; total: number }  // For distributed execution
-  timeout: number               // Per-test timeout
-  retryCount: number            // Retry flaky tests (default: 0)
-  retryDelay: number            // Delay between retries (default: 1000ms)
-  failureThreshold: number      // Stop after N failures (default: Infinity)
+  shard?: { index: number; total: number } // For distributed execution
+  timeout: number // Per-test timeout
+  retryCount: number // Retry flaky tests (default: 0)
+  retryDelay: number // Delay between retries (default: 1000ms)
+  failureThreshold: number // Stop after N failures (default: Infinity)
   signal?: AbortSignal
   sandboxConfig?: Partial<SandboxConfig>
 }
@@ -176,8 +179,8 @@ export interface TestFilter {
   category?: TestCategory | TestCategory[]
   tags?: { include?: string[]; exclude?: string[]; mode?: "and" | "or" }
   priority?: TestPriority | TestPriority[]
-  namePattern?: string          // Regex pattern
-  idPattern?: string            // Glob pattern for test IDs
+  namePattern?: string // Regex pattern
+  idPattern?: string // Glob pattern for test IDs
 }
 
 // ── Budget Types (from §3.6) ─────────────────────────────────────

@@ -14,8 +14,7 @@ export interface SkillProposal {
 }
 
 export class SkillQualityGate {
-  constructor() {
-  }
+  constructor() {}
 
   /**
    * Evaluates a skill proposal by:
@@ -26,7 +25,7 @@ export class SkillQualityGate {
    */
   public async evaluateSkill(proposal: SkillProposal, cwd: string = process.cwd()): Promise<boolean> {
     log.info(`Evaluating proposed skill: ${proposal.name}`)
-    
+
     // Write skill to a temporary location for testing
     const tempSkillPath = resolve(cwd, `.aegis_temp_skill_${Date.now()}.md`)
     try {
@@ -35,7 +34,7 @@ export class SkillQualityGate {
       // If there's a specific test command for this skill, run it
       if (proposal.testCommand) {
         log.info(`Running skill test command: ${proposal.testCommand}`)
-        
+
         // We use Bun's spawn for a quick local test
         // In a strictly sandboxed environment, this would route to a containerized test runner
         const child = spawn({
@@ -43,7 +42,7 @@ export class SkillQualityGate {
           cwd,
           env: { ...process.env, AEGIS_TEST_SKILL_PATH: tempSkillPath },
           stdout: "pipe",
-          stderr: "pipe"
+          stderr: "pipe",
         })
 
         const exitCode = await child.exited

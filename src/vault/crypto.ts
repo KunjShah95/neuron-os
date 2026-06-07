@@ -23,8 +23,8 @@ const log = createLogger("vault:crypto")
 // ── Constants ─────────────────────────────────────────────────────────
 
 const ALGORITHM = "aes-256-gcm"
-const IV_LENGTH = 12          // 96-bit IV recommended for GCM
-const KEY_LENGTH = 32          // 256 bits
+const IV_LENGTH = 12 // 96-bit IV recommended for GCM
+const KEY_LENGTH = 32 // 256 bits
 const KEY_FILENAME = ".vault-key"
 
 // ── Key Management ────────────────────────────────────────────────────

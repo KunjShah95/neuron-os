@@ -40,12 +40,13 @@ export class SkillExtractor {
       const successRate = successCount / Math.max(1, successCount + similarFailures)
 
       const goalWords = cluster[0]?.goal ?? ""
-      const name = goalWords
-        .replace(/[^a-z0-9 ]/gi, "")
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, "-")
-        .slice(0, 40) || `auto-skill-${Date.now().toString(36)}`
+      const name =
+        goalWords
+          .replace(/[^a-z0-9 ]/gi, "")
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, "-")
+          .slice(0, 40) || `auto-skill-${Date.now().toString(36)}`
 
       const tags = this.mergeTags(cluster)
 
@@ -86,9 +87,10 @@ export class SkillExtractor {
 
     const validated: SkillCandidate = {
       ...candidate,
-      confidence: wouldHelp.length > 0
-        ? Math.min(1, candidate.confidence + 0.1 * (wouldHelp.length / Math.max(1, failures.length)))
-        : candidate.confidence,
+      confidence:
+        wouldHelp.length > 0
+          ? Math.min(1, candidate.confidence + 0.1 * (wouldHelp.length / Math.max(1, failures.length)))
+          : candidate.confidence,
       status: "validated",
     }
 
@@ -162,9 +164,7 @@ export class SkillExtractor {
   getStats(): { totalCandidates: number; published: number; avgConfidence: number } {
     const total = this.candidates.length
     const published = this.candidates.filter((c) => c.status === "published").length
-    const avgConf = total > 0
-      ? this.candidates.reduce((s, c) => s + c.confidence, 0) / total
-      : 0
+    const avgConf = total > 0 ? this.candidates.reduce((s, c) => s + c.confidence, 0) / total : 0
     return { totalCandidates: total, published, avgConfidence: Math.round(avgConf * 100) / 100 }
   }
 
@@ -196,9 +196,7 @@ export class SkillExtractor {
   }
 
   private countSimilarFailures(cluster: ExperienceRecord[], failures: ExperienceRecord[]): number {
-    const clusterEmb = computeEmbedding(
-      cluster.map((e) => `${e.goal} ${e.summary}`).join(" "),
-    )
+    const clusterEmb = computeEmbedding(cluster.map((e) => `${e.goal} ${e.summary}`).join(" "))
 
     return failures.filter((f) => {
       const fEmb = computeEmbedding(`${f.goal} ${f.summary}`)

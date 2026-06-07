@@ -73,9 +73,7 @@ async function searchWeb(query: string, maxResults: number): Promise<string> {
   return [
     `🌐 *Web Search Results for:* ${query}`,
     "",
-    ...results.slice(0, maxResults).map((r, i) =>
-      `*${i + 1}. ${r.title}*\n   ${r.snippet}\n   ${r.url}`,
-    ),
+    ...results.slice(0, maxResults).map((r, i) => `*${i + 1}. ${r.title}*\n   ${r.snippet}\n   ${r.url}`),
   ].join("\n\n")
 }
 
@@ -115,7 +113,10 @@ async function searchCodebase(query: string, maxResults: number, includePath?: s
       if (fileMatches.length > 0) {
         results.push(
           `📄 *${file}* (${fileMatches.length} matches)\n` +
-          fileMatches.slice(0, 5).map((m) => `  \`L${m.line}:\` ${m.text.slice(0, 120)}`).join("\n"),
+            fileMatches
+              .slice(0, 5)
+              .map((m) => `  \`L${m.line}:\` ${m.text.slice(0, 120)}`)
+              .join("\n"),
         )
       }
 
@@ -147,9 +148,10 @@ async function searchMemory(query: string, maxResults: number): Promise<string> 
   if (memoryResults.length > 0) {
     sections.push(
       "🧠 *Memory Results*\n" +
-      memoryResults.slice(0, maxResults).map((r) =>
-        `• [${r.source}] ${r.content.slice(0, 300)}`,
-      ).join("\n"),
+        memoryResults
+          .slice(0, maxResults)
+          .map((r) => `• [${r.source}] ${r.content.slice(0, 300)}`)
+          .join("\n"),
     )
   }
 
@@ -159,9 +161,7 @@ async function searchMemory(query: string, maxResults: number): Promise<string> 
   if (vectorResults.length > 0) {
     sections.push(
       "📊 *Vector Memory Results*\n" +
-      vectorResults.map((r) =>
-        `• [${r.category}] ${r.content.slice(0, 200)}`,
-      ).join("\n"),
+        vectorResults.map((r) => `• [${r.category}] ${r.content.slice(0, 200)}`).join("\n"),
     )
   }
 
@@ -170,10 +170,7 @@ async function searchMemory(query: string, maxResults: number): Promise<string> 
   if (amAvailable) {
     const amResults = await agentMemory.search(query, 3)
     if (amResults.length > 0) {
-      sections.push(
-        "🔗 *AgentMemory Results*\n" +
-        amResults.map((r) => `• ${r.content.slice(0, 200)}`).join("\n"),
-      )
+      sections.push("🔗 *AgentMemory Results*\n" + amResults.map((r) => `• ${r.content.slice(0, 200)}`).join("\n"))
     }
   }
 

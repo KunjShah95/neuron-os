@@ -13,20 +13,34 @@ export interface SetupConfig {
 
 function providerLabel(p: AIProviderType): string {
   switch (p) {
-    case "anthropic": return "Anthropic"
-    case "openai": return "OpenAI"
-    case "deepseek": return "DeepSeek"
-    case "gemini": return "Gemini"
-    case "groq": return "Groq"
-    case "openrouter": return "OpenRouter"
-    case "ollama": return "Ollama"
-    case "mistral": return "Mistral AI"
-    case "azure": return "Azure OpenAI"
-    case "togetherai": return "Together AI"
-    case "xai": return "xAI"
-    case "cohere": return "Cohere"
-    case "perplexity": return "Perplexity"
-    case "custom": return "Custom endpoint"
+    case "anthropic":
+      return "Anthropic"
+    case "openai":
+      return "OpenAI"
+    case "deepseek":
+      return "DeepSeek"
+    case "gemini":
+      return "Gemini"
+    case "groq":
+      return "Groq"
+    case "openrouter":
+      return "OpenRouter"
+    case "ollama":
+      return "Ollama"
+    case "mistral":
+      return "Mistral AI"
+    case "azure":
+      return "Azure OpenAI"
+    case "togetherai":
+      return "Together AI"
+    case "xai":
+      return "xAI"
+    case "cohere":
+      return "Cohere"
+    case "perplexity":
+      return "Perplexity"
+    case "custom":
+      return "Custom endpoint"
   }
 }
 
@@ -43,10 +57,10 @@ export async function runSetupFlow(prompter: WizardPrompter): Promise<SetupConfi
     await prompter.intro("Aegis Setup")
 
     await prompter.note(
-      "Aegis operates as a privileged agent on your system.\n"
-      + "It can read/write files, run commands, and execute code.\n"
-      + "Review configuration before proceeding.",
-      "Security Warning"
+      "Aegis operates as a privileged agent on your system.\n" +
+        "It can read/write files, run commands, and execute code.\n" +
+        "Review configuration before proceeding.",
+      "Security Warning",
     )
 
     const workspace = await prompter.text({
@@ -55,7 +69,7 @@ export async function runSetupFlow(prompter: WizardPrompter): Promise<SetupConfi
       defaultValue: "~/.aegis",
     })
 
-    const provider = await prompter.select({
+    const provider = (await prompter.select({
       message: "Default provider",
       options: [
         { value: "anthropic", label: "Anthropic", hint: "Claude models" },
@@ -71,14 +85,14 @@ export async function runSetupFlow(prompter: WizardPrompter): Promise<SetupConfi
         { value: "custom", label: "Custom endpoint", hint: "OpenAI-compatible API" },
       ],
       initialValue: "anthropic",
-    }) as AIProviderType
+    })) as AIProviderType
 
     let apiKey: string | undefined
     if (needsApiKey(provider)) {
       apiKey = await prompter.text({
         message: `${providerLabel(provider)} API key`,
         placeholder: provider === "anthropic" ? "sk-ant-..." : "sk-...",
-        validate: (val) => val.trim() ? undefined : "API key is required",
+        validate: (val) => (val.trim() ? undefined : "API key is required"),
       })
     }
 
@@ -87,7 +101,7 @@ export async function runSetupFlow(prompter: WizardPrompter): Promise<SetupConfi
       baseUrl = await prompter.text({
         message: "Custom endpoint base URL",
         placeholder: "https://your-api.example.com/v1",
-        validate: (val) => val.trim() ? undefined : "Base URL is required",
+        validate: (val) => (val.trim() ? undefined : "Base URL is required"),
       })
     }
 
@@ -102,7 +116,7 @@ export async function runSetupFlow(prompter: WizardPrompter): Promise<SetupConfi
       model = await prompter.text({
         message: "Enter model name",
         placeholder: getDefaultModel(provider) || "gpt-4o",
-        validate: (val) => val.trim() ? undefined : "Model name is required",
+        validate: (val) => (val.trim() ? undefined : "Model name is required"),
       })
     }
 

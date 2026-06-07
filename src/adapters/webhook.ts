@@ -15,10 +15,7 @@
 import type { PlatformAdapter, PlatformSendOptions } from "./types"
 import { createLogger } from "../cli/logger"
 import { taskQueue } from "../agent/queue"
-import {
-  handleTwilioWebhook,
-  clipTwilio,
-} from "./bot-commands"
+import { handleTwilioWebhook, clipTwilio } from "./bot-commands"
 import { verifyHmac } from "../api/hmac"
 
 const log = createLogger("adapter:webhook")
@@ -81,13 +78,16 @@ export function createWebhookAdapter(config: WebhookAdapterConfig): PlatformAdap
 
           // ── Health check ─────────────────────────────────────────
           if (url.pathname === "/health" && req.method === "GET") {
-            return new Response(JSON.stringify({
-              status: "ok",
-              endpoints: listEnabledEndpoints(),
-            }), {
-              status: 200,
-              headers: { "Content-Type": "application/json" },
-            })
+            return new Response(
+              JSON.stringify({
+                status: "ok",
+                endpoints: listEnabledEndpoints(),
+              }),
+              {
+                status: 200,
+                headers: { "Content-Type": "application/json" },
+              },
+            )
           }
 
           // ── Twilio SMS webhook ───────────────────────────────────
@@ -143,7 +143,7 @@ export function createWebhookAdapter(config: WebhookAdapterConfig): PlatformAdap
           // ── Generic JSON webhook ─────────────────────────────────
           if (url.pathname === "/webhook/generic" && req.method === "POST" && config.enableGeneric) {
             try {
-              const body = await req.json() as Record<string, unknown>
+              const body = (await req.json()) as Record<string, unknown>
 
               // Optional HMAC verification
               if (config.genericSecret) {
@@ -175,13 +175,16 @@ export function createWebhookAdapter(config: WebhookAdapterConfig): PlatformAdap
           }
 
           // ── 404 for unknown routes ──────────────────────────────
-          return new Response(JSON.stringify({
-            error: "Not found",
-            available: listEnabledEndpoints(),
-          }), {
-            status: 404,
-            headers: { "Content-Type": "application/json" },
-          })
+          return new Response(
+            JSON.stringify({
+              error: "Not found",
+              available: listEnabledEndpoints(),
+            }),
+            {
+              status: 404,
+              headers: { "Content-Type": "application/json" },
+            },
+          )
         },
       })
 
@@ -198,7 +201,9 @@ export function createWebhookAdapter(config: WebhookAdapterConfig): PlatformAdap
 
     async send(_opts: PlatformSendOptions) {
       // Webhook adapter is receive-only via HTTP endpoints
-      throw new Error("Webhook adapter does not support outbound sends. Use gateway.sendReply() to send through another adapter.")
+      throw new Error(
+        "Webhook adapter does not support outbound sends. Use gateway.sendReply() to send through another adapter.",
+      )
     },
   }
 }

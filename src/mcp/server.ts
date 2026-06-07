@@ -304,7 +304,7 @@ export function startMCPServerHTTP(config: MCPServerConfig): { stop: () => void 
           return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 })
         }
 
-        const body = await request.json() as { name?: string; arguments?: Record<string, unknown> }
+        const body = (await request.json()) as { name?: string; arguments?: Record<string, unknown> }
         if (!body.name) {
           return new Response(JSON.stringify({ error: "Missing tool name" }), { status: 400 })
         }
@@ -330,7 +330,7 @@ export function startMCPServerHTTP(config: MCPServerConfig): { stop: () => void 
           })
         }
 
-        const req = await request.json() as MCPRequest
+        const req = (await request.json()) as MCPRequest
         const res = await handleRequest(req)
         return new Response(JSON.stringify(res), {
           headers: { "Content-Type": "application/json" },

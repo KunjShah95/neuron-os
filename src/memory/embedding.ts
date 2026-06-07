@@ -19,7 +19,7 @@ export function computeEmbedding(text: string): number[] {
   for (const word of words) {
     let hash = 0
     for (let i = 0; i < word.length; i++) {
-      hash = ((hash << 5) - hash) + word.charCodeAt(i)
+      hash = (hash << 5) - hash + word.charCodeAt(i)
       hash = hash & hash
     }
     const idx = Math.abs(hash) % DIM
@@ -35,7 +35,9 @@ export function computeEmbedding(text: string): number[] {
 
 export function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length) return 0
-  let dot = 0, na = 0, nb = 0
+  let dot = 0,
+    na = 0,
+    nb = 0
   for (let i = 0; i < a.length; i++) {
     const ai = a[i] || 0
     const bi = b[i] || 0

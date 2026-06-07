@@ -16,7 +16,13 @@ export function registerSMS(program: Command) {
     .action(handleSMS)
 }
 
-async function handleSMS(opts: { accountSid?: string; authToken?: string; from?: string; webhookPort?: string; project?: string }) {
+async function handleSMS(opts: {
+  accountSid?: string
+  authToken?: string
+  from?: string
+  webhookPort?: string
+  project?: string
+}) {
   showBanner()
   await credentialVault.initialize()
 

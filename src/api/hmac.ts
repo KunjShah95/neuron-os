@@ -32,13 +32,7 @@ export async function verifyHmac(payload: string, secret: string, signature: str
     const keyData = encoder.encode(secret)
     const msgData = encoder.encode(payload)
 
-    const cryptoKey = await crypto.subtle.importKey(
-      "raw",
-      keyData,
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"],
-    )
+    const cryptoKey = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"])
 
     const hmacResult = await crypto.subtle.sign("HMAC", cryptoKey, msgData)
 

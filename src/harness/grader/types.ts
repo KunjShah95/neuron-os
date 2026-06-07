@@ -14,16 +14,16 @@ export interface GraderSuiteConfig {
 
   /** Default weights per grader type (can be overridden per test) */
   defaultWeights?: {
-    deterministic: number     // 0.3
-    llm: number               // 0.5
-    code: number              // 0.2
+    deterministic: number // 0.3
+    llm: number // 0.5
+    code: number // 0.2
   }
 
   /** Minimum thresholds — any grader below this caps the composite score */
   thresholds?: {
-    deterministic: number     // 0.5
-    llm: number               // 0.3
-    code: number              // 0.3
+    deterministic: number // 0.5
+    llm: number // 0.3
+    code: number // 0.3
   }
 
   /** Composite scoring strategy */

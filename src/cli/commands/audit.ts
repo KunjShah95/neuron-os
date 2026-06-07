@@ -3,15 +3,9 @@ import { theme } from "../theme"
 import { showBanner } from "../banner"
 
 export function registerAudit(program: Command) {
-  const audit = program
-    .command("audit")
-    .description("Audit trail — record and replay agent decisions")
+  const audit = program.command("audit").description("Audit trail — record and replay agent decisions")
 
-  audit
-    .command("stats")
-    .alias("types")
-    .description("Show audit store statistics")
-    .action(handleAuditStats)
+  audit.command("stats").alias("types").description("Show audit store statistics").action(handleAuditStats)
 
   audit
     .command("recent")
@@ -25,15 +19,9 @@ export function registerAudit(program: Command) {
     .description("Replay a session step-by-step from the audit log")
     .action(handleAuditReplay)
 
-  audit
-    .command("timeline <sessionId>")
-    .description("Show compact timeline of a session")
-    .action(handleAuditTimeline)
+  audit.command("timeline <sessionId>").description("Show compact timeline of a session").action(handleAuditTimeline)
 
-  audit
-    .command("policy")
-    .description("List registered policies")
-    .action(handleAuditPolicy)
+  audit.command("policy").description("List registered policies").action(handleAuditPolicy)
 }
 
 async function handleAuditStats() {
@@ -106,7 +94,8 @@ async function handleAuditPolicy() {
   const policies = policyEngine.listPolicies()
   console.log(theme.heading(`\n  🛡️  Guardrails (${policies.length} policies)\n`))
   for (const p of policies) {
-    const severityIcon = p.severity === "error" ? theme.error("🔴") : p.severity === "warning" ? theme.warn("🟡") : theme.info("🔵")
+    const severityIcon =
+      p.severity === "error" ? theme.error("🔴") : p.severity === "warning" ? theme.warn("🟡") : theme.info("🔵")
     console.log(`  ${severityIcon} ${theme.bold(p.name)}`)
     console.log(`     ${theme.dim(p.description)}`)
     console.log(`     ${theme.muted(p.severity)}`)

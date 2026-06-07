@@ -54,11 +54,7 @@ describe("BudgetController", () => {
   })
 
   it("should record zero cost when costFn is not provided", async () => {
-    const { result, cost } = await controller.runWithBudget(
-      "zero-cost",
-      0.1,
-      () => Promise.resolve("ok"),
-    )
+    const { result, cost } = await controller.runWithBudget("zero-cost", 0.1, () => Promise.resolve("ok"))
 
     expect(result).toBe("ok")
     expect(cost).toBe(0)
@@ -68,15 +64,20 @@ describe("BudgetController", () => {
     // Spend all but $0.05
     controller.recordCost(9.95)
 
-    expect(
-      controller.runWithBudget("over-budget", 0.1, () => Promise.resolve("nope")),
-    ).rejects.toThrow(BudgetExceededError)
+    expect(controller.runWithBudget("over-budget", 0.1, () => Promise.resolve("nope"))).rejects.toThrow(
+      BudgetExceededError,
+    )
   })
 
   it("should warn when per-test cost exceeds maxCostPerTest", async () => {
     const warnSpy = spyOn(console, "warn").mockImplementation(() => {})
 
-    await controller.runWithBudget("expensive-test", 0.1, () => Promise.resolve("x"), () => 3.0)
+    await controller.runWithBudget(
+      "expensive-test",
+      0.1,
+      () => Promise.resolve("x"),
+      () => 3.0,
+    )
 
     expect(warnSpy).toHaveBeenCalled()
     expect(warnSpy.mock.calls[0][0]).toContain("exceeded per-test budget")

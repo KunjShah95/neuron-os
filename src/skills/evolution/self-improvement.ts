@@ -88,7 +88,9 @@ export function generatePatchFromFailures(skillName: string, skillContent: strin
     "",
     "### Known failure patterns",
     "",
-    mortems.map((m) => `- **${m.failure_reason.slice(0, 80)}** (observed ${new Date(m.ts).toISOString().slice(0, 10)})`).join("\n"),
+    mortems
+      .map((m) => `- **${m.failure_reason.slice(0, 80)}** (observed ${new Date(m.ts).toISOString().slice(0, 10)})`)
+      .join("\n"),
     "",
   ].join("\n")
 

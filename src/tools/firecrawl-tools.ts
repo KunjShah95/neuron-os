@@ -26,10 +26,10 @@ function isFirecrawlEnabled(): boolean {
 async function searchFirecrawl(query: string, count: number): Promise<ToolResult> {
   const client = await getFirecrawlClient()
   if (!client) {
-    return { 
-      success: false, 
-      output: "", 
-      error: "Firecrawl API key not configured. Set FIRECRAWL_API_KEY environment variable." 
+    return {
+      success: false,
+      output: "",
+      error: "Firecrawl API key not configured. Set FIRECRAWL_API_KEY environment variable.",
     }
   }
 
@@ -40,17 +40,17 @@ async function searchFirecrawl(query: string, count: number): Promise<ToolResult
 
     // Handle response - the SDK returns data directly or wrapped
     const data = result.data || result
-    
+
     if (!data || (Array.isArray(data) && data.length === 0)) {
-      return { 
-        success: true, 
-        output: `No search results found for "${query}".`, 
-        metadata: { query, count: 0, backend: "firecrawl" } 
+      return {
+        success: true,
+        output: `No search results found for "${query}".`,
+        metadata: { query, count: 0, backend: "firecrawl" },
       }
     }
 
     const results = Array.isArray(data) ? data : []
-    
+
     const output = results
       .slice(0, count)
       .map((r: any, i: number) => {
@@ -58,20 +58,20 @@ async function searchFirecrawl(query: string, count: number): Promise<ToolResult
         const url = r.url || ""
         const markdown = r.markdown || r.content || r.snippet || ""
         const snippet = markdown.slice(0, 300).replace(/\n/g, " ")
-        
+
         return `${i + 1}. ${title}\n   URL: ${url}\n   ${snippet}${markdown.length > 300 ? "..." : ""}`
       })
       .join("\n\n")
 
-    return { 
-      success: true, 
-      output, 
-      metadata: { 
-        query, 
-        count: results.length, 
+    return {
+      success: true,
+      output,
+      metadata: {
+        query,
+        count: results.length,
         backend: "firecrawl",
         hasMarkdown: true,
-      } 
+      },
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
@@ -82,20 +82,20 @@ async function searchFirecrawl(query: string, count: number): Promise<ToolResult
 // ── Web Crawl via Firecrawl ──────────────────────────────────────────
 
 async function crawlFirecrawl(
-  url: string, 
+  url: string,
   options: {
     limit?: number
     includePaths?: string[]
     excludePaths?: string[]
     waitFor?: number
-  } = {}
+  } = {},
 ): Promise<ToolResult> {
   const client = await getFirecrawlClient()
   if (!client) {
-    return { 
-      success: false, 
-      output: "", 
-      error: "Firecrawl API key not configured. Set FIRECRAWL_API_KEY environment variable." 
+    return {
+      success: false,
+      output: "",
+      error: "Firecrawl API key not configured. Set FIRECRAWL_API_KEY environment variable.",
     }
   }
 
@@ -110,17 +110,17 @@ async function crawlFirecrawl(
 
     // Handle response
     const data = crawlResult.data || crawlResult
-    
+
     if (!data || (Array.isArray(data) && data.length === 0)) {
-      return { 
-        success: true, 
-        output: `No pages crawled from ${url}`, 
-        metadata: { url, pages: 0, backend: "firecrawl" } 
+      return {
+        success: true,
+        output: `No pages crawled from ${url}`,
+        metadata: { url, pages: 0, backend: "firecrawl" },
       }
     }
 
     const pages = Array.isArray(data) ? data : []
-    
+
     const output = pages
       .map((page: any, i: number) => {
         const metadata = page.metadata || {}
@@ -128,20 +128,20 @@ async function crawlFirecrawl(
         const pageUrl = metadata.sourceURL || page.url || ""
         const markdown = page.markdown || page.content || ""
         const preview = markdown.slice(0, 500).replace(/\n/g, " ")
-        
+
         return `[${i + 1}] ${title}\nURL: ${pageUrl}\n\n${preview}${markdown.length > 500 ? "..." : ""}`
       })
       .join("\n\n---\n\n")
 
-    return { 
-      success: true, 
-      output, 
-      metadata: { 
-        url, 
-        pages: pages.length, 
+    return {
+      success: true,
+      output,
+      metadata: {
+        url,
+        pages: pages.length,
         backend: "firecrawl",
         hasMarkdown: true,
-      } 
+      },
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
@@ -165,29 +165,27 @@ async function fetchFirecrawl(url: string, format: "markdown" | "html" | "text" 
 
     // Handle response
     const data = scrapeResult.data || scrapeResult
-    
+
     if (!data) {
-      return { 
-        success: false, 
-        output: "", 
-        error: "Firecrawl returned empty response" 
+      return {
+        success: false,
+        output: "",
+        error: "Firecrawl returned empty response",
       }
     }
 
-    const content = format === "html" 
-      ? (data.html || "")
-      : (data.markdown || data.content || "")
+    const content = format === "html" ? data.html || "" : data.markdown || data.content || ""
 
-    return { 
-      success: true, 
-      output: content, 
-      metadata: { 
-        url, 
+    return {
+      success: true,
+      output: content,
+      metadata: {
+        url,
         format,
         backend: "firecrawl",
         title: data.metadata?.title,
         description: data.metadata?.description,
-      } 
+      },
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
@@ -238,7 +236,8 @@ async function fetchUrlStandard(url: string, format: string): Promise<ToolResult
 
 export const firecrawlSearchTool: Tool = {
   name: "web_search",
-  description: "Search the web using AI-powered search (Firecrawl). Returns clean, LLM-ready markdown results. Set FIRECRAWL_API_KEY to enable. Falls back to DuckDuckGo if not configured.",
+  description:
+    "Search the web using AI-powered search (Firecrawl). Returns clean, LLM-ready markdown results. Set FIRECRAWL_API_KEY to enable. Falls back to DuckDuckGo if not configured.",
   parameters: [
     {
       name: "query",
@@ -257,14 +256,14 @@ export const firecrawlSearchTool: Tool = {
     if (!query) {
       return { success: false, output: "", error: "Query parameter is required" }
     }
-    
+
     const count = Math.min((params.count as number) || 5, 10)
-    
+
     // Use Firecrawl if available, otherwise fall back to other backends
     if (isFirecrawlEnabled()) {
       return await searchFirecrawl(query, count)
     }
-    
+
     // Fall back to existing web-search implementation
     const { webSearchTool } = await import("./web-search")
     return webSearchTool.execute(params, _ctx)
@@ -273,7 +272,8 @@ export const firecrawlSearchTool: Tool = {
 
 export const firecrawlCrawlTool: Tool = {
   name: "web_crawl",
-  description: "Crawl a website and extract content from multiple pages using Firecrawl. Converts pages to clean markdown. Requires FIRECRAWL_API_KEY.",
+  description:
+    "Crawl a website and extract content from multiple pages using Firecrawl. Converts pages to clean markdown. Requires FIRECRAWL_API_KEY.",
   parameters: [
     {
       name: "url",
@@ -324,7 +324,8 @@ export const firecrawlCrawlTool: Tool = {
 
 export const firecrawlFetchTool: Tool = {
   name: "fetch_url",
-  description: "Fetch and convert a URL to clean markdown or HTML using Firecrawl AI scraping. Set FIRECRAWL_API_KEY for best results. Falls back to standard fetch.",
+  description:
+    "Fetch and convert a URL to clean markdown or HTML using Firecrawl AI scraping. Set FIRECRAWL_API_KEY for best results. Falls back to standard fetch.",
   parameters: [
     {
       name: "url",
@@ -345,7 +346,7 @@ export const firecrawlFetchTool: Tool = {
     }
 
     const format = (params.format as "markdown" | "html" | "text") || "markdown"
-    
+
     return await fetchFirecrawl(url, format)
   },
 }

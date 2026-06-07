@@ -19,9 +19,7 @@ export interface MenuState {
   current: MenuLevel
 }
 
-export type MenuResult =
-  | { action: "select"; value: string; path: string[] }
-  | { action: "quit" }
+export type MenuResult = { action: "select"; value: string; path: string[] } | { action: "quit" }
 
 function renderMenu(state: MenuState): string {
   let output = ""
@@ -187,7 +185,9 @@ export async function runMenu(items: MenuItem[], title?: string): Promise<MenuRe
   process.stdin.off("data", onData)
   try {
     process.stdin.setRawMode(wasRaw ?? false)
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   process.stdout.write(ansiEscapes.exitAlternativeScreen)
   process.stdout.write(ansiEscapes.cursorShow)
 

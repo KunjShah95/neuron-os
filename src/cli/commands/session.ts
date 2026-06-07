@@ -8,9 +8,7 @@ import type { Command } from "commander"
 import { theme } from "../theme"
 
 export function registerSession(program: Command) {
-  const session = program
-    .command("session")
-    .description("Manage persisted agent sessions from the SQLite store")
+  const session = program.command("session").description("Manage persisted agent sessions from the SQLite store")
 
   // ── list ──────────────────────────────────────────────────────────
   session
@@ -24,9 +22,7 @@ export function registerSession(program: Command) {
 
       const count = parseInt(opts.count ?? "10", 10)
       const status = opts.status as any
-      const sessions = status
-        ? sessionStore.listSessions(status)
-        : sessionStore.restoreRecentSessions(count)
+      const sessions = status ? sessionStore.listSessions(status) : sessionStore.restoreRecentSessions(count)
 
       if (sessions.length === 0) {
         console.log(theme.dim("  No sessions found."))
@@ -39,10 +35,15 @@ export function registerSession(program: Command) {
 
       for (const s of sessions) {
         const statusEmoji =
-          s.status === "active" ? "🟢" :
-          s.status === "completed" ? "✅" :
-          s.status === "failed" ? "🔴" :
-          s.status === "paused" ? "⏸️" : "⚪"
+          s.status === "active"
+            ? "🟢"
+            : s.status === "completed"
+              ? "✅"
+              : s.status === "failed"
+                ? "🔴"
+                : s.status === "paused"
+                  ? "⏸️"
+                  : "⚪"
 
         const date = new Date(s.updatedAt).toLocaleString().slice(0, 16)
         const goal = s.goal.slice(0, 60) || "(no goal)"
@@ -87,15 +88,11 @@ export function registerSession(program: Command) {
 
       for (const { message, session: sess } of results) {
         const roleEmoji =
-          message.role === "user" ? "👤" :
-          message.role === "assistant" ? "🤖" :
-          message.role === "system" ? "⚙️" : "🔧"
+          message.role === "user" ? "👤" : message.role === "assistant" ? "🤖" : message.role === "system" ? "⚙️" : "🔧"
 
         const time = new Date(message.timestamp).toLocaleString().slice(0, 16)
         const statusEmoji =
-          sess.status === "active" ? "🟢" :
-          sess.status === "completed" ? "✅" :
-          sess.status === "failed" ? "🔴" : "⏸️"
+          sess.status === "active" ? "🟢" : sess.status === "completed" ? "✅" : sess.status === "failed" ? "🔴" : "⏸️"
 
         // Show context around the match
         const content = message.content
@@ -110,7 +107,9 @@ export function registerSession(program: Command) {
         }
 
         console.log(`  ${roleEmoji} ${theme.bold(message.role)} · ${theme.dim(time)}`)
-        console.log(`    session: ${statusEmoji} ${theme.dim(sess.name || sess.id.slice(0, 24))}  (${sess.id.slice(0, 16)}…)`)
+        console.log(
+          `    session: ${statusEmoji} ${theme.dim(sess.name || sess.id.slice(0, 24))}  (${sess.id.slice(0, 16)}…)`,
+        )
         console.log(`    match:   ${preview}`)
         console.log()
       }
@@ -138,9 +137,13 @@ export function registerSession(program: Command) {
       const stats = sessionStore.getStats()
 
       const statusEmoji =
-        session.status === "active" ? "🟢" :
-        session.status === "completed" ? "✅" :
-        session.status === "failed" ? "🔴" : "⏸️"
+        session.status === "active"
+          ? "🟢"
+          : session.status === "completed"
+            ? "✅"
+            : session.status === "failed"
+              ? "🔴"
+              : "⏸️"
 
       console.log(theme.heading(`  Session: ${session.name}`))
       console.log()
@@ -163,9 +166,7 @@ export function registerSession(program: Command) {
 
       for (const msg of messages) {
         const roleEmoji =
-          msg.role === "user" ? "👤" :
-          msg.role === "assistant" ? "🤖" :
-          msg.role === "system" ? "⚙️" : "🔧"
+          msg.role === "user" ? "👤" : msg.role === "assistant" ? "🤖" : msg.role === "system" ? "⚙️" : "🔧"
         const time = new Date(msg.timestamp).toLocaleTimeString().slice(0, 8)
         const content = msg.content.slice(0, 300)
         const lines = content.split("\n")
@@ -249,7 +250,9 @@ export function registerSession(program: Command) {
         sessionStore.createCheckpoint(sessionId, msgId, opts.name)
         console.log(theme.success(`  ✓ Checkpoint "${opts.name}" created at message #${msgId}`))
         console.log()
-        console.log(theme.dim(`  Use \`aegis session fork ${sessionId.slice(0, 24)}... --at ${msgId}\` to fork at this point.`))
+        console.log(
+          theme.dim(`  Use \`aegis session fork ${sessionId.slice(0, 24)}... --at ${msgId}\` to fork at this point.`),
+        )
       } catch (err: any) {
         console.log(theme.error(`  Checkpoint failed: ${err.message ?? String(err)}`))
         process.exit(1)
@@ -282,13 +285,9 @@ export function registerSession(program: Command) {
       for (const s of tree) {
         const indent = s.parentSessionId ? "  └─ " : "  "
         const statusEmoji =
-          s.status === "active" ? "🟢" :
-          s.status === "completed" ? "✅" :
-          s.status === "failed" ? "🔴" : "⏸️"
+          s.status === "active" ? "🟢" : s.status === "completed" ? "✅" : s.status === "failed" ? "🔴" : "⏸️"
 
-        const parentInfo = s.parentSessionId
-          ? theme.dim(` (fork of ${s.parentSessionId.slice(0, 24)}…)`)
-          : ""
+        const parentInfo = s.parentSessionId ? theme.dim(` (fork of ${s.parentSessionId.slice(0, 24)}…)`) : ""
 
         console.log(`  ${indent}${statusEmoji} ${theme.bold(s.name)}`)
         console.log(`    id:     ${theme.dim(s.id.slice(0, 32))}${parentInfo}`)
@@ -381,7 +380,11 @@ export function registerSession(program: Command) {
       const messages = sessionStore.getMessages(sessionId, 10000)
 
       function safeParseJson(raw: string): unknown {
-        try { return JSON.parse(raw) } catch { return raw }
+        try {
+          return JSON.parse(raw)
+        } catch {
+          return raw
+        }
       }
 
       const output = {

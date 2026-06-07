@@ -14,9 +14,7 @@ export const statusMode: Mode = {
     const memMB = (mem.rss / 1024 / 1024).toFixed(1)
     const cpus = os.cpus().length
     const uptime = Math.floor(process.uptime())
-    const runtime = process.versions.bun
-      ? `bun ${process.versions.bun}`
-      : `node ${process.version}`
+    const runtime = process.versions.bun ? `bun ${process.versions.bun}` : `node ${process.version}`
 
     const lines = [
       ``,

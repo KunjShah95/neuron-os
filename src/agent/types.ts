@@ -3,14 +3,7 @@ import type { AgentTypeName, ToolPermission } from "./agent-types"
 import type { IsolationLevel } from "../sandbox/types"
 
 // ── Lifecycle states ──────────────────────────────────────────────────
-export type AgentStatus =
-  | "spawning"
-  | "running"
-  | "idle"
-  | "busy"
-  | "stopping"
-  | "stopped"
-  | "error"
+export type AgentStatus = "spawning" | "running" | "idle" | "busy" | "stopping" | "stopped" | "error"
 
 // ── Agent definition ──────────────────────────────────────────────────
 export interface AgentDef {
@@ -118,13 +111,7 @@ export interface AgentEvent {
 
 // ── Lifecycle hook types ──────────────────────────────────────────────
 export type HookPhase = "pre" | "post"
-export type HookPoint =
-  | "spawn"
-  | "kill"
-  | "message"
-  | "error"
-  | "exit"
-  | "result"
+export type HookPoint = "spawn" | "kill" | "message" | "error" | "exit" | "result"
 
 export type HookFn = (ctx: HookContext) => void | Promise<void>
 

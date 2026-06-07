@@ -19,20 +19,11 @@ export function registerCost(program: Command) {
     .option("-b, --budget <usd>", "Budget constraint in USD", "1.0")
     .action(handleEstimate)
 
-  cost
-    .command("total")
-    .description("Show total spend vs budget")
-    .action(handleTotal)
+  cost.command("total").description("Show total spend vs budget").action(handleTotal)
 
-  cost
-    .command("models")
-    .description("Show cost breakdown by model")
-    .action(handleModels)
+  cost.command("models").description("Show cost breakdown by model").action(handleModels)
 
-  cost
-    .command("sessions")
-    .description("Show cost by session")
-    .action(handleSessions)
+  cost.command("sessions").description("Show cost by session").action(handleSessions)
 
   cost
     .command("history")
@@ -52,10 +43,7 @@ export function registerCost(program: Command) {
     .option("-d, --days <number>", "Number of days of history", "14")
     .action(handleDashboard)
 
-  cost
-    .command("report")
-    .description("Full cost attribution report")
-    .action(handleReport)
+  cost.command("report").description("Full cost attribution report").action(handleReport)
 }
 
 async function handleEstimate(opts: {
@@ -71,13 +59,17 @@ async function handleEstimate(opts: {
   const input = parseInt(opts.input ?? "500", 10)
   const output = parseInt(opts.output ?? "200", 10)
   const toolNames = opts.tools
-    ? opts.tools.split(",").map((s) => s.trim()).filter(Boolean)
+    ? opts.tools
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
     : []
   const toolCalls = parseInt(opts.calls ?? "5", 10)
   const complexity = (opts.complexity ?? "moderate") as "simple" | "moderate" | "complex"
   const budgetUsd = parseFloat(opts.budget ?? "1.0")
 
-  const complexityLabel = complexity === "simple" ? "🟢 Simple" : complexity === "moderate" ? "🟡 Moderate" : "🔴 Complex"
+  const complexityLabel =
+    complexity === "simple" ? "🟢 Simple" : complexity === "moderate" ? "🟡 Moderate" : "🔴 Complex"
 
   console.log(theme.heading("\n  💵 Cost Estimate\n"))
   console.log(`  ${theme.bold("Task Profile")}`)
@@ -104,12 +96,21 @@ async function handleEstimate(opts: {
   const balancedOk = predicted.balanced <= budgetUsd
   const premiumOk = predicted.premium <= budgetUsd
 
-  console.log(`    ${cheapOk ? "✅" : "❌"} Cheap:     ${theme.accent(`$${predicted.cheap.toFixed(4)}`)}${
-    cheapOk ? "" : theme.error(` (exceeds $${budgetUsd.toFixed(2)} budget)`)}`)
-  console.log(`    ${balancedOk ? "✅" : "❌"} Balanced: ${theme.accent(`$${predicted.balanced.toFixed(4)}`)}${
-    balancedOk ? "" : theme.error(` (exceeds $${budgetUsd.toFixed(2)} budget)`)}`)
-  console.log(`    ${premiumOk ? "✅" : "❌"} Premium:  ${theme.accent(`$${predicted.premium.toFixed(4)}`)}${
-    premiumOk ? "" : theme.error(` (exceeds $${budgetUsd.toFixed(2)} budget)`)}`)
+  console.log(
+    `    ${cheapOk ? "✅" : "❌"} Cheap:     ${theme.accent(`$${predicted.cheap.toFixed(4)}`)}${
+      cheapOk ? "" : theme.error(` (exceeds $${budgetUsd.toFixed(2)} budget)`)
+    }`,
+  )
+  console.log(
+    `    ${balancedOk ? "✅" : "❌"} Balanced: ${theme.accent(`$${predicted.balanced.toFixed(4)}`)}${
+      balancedOk ? "" : theme.error(` (exceeds $${budgetUsd.toFixed(2)} budget)`)
+    }`,
+  )
+  console.log(
+    `    ${premiumOk ? "✅" : "❌"} Premium:  ${theme.accent(`$${predicted.premium.toFixed(4)}`)}${
+      premiumOk ? "" : theme.error(` (exceeds $${budgetUsd.toFixed(2)} budget)`)
+    }`,
+  )
   console.log()
 
   // ── estimateCost() for model routing ──────────────────────────────
@@ -135,16 +136,14 @@ async function handleEstimate(opts: {
   guard.setEstimatedRemainingCost(predicted.balanced)
 
   const status = guard.status()
-  const recEmoji = status.recommendation === "continue"
-    ? "✅"
-    : status.recommendation === "skip_optional"
-      ? "⚠️"
-      : "🚫"
+  const recEmoji = status.recommendation === "continue" ? "✅" : status.recommendation === "skip_optional" ? "⚠️" : "🚫"
 
   console.log(`  ${theme.bold("Budget Check")}`)
   console.log(`    Budget:      ${theme.accent(`$${status.budget_usd.toFixed(2)}`)}`)
   console.log(`    Estimated:   ${theme.text(`$${predicted.balanced.toFixed(4)}`)}`)
-  console.log(`    Remaining:   ${status.over_budget ? theme.error("$0.00") : theme.success(`$${(status.budget_usd - predicted.balanced).toFixed(4)}`)}`)
+  console.log(
+    `    Remaining:   ${status.over_budget ? theme.error("$0.00") : theme.success(`$${(status.budget_usd - predicted.balanced).toFixed(4)}`)}`,
+  )
   console.log(`    ${recEmoji} Recommendation: ${theme.bold(status.recommendation)}`)
   console.log()
 
@@ -157,7 +156,9 @@ async function handleEstimate(opts: {
     console.log(`  ${theme.bold("Real Spend")}`)
     console.log(`    Lifetime spend:  ${theme.accent(`$${totalSpend.toFixed(4)}`)}`)
     console.log(`    Budget limit:    ${theme.text(`$${budgetLimit.toFixed(2)}`)}`)
-    console.log(`    Remaining:       ${totalSpend >= budgetLimit ? theme.error("$0.00") : theme.success(`$${Math.max(0, budgetLimit - totalSpend).toFixed(4)}`)}`)
+    console.log(
+      `    Remaining:       ${totalSpend >= budgetLimit ? theme.error("$0.00") : theme.success(`$${Math.max(0, budgetLimit - totalSpend).toFixed(4)}`)}`,
+    )
     console.log()
   }
 
@@ -236,7 +237,7 @@ async function handleHistory(opts: { days?: string }) {
   }
 
   console.log(theme.heading(`\n  📈 Daily Cost History (${days}d)\n`))
-  const maxCost = Math.max(...history.map(h => h.totalCost), 0.0001)
+  const maxCost = Math.max(...history.map((h) => h.totalCost), 0.0001)
   for (const h of history) {
     const barW = Math.round((h.totalCost / maxCost) * 20)
     const bar = "█".repeat(barW) + "░".repeat(20 - barW)
@@ -311,14 +312,19 @@ async function handleDashboard(opts: { days?: string }) {
   // ── Budget bar ──────────────────────────────────────────────────
   const barLen = 30
   const filled = Math.round((pct / 100) * barLen)
-  const bar = theme.error("\u2588".repeat(Math.min(filled, barLen))) +
+  const bar =
+    theme.error("\u2588".repeat(Math.min(filled, barLen))) +
     theme.success("\u2588".repeat(Math.max(0, barLen - filled)))
   const statusIcon = exceeded ? "\u26A0\uFE0F" : "\u2705"
   const statusText = exceeded ? "Exceeded" : "Within budget"
 
-  console.log(`  Budget:  ${bar}  ${theme.bold(`$${total.toFixed(4)}`)} / ${theme.text(`$${limit.toFixed(2)}`)} (${pct.toFixed(1)}%)`)
-  console.log(`  Status:  ${statusIcon} ${exceeded ? theme.error(statusText) : theme.success(statusText)}  ` +
-    `Remaining: ${remaining > 0 ? theme.accent(`$${remaining.toFixed(4)}`) : theme.error("$0.00")}`)
+  console.log(
+    `  Budget:  ${bar}  ${theme.bold(`$${total.toFixed(4)}`)} / ${theme.text(`$${limit.toFixed(2)}`)} (${pct.toFixed(1)}%)`,
+  )
+  console.log(
+    `  Status:  ${statusIcon} ${exceeded ? theme.error(statusText) : theme.success(statusText)}  ` +
+      `Remaining: ${remaining > 0 ? theme.accent(`$${remaining.toFixed(4)}`) : theme.error("$0.00")}`,
+  )
   console.log()
 
   // ── Sparkline ───────────────────────────────────────────────────
@@ -328,24 +334,30 @@ async function handleDashboard(opts: { days?: string }) {
     const avgCost = costs.reduce((a, b) => a + b, 0) / costs.length
 
     console.log(`  ${theme.bold("Daily Cost Trend")}  (last ${days}d, ${history.length} days with data)`)
-    console.log(`  ${theme.dim(history[0]!.date + " ")}${theme.accent(sparkline(costs, 40))}${theme.dim(" " + history[history.length - 1]!.date)}`)
-    console.log(`  Low: ${theme.text(`$${Math.min(...costs).toFixed(4)}`)}  ` +
-      `Avg: ${theme.accent(`$${avgCost.toFixed(4)}`)}  ` +
-      `High: ${theme.text(`$${maxCost.toFixed(4)}`)}  ` +
-      `Total: ${theme.bold(`$${costs.reduce((a, b) => a + b, 0).toFixed(4)}`)}`)
+    console.log(
+      `  ${theme.dim(history[0]!.date + " ")}${theme.accent(sparkline(costs, 40))}${theme.dim(" " + history[history.length - 1]!.date)}`,
+    )
+    console.log(
+      `  Low: ${theme.text(`$${Math.min(...costs).toFixed(4)}`)}  ` +
+        `Avg: ${theme.accent(`$${avgCost.toFixed(4)}`)}  ` +
+        `High: ${theme.text(`$${maxCost.toFixed(4)}`)}  ` +
+        `Total: ${theme.bold(`$${costs.reduce((a, b) => a + b, 0).toFixed(4)}`)}`,
+    )
 
     // Burn rate projection
     if (avgCost > 0 && limit > 0) {
       const daysRemaining = avgCost > 0.001 ? remaining / avgCost : Infinity
-      const projection = daysRemaining === Infinity
-        ? `${theme.dim("N/A — insufficient data")}`
-        : daysRemaining > 365
-          ? `${theme.bold(">1yr")}`
-          : daysRemaining > 30
-            ? `${theme.bold(`${(daysRemaining / 30).toFixed(1)}mo`)}`
-            : `${theme.bold(`${Math.round(daysRemaining)}d`)}`
-      console.log(`  Burn rate: ~${theme.accent(`$${avgCost.toFixed(4)}`)}/day  ` +
-        `Budget lasts ~${projection} at current rate`)
+      const projection =
+        daysRemaining === Infinity
+          ? `${theme.dim("N/A — insufficient data")}`
+          : daysRemaining > 365
+            ? `${theme.bold(">1yr")}`
+            : daysRemaining > 30
+              ? `${theme.bold(`${(daysRemaining / 30).toFixed(1)}mo`)}`
+              : `${theme.bold(`${Math.round(daysRemaining)}d`)}`
+      console.log(
+        `  Burn rate: ~${theme.accent(`$${avgCost.toFixed(4)}`)}/day  ` + `Budget lasts ~${projection} at current rate`,
+      )
     }
     console.log()
 
@@ -371,8 +383,12 @@ async function handleDashboard(opts: { days?: string }) {
     const maxModelCost = Math.max(...topModels.map((m) => m.totalCost), 0.0001)
     for (const m of topModels) {
       const miniBar = "\u2588".repeat(Math.round((m.totalCost / maxModelCost) * 15))
-      console.log(`    ${theme.bold(m.model.padEnd(22))} ${theme.accent(`$${m.totalCost.toFixed(4)}`).padEnd(12)} ${miniBar}`)
-      console.log(`    ${theme.dim("").padEnd(22)} Calls: ${String(m.callCount).padEnd(6)} Tokens: ${String(m.totalTokens).padEnd(10)}`)
+      console.log(
+        `    ${theme.bold(m.model.padEnd(22))} ${theme.accent(`$${m.totalCost.toFixed(4)}`).padEnd(12)} ${miniBar}`,
+      )
+      console.log(
+        `    ${theme.dim("").padEnd(22)} Calls: ${String(m.callCount).padEnd(6)} Tokens: ${String(m.totalTokens).padEnd(10)}`,
+      )
     }
     console.log()
   }
@@ -389,7 +405,9 @@ async function handleReport() {
   console.log(theme.heading("\n  📊 Cost Attribution Report\n"))
   console.log(`  Total spend:      ${theme.bold(`$${report.totalSpend.toFixed(4)}`)}`)
   console.log(`  Budget limit:     ${theme.text(`$${report.budgetLimit.toFixed(2)}`)}`)
-  console.log(`  Remaining:        ${report.budgetExceeded ? theme.error("$0.00") : theme.success(`$${report.remainingBudget.toFixed(4)}`)}`)
+  console.log(
+    `  Remaining:        ${report.budgetExceeded ? theme.error("$0.00") : theme.success(`$${report.remainingBudget.toFixed(4)}`)}`,
+  )
   console.log(`  Budget exceeded:  ${report.budgetExceeded ? theme.error("Yes") : theme.success("No")}`)
   console.log()
 

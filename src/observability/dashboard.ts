@@ -1,6 +1,8 @@
 import { billingTracker } from "../billing/tracker"
 import { agentManager } from "../agent/manager"
 import { SLOManager, type SLOResult } from "./slo"
+import { experienceStore } from "../experience/store"
+import { TraceCollector } from "./integrations"
 
 export interface DashboardData {
   systemUptime: number
@@ -37,9 +39,7 @@ export class DashboardProvider {
 
     const sloResults = this.slo.checkAll()
 
-    const recentFailures = allAgents.filter(
-      (a) => a.status === "error" && a.spawnTime > Date.now() - 3600000,
-    )
+    const recentFailures = allAgents.filter((a) => a.status === "error" && a.spawnTime > Date.now() - 3600000)
 
     return {
       systemUptime: this.computeUptime(),
@@ -70,7 +70,6 @@ export class DashboardProvider {
 
   private estimateTotalSessions(): number {
     try {
-      const { experienceStore } = require("../experience/store") as typeof import("../experience/store")
       const stats = experienceStore.getStats()
       return stats.totalExperiences
     } catch {
@@ -80,7 +79,6 @@ export class DashboardProvider {
 
   private estimateAvgLatency(): number {
     try {
-      const { TraceCollector } = require("./integrations") as typeof import("./integrations")
       const trace = new TraceCollector()
       const recent = trace.query({ limit: 50 })
       const withDuration = recent.filter((t) => t.duration !== undefined)

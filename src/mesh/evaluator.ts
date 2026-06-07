@@ -16,7 +16,7 @@ import type { EvaluationCriteria, EvaluationMetric } from "./types"
 export interface EvaluationResult {
   metric: EvaluationMetric
   passed: boolean
-  score: number        // 0.0 – 1.0
+  score: number // 0.0 – 1.0
   output: string
   durationMs: number
   details?: string
@@ -67,9 +67,7 @@ export class Evaluator {
     }
 
     const passedCount = results.filter((r) => r.passed).length
-    const overallScore = results.length > 0
-      ? results.reduce((s, r) => s + r.score, 0) / results.length
-      : 0
+    const overallScore = results.length > 0 ? results.reduce((s, r) => s + r.score, 0) / results.length : 0
 
     return {
       taskId,
@@ -84,19 +82,11 @@ export class Evaluator {
   /**
    * Quick evaluation — just run a single script and check exit code.
    */
-  async quickEval(
-    taskId: string,
-    goal: string,
-    script: string,
-  ): Promise<TaskEvaluation> {
-    return this.evaluate(taskId, goal, [
-      { metric: "custom-script", script },
-    ])
+  async quickEval(taskId: string, goal: string, script: string): Promise<TaskEvaluation> {
+    return this.evaluate(taskId, goal, [{ metric: "custom-script", script }])
   }
 
-  private async runEvaluation(
-    criterion: EvaluationCriteria,
-  ): Promise<EvaluationResult> {
+  private async runEvaluation(criterion: EvaluationCriteria): Promise<EvaluationResult> {
     const startTime = Date.now()
 
     switch (criterion.metric) {
@@ -235,7 +225,11 @@ export class Evaluator {
     }
   }
 
-  private async evalCustomScript(script: string | undefined, maxRetries: number | undefined, startTime: number): Promise<EvaluationResult> {
+  private async evalCustomScript(
+    script: string | undefined,
+    maxRetries: number | undefined,
+    startTime: number,
+  ): Promise<EvaluationResult> {
     if (!script) {
       return {
         metric: "custom-script",

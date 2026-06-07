@@ -53,12 +53,7 @@ export class TraceCollector {
     `)
   }
 
-  startSpan(
-    name: string,
-    type: TraceSpan["type"],
-    parentId?: string,
-    metadata?: Record<string, unknown>,
-  ): TraceSpan {
+  startSpan(name: string, type: TraceSpan["type"], parentId?: string, metadata?: Record<string, unknown>): TraceSpan {
     const id = "trace-" + Date.now().toString(36) + "-" + randomBytes(4).toString("hex")
     const span: TraceSpan = {
       id,
@@ -71,27 +66,39 @@ export class TraceCollector {
       tags: [],
     }
 
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       INSERT INTO traces (id, parent_id, name, type, start_time, status, metadata_json, tags_json)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, parentId ?? null, name, type, span.startTime, "pending", JSON.stringify(metadata ?? {}), "[]")
+    `,
+      )
+      .run(id, parentId ?? null, name, type, span.startTime, "pending", JSON.stringify(metadata ?? {}), "[]")
 
     return span
   }
 
   endSpan(id: string, status: TraceSpan["status"] = "ok"): void {
     const endTime = Date.now()
-    const row = this.db.prepare("SELECT start_time FROM traces WHERE id = ?").get(id) as { start_time: number } | undefined
+    const row = this.db.prepare("SELECT start_time FROM traces WHERE id = ?").get(id) as
+      | { start_time: number }
+      | undefined
     if (!row) return
     const duration = endTime - row.start_time
-    this.db.prepare("UPDATE traces SET end_time = ?, duration = ?, status = ? WHERE id = ?").run(endTime, duration, status, id)
+    this.db
+      .prepare("UPDATE traces SET end_time = ?, duration = ?, status = ? WHERE id = ?")
+      .run(endTime, duration, status, id)
   }
 
   getTrace(traceId: string): TraceSpan[] {
-    const self = this.db.prepare("SELECT * FROM traces WHERE id = ?").get(traceId) as Record<string, unknown> | undefined
+    const self = this.db.prepare("SELECT * FROM traces WHERE id = ?").get(traceId) as
+      | Record<string, unknown>
+      | undefined
     if (!self) return []
 
-    const children = this.db.prepare("SELECT * FROM traces WHERE parent_id = ? ORDER BY start_time ASC").all(traceId) as Record<string, unknown>[]
+    const children = this.db
+      .prepare("SELECT * FROM traces WHERE parent_id = ? ORDER BY start_time ASC")
+      .all(traceId) as Record<string, unknown>[]
 
     return [this.rowToSpan(self), ...children.map((r) => this.rowToSpan(r))]
   }
@@ -131,8 +138,8 @@ export class TraceCollector {
       endTime: row.end_time as number | undefined,
       duration: row.duration as number | undefined,
       status: row.status as TraceSpan["status"],
-      metadata: JSON.parse(row.metadata_json as string || "{}"),
-      tags: JSON.parse(row.tags_json as string || "[]"),
+      metadata: JSON.parse((row.metadata_json as string) || "{}"),
+      tags: JSON.parse((row.tags_json as string) || "[]"),
     }
   }
 }

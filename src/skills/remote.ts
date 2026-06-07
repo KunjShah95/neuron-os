@@ -26,7 +26,7 @@ export async function fetchTopSkills(limit = 10): Promise<RemoteSkill[]> {
       return []
     }
     const body = (await res.json()) as SkillsResponse
-    return (body.skills || body as any || []).slice(0, limit)
+    return (body.skills || (body as any) || []).slice(0, limit)
   } catch {
     // Network errors or other issues - return empty array
     return []
@@ -41,7 +41,7 @@ export async function searchSkills(query: string, limit = 10): Promise<RemoteSki
       return []
     }
     const body = (await res.json()) as SkillsResponse
-    return (body.skills || body as any || []).slice(0, limit)
+    return (body.skills || (body as any) || []).slice(0, limit)
   } catch {
     // Network errors or other issues - return empty array
     return []
@@ -53,7 +53,7 @@ export async function fetchSkillDetail(id: string): Promise<RemoteSkill | null> 
     const res = await fetch(`${SKILLS_SH_API}/skills/${encodeURIComponent(id)}`)
     if (!res.ok) return null
     const body = (await res.json()) as RemoteSkill
-    return body as any || null
+    return (body as any) || null
   } catch {
     return null
   }

@@ -95,7 +95,11 @@ function parseYamlBlock(yamlBlock: string): Record<string, unknown> {
     if (typeof value === "string") {
       // Parse arrays [item1, item2]
       if (value.startsWith("[") && value.endsWith("]")) {
-        value = value.slice(1, -1).split(",").map(s => s.trim().replace(/^['"]|['"]$/g, "")).filter(Boolean)
+        value = value
+          .slice(1, -1)
+          .split(",")
+          .map((s) => s.trim().replace(/^['"]|['"]$/g, ""))
+          .filter(Boolean)
       }
       // Parse booleans
       else if (value === "true") value = true
@@ -145,7 +149,7 @@ const yamlLoader: TestLoader = {
     const setup = frontmatter.setup as Record<string, unknown> | undefined
 
     return {
-      id: frontmatter.id as string ?? `auto-${basename(filePath, extname(filePath))}`,
+      id: (frontmatter.id as string) ?? `auto-${basename(filePath, extname(filePath))}`,
       name: frontmatter.name as string,
       description: frontmatter.description as string | undefined,
       prompt: (frontmatter.prompt as string) ?? body,
@@ -153,21 +157,25 @@ const yamlLoader: TestLoader = {
       priority: frontmatter.priority as TestCase["priority"],
       tags,
       timeout: (frontmatter.timeout as number) ?? 120000,
-      expected: expected ? {
-        pattern: expected.pattern as string | undefined,
-        exitCode: expected.exitCode as number | undefined,
-        filesExist: expected.filesExist as string[] | undefined,
-        filesNotExist: expected.filesNotExist as string[] | undefined,
-        maxSteps: expected.maxSteps as number | undefined,
-        maxTokens: expected.maxTokens as number | undefined,
-        minScore: expected.minScore as number | undefined,
-      } : undefined,
-      setup: setup ? {
-        commands: (setup.commands as string[]) ?? [],
-        files: (setup.files as Record<string, string>) ?? {},
-        env: setup.env as Record<string, string> | undefined,
-      } : undefined,
-      cleanup: frontmatter.cleanup as boolean ?? true,
+      expected: expected
+        ? {
+            pattern: expected.pattern as string | undefined,
+            exitCode: expected.exitCode as number | undefined,
+            filesExist: expected.filesExist as string[] | undefined,
+            filesNotExist: expected.filesNotExist as string[] | undefined,
+            maxSteps: expected.maxSteps as number | undefined,
+            maxTokens: expected.maxTokens as number | undefined,
+            minScore: expected.minScore as number | undefined,
+          }
+        : undefined,
+      setup: setup
+        ? {
+            commands: (setup.commands as string[]) ?? [],
+            files: (setup.files as Record<string, string>) ?? {},
+            env: setup.env as Record<string, string> | undefined,
+          }
+        : undefined,
+      cleanup: (frontmatter.cleanup as boolean) ?? true,
       model: frontmatter.model as string | undefined,
       agentType: frontmatter.agentType as string | undefined,
       graderWeights: frontmatter.graderWeights as Record<string, number> | undefined,
@@ -195,9 +203,7 @@ const markdownLoader: TestLoader = {
       .replace(/##\s+.*\n/g, "")
       .trim()
 
-    const tags = tagsMatch
-      ? tagsMatch[1]!.split(",").map(t => t.trim())
-      : []
+    const tags = tagsMatch ? tagsMatch[1]!.split(",").map((t) => t.trim()) : []
 
     return {
       id: `md-${basename(filePath, ".md")}`,
@@ -210,7 +216,74 @@ const markdownLoader: TestLoader = {
   },
 }
 
-const LOADERS: TestLoader[] = [yamlLoader, markdownLoader]
+const jsonLoader: TestLoader = {
+  name: "json",
+  extensions: [".json"],
+  load(filePath: string, content: string): TestCase | TestCase[] | null {
+    try {
+      const parsed = JSON.parse(content)
+
+      // Handle single task object
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.name && parsed.prompt) {
+        return {
+          id: parsed.id ?? `json-${basename(filePath, ".json")}`,
+          name: parsed.name,
+          description: parsed.description,
+          prompt: parsed.prompt,
+          category: parsed.category as TestCase["category"],
+          priority: parsed.priority as TestCase["priority"],
+          tags: parsed.tags ?? [],
+          timeout: parsed.timeout ?? 120000,
+          expected: parsed.expected,
+          setup: parsed.setup,
+          cleanup: parsed.cleanup ?? true,
+          model: parsed.model,
+          agentType: parsed.agentType,
+          graderWeights: parsed.graderWeights,
+          dependsOn: parsed.dependsOn,
+          author: parsed.author,
+          createdAt: parsed.createdAt,
+          updatedAt: parsed.updatedAt,
+        }
+      }
+
+      // Handle array of task objects
+      if (Array.isArray(parsed)) {
+        const tests: TestCase[] = []
+        for (const item of parsed) {
+          if (item && typeof item === "object" && item.name && item.prompt) {
+            tests.push({
+              id: item.id ?? `json-${basename(filePath, ".json")}-${tests.length}`,
+              name: item.name,
+              description: item.description,
+              prompt: item.prompt,
+              category: item.category as TestCase["category"],
+              priority: item.priority as TestCase["priority"],
+              tags: item.tags ?? [],
+              timeout: item.timeout ?? 120000,
+              expected: item.expected,
+              setup: item.setup,
+              cleanup: item.cleanup ?? true,
+              model: item.model,
+              agentType: item.agentType,
+              graderWeights: item.graderWeights,
+              dependsOn: item.dependsOn,
+              author: item.author,
+              createdAt: item.createdAt,
+              updatedAt: item.updatedAt,
+            })
+          }
+        }
+        return tests.length > 0 ? tests : null
+      }
+    } catch {
+      // Invalid JSON, skip
+    }
+    return null
+  },
+}
+
+const LOADERS: TestLoader[] = [yamlLoader, markdownLoader, jsonLoader]
 
 // ── Discovery Directories ────────────────────────────────────────
 
@@ -243,7 +316,7 @@ export class TestDiscoverer {
 
     // Deduplicate by ID
     const seen = new Set<string>()
-    const unique = tests.filter(t => {
+    const unique = tests.filter((t) => {
       if (seen.has(t.id)) return false
       seen.add(t.id)
       return true
@@ -256,7 +329,7 @@ export class TestDiscoverer {
    * Filter tests by criteria.
    */
   applyFilter(tests: TestCase[], filter: TestFilter): TestCase[] {
-    return tests.filter(t => {
+    return tests.filter((t) => {
       // Category filter
       if (filter.category) {
         const categories = Array.isArray(filter.category) ? filter.category : [filter.category]
@@ -267,16 +340,16 @@ export class TestDiscoverer {
       if (filter.tags) {
         if (filter.tags.include && filter.tags.include.length > 0) {
           const mode = filter.tags.mode ?? "or"
-          const match = filter.tags.include.some(tag => t.tags.includes(tag))
+          const match = filter.tags.include.some((tag) => t.tags.includes(tag))
           if (mode === "and") {
-            const allMatch = filter.tags.include.every(tag => t.tags.includes(tag))
+            const allMatch = filter.tags.include.every((tag) => t.tags.includes(tag))
             if (!allMatch) return false
           } else if (!match) {
             return false
           }
         }
         if (filter.tags.exclude && filter.tags.exclude.length > 0) {
-          if (filter.tags.exclude.some(tag => t.tags.includes(tag))) return false
+          if (filter.tags.exclude.some((tag) => t.tags.includes(tag))) return false
         }
       }
 
@@ -352,7 +425,7 @@ export class TestDiscoverer {
 
     // Add any remaining tests (circular deps become dangling)
     for (const t of tests) {
-      if (!sorted.find(s => s.id === t.id)) {
+      if (!sorted.find((s) => s.id === t.id)) {
         sorted.push(t)
       }
     }
@@ -370,7 +443,7 @@ export class TestDiscoverer {
           this.discoverRecursive(resolve(dir, entry.name), tests)
         } else if (entry.isFile()) {
           const ext = extname(entry.name).toLowerCase()
-          const loader = this.loaders.find(l => l.extensions.includes(ext))
+          const loader = this.loaders.find((l) => l.extensions.includes(ext))
           if (!loader) continue
 
           const filePath = resolve(dir, entry.name)
@@ -408,10 +481,7 @@ export function discoverTests(): TestCase[] {
   const oldTests = discoverer.discover([oldDir])
 
   // Also check new directories
-  const newDirs = [
-    resolve(process.cwd(), "evals", "tasks"),
-    resolve(process.cwd(), "evals", "adversarial"),
-  ]
+  const newDirs = [resolve(process.cwd(), "evals", "tasks"), resolve(process.cwd(), "evals", "adversarial")]
   const newTests = discoverer.discover(newDirs)
 
   const all = [...oldTests, ...newTests]

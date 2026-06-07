@@ -113,9 +113,7 @@ export function createAgentEventBridge(state: AppState): (event: AgentEvent) => 
         const data = event.data as { level?: string; text?: string } | undefined
         if (data?.text) {
           const logType =
-            data.level === "error" ? "error" as const
-            : data.level === "warn" ? "warn" as const
-            : "info" as const
+            data.level === "error" ? ("error" as const) : data.level === "warn" ? ("warn" as const) : ("info" as const)
           const a3 = state.agents.get(event.agentId)
           const prefix = a3 ? `[${a3.name}] ` : ""
           addLogEntry(state, { text: `${prefix}${data.text}`, type: logType })
@@ -195,14 +193,18 @@ export function createInitialState(): AppState {
   }
 
   if (agentMap.size === 0) {
-    agentMap.set("main", { id: "main", name: "main", status: "idle", lastActivity: new Date().toLocaleTimeString(), pid: 0 })
+    agentMap.set("main", {
+      id: "main",
+      name: "main",
+      status: "idle",
+      lastActivity: new Date().toLocaleTimeString(),
+      pid: 0,
+    })
   }
 
   return {
     agents: agentMap,
-    log: [
-      { timestamp: new Date().toLocaleTimeString(), text: "Aegis dashboard started", type: "info" },
-    ],
+    log: [{ timestamp: new Date().toLocaleTimeString(), text: "Aegis dashboard started", type: "info" }],
     metrics: { memPercent: 0, cpuPercent: 0, sessionCount: 0, uptime: 0 },
     ui: {
       logScroll: 0,

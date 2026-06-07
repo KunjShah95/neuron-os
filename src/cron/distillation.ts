@@ -58,16 +58,8 @@ export interface DistillationConfig {
  * Run the full distillation pipeline.
  * This is the main entry point called from TUI commands, cron, or lifecycle hooks.
  */
-export async function runDistillationPipeline(
-  config: DistillationConfig = {},
-): Promise<DistillationResult> {
-  const {
-    minRepetitions = 3,
-    minConfidence = 70,
-    maxSkills = 5,
-    pruneThreshold = 0.3,
-    writeMemory = true,
-  } = config
+export async function runDistillationPipeline(config: DistillationConfig = {}): Promise<DistillationResult> {
+  const { minRepetitions = 3, minConfidence = 70, maxSkills = 5, pruneThreshold = 0.3, writeMemory = true } = config
 
   const runId = `distill-${Date.now().toString(36)}`
   const timestamp = new Date().toISOString()
@@ -76,7 +68,9 @@ export async function runDistillationPipeline(
 
   // ── 1. Analyze session data ────────────────────────────────────────
   const stats = experienceStore.getStats()
-  log.info(`Experience store: ${stats.totalExperiences} total, ${stats.successCount} successes, ${stats.failureCount} failures`)
+  log.info(
+    `Experience store: ${stats.totalExperiences} total, ${stats.successCount} successes, ${stats.failureCount} failures`,
+  )
 
   // ── 2. Find skill candidates from successful sessions ───────────────
   const skillCandidates = experienceStore.findSkillCandidates(minRepetitions)

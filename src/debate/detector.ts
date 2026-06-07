@@ -24,9 +24,7 @@ export class DisagreementDetector {
     const list = this.claimsBySubject.get(claim.subject) ?? []
 
     // Find a conflicting claim from a different agent
-    const conflict = list.find(
-      (c) => c.position !== claim.position && c.agent_id !== claim.agent_id,
-    )
+    const conflict = list.find((c) => c.position !== claim.position && c.agent_id !== claim.agent_id)
 
     if (!conflict) {
       list.push(claim)

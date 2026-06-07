@@ -6,12 +6,9 @@ import { createLogger } from "../logger"
 const log = createLogger("ci-cli")
 
 export function registerCi(program: Command): void {
-  const ci = program
-    .command("ci")
-    .description("Auto-fix failing CI runs")
+  const ci = program.command("ci").description("Auto-fix failing CI runs")
 
-  ci
-    .command("watch")
+  ci.command("watch")
     .description("Start the CI fix daemon")
     .option("--port <number>", "Port to listen on")
     .option("--repo <owner/name>", "Repo to watch (adds to config if not present)")
@@ -42,8 +39,7 @@ export function registerCi(program: Command): void {
       startCiServer(port)
     })
 
-  ci
-    .command("status")
+  ci.command("status")
     .description("Show CI fix daemon status")
     .action(() => {
       const config = loadCiConfig()
@@ -61,8 +57,7 @@ export function registerCi(program: Command): void {
       }
     })
 
-  ci
-    .command("config")
+  ci.command("config")
     .description("Interactive CI setup")
     .action(() => {
       console.log("CI config is at ~/.aegis/ci.yaml")
@@ -86,8 +81,7 @@ repos:
 `)
     })
 
-  ci
-    .command("repos")
+  ci.command("repos")
     .description("List configured repos")
     .action(() => {
       const config = loadCiConfig()
@@ -100,8 +94,7 @@ repos:
       }
     })
 
-  ci
-    .command("disable")
+  ci.command("disable")
     .description("Remove a repo from CI config")
     .argument("<repo>", "owner/name")
     .action((repo: string) => {

@@ -23,14 +23,9 @@ import {
 import { listProviders } from "../../ai/providers"
 
 export function registerBench(program: Command) {
-  const bench = program
-    .command("bench")
-    .description("North-star agent benchmark suite")
+  const bench = program.command("bench").description("North-star agent benchmark suite")
 
-  bench
-    .command("list")
-    .description("List bench tasks with latest scores")
-    .action(handleList)
+  bench.command("list").description("List bench tasks with latest scores").action(handleList)
 
   bench
     .command("run [taskId]")
@@ -38,15 +33,9 @@ export function registerBench(program: Command) {
     .option("--no-ratchet", "Disable git ratchet for this run")
     .action(handleRun)
 
-  bench
-    .command("history")
-    .description("Show bench run history (most recent 10)")
-    .action(handleHistory)
+  bench.command("history").description("Show bench run history (most recent 10)").action(handleHistory)
 
-  bench
-    .command("baseline")
-    .description("Print the latest scores (use for regression baseline)")
-    .action(handleBaseline)
+  bench.command("baseline").description("Print the latest scores (use for regression baseline)").action(handleBaseline)
 
   bench
     .command("providers")
@@ -73,25 +62,18 @@ function handleList() {
     const score = scores.get(t.id)
     const scoreStr = score !== undefined ? `${Math.round(score * 100)}%` : "—"
     const criteria = t.criteria.join(", ")
-    console.log(
-      `  ${t.id.padEnd(34)} ${scoreStr.padStart(5)}  ${t.name}  [${criteria}]`,
-    )
+    console.log(`  ${t.id.padEnd(34)} ${scoreStr.padStart(5)}  ${t.name}  [${criteria}]`)
   }
   console.log()
 }
 
-async function handleRun(
-  taskId: string | undefined,
-  opts: { ratchet: boolean },
-) {
+async function handleRun(taskId: string | undefined, opts: { ratchet: boolean }) {
   const tasks = taskId
     ? [getBenchTask(taskId)].filter((t): t is NonNullable<typeof t> => Boolean(t))
     : discoverBenchTasks()
 
   if (tasks.length === 0) {
-    console.log(
-      theme.warn("\n  No bench tasks found. Add .json files to .aegis/bench/\n"),
-    )
+    console.log(theme.warn("\n  No bench tasks found. Add .json files to .aegis/bench/\n"))
     return
   }
 
@@ -106,9 +88,7 @@ async function handleRun(
 
   const pct = Math.round(record.aggregate.avgScore * 100)
   console.log(
-    theme.success(
-      `\n  Bench complete: ${record.aggregate.passed}/${record.aggregate.total} passed (avg ${pct}%)\n`,
-    ),
+    theme.success(`\n  Bench complete: ${record.aggregate.passed}/${record.aggregate.total} passed (avg ${pct}%)\n`),
   )
 }
 
@@ -151,7 +131,9 @@ async function handleProviders(
 
   const providers = opts.provider.length > 0 ? opts.provider : undefined
 
-  console.log(theme.info(`\n  Running provider benchmark: "${prompt.slice(0, 60)}${prompt.length > 60 ? "..." : ""}"\n`))
+  console.log(
+    theme.info(`\n  Running provider benchmark: "${prompt.slice(0, 60)}${prompt.length > 60 ? "..." : ""}"\n`),
+  )
 
   const start = Date.now()
   const report = await bm.runAgainstAllProviders(prompt, { providers, timeoutMs, modelPerProvider })
@@ -180,7 +162,9 @@ async function handleProviders(
   console.log(theme.dim(`  ${"─".repeat(78)}`))
 
   if (report.fastest) {
-    console.log(theme.success(`\n  Fastest  → ${report.fastest.provider} (${(report.fastest.durationMs / 1000).toFixed(1)}s)`))
+    console.log(
+      theme.success(`\n  Fastest  → ${report.fastest.provider} (${(report.fastest.durationMs / 1000).toFixed(1)}s)`),
+    )
   }
   if (report.cheapest && report.cheapest.costUsd !== undefined) {
     console.log(theme.success(`  Cheapest → ${report.cheapest.provider} ($${report.cheapest.costUsd.toFixed(6)})`))
@@ -192,6 +176,8 @@ async function handleProviders(
   const passed = report.results.filter((r) => r.success).length
   const failed = configured.length - passed
 
-  console.log(theme.dim(`\n  ${totalProviders} providers total, ${skipped} skipped (no key), ${passed} passed, ${failed} failed`))
+  console.log(
+    theme.dim(`\n  ${totalProviders} providers total, ${skipped} skipped (no key), ${passed} passed, ${failed} failed`),
+  )
   console.log(theme.dim(`  Total benchmark time: ${(totalElapsed / 1000).toFixed(1)}s\n`))
 }

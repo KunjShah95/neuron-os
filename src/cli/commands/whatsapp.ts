@@ -16,7 +16,13 @@ export function registerWhatsApp(program: Command) {
     .action(handleWhatsApp)
 }
 
-async function handleWhatsApp(opts: { accountSid?: string; authToken?: string; from?: string; webhookPort?: string; project?: string }) {
+async function handleWhatsApp(opts: {
+  accountSid?: string
+  authToken?: string
+  from?: string
+  webhookPort?: string
+  project?: string
+}) {
   showBanner()
   await credentialVault.initialize()
 

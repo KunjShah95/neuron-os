@@ -62,10 +62,14 @@ export class SLOManager {
   }
 
   register(config: SLOConfig): void {
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       INSERT OR REPLACE INTO slo_configs (name, description, target, window_days, metric, threshold)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run(config.name, config.description, config.target, config.windowDays, config.metric, config.threshold ?? null)
+    `,
+      )
+      .run(config.name, config.description, config.target, config.windowDays, config.metric, config.threshold ?? null)
     log.info("SLO registered", { name: config.name, target: config.target, metric: config.metric })
   }
 
@@ -83,7 +87,9 @@ export class SLOManager {
   }
 
   getBurnRate(name: string): { rate: number; timeRemaining: string } | null {
-    const config = this.db.prepare("SELECT * FROM slo_configs WHERE name = ?").get(name) as Record<string, unknown> | undefined
+    const config = this.db.prepare("SELECT * FROM slo_configs WHERE name = ?").get(name) as
+      | Record<string, unknown>
+      | undefined
     if (!config) return null
 
     const target = config.target as number
@@ -108,7 +114,9 @@ export class SLOManager {
   }
 
   private computeSLO(name: string): SLOResult | null {
-    const config = this.db.prepare("SELECT * FROM slo_configs WHERE name = ?").get(name) as Record<string, unknown> | undefined
+    const config = this.db.prepare("SELECT * FROM slo_configs WHERE name = ?").get(name) as
+      | Record<string, unknown>
+      | undefined
     if (!config) return null
 
     const target = config.target as number
@@ -117,9 +125,9 @@ export class SLOManager {
     const threshold = config.threshold as number | undefined
     const cutoff = Date.now() - windowDays * 86400000
 
-    const rows = this.db.prepare(
-      "SELECT timestamp, value FROM slo_metrics WHERE name = ? AND timestamp >= ? ORDER BY timestamp ASC",
-    ).all(name, cutoff) as { timestamp: number; value: number }[]
+    const rows = this.db
+      .prepare("SELECT timestamp, value FROM slo_metrics WHERE name = ? AND timestamp >= ? ORDER BY timestamp ASC")
+      .all(name, cutoff) as { timestamp: number; value: number }[]
 
     let current = 0
     if (rows.length > 0) {

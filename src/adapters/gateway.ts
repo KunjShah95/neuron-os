@@ -79,7 +79,7 @@ export class MultiPlatformGateway {
       log.error(`Cannot send reply, adapter not found: ${platformName}`)
       return
     }
-    
+
     try {
       await adapter.send({ channelId, text, replyToId })
     } catch (err: any) {
@@ -105,7 +105,9 @@ export class MultiPlatformGateway {
           return new Response("Webhook accepted", { status: 202 })
         }
 
-        return new Response("Lean Gateway Protocol running. Use WebSocket for realtime or /webhook for triggers.", { status: 200 })
+        return new Response("Lean Gateway Protocol running. Use WebSocket for realtime or /webhook for triggers.", {
+          status: 200,
+        })
       },
       websocket: {
         open(_ws) {
@@ -125,8 +127,8 @@ export class MultiPlatformGateway {
         },
         close(_ws) {
           log.info("GUI socket disconnected.")
-        }
-      }
+        },
+      },
     })
   }
 }

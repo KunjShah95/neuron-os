@@ -15,8 +15,12 @@ beforeAll(() => {
 })
 
 afterAll(() => {
-  try { unlinkSync(POLICY_PATH) } catch {}
-  try { rmdirSync(TEST_DIR) } catch {}
+  try {
+    unlinkSync(POLICY_PATH)
+  } catch {}
+  try {
+    rmdirSync(TEST_DIR)
+  } catch {}
   try {
     const parent = join(homedir(), ".aegis", "memory", "namespaces")
     const dirs = readdirSync(parent)
