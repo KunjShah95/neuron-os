@@ -7,6 +7,7 @@ import { a2uiManager, type A2uiEvent } from "../tools/a2ui"
 import { z } from "zod"
 import { mkdirSync, writeFileSync, existsSync, readdirSync, readFileSync as fsReadFile } from "node:fs"
 import { join } from "node:path"
+import { rbacManager, type Permission } from "../auth"
 
 const log = createLogger("api")
 
@@ -53,6 +54,10 @@ export interface ApiServerConfig {
   port: number
   host: string
   apiKey?: string
+  /** Enable RBAC authentication on all endpoints */
+  auth?: boolean
+  /** Require valid API key for all requests */
+  authRequired?: boolean
   /**
    * Comma-separated list of allowed CORS origins.
    * Defaults to ["http://localhost:5173"] for Vite dev server.
@@ -113,6 +118,11 @@ class RateLimiter {
   }
 }
 
+// ── RBAC state (set by startApiServer when auth is enabled) ───────────
+
+let rbacEnabled: boolean = false
+let rbacRequired: boolean = false
+
 // ── Security Headers ──────────────────────────────────────────────────
 
 const SECURITY_HEADERS: Record<string, string> = {
@@ -151,7 +161,48 @@ function buildCorsHeaders(origin: string | null, allowedOrigins: string[]): Reco
 
 // ── Input Validation (Zod schemas defined above) ──────────────────────
 
+// ── Route Permission Map ─────────────────────────────────────────────
+
+const ROUTE_PERMISSIONS: Array<{ pattern: RegExp; method: string; permission: Permission }> = [
+  { pattern: /^\/api\/v1\/agents$/, method: "GET", permission: "agent:view" },
+  { pattern: /^\/api\/v1\/agents$/, method: "POST", permission: "agent:spawn" },
+  { pattern: /^\/api\/v1\/agents\/([^/]+)$/, method: "GET", permission: "agent:view" },
+  { pattern: /^\/api\/v1\/agents\/([^/]+)$/, method: "DELETE", permission: "agent:stop" },
+  { pattern: /^\/api\/v1\/agents\/([^/]+)\/tasks$/, method: "POST", permission: "agent:modify" },
+  { pattern: /^\/api\/v1\/memory$/, method: "GET", permission: "memory:read" },
+  { pattern: /^\/api\/v1\/memory$/, method: "POST", permission: "memory:write" },
+  { pattern: /^\/api\/v1\/memory\/search$/, method: "POST", permission: "memory:read" },
+  { pattern: /^\/api\/v1\/skills$/, method: "GET", permission: "config:read" },
+  { pattern: /^\/api\/v1\/skills$/, method: "POST", permission: "config:write" },
+  { pattern: /^\/api\/v1\/projects$/, method: "GET", permission: "admin:all" },
+  { pattern: /^\/api\/v1\/sessions/, method: "GET", permission: "admin:all" },
+  { pattern: /^\/api\/v1\/sessions/, method: "DELETE", permission: "admin:all" },
+  { pattern: /^\/api\/v1\/health$/, method: "GET", permission: "admin:all" },
+  { pattern: /^\/api\/v1\/types$/, method: "GET", permission: "agent:view" },
+  { pattern: /^\/api\/v1\/ws\/health$/, method: "GET", permission: "admin:all" },
+]
+
+function resolveRoutePermission(pathname: string, method: string): Permission | null {
+  for (const entry of ROUTE_PERMISSIONS) {
+    if (entry.pattern.test(pathname) && entry.method === method) {
+      return entry.permission
+    }
+  }
+  return null
+}
+
 // ── Response Helpers ──────────────────────────────────────────────────
+
+function extractBearerKey(req: ApiRequest): string | null {
+  const authHeader = req.headers["authorization"]
+  if (authHeader) {
+    const match = authHeader.match(/^Bearer\s+(.+)$/i)
+    if (match && match[1]) return match[1]
+  }
+  const queryKey = req.searchParams?.get("api_key")
+  if (queryKey) return queryKey
+  return null
+}
 
 function auth(req: ApiRequest, config: ApiServerConfig): boolean {
   if (!config.apiKey) return true
@@ -168,7 +219,24 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
   log.debug("API request", { method: req.method, path: req.pathname, ip })
 
   // Authentication
-  if (!auth(req, config)) {
+  if (rbacEnabled) {
+    const routePerm = resolveRoutePermission(req.pathname, req.method)
+    if (routePerm || rbacRequired) {
+      const required = routePerm ?? ("admin:all" as Permission)
+      const apiKey = extractBearerKey(req)
+      if (!apiKey) {
+        return jsonResponse(401, { error: "Unauthorized: no API key provided" }, config, req)
+      }
+      const result = rbacManager.validateApiKey(apiKey)
+      if (!result.valid) {
+        return jsonResponse(401, { error: "Unauthorized: invalid API key" }, config, req)
+      }
+      if (!result.permissions?.includes(required) && !result.permissions?.includes("admin:all" as Permission)) {
+        log.warn("RBAC denied", { ip, path: req.pathname, permission: required })
+        return jsonResponse(403, { error: "Forbidden: insufficient permissions" }, config, req)
+      }
+    }
+  } else if (!auth(req, config)) {
     log.warn("Unauthorized API request", { ip, path: req.pathname })
     return jsonResponse(401, { error: "Unauthorized" }, config, req)
   }
@@ -657,10 +725,15 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
   const rateLimiter = new RateLimiter(config.rateLimitMax ?? 100, config.rateLimitWindowMs ?? 60_000)
   const allowedOrigins = getAllowedOrigins(config)
 
+  rbacEnabled = config.auth ?? false
+  rbacRequired = config.authRequired ?? false
+
   log.info("Starting API server", {
     port: config.port,
     host: config.host,
     authEnabled: !!config.apiKey,
+    rbacEnabled,
+    rbacRequired,
     corsOrigins: allowedOrigins.join(", "),
     rateLimit: `${config.rateLimitMax ?? 100}/min`,
   })

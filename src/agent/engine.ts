@@ -314,6 +314,23 @@ export class AgentEngine {
         log.warn("Failed to record experience", { error: String(err) })
       }
     }
+
+    // ── Knowledge graph integration ──────────────────────────────────
+    if (this.sessionGoal) {
+      try {
+        const { GraphIntegration } = await import("../memory/graph-integration")
+        const gi = new GraphIntegration()
+        await gi.processAgentRun({
+          goal: this.sessionGoal,
+          summary: `Session ${outcome} (r=${reward.toFixed(2)}): ${this.sessionGoal.slice(0, 100)}`,
+          outcome,
+          agentType: this.runtime.context.agentType ?? "agent",
+          sessionId: this.sessionId,
+        })
+      } catch (err) {
+        log.warn("Knowledge graph integration failed", { error: String(err) })
+      }
+    }
   }
 
   /**

@@ -4,11 +4,11 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Inter"', "system-ui", "sans-serif"],
-        body: ['"Barlow"', '"Inter"', "sans-serif"],
-        mono: ['"DM Mono"', "monospace"],
-        sans: ['"Inter"', "system-ui", "sans-serif"],
-        heading: ['"Inter"', "system-ui", "sans-serif"],
+        display: ['"Geist"', "system-ui", "sans-serif"],
+        body: ['"Geist"', "system-ui", "sans-serif"],
+        mono: ['"Geist Mono"', '"JetBrains Mono"', "monospace"],
+        sans: ['"Geist"', "system-ui", "sans-serif"],
+        heading: ['"Geist"', "system-ui", "sans-serif"],
         serif: ['"Instrument Serif"', '"DM Serif Display"', "serif"],
       },
       colors: {
@@ -23,11 +23,26 @@ export default {
           700: "rgba(255, 255, 255, 0.1)",
           800: "rgba(255, 255, 255, 0.05)",
         },
-        base: "#0a0a0f",
-        elevated: "#09090b",
-        "brand-purple": "#8b5cf6",
-        "brand-pink": "#ec4899",
-        "brand-cyan": "#06b6d4",
+        base: "#000000",
+        elevated: "#0A0A0A",
+        neutral: {
+          50: "#fafafa",
+          100: "#f5f5f5",
+          200: "#e5e5e5",
+          300: "#d4d4d4",
+          400: "#a3a3a3",
+          500: "#737373",
+          600: "#525252",
+          700: "#404040",
+          800: "#262626",
+          900: "#171717",
+          950: "#0a0a0a",
+        },
+        accent: {
+          DEFAULT: "#3b82f6",
+          light: "#60a5fa",
+          dark: "#2563eb",
+        },
         "state-busy": "#fbbf24",
         "state-ready": "#22c55e",
       },
@@ -86,10 +101,10 @@ export default {
       backgroundImage: {
         "cta-glow":
           "radial-gradient(ellipse 60% 50% at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 70%)",
-        "gradient-brand":
-          "linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #06b6d4 100%)",
-        "gradient-mesh":
-          "radial-gradient(ellipse 60% 50% at 20% 10%, rgba(139,92,246,.35), transparent 60%), radial-gradient(ellipse 50% 40% at 80% 20%, rgba(236,72,153,.25), transparent 60%), radial-gradient(ellipse 50% 40% at 50% 90%, rgba(6,182,212,.20), transparent 60%)",
+        "gradient-accent":
+          "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+        "gradient-radial-accent":
+          "radial-gradient(ellipse 50% 40% at 50% 0%, rgba(59,130,246,.15), transparent 60%)",
       },
     },
   },

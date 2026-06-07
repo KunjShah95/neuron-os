@@ -37,7 +37,7 @@ Every milestone in this roadmap is checked against these five principles. When t
 
 ## 3. What Ships in v0.2.0 (Released — 2026-06-06)
 
-The current release. Aegis at v0.2.0 is a **production-shaped local agent OS** that already has:
+The baseline release. Aegis at v0.2.0 is a **production-shaped local agent OS** that already has:
 
 - 12 TUI modes, 14 agent types, 4 working surfaces (terminal / web app / chat platform / API)
 - A typed, observable agent runtime with auto-recovery and a lifecycle hook system
@@ -48,126 +48,153 @@ The current release. Aegis at v0.2.0 is a **production-shaped local agent OS** t
 
 ---
 
-## 4. The Seven Milestones to v1.0.0
+## 4. The Eight Milestones (v0.7.0 → Future)
 
-### v0.3.0 — Stabilization & Hardening (Q3 2026)
+### ✅ v0.7.0 — Cost Attribution & Benchmarking — **SHIPPED**
 
-**What it unlocks:** The foundation is solid. CI is green, tests are comprehensive, Docker builds are reliable, and Windows support is first-class.
+**What we delivered:**
+- `aegis cost {total,models,sessions,history,budget,report}` — real USD cost tracking
+- `aegis benchmark {run,status,baseline}` — regression detection with CI-compatible JSON
+- `aegis bench providers "<task>"` — benchmarks all 13 providers on quality + cost
+- `aegis insights` — cross-DB analytics across audit, billing, experience, telemetry
+- `aegis router route/list/suggest` — auto-selects cheapest provider per task type
+- `aegis estimate` — pre-flight cost estimation with warn/block thresholds
+- 13 providers tracked in pricing registry with real per-1k-token costs
+- Model router wired into agent spawning
 
-- Full CI/CD test matrix (Linux, macOS, Windows)
-- 80% line coverage across `src/`
-- Complete API documentation with TypeDoc
-- Docker multi-arch builds (AMD64, ARM64)
-- Error boundary coverage on all TUI modes
-- Config validation with JSON Schema (`aegis doctor` validates everything)
-- Windows Terminal support polish
-
-**Done when:** a new contributor can clone the repo, run `bun install`, and have a green test suite in under 5 minutes on any supported OS.
-
----
-
-### v0.6.0 — Multi-platform gateway ✅ (Q2 2026 — SHIPPED)
-
-**What it unlocked:** Every team can plug Aegis into the chat platform they already use. The agent becomes reachable where the user is, not where the developer happened to ship the CLI.
-
-- 8 first-class adapters shipped (Discord, Slack, SMS, Voice, WhatsApp, Email, Webhook, Bot-Commands)
-- HMAC-signed REST API with replay-protection window
-- Per-adapter test coverage (sign / verify / replay / tampering)
-- `aegis gateway start` to run a multi-adapter daemon
-- Marketing website with docs, changelog, FAQ
-- Web dashboard with 12 routes
-
-**Status:** Shipped in v0.2.0.
+**Key files:** `src/economy/`, `src/cli/commands/cost.ts`, `src/cli/commands/bench.ts`, `src/cli/commands/insights.ts`, `src/cli/commands/router.ts`, `src/cli/commands/preflight.ts`
 
 ---
 
-### v0.7.0 — Cost attribution & agent benchmarking
+### ✅ v0.8.0 — Knowledge Graph & Long-Term Memory — **SHIPPED**
 
-**What it unlocks:** Operators can answer "what did this agent cost me last week?" with a single command. The system enforces per-agent and per-task budgets. Spikes get flagged automatically.
+**What we delivered:**
+- SQLite-backed knowledge graph with entity extraction, relationship linking, confidence scoring
+- Per-agent memory namespaces with TTL-based expiry and archival
+- Cross-session knowledge synthesis across all 5 memory stores
+- Auto-extraction from every completed agent session
+- Unified Memory Query — single interface across FTS5, vector, sessions, experience, graph
+- `aegis memory graph`, `aegis memory ns`, `aegis memory synthesize`
 
-- Real implementation of [`docs/superpowers/specs/2026-06-05-cost-attribution-design.md`](docs/superpowers/specs/2026-06-05-cost-attribution-design.md)
-- SQLite token store, derived USD pricing, rollup queries
-- `aegis cost {today, week, agent, session, top, budget}` CLI
-- Replaces the stubbed `src/billing/tracker.ts` and `src/telemetry/cost.ts`
-- Cost-spike detection in the dashboard
-
-**Done when:** `aegis cost week` shows a real per-agent breakdown sourced from actual LLM usage, and the dashboard flags any day that exceeds the configured budget.
-
----
-
-### v0.8.0 — Knowledge graph & long-term memory
-
-**What it unlocks:** Agents remember what they've learned across sessions, teams, and projects. Knowledge is structured, queryable, and survives process restarts. No more "I forgot the schema I worked on three weeks ago."
-
-- BM25 + Vector + Graph + Temporal scoring in `src/memory/`
-- Per-agent memory namespaces with TTL and archival
-- Cross-session knowledge synthesis (`aegis memory synthesize <topic>`)
-- Knowledge graph visualization in the web app
-
-**Done when:** an agent can answer a question about a project it last touched 30 days ago by name, citing the specific session and tool call it learned the fact from.
+**Key files:** `src/memory/graph.ts`, `src/memory/namespace.ts`, `src/memory/synthesize.ts`, `src/memory/unified-query.ts`, `src/memory/graph-integration.ts`, `src/cli/commands/knowledge.ts`
 
 ---
 
-### v0.9.0 — Distributed runtime
+### ✅ v0.9.0 — Distributed Runtime — **SHIPPED**
 
-**What it unlocks:** Aegis stops being a single-machine product. Workers can run on any host that trusts the leader, with encrypted transport. A team can scale from 1 to 100 workers without changing the agent spec.
+**What we delivered:**
+- Multi-host worker pool with TCP-based bully leader election
+- AES-256-GCM encrypted transport with SHA-256 key derivation
+- Capacity-aware placement (CPU, memory, GPU scoring)
+- Remote management HTTP API (6 routes, HMAC-signed)
+- Worker heartbeat monitoring with automatic timeout
+- `aegis distributed {start,status,workers,task,info}`
+- Distributed spawn integration in AgentManager
 
-- Multi-host worker pool with leader election (Raft or simple)
-- Encrypted worker transport (Noise protocol or libsodium)
-- Remote management API (HTTP + WebSocket) with HMAC + RBAC
-- Capacity-aware placement — workers self-report CPU, memory, GPU
-- Worker health monitoring with automatic respawn
-
-**Done when:** an `agent.yaml` can declare `replicas: 10` and the system will distribute 10 workers across 3 hosts, keep them healthy, and fail over if a host dies.
-
----
-
-### v1.0.0 — Production-ready
-
-**What it unlocks:** A team can run Aegis as their primary agent platform, hand it to a customer, and sleep at night. This is the version we put on the homepage.
-
-- RBAC, audit logging, hardened runtimes
-- SLO dashboards, incident playbooks, on-call docs
-- Encrypted-at-rest credential vault with key rotation
-- Plugin marketplace with version resolution and signature verification
-- Background agents with file watching and event-driven triggers
-- SLA-grade uptime, public status page
-- End-to-end observability: traces, metrics, logs, in one queryable store
-
-**Done when:** a 50-engineer team can adopt Aegis as their primary agent platform without our involvement, and the 99th percentile of "why did this agent do that?" is answerable in under 5 minutes.
+**Key files:** `src/distributed/`, `src/cli/commands/distributed.ts`
 
 ---
 
-## 5. Beyond v1.0.0 — The Long Game
+### ✅ v0.10.0 — Self-Improving Agents — **SHIPPED**
 
-Once v1.0.0 is shipped, Aegis becomes a *platform*, not a product. Three big bets take over.
+**What we delivered:**
+- Skill candidate extraction from successful experiences
+- Failure clustering with severity scoring
+- Adversarial self-play with 8 scenario templates
+- Auto-skill packaging to `src/skills/auto-*.ts`
+- Self-improvement scheduler (cron: skill extraction 6h, failure clustering 12h)
+- `aegis improve skill`, `aegis improve failure`, `aegis improve adversarial`, `aegis improve scheduler`
+- Wired into agent lifecycle exit handler
+
+**Key files:** `src/improve/`, `src/cli/commands/improve.ts`
+
+---
+
+### ✅ v1.0.0 — Production-Ready — **SHIPPED**
+
+**What we delivered:**
+- RBAC with admin/operator/developer/viewer roles, SHA-256 hashed API keys, 17 route-permission mappings
+- Encrypted credential vault — AES-256-GCM with scrypt-derived master key, per-entry IVs
+- Vault-to-provider bridge — auto-syncs vault API keys to provider resolution at unlock
+- SLO tracking — rolling-window uptime, latency, error rate, burn rate
+- Distributed tracing — SQLite-backed trace spans with parent-child relationships
+- Production dashboard — aggregated SLOs, costs, failures, agent health
+- Background agents — file-watching and scheduled via TriggerEngine
+- `aegis production {rbac,vault,slo,dashboard,trace,background}`
+- `aegis serve --auth` — RBAC-protected HTTP server
+- Trace spans for spawn, IPC, exit events; SLO recording on agent completion
+
+**Key files:** `src/auth/`, `src/vault/`, `src/observability/`, `src/triggers/background.ts`, `src/cli/commands/production.ts`
+
+---
+
+### 🔮 v0.11.0 — Plugin Marketplace & WebSocket Gateway
+
+**What it unlocks:** Extend without forks. Collaborate in real-time.
+
+| Deliverable | Description |
+|-------------|-------------|
+| **Signed Plugin Registry** | Plugin version resolution, dependency management, signature verification |
+| **Plugin CLI** | `aegis plugin {publish,install,list,remove}` with integrity checks |
+| **WebSocket Gateway** | Real-time multi-user dashboards with per-user agent state streaming |
+| **Multi-User Sessions** | Shared agent workspaces with live activity streaming |
+
+---
+
+### 🔮 v0.12.0 — Multi-Agent Teams at Scale
+
+**What it unlocks:** Teams form and dissolve around tasks. Coordinators are elected by capability. Disagreements are arbitrated.
+
+| Deliverable | Description |
+|-------------|-------------|
+| **Typed Multi-Agent Trees** | Agents declare typed inputs, outputs, and preconditions |
+| **Coordinator Election** | Dynamic lead agent selection by capability matching |
+| **Debate Topology** | Third-agent arbitration for agent disagreement resolution |
+| **Cross-Team Memory** | Team A's learnings queryable by Team B with access policies |
+
+---
+
+### 🔮 v0.13.0 — Tool-Level Economy
+
+**What it unlocks:** Every action has a price. Every dollar has a benchmark. Agents self-throttle.
+
+| Deliverable | Description |
+|-------------|-------------|
+| **Per-Tool Pricing Registry** | Every tool has compute/API/I/O cost + latency profile |
+| **Budgeted Agents** | `budget_usd` on task definition; agent self-manages spend |
+| **Spot Routing** | Cross-provider cost router picks cheapest provider at runtime |
+| **Public Benchmarks** | `quality / USD` leaderboard per provider per task class |
+| **Cost Spike Alerts** | Automated Slack/Discord alerts on budget breach |
+
+---
+
+## 5. Beyond v0.13.0 — The Long Game
+
+Once the near-term milestones are shipped, Aegis becomes a *platform*, not a product. Three big bets take over.
 
 ### A. Self-improving runtime (Karpathy-delta closure)
 
-The ratchet primitive, experience replay, and benchmark suite are already scaffolding. v1.x turns them into a closed loop.
+The ratchet primitive, experience replay, benchmark suite, and self-improvement scheduler are already scaffolding. v1.x turns them into a fully closed feedback loop.
 
-- **Skill candidate extraction** — detect repetitive successful patterns, propose reusable skills, gate by quality
-- **Failure clustering** — group similar failures, prioritize improvement suggestions
-- **Auto-skill packaging** — a passing skill candidate becomes a published package automatically
-- **Adversarial self-play** — agents red-team other agents and feed the regressions back in
+- **Failure prioritization** — grouped failures ranked by frequency, blast radius, and user impact
+- **Dashboard v2** — knowledge graph visualization with interactive entity exploration
+- **Adversarial regression auto-feed** — red-team findings auto-incorporated into system prompts as known failure patterns
 
 ### B. Tool-level economy
 
-Agents bid for compute. Agents pay for tool calls. Agents track cost per task across providers. The system surfaces the cheapest viable path at runtime, not at design time.
+Agents bid for compute. Agents pay for tool calls. The system surfaces the cheapest viable path at runtime, not at design time.
 
-- **Per-tool pricing registry** — every tool has a cost (compute, API, I/O) and a latency profile
-- **Budgeted agents** — `budget_usd: 0.05` on a task definition; the agent self-throttles
-- **Cross-provider cost router** — same task, three providers, picked by current spot price and benchmarked quality
-- **Cost benchmarks** — public leaderboard of `quality / USD` per provider per task class
+- **Dynamic provider switching mid-task** — if one provider degrades, seamlessly switch mid-stream
+- **Cost-per-outcome optimization** — system selects provider+model to minimize `cost / successful outcome`
+- **Cross-session cost rollup** — project-level billing summaries with per-contributor attribution
 
-### C. Multi-agent teams at scale
+### C. Multi-agent orchestration at platform scale
 
-Today, orchestration is a single orchestrator driving a fan-out. Tomorrow, teams form and dissolve around tasks.
+Today, orchestration is a single orchestrator driving a fan-out. Tomorrow, swarms form and dissolve around tasks.
 
-- **Typed multi-agent tree** — agents declare inputs, outputs, and preconditions
-- **Coordinator election** — the right agent leads the right task, by capability
-- **Disagreement resolution** — when two agents disagree, a third arbitrates (debate topology)
-- **Cross-team memory** — Team A's learnings are queryable by Team B with explicit access policy
+- **Declarative swarm specs** — YAML defines agent composition, budget, and success criteria
+- **Convergence detection** — swarm auto-terminates when consensus is reached or diminishing returns detected
+- **Debate tree pruning** — active learning to prune low-value debate branches
 
 ---
 

@@ -5,18 +5,19 @@ import { vectorMemory as defaultVectorMemory, VectorMemory } from "./vector"
 import { sessionStore as defaultSessionStore, SessionStore } from "./session-persistence"
 import { experienceStore as defaultExperienceStore, ExperienceStore } from "../experience/store"
 import { computeEmbedding, cosineSimilarity } from "./embedding"
+import { knowledgeGraph as defaultKnowledgeGraph, KnowledgeGraph } from "./graph"
 
 const log = createLogger("unified-query")
 
 export interface UnifiedQuery {
   query: string
-  stores?: ("recall" | "vector" | "sessions" | "experience")[]
+  stores?: ("recall" | "vector" | "sessions" | "experience" | "graph")[]
   limit?: number
   minScore?: number
 }
 
 export interface UnifiedResult {
-  store: "recall" | "vector" | "sessions" | "experience"
+  store: "recall" | "vector" | "sessions" | "experience" | "graph"
   score: number
   content: string
   sessionId?: string
@@ -29,6 +30,7 @@ export interface UnifiedStoreStats {
   vector: { entries: number }
   sessions: { total: number; messages: number }
   experience: { total: number; successRate: number }
+  graph: { entities: number; relationships: number }
 }
 
 export class UnifiedMemoryQuery {
@@ -37,6 +39,7 @@ export class UnifiedMemoryQuery {
   private static _vectorMemory: VectorMemory = defaultVectorMemory
   private static _sessionStore: SessionStore = defaultSessionStore
   private static _experienceStore: ExperienceStore = defaultExperienceStore
+  private static _knowledgeGraph: KnowledgeGraph = defaultKnowledgeGraph
 
   static configure(deps: {
     recallRetriever?: FTS5Retriever
@@ -44,16 +47,18 @@ export class UnifiedMemoryQuery {
     vectorMemory?: VectorMemory
     sessionStore?: SessionStore
     experienceStore?: ExperienceStore
+    knowledgeGraph?: KnowledgeGraph
   }): void {
     if (deps.recallRetriever !== undefined) this.recallRetriever = deps.recallRetriever
     if (deps.recallIndexer !== undefined) this.recallIndexer = deps.recallIndexer
     if (deps.vectorMemory !== undefined) this._vectorMemory = deps.vectorMemory
     if (deps.sessionStore !== undefined) this._sessionStore = deps.sessionStore
     if (deps.experienceStore !== undefined) this._experienceStore = deps.experienceStore
+    if (deps.knowledgeGraph !== undefined) this._knowledgeGraph = deps.knowledgeGraph
   }
 
   static async search(query: UnifiedQuery): Promise<UnifiedResult[]> {
-    const stores = query.stores ?? ["recall", "vector", "sessions", "experience"]
+    const stores = query.stores ?? ["recall", "vector", "sessions", "experience", "graph"]
     const limit = query.limit ?? 5
     const minScore = query.minScore ?? 0.3
 
@@ -65,7 +70,7 @@ export class UnifiedMemoryQuery {
   }
 
   static async searchStore(
-    store: "recall" | "vector" | "sessions" | "experience",
+    store: "recall" | "vector" | "sessions" | "experience" | "graph",
     query: string,
     limit: number,
   ): Promise<UnifiedResult[]> {
@@ -79,6 +84,8 @@ export class UnifiedMemoryQuery {
           return this.searchSessions(query, limit)
         case "experience":
           return this.searchExperience(query, limit)
+        case "graph":
+          return this.searchGraph(query, limit)
       }
     } catch (err) {
       log.error(`Error searching store "${store}"`, { error: String(err) })
@@ -87,13 +94,14 @@ export class UnifiedMemoryQuery {
   }
 
   static async getStoreStats(): Promise<UnifiedStoreStats> {
-    const [recall, vector, sessions, experience] = await Promise.all([
+    const [recall, vector, sessions, experience, graph] = await Promise.all([
       this.getRecallStats(),
       this.getVectorStats(),
       this.getSessionStats(),
       this.getExperienceStats(),
+      this.getGraphStats(),
     ])
-    return { recall, vector, sessions, experience }
+    return { recall, vector, sessions, experience, graph }
   }
 
   // ── Private per-store search ──────────────────────────────────────
@@ -177,6 +185,20 @@ export class UnifiedMemoryQuery {
     }))
   }
 
+  private static searchGraph(query: string, limit: number): UnifiedResult[] {
+    const entities = this._knowledgeGraph.search({ query, limit })
+    if (entities.length === 0) return []
+
+    return entities.map((e) => ({
+      store: "graph" as const,
+      score: e.confidence,
+      content: `[${e.type}] ${e.name}: ${e.context}`.slice(0, 300),
+      sessionId: e.source,
+      timestamp: e.updatedAt,
+      metadata: { entityId: e.id, entityType: e.type, confidence: e.confidence },
+    }))
+  }
+
   // ── Private stats ─────────────────────────────────────────────────
 
   private static async getRecallStats(): Promise<UnifiedStoreStats["recall"]> {
@@ -216,6 +238,15 @@ export class UnifiedMemoryQuery {
       return { total: stats.totalExperiences, successRate }
     } catch {
       return { total: 0, successRate: 0 }
+    }
+  }
+
+  private static async getGraphStats(): Promise<UnifiedStoreStats["graph"]> {
+    try {
+      const stats = this._knowledgeGraph.getStats()
+      return { entities: stats.entityCount, relationships: stats.relationshipCount }
+    } catch {
+      return { entities: 0, relationships: 0 }
     }
   }
 

@@ -1,2 +1,5 @@
-export { credentialVault, CredentialVault } from "./manager"
-export type { VaultEntry } from "./manager"
+export { credentialVault, CredentialVault as FileCredentialVault } from "./manager"
+export type { VaultEntry as FileVaultEntry } from "./manager"
+export { CredentialVault as EncryptedCredentialVault } from "./credential-vault"
+export type { VaultEntry as EncryptedVaultEntry } from "./credential-vault"
+export { VaultEnvLoader } from "./env-loader"

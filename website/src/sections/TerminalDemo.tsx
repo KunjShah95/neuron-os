@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { motion } from "framer-motion"
 import { fadeUp } from "../lib/motion"
-import SectionHeader from "../components/SectionHeader"
+import TerminalBlock from "../components/TerminalBlock"
 
 interface DemoScene {
   title: string
@@ -13,7 +13,7 @@ const scenes: DemoScene[] = [
     title: "Launch",
     commands: [
       {
-        input: "bun run index.ts",
+        input: "aegis",
         output: [
           "  █████╗ ███████╗ ██████╗ ██╗███████╗",
           " ██╔══██╗██╔════╝██╔════╝ ██║██╔════╝",
@@ -30,7 +30,7 @@ const scenes: DemoScene[] = [
     ],
   },
   {
-    title: "Spawn Agents",
+    title: "Spawn",
     commands: [
       {
         input: "aegis agent spawn builder --type build",
@@ -53,12 +53,12 @@ const scenes: DemoScene[] = [
     ],
   },
   {
-    title: "AI Chat",
+    title: "Chat",
     commands: [
       {
         input: "aegis chat",
         output: [
-          " ✦ Chat — Anthropic (claude-sonnet-4-20250514)",
+          " ✦ Chat — Anthropic (claude-sonnet-4)",
           " ─────────────────────────────────",
           " You: Explain the agent architecture",
           "",
@@ -81,7 +81,6 @@ export default function TerminalDemo() {
   const [showCursor, setShowCursor] = useState(true)
   const [phase, setPhase] = useState<"typing" | "output" | "done">("typing")
   const termRef = useRef<HTMLDivElement>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
 
   const scene = scenes[activeScene]
 
@@ -130,10 +129,10 @@ export default function TerminalDemo() {
   }, [phase, charIndex, cmdIndex, scene, activeScene])
 
   useEffect(() => {
-    intervalRef.current = setInterval(() => {
+    const interval = setInterval(() => {
       setShowCursor((c) => !c)
     }, 530)
-    return () => clearInterval(intervalRef.current)
+    return () => clearInterval(interval)
   }, [])
 
   useEffect(() => {
@@ -143,102 +142,96 @@ export default function TerminalDemo() {
   }, [displayLines, currentInput])
 
   return (
-    <section id="demo" className="relative w-full max-w-6xl mx-auto px-6 py-24 md:py-32">
-      <SectionHeader
-        eyebrow="— LIVE"
-        tone="cyan"
-        title="Developer-first CLI experience"
-        body="A unified terminal interface that puts you in command of your agent fleet."
-      />
-
-      <motion.div
-        variants={fadeUp}
-        initial="hidden"
-        whileInView="show"
-        viewport={{ once: true, amount: 0.2 }}
-        className="mt-10 flex gap-2 flex-wrap"
-      >
-        {scenes.map((s, i) => (
-          <button
-            key={i}
-            onClick={() => resetTerminal(i)}
-            className={`text-[11px] font-medium tracking-[0.12em] px-4 py-2 rounded-full transition-all duration-200 cursor-pointer ${
-              activeScene === i
-                ? "btn-landing-gradient"
-                : "btn-landing-outline"
-            }`}
+    <section id="demo" className="relative w-full py-24 md:py-32">
+      <div className="max-w-5xl mx-auto px-6">
+        <div className="text-center mb-12">
+          <span className="section-label mb-3 inline-block">DEMO</span>
+          <h2
+            className="text-3xl md:text-5xl font-medium tracking-tight text-white"
+            style={{ letterSpacing: "-0.02em" }}
           >
-            {s.title.toUpperCase()}
-          </button>
-        ))}
-      </motion.div>
-
-      <motion.div
-        variants={fadeUp}
-        initial="hidden"
-        whileInView="show"
-        viewport={{ once: true, amount: 0.2 }}
-        className="mt-6"
-      >
-        <div className="liquid-glass rounded-2xl overflow-hidden">
-          <div className="bg-white/[0.02] px-6 py-4 border-b border-white/[0.05] flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-white/60 animate-pulse" />
-              <span className="text-[11px] text-white/60 font-medium tracking-[0.12em] uppercase font-mono">
-                neuron-os — {scene.title}
-              </span>
-            </div>
-            <span className="text-[10px] text-white/30 font-mono tracking-wider">
-              SECURE END-TO-END
-            </span>
-          </div>
-
-          <div
-            ref={termRef}
-            className="p-5 font-mono text-[12.5px] leading-relaxed h-[340px] overflow-y-auto text-white/45"
-          >
-            {displayLines.map((line, i) => (
-              <div
-                key={i}
-                className={
-                  line.startsWith("$")
-                    ? "text-white/70"
-                    : line.startsWith(" ✓")
-                    ? "text-white/55"
-                    : line.startsWith(" ◈") || line.startsWith(" ✦")
-                    ? "text-white/65"
-                    : "text-white/30"
-                }
-              >
-                {line || "\u00A0"}
-              </div>
-            ))}
-            {phase === "typing" && (
-              <div className="text-white/70">
-                <span className="text-white/30">$ </span>
-                {currentInput}
-                <span
-                  className={`inline-block w-[7px] h-[13px] bg-white/55 ml-[1px] align-middle ${
-                    showCursor ? "opacity-100" : "opacity-0"
-                  }`}
-                />
-              </div>
-            )}
-            {phase === "done" && (
-              <div className="text-white/30">
-                <span>$ </span>
-                <span
-                  className={`inline-block w-[7px] h-[13px] bg-white/30 ml-[1px] align-middle ${
-                    showCursor ? "opacity-100" : "opacity-0"
-                  }`}
-                />
-              </div>
-            )}
-          </div>
+            Developer-first{" "}
+            <span className="serif-italic font-normal text-neutral-400">by design.</span>
+          </h2>
         </div>
 
-        <div className="mt-4 h-1 rounded-full overflow-hidden bg-gradient-brand animate-pulse-soft" />
-      </motion.div>
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.2 }}
+          className="flex gap-2 flex-wrap justify-center mb-4"
+        >
+          {scenes.map((s, i) => (
+            <button
+              key={i}
+              onClick={() => resetTerminal(i)}
+              className={`text-xs px-3 py-1.5 rounded-md transition-all cursor-pointer ${
+                activeScene === i
+                  ? "bg-white text-black"
+                  : "text-neutral-400 hover:text-white border border-white/[0.08] hover:border-white/20"
+              }`}
+            >
+              {s.title}
+            </button>
+          ))}
+        </motion.div>
+
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.2 }}
+        >
+          <TerminalBlock title={`~/neuron-os — ${scene.title.toLowerCase()}`} lines={[]} glow="accent" />
+          <div className="mt-3 rounded-2xl overflow-hidden border border-white/[0.06] font-mono text-[13px] leading-relaxed"
+            style={{ background: "rgba(10,10,10,0.6)" }}
+          >
+            <div
+              ref={termRef}
+              className="p-5 h-[320px] overflow-y-auto"
+            >
+              {displayLines.map((line, i) => (
+                <div
+                  key={i}
+                  className={
+                    line.startsWith("$")
+                      ? "text-white"
+                      : line.startsWith(" ✓")
+                      ? "text-green-400"
+                      : line.startsWith(" ◈") || line.startsWith(" ✦")
+                      ? "text-blue-300"
+                      : "text-neutral-500"
+                  }
+                >
+                  {line || "\u00A0"}
+                </div>
+              ))}
+              {phase === "typing" && (
+                <div className="text-white">
+                  <span className="text-blue-400">$ </span>
+                  {currentInput}
+                  <span
+                    className={`inline-block w-1.5 h-3.5 align-middle ml-px bg-white/70 ${
+                      showCursor ? "opacity-100" : "opacity-0"
+                    }`}
+                  />
+                </div>
+              )}
+              {phase === "done" && (
+                <div className="text-neutral-500">
+                  <span className="text-blue-400">$ </span>
+                  <span
+                    className={`inline-block w-1.5 h-3.5 align-middle ml-px bg-white/70 ${
+                      showCursor ? "opacity-100" : "opacity-0"
+                    }`}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      </div>
     </section>
   )
 }

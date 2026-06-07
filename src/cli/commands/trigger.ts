@@ -181,4 +181,57 @@ export function registerTrigger(program: Command): void {
         console.log(`\n  ❌ ${result.error}\n`)
       }
     })
+
+  // ── Background agent subcommands ─────────────────────────────────
+
+  const background = trigger
+    .command("background")
+    .description("Manage background agents")
+
+  background
+    .command("list")
+    .description("List all background agents and file watchers")
+    .action(async () => {
+      const { BackgroundAgentManager } = await import("../../triggers/background")
+      const { triggerEngine } = await import("../../triggers/registry")
+      const mgr = new BackgroundAgentManager(triggerEngine)
+      const agents = mgr.getStatus()
+
+      if (agents.length === 0) {
+        console.log("No background agents registered.")
+        return
+      }
+
+      console.log(`\n  ${agents.length} background agent(s):\n`)
+      for (const a of agents) {
+        const status = a.enabled ? "✓" : "✗"
+        const lastFired = a.lastFired ? ` (last: ${new Date(a.lastFired).toLocaleString()})` : ""
+        console.log(`  ${status} ${a.name}`)
+        console.log(`     Type:      ${a.type}`)
+        console.log(`     Fires:     ${a.fireCount}${lastFired}`)
+        console.log()
+      }
+    })
+
+  background
+    .command("register")
+    .description("Register a background agent")
+    .requiredOption("--name <name>", "Agent name")
+    .requiredOption("--schedule <interval>", "Cron schedule (e.g. 30s, 5m, 1h)")
+    .requiredOption("--goal <goal>", "Goal for the agent to execute")
+    .option("--agent-type <type>", "Agent type hint (e.g. build, debug, review)")
+    .action(async (opts) => {
+      const { BackgroundAgentManager } = await import("../../triggers/background")
+      const { triggerEngine } = await import("../../triggers/registry")
+      const mgr = new BackgroundAgentManager(triggerEngine)
+
+      const trigger = mgr.registerBackgroundAgent({
+        name: opts.name,
+        schedule: opts.schedule,
+        goal: opts.goal,
+        agentType: opts.agentType,
+      })
+
+      console.log(`\n  ✅ Background agent registered: "${trigger.name}" (${trigger.id})\n`)
+    })
 }
