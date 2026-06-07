@@ -178,6 +178,9 @@ export function exitCodeGrader(
 ): GradeResult {
   const name = "exit-code"
   const score = 1.0 // Default: we assume success since we're grading output
+  if (!config) {
+    return { name, grader: "deterministic", score, weight: 0.1, details: "Exit code check not configured" }
+  }
   return {
     name,
     grader: "deterministic",
