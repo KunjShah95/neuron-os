@@ -1,16 +1,40 @@
 {
-  "name": "aegis",
-  "version": "0.2.1",
+  "name": "neuron-aegis",
+  "version": "0.2.2",
   "description": "Aegis — AI operating system for the terminal",
   "type": "module",
   "bin": {
-    "aegis": "./bin/aegis.js"
+    "aegis": "bin/aegis.js"
   },
   "engines": {
     "node": ">=18.0.0"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KunjShah95/neuron-os.git"
+  },
+  "homepage": "https://github.com/KunjShah95/neuron-os#readme",
+  "bugs": {
+    "url": "https://github.com/KunjShah95/neuron-os/issues"
+  },
+  "license": "MIT",
+  "author": "Kunj Shah (https://github.com/KunjShah95)",
+  "keywords": [
+    "aegis",
+    "ai",
+    "cli",
+    "agent",
+    "terminal",
+    "knowledge-graph",
+    "neuron-os"
+  ],
   "files": [
     "bin/",
+    "LICENSE",
     "README.md"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public",
+    "tag": "latest"
+  }
 }
