@@ -280,6 +280,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Tag is created by softprops/action-gh-release above.
-          # This local tag is for reference only; push may fail on protected branches.
-          git tag "${{ steps.tag.outputs.tag }}" 2>/dev/null || true
+          # softprops/action-gh-release creates the tag on the release; skip push if it exists
+          if git ls-remote --tags origin "${{ steps.tag.outputs.tag }}" | grep -q "${{ steps.tag.outputs.tag }}"; then
+            echo "Tag ${{ steps.tag.outputs.tag }} already exists on remote, skipping push"
+          else
+            git tag "${{ steps.tag.outputs.tag }}"
+            git push origin "${{ steps.tag.outputs.tag }}" || echo "Tag push failed (non-fatal)"
+          fi
