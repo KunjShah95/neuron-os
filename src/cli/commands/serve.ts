@@ -43,6 +43,10 @@ export function registerServe(program: Command) {
         await ensureHeartbeatFile()
         startCronEngine()
         console.log(theme.info("  ⏰ Cron engine started"))
+
+        const { registerCrawlJobs } = await import("../../docs-crawl")
+        registerCrawlJobs()
+        console.log(theme.info("  📚 Docs-crawl scheduled jobs registered"))
       }
 
       if (opts.autoImprove !== false) {
