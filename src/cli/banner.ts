@@ -1,9 +1,9 @@
-import figlet from "figlet"
 import { existsSync } from "fs"
 import { readdirSync } from "fs"
 import { join } from "path"
 import { getVersion } from "../version"
 import { theme } from "./theme"
+import { bannerFor } from "./figlet-banner"
 
 let bannerEmitted = false
 
@@ -20,7 +20,7 @@ export function showBanner(opts?: { version?: string; tagline?: string; title?: 
   bannerEmitted = true
 
   if (process.stdout.isTTY && !process.argv.includes("--plain") && !process.argv.includes("--json")) {
-    const text = figlet.textSync(opts?.title ?? "Neuron OS", { font: "Big" })
+    const text = bannerFor(opts?.title ?? "Neuron OS")
     const colored = text
       .split("\n")
       .map((l) => theme.accent(l))

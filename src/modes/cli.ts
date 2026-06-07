@@ -5,14 +5,13 @@
 
 import chalk from "chalk"
 import { select, text, isCancel } from "@clack/prompts"
-import figlet from "figlet"
 import { runAgentOrchestrator } from "./agent-run"
 import { runAskOrchestrator } from "./ask"
 import { runPlanModeInteractive } from "./plan/orchestrator"
 import { runResearchLoop } from "./research"
 import { renderTerminalMarkdown } from "../tui/terminal-md"
+import { NEURON_OS_BANNER } from "../cli/figlet-banner"
 
-const BANNER_FONT = "ANSI Shadow"
 const SHADOW = chalk.hex("#5b4d9e")
 const FACE = chalk.hex("#e8dcf8").bold
 
@@ -32,13 +31,7 @@ function printBannerWithShadow(ascii: string) {
 }
 
 export async function runWakeup() {
-  let ascii: string
-  try {
-    ascii = figlet.textSync("neuron os", { font: BANNER_FONT })
-  } catch {
-    ascii = figlet.textSync("neuron os", { font: "Standard" })
-  }
-  printBannerWithShadow(ascii)
+  printBannerWithShadow(NEURON_OS_BANNER)
 
   const mode = await select({
     message: "Which mode would you like to enter?",
