@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-06T14:06:05.583Z",
+  "generatedAt": "2026-06-07T06:35:25.526Z",
   "commands": [
     {
       "name": "adversarial",
@@ -48,9 +48,43 @@
     },
     {
       "name": "adversarial ratchet",
-      "options": [],
+      "options": [
+        {
+          "flag": "--all",
+          "description": "Rachet all unratcheted findings",
+          "required": false
+        }
+      ],
       "sourceFile": "src/cli/commands/adversarial.ts",
       "description": "Manage ratcheted regression cases",
+      "parent": "adversarial"
+    },
+    {
+      "name": "adversarial run",
+      "options": [
+        {
+          "flag": "--all",
+          "description": "Run against all eval task files",
+          "required": false
+        },
+        {
+          "flag": "--json",
+          "description": "Output results as JSON for CI consumption",
+          "required": false
+        },
+        {
+          "flag": "--category <name>",
+          "description": "Filter by task category (coding, debugging, etc.)",
+          "required": false
+        },
+        {
+          "flag": "--mutation <type>",
+          "description": "Mutation type (strip-precondition, flip-boolean, inject-malicious, etc.)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/adversarial.ts",
+      "description": "Run adversarial evals against tasks",
       "parent": "adversarial"
     },
     {
@@ -252,6 +286,12 @@
       "parent": "agentmemory"
     },
     {
+      "name": "analyze",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Analyze adversarial results for regressions"
+    },
+    {
       "name": "ask",
       "options": [
         {
@@ -350,6 +390,35 @@
       "parent": "bench"
     },
     {
+      "name": "bench providers",
+      "options": [
+        {
+          "flag": "--model <model>",
+          "description": "Override model for all providers",
+          "required": false
+        },
+        {
+          "flag": "--provider <name>",
+          "description": "Only test specific provider (repeatable)",
+          "required": false
+        },
+        {
+          "flag": "--timeout <ms>",
+          "description": "Per-provider timeout in milliseconds",
+          "required": false,
+          "defaultValue": "60000"
+        },
+        {
+          "flag": "--json",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/bench.ts",
+      "description": "Run a task against all configured AI providers and compare latency/cost",
+      "parent": "bench"
+    },
+    {
       "name": "bench run [taskId]",
       "options": [
         {
@@ -361,6 +430,61 @@
       "sourceFile": "src/cli/commands/bench.ts",
       "description": "Run one or all bench tasks",
       "parent": "bench"
+    },
+    {
+      "name": "benchmark",
+      "options": [],
+      "sourceFile": "src/cli/commands/benchmark.ts",
+      "description": "Adversarial eval benchmark — track regression over time"
+    },
+    {
+      "name": "benchmark baseline",
+      "options": [
+        {
+          "flag": "--set <file>",
+          "description": "Import a baseline from JSON file",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/benchmark.ts",
+      "description": "Show current baseline scores",
+      "parent": "benchmark"
+    },
+    {
+      "name": "benchmark run [task-path]",
+      "options": [
+        {
+          "flag": "--category <name>",
+          "description": "Filter by category (coding, debugging, etc.)",
+          "required": false
+        },
+        {
+          "flag": "--update-baseline",
+          "description": "Accept current results as new baseline",
+          "required": false
+        },
+        {
+          "flag": "--threshold <pct>",
+          "description": "Fail if regression > X%",
+          "required": false,
+          "defaultValue": "10"
+        },
+        {
+          "flag": "--json",
+          "description": "Output as JSON for CI consumption",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/benchmark.ts",
+      "description": "Run eval tasks and compare vs baseline",
+      "parent": "benchmark"
+    },
+    {
+      "name": "benchmark status",
+      "options": [],
+      "sourceFile": "src/cli/commands/benchmark.ts",
+      "description": "Show last benchmark run, score, drift",
+      "parent": "benchmark"
     },
     {
       "name": "browse",
@@ -397,6 +521,83 @@
       "sourceFile": "src/cli/commands/chat.ts",
       "description": "Start an interactive CLI chat session",
       "alias": "c"
+    },
+    {
+      "name": "check",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Check if a user has a permission"
+    },
+    {
+      "name": "ci",
+      "options": [],
+      "sourceFile": "src/cli/commands/ci.ts",
+      "description": "Auto-fix failing CI runs"
+    },
+    {
+      "name": "ci config",
+      "options": [],
+      "sourceFile": "src/cli/commands/ci.ts",
+      "description": "Interactive CI setup",
+      "parent": "ci"
+    },
+    {
+      "name": "ci disable",
+      "options": [],
+      "sourceFile": "src/cli/commands/ci.ts",
+      "description": "Remove a repo from CI config",
+      "parent": "ci"
+    },
+    {
+      "name": "ci repos",
+      "options": [],
+      "sourceFile": "src/cli/commands/ci.ts",
+      "description": "List configured repos",
+      "parent": "ci"
+    },
+    {
+      "name": "ci status",
+      "options": [],
+      "sourceFile": "src/cli/commands/ci.ts",
+      "description": "Show CI fix daemon status",
+      "parent": "ci"
+    },
+    {
+      "name": "ci watch",
+      "options": [
+        {
+          "flag": "--port <number>",
+          "description": "Port to listen on",
+          "required": false
+        },
+        {
+          "flag": "--repo <owner/name>",
+          "description": "Repo to watch (adds to config if not present)",
+          "required": false
+        },
+        {
+          "flag": "--budget <usd>",
+          "description": "Cost budget per run",
+          "required": false,
+          "defaultValue": "0.50"
+        }
+      ],
+      "sourceFile": "src/cli/commands/ci.ts",
+      "description": "Start the CI fix daemon",
+      "parent": "ci"
+    },
+    {
+      "name": "cluster",
+      "options": [
+        {
+          "flag": "--min-size <n>",
+          "description": "Minimum cluster size",
+          "required": false,
+          "defaultValue": "2"
+        }
+      ],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Cluster recent failures by similarity"
     },
     {
       "name": "completion",
@@ -499,6 +700,119 @@
       "parent": "config"
     },
     {
+      "name": "cost",
+      "options": [],
+      "sourceFile": "src/cli/commands/cost.ts",
+      "description": "Billing and cost tracking — monitor agent usage and budget",
+      "alias": "spend"
+    },
+    {
+      "name": "cost budget",
+      "options": [],
+      "sourceFile": "src/cli/commands/cost.ts",
+      "description": "Show or set budget limit",
+      "parent": "cost"
+    },
+    {
+      "name": "cost dashboard",
+      "options": [
+        {
+          "flag": "-d, --days <number>",
+          "description": "Number of days of history",
+          "required": false,
+          "defaultValue": "14"
+        }
+      ],
+      "sourceFile": "src/cli/commands/cost.ts",
+      "description": "Real-time cost dashboard with trends and sparklines",
+      "parent": "cost"
+    },
+    {
+      "name": "cost estimate",
+      "options": [
+        {
+          "flag": "-i, --input <tokens>",
+          "description": "Expected input tokens",
+          "required": false,
+          "defaultValue": "500"
+        },
+        {
+          "flag": "-o, --output <tokens>",
+          "description": "Expected output tokens",
+          "required": false,
+          "defaultValue": "200"
+        },
+        {
+          "flag": "--tools <names>",
+          "description": "Comma-separated tool names (e.g. web_search,bash,read)",
+          "required": false
+        },
+        {
+          "flag": "--calls <n>",
+          "description": "Expected number of tool calls",
+          "required": false,
+          "defaultValue": "5"
+        },
+        {
+          "flag": "-c, --complexity <level>",
+          "description": "Task complexity: simple, moderate, or complex",
+          "required": false,
+          "defaultValue": "moderate"
+        },
+        {
+          "flag": "-b, --budget <usd>",
+          "description": "Budget constraint in USD",
+          "required": false,
+          "defaultValue": "1.0"
+        }
+      ],
+      "sourceFile": "src/cli/commands/cost.ts",
+      "description": "Estimate cost for a task with complexity scaling, model routing, and budget check",
+      "parent": "cost"
+    },
+    {
+      "name": "cost history",
+      "options": [
+        {
+          "flag": "-d, --days <number>",
+          "description": "Number of days of history",
+          "required": false,
+          "defaultValue": "7"
+        }
+      ],
+      "sourceFile": "src/cli/commands/cost.ts",
+      "description": "Show daily cost history",
+      "parent": "cost"
+    },
+    {
+      "name": "cost models",
+      "options": [],
+      "sourceFile": "src/cli/commands/cost.ts",
+      "description": "Show cost breakdown by model",
+      "parent": "cost"
+    },
+    {
+      "name": "cost report",
+      "options": [],
+      "sourceFile": "src/cli/commands/cost.ts",
+      "description": "Full cost attribution report",
+      "parent": "cost"
+    },
+    {
+      "name": "cost sessions",
+      "options": [],
+      "sourceFile": "src/cli/commands/cost.ts",
+      "description": "Show cost by session",
+      "parent": "cost"
+    },
+    {
+      "name": "cost total",
+      "options": [],
+      "sourceFile": "src/cli/commands/cost.ts",
+      "description": "Show total spend vs budget",
+      "parent": "cost"
+    },
+    {
       "name": "cron",
       "options": [],
       "sourceFile": "src/cli/commands/cron.ts",
@@ -553,6 +867,46 @@
       "alias": "dash"
     },
     {
+      "name": "debate",
+      "options": [],
+      "sourceFile": "src/cli/commands/debate.ts",
+      "description": "Disagreement detection and arbitration"
+    },
+    {
+      "name": "debate pending",
+      "options": [],
+      "sourceFile": "src/cli/commands/debate.ts",
+      "description": "List unresolved disagreements",
+      "parent": "debate"
+    },
+    {
+      "name": "debate resolved",
+      "options": [
+        {
+          "flag": "--since <days>",
+          "description": "Filter by recency",
+          "required": false,
+          "defaultValue": "7"
+        }
+      ],
+      "sourceFile": "src/cli/commands/debate.ts",
+      "description": "List resolved disagreements",
+      "parent": "debate"
+    },
+    {
+      "name": "debate show",
+      "options": [],
+      "sourceFile": "src/cli/commands/debate.ts",
+      "description": "Show full disagreement record",
+      "parent": "debate"
+    },
+    {
+      "name": "delete",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Delete a credential"
+    },
+    {
       "name": "discord",
       "options": [
         {
@@ -568,6 +922,146 @@
       ],
       "sourceFile": "src/cli/commands/discord.ts",
       "description": "Start the Discord bot adapter"
+    },
+    {
+      "name": "distributed",
+      "options": [],
+      "sourceFile": "src/cli/commands/distributed.ts",
+      "description": "Distributed runtime — multi-host worker pool, leader election, encrypted transport"
+    },
+    {
+      "name": "distributed info",
+      "options": [],
+      "sourceFile": "src/cli/commands/distributed.ts",
+      "description": "Show this node's distributed info",
+      "parent": "distributed"
+    },
+    {
+      "name": "distributed start",
+      "options": [
+        {
+          "flag": "--port <port>",
+          "description": "Listen port",
+          "required": false,
+          "defaultValue": "4578"
+        },
+        {
+          "flag": "--role <role>",
+          "description": "Node role: leader or worker",
+          "required": false,
+          "defaultValue": "worker"
+        },
+        {
+          "flag": "--leader <host:port>",
+          "description": "Leader address (required for workers)",
+          "required": false
+        },
+        {
+          "flag": "--secret <key>",
+          "description": "Cluster shared secret",
+          "required": false
+        },
+        {
+          "flag": "--tags <tags...>",
+          "description": "Node tags",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/distributed.ts",
+      "description": "Start distributed runtime node",
+      "parent": "distributed"
+    },
+    {
+      "name": "distributed status",
+      "options": [],
+      "sourceFile": "src/cli/commands/distributed.ts",
+      "description": "Show cluster status",
+      "parent": "distributed"
+    },
+    {
+      "name": "distributed task <type> <payload>",
+      "options": [],
+      "sourceFile": "src/cli/commands/distributed.ts",
+      "description": "Dispatch a task to the best worker",
+      "parent": "distributed"
+    },
+    {
+      "name": "distributed worker <id>",
+      "options": [],
+      "sourceFile": "src/cli/commands/distributed.ts",
+      "description": "Show worker details",
+      "parent": "distributed"
+    },
+    {
+      "name": "distributed workers",
+      "options": [],
+      "sourceFile": "src/cli/commands/distributed.ts",
+      "description": "List all workers in the cluster",
+      "parent": "distributed"
+    },
+    {
+      "name": "docscrawl",
+      "options": [],
+      "sourceFile": "src/cli/commands/docs-crawl.ts",
+      "description": "Crawl documentation sites into structured Markdown + knowledge graph"
+    },
+    {
+      "name": "docscrawl config",
+      "options": [],
+      "sourceFile": "src/cli/commands/docs-crawl.ts",
+      "description": "Run all crawls defined in the config file",
+      "parent": "docscrawl"
+    },
+    {
+      "name": "docscrawl crawl [url]",
+      "options": [
+        {
+          "flag": "-m, --mode <mode>",
+          "description": "qa, kg, or both",
+          "required": false,
+          "defaultValue": "qa"
+        },
+        {
+          "flag": "-d, --depth <n>",
+          "description": "Max crawl depth",
+          "required": false
+        },
+        {
+          "flag": "-l, --limit <n>",
+          "description": "Max pages",
+          "required": false
+        },
+        {
+          "flag": "-o, --output <dir>",
+          "description": "Output directory",
+          "required": false
+        },
+        {
+          "flag": "--no-files",
+          "description": "Skip writing files to disk",
+          "required": false
+        },
+        {
+          "flag": "--no-kg",
+          "description": "Skip knowledge graph ingestion",
+          "required": false
+        },
+        {
+          "flag": "--local",
+          "description": "Crawl local markdown files instead of URL",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/docs-crawl.ts",
+      "description": "Crawl a documentation website or local directory",
+      "parent": "docscrawl"
+    },
+    {
+      "name": "docscrawl list",
+      "options": [],
+      "sourceFile": "src/cli/commands/docs-crawl.ts",
+      "description": "List crawled documentation sites",
+      "parent": "docscrawl"
     },
     {
       "name": "doctor",
@@ -631,11 +1125,53 @@
       "description": "Start the Email adapter (SMTP)"
     },
     {
+      "name": "env",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Load a vault entry as environment variables"
+    },
+    {
+      "name": "estimate",
+      "options": [],
+      "sourceFile": "src/cli/commands/preflight.ts",
+      "description": "Pre-flight cost estimation — estimate cost before spawning an agent"
+    },
+    {
       "name": "experience",
       "options": [],
       "sourceFile": "src/cli/commands/experience.ts",
       "description": "Experience replay buffer — track agent trajectories for skill learning",
       "alias": "exp"
+    },
+    {
+      "name": "experience auto-extract",
+      "options": [
+        {
+          "flag": "--min-confidence <pct>",
+          "description": "Minimum confidence threshold",
+          "required": false,
+          "defaultValue": "70"
+        },
+        {
+          "flag": "--min-reps <n>",
+          "description": "Minimum repetitions for skill extraction",
+          "required": false,
+          "defaultValue": "3"
+        },
+        {
+          "flag": "--auto-apply",
+          "description": "Actually write the skill files (default: dry-run)",
+          "required": false
+        },
+        {
+          "flag": "--ratchet",
+          "description": "Also ratchet persistent failures into regression cases",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/experience.ts",
+      "description": "Auto-extract skills from successful patterns",
+      "parent": "experience"
     },
     {
       "name": "experience candidates",
@@ -699,11 +1235,149 @@
       "parent": "experience"
     },
     {
+      "name": "experience retry",
+      "options": [
+        {
+          "flag": "--max-retries <n>",
+          "description": "Maximum retry attempts per failure",
+          "required": false,
+          "defaultValue": "2"
+        },
+        {
+          "flag": "--strategy <type>",
+          "description": "Retry strategy (same/different-model/more-context)",
+          "required": false,
+          "defaultValue": "same"
+        },
+        {
+          "flag": "--dry-run",
+          "description": "Show what would be retried without executing",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/experience.ts",
+      "description": "Auto-retry failed experiences with different strategies",
+      "parent": "experience"
+    },
+    {
       "name": "experience stats",
       "options": [],
       "sourceFile": "src/cli/commands/experience.ts",
       "description": "Show experience store statistics",
       "parent": "experience"
+    },
+    {
+      "name": "extract",
+      "options": [
+        {
+          "flag": "--min-reward <n>",
+          "description": "Minimum reward threshold",
+          "required": false,
+          "defaultValue": "0.7"
+        }
+      ],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Extract skill candidates from successful experiences"
+    },
+    {
+      "name": "fix <id>",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Generate fix suggestion for a failure cluster"
+    },
+    {
+      "name": "get",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Retrieve a credential"
+    },
+    {
+      "name": "graph",
+      "options": [],
+      "sourceFile": "src/cli/commands/knowledge.ts",
+      "description": "Knowledge graph — entity-relationship memory store"
+    },
+    {
+      "name": "graph add-entity <name> <type> <context>",
+      "options": [],
+      "sourceFile": "src/cli/commands/knowledge.ts",
+      "description": "Add an entity to the knowledge graph",
+      "parent": "graph"
+    },
+    {
+      "name": "graph extract <text>",
+      "options": [
+        {
+          "flag": "--source <s>",
+          "description": "Source identifier",
+          "required": false,
+          "defaultValue": "cli"
+        }
+      ],
+      "sourceFile": "src/cli/commands/knowledge.ts",
+      "description": "Extract entities and relationships from text",
+      "parent": "graph"
+    },
+    {
+      "name": "graph link <source> <target> <type>",
+      "options": [
+        {
+          "flag": "-w, --weight <n>",
+          "description": "Relationship weight 0-1",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/knowledge.ts",
+      "description": "Add a relationship between two entities",
+      "parent": "graph"
+    },
+    {
+      "name": "graph related <name>",
+      "options": [
+        {
+          "flag": "--type <t>",
+          "description": "Filter by relationship type",
+          "required": false
+        },
+        {
+          "flag": "--depth <n>",
+          "description": "Traversal depth",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/knowledge.ts",
+      "description": "Show entities related to the given entity",
+      "parent": "graph"
+    },
+    {
+      "name": "graph search <query>",
+      "options": [
+        {
+          "flag": "--type <t>",
+          "description": "Filter by entity type",
+          "required": false
+        },
+        {
+          "flag": "--min-confidence <n>",
+          "description": "Minimum confidence",
+          "required": false
+        },
+        {
+          "flag": "--limit <n>",
+          "description": "Max results",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/knowledge.ts",
+      "description": "Search knowledge graph entities",
+      "parent": "graph"
+    },
+    {
+      "name": "graph stats",
+      "options": [],
+      "sourceFile": "src/cli/commands/knowledge.ts",
+      "description": "Show knowledge graph statistics",
+      "parent": "graph"
     },
     {
       "name": "harness",
@@ -743,6 +1417,238 @@
       "sourceFile": "src/cli/commands/harness.ts",
       "description": "Show harness status (tests found, etc.)",
       "parent": "harness"
+    },
+    {
+      "name": "improve",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Self-improving agents — skill extraction, failure clustering, adversarial self-play"
+    },
+    {
+      "name": "improve adversarial",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Adversarial self-play for system hardening",
+      "parent": "improve"
+    },
+    {
+      "name": "improve failure",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Cluster and analyze agent failures",
+      "parent": "improve"
+    },
+    {
+      "name": "improve scheduler",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Self-improvement cron scheduler management",
+      "parent": "improve"
+    },
+    {
+      "name": "improve skill",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Manage skill candidates extracted from successful experiences",
+      "parent": "improve"
+    },
+    {
+      "name": "init",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Register self-improvement cron triggers (skill extraction every 6h, failure clustering every 12h)"
+    },
+    {
+      "name": "init",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Initialize the vault with a master password"
+    },
+    {
+      "name": "insights",
+      "options": [],
+      "sourceFile": "src/cli/commands/insights.ts",
+      "description": "Cross-database intelligence — join audit, billing, experience, and telemetry",
+      "alias": "i"
+    },
+    {
+      "name": "insights agents",
+      "options": [],
+      "sourceFile": "src/cli/commands/insights.ts",
+      "description": "Agent performance heatmap (by agent_type)",
+      "parent": "insights"
+    },
+    {
+      "name": "insights costs",
+      "options": [],
+      "sourceFile": "src/cli/commands/insights.ts",
+      "description": "Cost vs outcome analysis (cheapest paths to success)",
+      "parent": "insights"
+    },
+    {
+      "name": "insights export",
+      "options": [
+        {
+          "flag": "--format <format>",
+          "description": "Export format",
+          "required": false,
+          "defaultValue": "json"
+        },
+        {
+          "flag": "-o, --output <path>",
+          "description": "Output file path",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/insights.ts",
+      "description": "Export unified data as JSON",
+      "parent": "insights"
+    },
+    {
+      "name": "insights failures",
+      "options": [],
+      "sourceFile": "src/cli/commands/insights.ts",
+      "description": "Root cause: what failed, what it cost, what patterns",
+      "parent": "insights"
+    },
+    {
+      "name": "insights sessions",
+      "options": [
+        {
+          "flag": "-l, --limit <number>",
+          "description": "Number of sessions to show",
+          "required": false,
+          "defaultValue": "20"
+        }
+      ],
+      "sourceFile": "src/cli/commands/insights.ts",
+      "description": "Session-level report joining audit + billing + experience + telemetry",
+      "parent": "insights"
+    },
+    {
+      "name": "insights summary",
+      "options": [],
+      "sourceFile": "src/cli/commands/insights.ts",
+      "description": "High-level system status across all 4 databases",
+      "parent": "insights"
+    },
+    {
+      "name": "insights timeline",
+      "options": [
+        {
+          "flag": "-d, --days <number>",
+          "description": "Number of days to show",
+          "required": false,
+          "defaultValue": "20"
+        }
+      ],
+      "sourceFile": "src/cli/commands/insights.ts",
+      "description": "Timeline of activity across all stores",
+      "parent": "insights"
+    },
+    {
+      "name": "key",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Manage API keys"
+    },
+    {
+      "name": "key generate",
+      "options": [
+        {
+          "flag": "-l, --label <label>",
+          "description": "Human-readable label for the key",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Generate an API key for a user",
+      "parent": "key"
+    },
+    {
+      "name": "key list",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "List all API keys",
+      "parent": "key"
+    },
+    {
+      "name": "key revoke",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Revoke an API key",
+      "parent": "key"
+    },
+    {
+      "name": "leaderboard",
+      "options": [
+        {
+          "flag": "--category <name>",
+          "description": "Filter by category",
+          "required": false
+        },
+        {
+          "flag": "--provider <name>",
+          "description": "Filter by provider",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/pricing.ts",
+      "description": "Show quality/USD leaderboard"
+    },
+    {
+      "name": "list",
+      "options": [
+        {
+          "flag": "--status <status>",
+          "description": "Filter by status (candidate|validated|published|rejected)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "List skill candidates"
+    },
+    {
+      "name": "list",
+      "options": [
+        {
+          "flag": "--severity <level>",
+          "description": "Filter by severity (low|medium|high|critical)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "List failure clusters"
+    },
+    {
+      "name": "list",
+      "options": [
+        {
+          "flag": "-t, --type <type>",
+          "description": "Filter by type",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "List credentials"
+    },
+    {
+      "name": "list",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "List background agents"
+    },
+    {
+      "name": "list",
+      "options": [],
+      "sourceFile": "src/cli/commands/trigger.ts",
+      "description": "List all background agents and file watchers"
+    },
+    {
+      "name": "lock",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Lock the vault"
     },
     {
       "name": "mcp",
@@ -910,6 +1816,91 @@
       "parent": "mesh"
     },
     {
+      "name": "ns",
+      "options": [],
+      "sourceFile": "src/cli/commands/knowledge.ts",
+      "description": "Memory namespaces — per-agent memory isolation"
+    },
+    {
+      "name": "ns add <ns-id> <content>",
+      "options": [
+        {
+          "flag": "--type <t>",
+          "description": "Entry type: fact|observation|relationship|skill",
+          "required": false,
+          "defaultValue": "observation"
+        },
+        {
+          "flag": "--source <s>",
+          "description": "Source identifier",
+          "required": false,
+          "defaultValue": "cli"
+        }
+      ],
+      "sourceFile": "src/cli/commands/knowledge.ts",
+      "description": "Add an entry to a namespace",
+      "parent": "ns"
+    },
+    {
+      "name": "ns create <agent-type> <ttl-days>",
+      "options": [
+        {
+          "flag": "--agent-id <id>",
+          "description": "Specific agent ID",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/knowledge.ts",
+      "description": "Create a new memory namespace",
+      "parent": "ns"
+    },
+    {
+      "name": "ns entries <ns-id>",
+      "options": [
+        {
+          "flag": "--limit <n>",
+          "description": "Max entries",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/knowledge.ts",
+      "description": "List entries in a namespace",
+      "parent": "ns"
+    },
+    {
+      "name": "ns list",
+      "options": [],
+      "sourceFile": "src/cli/commands/knowledge.ts",
+      "description": "List all namespaces",
+      "parent": "ns"
+    },
+    {
+      "name": "ns prune",
+      "options": [],
+      "sourceFile": "src/cli/commands/knowledge.ts",
+      "description": "Archive expired namespace entries",
+      "parent": "ns"
+    },
+    {
+      "name": "ns query <ns-id> <query>",
+      "options": [
+        {
+          "flag": "--limit <n>",
+          "description": "Max results",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/knowledge.ts",
+      "description": "Search entries in a namespace",
+      "parent": "ns"
+    },
+    {
+      "name": "ns-stats",
+      "options": [],
+      "sourceFile": "src/cli/commands/knowledge.ts",
+      "description": "Show namespace statistics"
+    },
+    {
       "name": "openapi",
       "options": [],
       "sourceFile": "src/cli/commands/openapi.ts",
@@ -979,6 +1970,153 @@
       "description": "Generate a step-by-step implementation plan"
     },
     {
+      "name": "plugin",
+      "options": [],
+      "sourceFile": "src/cli/commands/plugin.ts",
+      "description": "Manage the local plugin registry (publish, install, list, remove)",
+      "alias": "plugins"
+    },
+    {
+      "name": "plugin install",
+      "options": [
+        {
+          "flag": "-f, --force",
+          "description": "Overwrite existing skill directory",
+          "required": false,
+          "defaultValue": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/plugin.ts",
+      "description": "Install a plugin from the local registry into skills/",
+      "parent": "plugin"
+    },
+    {
+      "name": "plugin list",
+      "options": [],
+      "sourceFile": "src/cli/commands/plugin.ts",
+      "description": "List all plugins in the local registry",
+      "parent": "plugin"
+    },
+    {
+      "name": "plugin publish",
+      "options": [
+        {
+          "flag": "-d, --description <text>",
+          "description": "Description for the plugin",
+          "required": false
+        },
+        {
+          "flag": "-v, --version <version>",
+          "description": "Version string",
+          "required": false,
+          "defaultValue": "1.0.0"
+        }
+      ],
+      "sourceFile": "src/cli/commands/plugin.ts",
+      "description": "Package a skill directory into the local registry",
+      "parent": "plugin"
+    },
+    {
+      "name": "plugin remove",
+      "options": [
+        {
+          "flag": "--keep-files",
+          "description": "Keep the package directory on disk",
+          "required": false,
+          "defaultValue": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/plugin.ts",
+      "description": "Remove a plugin from the local registry",
+      "parent": "plugin",
+      "alias": "rm"
+    },
+    {
+      "name": "policy",
+      "options": [],
+      "sourceFile": "src/cli/commands/memory-policy.ts",
+      "description": "Cross-team memory ACL — access control lists for namespaces"
+    },
+    {
+      "name": "policy audit",
+      "options": [
+        {
+          "flag": "-n, --lines <count>",
+          "description": "Number of entries",
+          "required": false,
+          "defaultValue": "20"
+        }
+      ],
+      "sourceFile": "src/cli/commands/memory-policy.ts",
+      "description": "Show recent policy audit log entries",
+      "parent": "policy"
+    },
+    {
+      "name": "policy check",
+      "options": [],
+      "sourceFile": "src/cli/commands/memory-policy.ts",
+      "description": "Check if a principal can read a path in a namespace",
+      "parent": "policy"
+    },
+    {
+      "name": "policy expired",
+      "options": [],
+      "sourceFile": "src/cli/commands/memory-policy.ts",
+      "description": "Check for and clean up expired grants",
+      "parent": "policy"
+    },
+    {
+      "name": "policy grant",
+      "options": [
+        {
+          "flag": "-p, --path <path>",
+          "description": "Path filter glob",
+          "required": false
+        },
+        {
+          "flag": "-t, --tools <tools>",
+          "description": "Comma-separated tool names (default: all)",
+          "required": false
+        },
+        {
+          "flag": "-e, --expires <hours>",
+          "description": "Expiry in hours from now",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/memory-policy.ts",
+      "description": "Grant access to a memory namespace",
+      "parent": "policy"
+    },
+    {
+      "name": "policy init",
+      "options": [],
+      "sourceFile": "src/cli/commands/memory-policy.ts",
+      "description": "Create a default (deny-all) policy for a namespace",
+      "parent": "policy"
+    },
+    {
+      "name": "policy list",
+      "options": [],
+      "sourceFile": "src/cli/commands/memory-policy.ts",
+      "description": "List grants for a namespace (or all namespaces)",
+      "parent": "policy"
+    },
+    {
+      "name": "policy revoke",
+      "options": [],
+      "sourceFile": "src/cli/commands/memory-policy.ts",
+      "description": "Revoke a grant from a namespace",
+      "parent": "policy"
+    },
+    {
+      "name": "policy show",
+      "options": [],
+      "sourceFile": "src/cli/commands/memory-policy.ts",
+      "description": "Show full policy for a namespace",
+      "parent": "policy"
+    },
+    {
       "name": "pool",
       "options": [],
       "sourceFile": "src/cli/commands/pool.ts",
@@ -1036,6 +2174,131 @@
       "parent": "pool"
     },
     {
+      "name": "pricing",
+      "options": [],
+      "sourceFile": "src/cli/commands/pricing.ts",
+      "description": "Tool-level economy and cost routing"
+    },
+    {
+      "name": "pricing bench",
+      "options": [],
+      "sourceFile": "src/cli/commands/pricing.ts",
+      "description": "Benchmark suite and leaderboard",
+      "parent": "pricing"
+    },
+    {
+      "name": "pricing estimate",
+      "options": [
+        {
+          "flag": "--input <tokens>",
+          "description": "Estimated input tokens",
+          "required": false,
+          "defaultValue": "1000"
+        },
+        {
+          "flag": "--output <tokens>",
+          "description": "Estimated output tokens",
+          "required": false,
+          "defaultValue": "500"
+        },
+        {
+          "flag": "--tools <names>",
+          "description": "Comma-separated tool names",
+          "required": false
+        },
+        {
+          "flag": "--calls <n>",
+          "description": "Number of tool calls",
+          "required": false,
+          "defaultValue": "0"
+        },
+        {
+          "flag": "--complexity <level>",
+          "description": "simple|moderate|complex",
+          "required": false,
+          "defaultValue": "moderate"
+        },
+        {
+          "flag": "--budget <usd>",
+          "description": "Budget constraint",
+          "required": false,
+          "defaultValue": "1.0"
+        }
+      ],
+      "sourceFile": "src/cli/commands/pricing.ts",
+      "description": "Estimate cost for a task: aegis pricing estimate --input 500 --output 200 --budget 0.05",
+      "parent": "pricing"
+    },
+    {
+      "name": "pricing list",
+      "options": [],
+      "sourceFile": "src/cli/commands/pricing.ts",
+      "description": "Show all tool and model pricing",
+      "parent": "pricing"
+    },
+    {
+      "name": "pricing refresh",
+      "options": [],
+      "sourceFile": "src/cli/commands/pricing.ts",
+      "description": "Reset pricing to defaults",
+      "parent": "pricing"
+    },
+    {
+      "name": "pricing set",
+      "options": [],
+      "sourceFile": "src/cli/commands/pricing.ts",
+      "description": "Set a pricing value: aegis pricing set <tool|model>.<field> <value>",
+      "parent": "pricing"
+    },
+    {
+      "name": "production",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Production hardening features: RBAC, vault, SLO, traces, background agents"
+    },
+    {
+      "name": "production background",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Background agent management",
+      "parent": "production"
+    },
+    {
+      "name": "production dashboard",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Show production dashboard",
+      "parent": "production"
+    },
+    {
+      "name": "production rbac",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Role-based access control management",
+      "parent": "production"
+    },
+    {
+      "name": "production slo",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Service Level Objective management",
+      "parent": "production"
+    },
+    {
+      "name": "production trace",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Trace span querying",
+      "parent": "production"
+    },
+    {
+      "name": "production vault",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Encrypted credential vault management",
+      "parent": "production"
+    },
+    {
       "name": "project",
       "options": [],
       "sourceFile": "src/cli/commands/project.ts",
@@ -1080,6 +2343,29 @@
       "alias": "use"
     },
     {
+      "name": "protect",
+      "options": [
+        {
+          "flag": "-p, --permission <perm>",
+          "description": "Permission required (e.g. agent:spawn)",
+          "required": true
+        },
+        {
+          "flag": "-m, --method <method>",
+          "description": "HTTP method (default: ALL)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Register a route permission requirement"
+    },
+    {
+      "name": "publish <id>",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Publish a candidate as a real skill in src/skills/"
+    },
+    {
       "name": "publish <name>",
       "options": [
         {
@@ -1090,6 +2376,46 @@
       ],
       "sourceFile": "src/cli/commands/skills.ts",
       "description": "Publish a skill to agentskills.io"
+    },
+    {
+      "name": "query",
+      "options": [
+        {
+          "flag": "-t, --type <type>",
+          "description": "Filter by type (agent, tool, llm, ipc, auth, memory)",
+          "required": false
+        },
+        {
+          "flag": "-s, --status <status>",
+          "description": "Filter by status (ok, error, pending)",
+          "required": false
+        },
+        {
+          "flag": "--since <date>",
+          "description": "Show spans since date (ISO 8601)",
+          "required": false
+        },
+        {
+          "flag": "-l, --limit <n>",
+          "description": "Max results",
+          "required": false,
+          "defaultValue": "50"
+        }
+      ],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Query trace spans"
+    },
+    {
+      "name": "query <question>",
+      "options": [
+        {
+          "flag": "--limit <n>",
+          "description": "Results per store",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/unified-memory.ts",
+      "description": "Search across all memory stores"
     },
     {
       "name": "reflect <session-id>",
@@ -1119,6 +2445,84 @@
       "description": "Reflect on an agent session — score progress and suggest next steps"
     },
     {
+      "name": "register",
+      "options": [
+        {
+          "flag": "--target <n>",
+          "description": "Target value (e.g. 0.999 for 99.9%)",
+          "required": true
+        },
+        {
+          "flag": "--metric <m>",
+          "description": "Metric type: uptime, success_rate, error_rate, latency_p50, latency_p95, latency_p99",
+          "required": true
+        },
+        {
+          "flag": "--window <days>",
+          "description": "Rolling window in days",
+          "required": false,
+          "defaultValue": "30"
+        },
+        {
+          "flag": "--desc <text>",
+          "description": "Description",
+          "required": false
+        },
+        {
+          "flag": "--threshold <n>",
+          "description": "Threshold for latency metrics (ms)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Register an SLO"
+    },
+    {
+      "name": "register",
+      "options": [
+        {
+          "flag": "--name <name>",
+          "description": "Agent name",
+          "required": true
+        },
+        {
+          "flag": "--schedule <interval>",
+          "description": "Cron schedule (e.g. 30s, 5m, 1h)",
+          "required": true
+        },
+        {
+          "flag": "--goal <goal>",
+          "description": "Goal for the agent to execute",
+          "required": true
+        },
+        {
+          "flag": "--agent-type <type>",
+          "description": "Agent type hint (e.g. build, debug, review)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/trigger.ts",
+      "description": "Register a background agent"
+    },
+    {
+      "name": "reject <id>",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Reject a skill candidate"
+    },
+    {
+      "name": "remove",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Remove all self-improvement cron triggers"
+    },
+    {
+      "name": "report",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Full SLO report"
+    },
+    {
       "name": "research",
       "options": [
         {
@@ -1136,6 +2540,122 @@
       "sourceFile": "src/cli/commands/research.ts",
       "description": "Run an autonomous research loop with safe ratchet mechanism",
       "alias": "rs"
+    },
+    {
+      "name": "results",
+      "options": [
+        {
+          "flag": "--limit <n>",
+          "description": "Number of results to show",
+          "required": false,
+          "defaultValue": "10"
+        }
+      ],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Show past adversarial self-play results"
+    },
+    {
+      "name": "retry <id>",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Auto-retry failed experiences in a cluster with suggested fix"
+    },
+    {
+      "name": "router",
+      "options": [],
+      "sourceFile": "src/cli/commands/router.ts",
+      "description": "Model routing — auto-select cheapest provider/model for tasks"
+    },
+    {
+      "name": "router list",
+      "options": [
+        {
+          "flag": "--tier <tier>",
+          "description": "Filter by tier (cheap, balanced, premium)",
+          "required": false
+        },
+        {
+          "flag": "--provider <name>",
+          "description": "Filter by provider",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/router.ts",
+      "description": "List available models with pricing",
+      "parent": "router"
+    },
+    {
+      "name": "router route",
+      "options": [
+        {
+          "flag": "--type <type>",
+          "description": "Agent type (build, read, review, etc.)",
+          "required": false
+        },
+        {
+          "flag": "--budget <usd>",
+          "description": "Max budget",
+          "required": false,
+          "defaultValue": "1.0"
+        },
+        {
+          "flag": "--tier <tier>",
+          "description": "Preferred tier (cheap, balanced, premium)",
+          "required": false
+        },
+        {
+          "flag": "--json",
+          "description": "JSON output",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/router.ts",
+      "description": "Route a task description to best provider/model",
+      "parent": "router"
+    },
+    {
+      "name": "router suggest",
+      "options": [],
+      "sourceFile": "src/cli/commands/router.ts",
+      "description": "Suggest budget for an agent type based on historical defaults",
+      "parent": "router"
+    },
+    {
+      "name": "run",
+      "options": [
+        {
+          "flag": "--agent-types <types>",
+          "description": "Comma-separated agent types",
+          "required": false,
+          "defaultValue": "build,debug,review"
+        },
+        {
+          "flag": "--scenarios <n>",
+          "description": "Number of scenarios",
+          "required": false,
+          "defaultValue": "5"
+        },
+        {
+          "flag": "--rounds <n>",
+          "description": "Max rounds per scenario",
+          "required": false,
+          "defaultValue": "3"
+        },
+        {
+          "flag": "--budget <usd>",
+          "description": "Budget in USD",
+          "required": false,
+          "defaultValue": "1.0"
+        }
+      ],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Run adversarial self-play session"
+    },
+    {
+      "name": "run <job>",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Run extraction/clustering immediately (skill-extract, failure-cluster, all)"
     },
     {
       "name": "sandbox",
@@ -1165,10 +2685,33 @@
           "required": false
         },
         {
+          "flag": "--auth",
+          "description": "Enable RBAC authentication on all endpoints",
+          "required": false,
+          "defaultValue": false
+        },
+        {
+          "flag": "--auth-required",
+          "description": "Require valid API key for all requests (default: false)",
+          "required": false,
+          "defaultValue": false
+        },
+        {
           "flag": "--cron",
           "description": "Also start the cron engine",
           "required": false,
           "defaultValue": false
+        },
+        {
+          "flag": "--auto-improve",
+          "description": "Start self-improvement scheduler (default)",
+          "required": false,
+          "defaultValue": true
+        },
+        {
+          "flag": "--no-auto-improve",
+          "description": "Skip self-improvement scheduler startup",
+          "required": false
         },
         {
           "flag": "--webhook-secret <secret>",
@@ -1189,6 +2732,19 @@
       "options": [],
       "sourceFile": "src/cli/commands/session.ts",
       "description": "Manage persisted agent sessions from the SQLite store"
+    },
+    {
+      "name": "session checkpoint <sessionId> <messageId>",
+      "options": [
+        {
+          "flag": "-n, --name <name>",
+          "description": "Descriptive name for this checkpoint",
+          "required": true
+        }
+      ],
+      "sourceFile": "src/cli/commands/session.ts",
+      "description": "Mark a message as a named checkpoint for later forking",
+      "parent": "session"
     },
     {
       "name": "session delete <sessionId>",
@@ -1212,6 +2768,29 @@
       "parent": "session"
     },
     {
+      "name": "session fork <parentId>",
+      "options": [
+        {
+          "flag": "-n, --name <name>",
+          "description": "Name for the forked session",
+          "required": false
+        },
+        {
+          "flag": "--goal <goal>",
+          "description": "New goal for the forked session",
+          "required": false
+        },
+        {
+          "flag": "--at <messageId>",
+          "description": "Message ID to fork at (default: last message)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/session.ts",
+      "description": "Fork a session at a checkpoint into a new branch",
+      "parent": "session"
+    },
+    {
       "name": "session list",
       "options": [
         {
@@ -1230,6 +2809,13 @@
       "description": "List recent sessions",
       "parent": "session",
       "alias": "ls"
+    },
+    {
+      "name": "session merge <sourceId> <targetId>",
+      "options": [],
+      "sourceFile": "src/cli/commands/session.ts",
+      "description": "Merge messages from one session into another",
+      "parent": "session"
     },
     {
       "name": "session prune",
@@ -1273,6 +2859,13 @@
       ],
       "sourceFile": "src/cli/commands/session.ts",
       "description": "Search messages across all sessions",
+      "parent": "session"
+    },
+    {
+      "name": "session tree <sessionId>",
+      "options": [],
+      "sourceFile": "src/cli/commands/session.ts",
+      "description": "Show the full fork tree starting from a session",
       "parent": "session"
     },
     {
@@ -1457,6 +3050,42 @@
       "description": "Start the SMS adapter (Twilio)"
     },
     {
+      "name": "stats",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Show skill extraction statistics"
+    },
+    {
+      "name": "status",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Check if self-improvement scheduler is active"
+    },
+    {
+      "name": "status",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Show vault status"
+    },
+    {
+      "name": "status",
+      "options": [
+        {
+          "flag": "-n, --name <name>",
+          "description": "SLO name (omit for all)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Check SLO status"
+    },
+    {
+      "name": "status",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Background agent status overview"
+    },
+    {
       "name": "status",
       "options": [
         {
@@ -1473,6 +3102,42 @@
       "sourceFile": "src/cli/commands/status.ts",
       "description": "System status overview — agents, memory, runtime",
       "alias": "st"
+    },
+    {
+      "name": "status",
+      "options": [],
+      "sourceFile": "src/cli/commands/unified-memory.ts",
+      "description": "Show stats across all memory stores"
+    },
+    {
+      "name": "store",
+      "options": [
+        {
+          "flag": "-t, --type <type>",
+          "description": "Credential type",
+          "required": false,
+          "defaultValue": "password"
+        }
+      ],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Store a credential"
+    },
+    {
+      "name": "submit",
+      "options": [
+        {
+          "flag": "--run-id <id>",
+          "description": "Run ID to submit",
+          "required": false
+        },
+        {
+          "flag": "--public",
+          "description": "Submit publicly (opt-in)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/pricing.ts",
+      "description": "Submit benchmark results to public leaderboard"
     },
     {
       "name": "supervise <goal>",
@@ -1492,6 +3157,23 @@
       ],
       "sourceFile": "src/cli/commands/supervise.ts",
       "description": "Spawn an agent and supervise it — auto-restart on failure"
+    },
+    {
+      "name": "synthesize <topic>",
+      "options": [
+        {
+          "flag": "--sources <sources>",
+          "description": "Comma-separated stores: recall,vector,graph,experience,sessions",
+          "required": false
+        },
+        {
+          "flag": "--max-sources <n>",
+          "description": "Max sources per topic",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/knowledge.ts",
+      "description": "Cross-store knowledge synthesis — gather evidence from all memory stores"
     },
     {
       "name": "telegram",
@@ -1593,6 +3275,267 @@
       "parent": "toolset"
     },
     {
+      "name": "train",
+      "options": [],
+      "sourceFile": "src/cli/commands/train.ts",
+      "description": "Training trajectory management — export and manage training data"
+    },
+    {
+      "name": "train export",
+      "options": [
+        {
+          "flag": "-f, --format <format>",
+          "description": "Output format: atropos or jsonl",
+          "required": false,
+          "defaultValue": "atropos"
+        },
+        {
+          "flag": "-s, --since <days>",
+          "description": "Days to look back (default: 7)",
+          "required": false,
+          "defaultValue": "7"
+        },
+        {
+          "flag": "-o, --output <path>",
+          "description": "Output file path",
+          "required": false,
+          "defaultValue": "./trajectories-export.jsonl"
+        },
+        {
+          "flag": "--session <id>",
+          "description": "Export only this session ID",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/train.ts",
+      "description": "Export training trajectories to file",
+      "parent": "train"
+    },
+    {
+      "name": "trigger",
+      "options": [],
+      "sourceFile": "src/cli/commands/trigger.ts",
+      "description": "Manage event-driven triggers"
+    },
+    {
+      "name": "trigger add",
+      "options": [
+        {
+          "flag": "-g, --goal <goal>",
+          "description": "Goal or command to execute when the trigger fires",
+          "required": true
+        },
+        {
+          "flag": "-m, --mode <mode>",
+          "description": "Action mode: spawn-agent (default), queue-task, run-command",
+          "required": false,
+          "defaultValue": "spawn-agent"
+        },
+        {
+          "flag": "--agent-type <type>",
+          "description": "Agent type hint (for spawn-agent mode)",
+          "required": false
+        },
+        {
+          "flag": "--priority <priority>",
+          "description": "Task priority: low, normal, high, critical",
+          "required": false,
+          "defaultValue": "normal"
+        },
+        {
+          "flag": "--tags <tags>",
+          "description": "Comma-separated tags",
+          "required": false
+        },
+        {
+          "flag": "--schedule <interval>",
+          "description": "Cron schedule (e.g. 30m, 1h, 6h, 1d)",
+          "required": false
+        },
+        {
+          "flag": "--hours-start <h>",
+          "description": "Cron during-hours start (0-23)",
+          "required": false
+        },
+        {
+          "flag": "--hours-end <h>",
+          "description": "Cron during-hours end (0-23)",
+          "required": false
+        },
+        {
+          "flag": "--dir <path>",
+          "description": "File watch directory path",
+          "required": false
+        },
+        {
+          "flag": "--pattern <glob>",
+          "description": "File watch glob pattern",
+          "required": false
+        },
+        {
+          "flag": "--events <events>",
+          "description": "File watch events: change,create,delete (comma-separated)",
+          "required": false
+        },
+        {
+          "flag": "--debounce <ms>",
+          "description": "File watch debounce in ms",
+          "required": false,
+          "defaultValue": "1000"
+        },
+        {
+          "flag": "--webhook-path <path>",
+          "description": "Webhook path (e.g. /webhook/custom)",
+          "required": false
+        },
+        {
+          "flag": "--metric <metric>",
+          "description": "Condition metric: cpu, memory, disk, git-changes, custom",
+          "required": false
+        },
+        {
+          "flag": "--threshold <n>",
+          "description": "Condition threshold",
+          "required": false
+        },
+        {
+          "flag": "--operator <op>",
+          "description": "Condition operator: gt, lt, gte, lte, eq",
+          "required": false
+        },
+        {
+          "flag": "--poll-ms <ms>",
+          "description": "Condition poll interval in ms",
+          "required": false
+        },
+        {
+          "flag": "--cmd <command>",
+          "description": "Gateway command pattern (e.g. review, deploy)",
+          "required": false
+        },
+        {
+          "flag": "--platform <platform>",
+          "description": "Gateway platform filter (e.g. telegram, discord)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/trigger.ts",
+      "description": "Register a new trigger",
+      "parent": "trigger"
+    },
+    {
+      "name": "trigger background",
+      "options": [],
+      "sourceFile": "src/cli/commands/trigger.ts",
+      "description": "Manage background agents",
+      "parent": "trigger"
+    },
+    {
+      "name": "trigger fire",
+      "options": [],
+      "sourceFile": "src/cli/commands/trigger.ts",
+      "description": "Manually fire a trigger by ID",
+      "parent": "trigger"
+    },
+    {
+      "name": "trigger list",
+      "options": [
+        {
+          "flag": "-t, --type <type>",
+          "description": "Filter by trigger type (cron, file_watch, webhook, condition, gateway_command)",
+          "required": false
+        },
+        {
+          "flag": "--tag <tag>",
+          "description": "Filter by tag",
+          "required": false
+        },
+        {
+          "flag": "--enabled",
+          "description": "Show only enabled triggers",
+          "required": false
+        },
+        {
+          "flag": "--disabled",
+          "description": "Show only disabled triggers",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/trigger.ts",
+      "description": "List all registered triggers",
+      "parent": "trigger"
+    },
+    {
+      "name": "trigger remove",
+      "options": [],
+      "sourceFile": "src/cli/commands/trigger.ts",
+      "description": "Remove a trigger by ID",
+      "parent": "trigger"
+    },
+    {
+      "name": "trigger set-enabled",
+      "options": [],
+      "sourceFile": "src/cli/commands/trigger.ts",
+      "description": "Enable or disable a trigger",
+      "parent": "trigger"
+    },
+    {
+      "name": "unlock",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Unlock the vault"
+    },
+    {
+      "name": "user",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Manage RBAC users"
+    },
+    {
+      "name": "user create",
+      "options": [
+        {
+          "flag": "-r, --roles <roles>",
+          "description": "Comma-separated initial roles",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Create a new user",
+      "parent": "user"
+    },
+    {
+      "name": "user list",
+      "options": [],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "List all users",
+      "parent": "user"
+    },
+    {
+      "name": "user roles",
+      "options": [
+        {
+          "flag": "--add <role>",
+          "description": "Role to add",
+          "required": false
+        },
+        {
+          "flag": "--remove <role>",
+          "description": "Role to remove",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/production.ts",
+      "description": "Modify user roles",
+      "parent": "user"
+    },
+    {
+      "name": "validate <id>",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Validate a skill candidate against recent failures"
+    },
+    {
       "name": "voice",
       "options": [
         {
@@ -1634,6 +3577,18 @@
       ],
       "sourceFile": "src/cli/commands/voice.ts",
       "description": "Start the Voice call adapter (Twilio TTS)"
+    },
+    {
+      "name": "voice-local",
+      "options": [
+        {
+          "flag": "--project <name>",
+          "description": "Use a specific project workspace",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/voice-local.ts",
+      "description": "Start interactive local voice mode (STT/TTS)"
     },
     {
       "name": "wakeup",
@@ -1728,449 +3683,6 @@
       ],
       "sourceFile": "src/cli/commands/whatsapp.ts",
       "description": "Start the WhatsApp bot adapter (Twilio)"
-    },
-    {
-      "name": "insights",
-      "options": [],
-      "sourceFile": "src/cli/commands/insights.ts",
-      "description": "Cross-database intelligence — join audit, billing, experience, and telemetry",
-      "alias": "i"
-    },
-    {
-      "name": "insights summary",
-      "options": [],
-      "sourceFile": "src/cli/commands/insights.ts",
-      "description": "High-level system status across all 4 databases",
-      "parent": "insights"
-    },
-    {
-      "name": "insights sessions",
-      "options": [
-        {
-          "flag": "-l, --limit <number>",
-          "description": "Number of sessions to show",
-          "required": false,
-          "defaultValue": "20"
-        }
-      ],
-      "sourceFile": "src/cli/commands/insights.ts",
-      "description": "Session-level report joining all databases",
-      "parent": "insights"
-    },
-    {
-      "name": "insights agents",
-      "options": [],
-      "sourceFile": "src/cli/commands/insights.ts",
-      "description": "Agent performance heatmap (by agent_type)",
-      "parent": "insights"
-    },
-    {
-      "name": "insights failures",
-      "options": [],
-      "sourceFile": "src/cli/commands/insights.ts",
-      "description": "Root cause — what failed, what it cost, what patterns",
-      "parent": "insights"
-    },
-    {
-      "name": "insights costs",
-      "options": [],
-      "sourceFile": "src/cli/commands/insights.ts",
-      "description": "Cost vs outcome analysis (cheapest paths to success)",
-      "parent": "insights"
-    },
-    {
-      "name": "insights timeline",
-      "options": [
-        {
-          "flag": "-d, --days <number>",
-          "description": "Number of days to show",
-          "required": false,
-          "defaultValue": "20"
-        }
-      ],
-      "sourceFile": "src/cli/commands/insights.ts",
-      "description": "Timeline of activity across all stores",
-      "parent": "insights"
-    },
-    {
-      "name": "insights export",
-      "options": [
-        {
-          "flag": "--format <format>",
-          "description": "Export format",
-          "required": false,
-          "defaultValue": "json"
-        },
-        {
-          "flag": "-o, --output <path>",
-          "description": "Output file path",
-          "required": false
-        }
-      ],
-      "sourceFile": "src/cli/commands/insights.ts",
-      "description": "Export unified data as JSON",
-      "parent": "insights"
-    },
-    {
-      "name": "cost",
-      "options": [],
-      "sourceFile": "src/cli/commands/cost.ts",
-      "description": "Billing and cost tracking — monitor agent usage and budget",
-      "alias": "spend"
-    },
-    {
-      "name": "cost total",
-      "options": [],
-      "sourceFile": "src/cli/commands/cost.ts",
-      "description": "Show total spend vs budget",
-      "parent": "cost"
-    },
-    {
-      "name": "cost models",
-      "options": [],
-      "sourceFile": "src/cli/commands/cost.ts",
-      "description": "Show cost breakdown by model",
-      "parent": "cost"
-    },
-    {
-      "name": "cost sessions",
-      "options": [],
-      "sourceFile": "src/cli/commands/cost.ts",
-      "description": "Show cost by session",
-      "parent": "cost"
-    },
-    {
-      "name": "cost history",
-      "options": [
-        {
-          "flag": "-d, --days <number>",
-          "description": "Number of days of history",
-          "required": false,
-          "defaultValue": "7"
-        }
-      ],
-      "sourceFile": "src/cli/commands/cost.ts",
-      "description": "Show daily cost history",
-      "parent": "cost"
-    },
-    {
-      "name": "cost budget",
-      "options": [],
-      "sourceFile": "src/cli/commands/cost.ts",
-      "description": "Show or set budget limit",
-      "parent": "cost"
-    },
-    {
-      "name": "cost report",
-      "options": [],
-      "sourceFile": "src/cli/commands/cost.ts",
-      "description": "Full cost attribution report",
-      "parent": "cost"
-    },
-    {
-      "name": "benchmark",
-      "options": [],
-      "sourceFile": "src/cli/commands/benchmark.ts",
-      "description": "Adversarial eval benchmark — track regression over time"
-    },
-    {
-      "name": "benchmark run",
-      "options": [
-        {
-          "flag": "--category <name>",
-          "description": "Filter by category (coding, debugging, etc.)",
-          "required": false
-        },
-        {
-          "flag": "--update-baseline",
-          "description": "Accept current results as new baseline",
-          "required": false
-        },
-        {
-          "flag": "--threshold <pct>",
-          "description": "Fail if regression > X%",
-          "required": false,
-          "defaultValue": "10"
-        },
-        {
-          "flag": "--json",
-          "description": "Output as JSON for CI consumption",
-          "required": false
-        }
-      ],
-      "sourceFile": "src/cli/commands/benchmark.ts",
-      "description": "Run eval tasks and compare vs baseline",
-      "parent": "benchmark"
-    },
-    {
-      "name": "benchmark status",
-      "options": [],
-      "sourceFile": "src/cli/commands/benchmark.ts",
-      "description": "Show last benchmark run, score, drift",
-      "parent": "benchmark"
-    },
-    {
-      "name": "benchmark baseline",
-      "options": [
-        {
-          "flag": "--set <file>",
-          "description": "Import a baseline from JSON file",
-          "required": false
-        }
-      ],
-      "sourceFile": "src/cli/commands/benchmark.ts",
-      "description": "Show current baseline scores",
-      "parent": "benchmark"
-    },
-    {
-      "name": "plugin",
-      "options": [],
-      "sourceFile": "src/cli/commands/plugin.ts",
-      "description": "Manage the local plugin registry (publish, install, list, remove)",
-      "alias": "plugins"
-    },
-    {
-      "name": "plugin publish",
-      "options": [
-        {
-          "flag": "-d, --description <text>",
-          "description": "Description for the plugin",
-          "required": false
-        },
-        {
-          "flag": "-v, --version <version>",
-          "description": "Version string",
-          "required": false,
-          "defaultValue": "1.0.0"
-        }
-      ],
-      "sourceFile": "src/cli/commands/plugin.ts",
-      "description": "Package a skill directory into the local registry",
-      "parent": "plugin"
-    },
-    {
-      "name": "plugin install",
-      "options": [
-        {
-          "flag": "-f, --force",
-          "description": "Overwrite existing skill directory",
-          "required": false,
-          "defaultValue": false
-        }
-      ],
-      "sourceFile": "src/cli/commands/plugin.ts",
-      "description": "Install a plugin from the local registry into skills/",
-      "parent": "plugin"
-    },
-    {
-      "name": "plugin list",
-      "options": [],
-      "sourceFile": "src/cli/commands/plugin.ts",
-      "description": "List all plugins in the local registry",
-      "parent": "plugin"
-    },
-    {
-      "name": "plugin remove",
-      "options": [
-        {
-          "flag": "--keep-files",
-          "description": "Keep the package directory on disk",
-          "required": false,
-          "defaultValue": false
-        }
-      ],
-      "sourceFile": "src/cli/commands/plugin.ts",
-      "description": "Remove a plugin from the local registry",
-      "parent": "plugin",
-      "alias": "rm"
-    },
-    {
-      "name": "train",
-      "options": [],
-      "sourceFile": "src/cli/commands/train.ts",
-      "description": "Training trajectory management — export and manage training data"
-    },
-    {
-      "name": "train export",
-      "options": [
-        {
-          "flag": "-f, --format <format>",
-          "description": "Output format: atropos or jsonl",
-          "required": false,
-          "defaultValue": "atropos"
-        },
-        {
-          "flag": "-s, --since <days>",
-          "description": "Days to look back",
-          "required": false,
-          "defaultValue": "7"
-        },
-        {
-          "flag": "-o, --output <path>",
-          "description": "Output file path",
-          "required": false,
-          "defaultValue": "./trajectories-export.jsonl"
-        },
-        {
-          "flag": "--session <id>",
-          "description": "Export only this session ID",
-          "required": false
-        }
-      ],
-      "sourceFile": "src/cli/commands/train.ts",
-      "description": "Export training trajectories to file",
-      "parent": "train"
-    },
-    {
-      "name": "voice-local",
-      "options": [
-        {
-          "flag": "--project <name>",
-          "description": "Use a specific project workspace",
-          "required": false
-        }
-      ],
-      "sourceFile": "src/cli/commands/voice-local.ts",
-      "description": "Start interactive local voice mode (STT/TTS)"
-    },
-    {
-      "name": "debate",
-      "options": [],
-      "sourceFile": "src/cli/commands/debate.ts",
-      "description": "Multi-agent debate topology — resolve disagreements with arbitration",
-      "alias": "d"
-    },
-    {
-      "name": "debate list",
-      "options": [],
-      "sourceFile": "src/cli/commands/debate.ts",
-      "description": "List all signed debate decisions",
-      "parent": "debate"
-    },
-    {
-      "name": "debate show",
-      "options": [],
-      "sourceFile": "src/cli/commands/debate.ts",
-      "description": "View a specific signed decision record",
-      "parent": "debate"
-    },
-    {
-      "name": "debate resolve",
-      "options": [],
-      "sourceFile": "src/cli/commands/debate.ts",
-      "description": "Resolve a disagreement with an arbitrator (agent/human/majority)",
-      "parent": "debate"
-    },
-    {
-      "name": "pricing",
-      "options": [],
-      "sourceFile": "src/cli/commands/pricing.ts",
-      "description": "Tool-level economy — pricing registry, cost router, and budget guard",
-      "alias": "price"
-    },
-    {
-      "name": "pricing list",
-      "options": [],
-      "sourceFile": "src/cli/commands/pricing.ts",
-      "description": "Show tool pricing table with model costs",
-      "parent": "pricing"
-    },
-    {
-      "name": "pricing leaderboard",
-      "options": [
-        {
-          "flag": "--threshold <pct>",
-          "description": "Quality threshold as percentage of max score",
-          "required": false,
-          "defaultValue": "95"
-        }
-      ],
-      "sourceFile": "src/cli/commands/pricing.ts",
-      "description": "Run leaderboard comparing cost vs quality across models",
-      "parent": "pricing"
-    },
-    {
-      "name": "pricing set",
-      "options": [],
-      "sourceFile": "src/cli/commands/pricing.ts",
-      "description": "Set a custom price for a tool or model",
-      "parent": "pricing"
-    },
-    {
-      "name": "ci",
-      "options": [],
-      "sourceFile": "src/cli/commands/ci.ts",
-      "description": "Auto-fix failing CI — webhook server that investigates and fixes failures",
-      "alias": "ci-fix"
-    },
-    {
-      "name": "ci watch",
-      "options": [
-        {
-          "flag": "--secret <secret>",
-          "description": "HMAC secret for GitHub webhook verification",
-          "required": false
-        },
-        {
-          "flag": "--github-token <token>",
-          "description": "GitHub token for posting PR comments and creating fix PRs",
-          "required": false
-        },
-        {
-          "flag": "--no-review",
-          "description": "Disable auto PR review",
-          "required": false
-        },
-        {
-          "flag": "--no-fix",
-          "description": "Disable auto fix on push",
-          "required": false
-        }
-      ],
-      "sourceFile": "src/cli/commands/ci.ts",
-      "description": "Start CI webhook server — watches for failures and auto-fixes",
-      "parent": "ci"
-    },
-    {
-      "name": "ci status",
-      "options": [],
-      "sourceFile": "src/cli/commands/ci.ts",
-      "description": "Show CI configuration and current status",
-      "parent": "ci"
-    },
-    {
-      "name": "memory policy",
-      "options": [],
-      "sourceFile": "src/cli/commands/memory-policy.ts",
-      "description": "Cross-team memory ACL — manage access control lists"
-    },
-    {
-      "name": "memory policy grant",
-      "options": [],
-      "sourceFile": "src/cli/commands/memory-policy.ts",
-      "description": "Grant access to a memory namespace",
-      "parent": "memory"
-    },
-    {
-      "name": "memory policy revoke",
-      "options": [],
-      "sourceFile": "src/cli/commands/memory-policy.ts",
-      "description": "Revoke a grant by ID",
-      "parent": "memory"
-    },
-    {
-      "name": "memory policy list",
-      "options": [],
-      "sourceFile": "src/cli/commands/memory-policy.ts",
-      "description": "List all active grants",
-      "parent": "memory"
-    },
-    {
-      "name": "memory policy deny",
-      "options": [],
-      "sourceFile": "src/cli/commands/memory-policy.ts",
-      "description": "Add a deny rule to a memory namespace",
-      "parent": "memory"
     }
   ]
 }
