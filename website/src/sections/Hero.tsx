@@ -21,7 +21,7 @@ export default function Hero() {
           className="mt-6 inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/[0.08] bg-white/[0.02] text-[11px] text-neutral-400 font-mono"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-          <span>v0.2.0 · MIT · Local-first</span>
+          <span>v0.2.1 · MIT · Local-first</span>
           <span className="text-neutral-700">·</span>
           <a href="#changelog" className="hover:text-white transition-colors">
             changelog →
