@@ -86,10 +86,12 @@ export function registerOpenApi(program: Command) {
 
       log.info("OpenAPI spec server started", { port, host })
 
-      process.on("SIGINT", () => {
+      const handleSignal = () => {
         server.stop()
         process.exit(0)
-      })
+      }
+      process.on("SIGINT", handleSignal)
+      process.on("SIGTERM", handleSignal)
 
       await new Promise(() => {})
     })

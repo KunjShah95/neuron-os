@@ -223,10 +223,12 @@ export function registerAgent(program: Command) {
         console.log(theme.dim("  (following — press Ctrl+C to stop)"))
         const interval = setInterval(printLogs, 1_000)
 
-        process.on("SIGINT", () => {
+        const handleSignal = () => {
           clearInterval(interval)
           process.exit(0)
-        })
+        }
+        process.on("SIGINT", handleSignal)
+        process.on("SIGTERM", handleSignal)
 
         // Keep alive
         await new Promise(() => {})

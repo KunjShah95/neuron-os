@@ -12,6 +12,8 @@ import { RatchetRuntime, type RatchetConfig } from "./ratchet"
 import { Evaluator } from "../mesh/evaluator"
 import type { EvaluationCriteria } from "../mesh/types"
 import { createLogger } from "../cli/logger"
+import { compactMessages, estimateMessagesTokens, estimateTokens, type CompactedState } from "../tools/precompact"
+import { genaiTracer, type GenAIGenerationStart } from "../observability/genai-tracing"
 
 const log = createLogger("agent-engine")
 
@@ -26,8 +28,42 @@ const FULL_TOOL_PERMISSIONS: ToolPermission[] = [
   { name: "ask_agent", allow: true },
 ]
 
+export interface PlanStateHints {
+  /** If true, instructs the model to maintain a TodoWrite plan via plan_state tool */
+  enabled: boolean
+  /** The goal/task description */
+  goal?: string
+}
+
+export interface PreCompactConfig {
+  /** Token threshold to trigger compaction (default 150000) */
+  thresholdTokens: number
+  /** Max tokens for the compacted summary (default 4000) */
+  maxCompactTokens: number
+}
+
 export interface AgentEngineConfig {
   maxSteps?: number
+  /**
+   * Enable TodoWrite-style plan state via the plan_state tool.
+   * When enabled, the system prompt includes instructions for the model
+   * to call plan_state each turn to track progress.
+   */
+  planState?: boolean | PlanStateHints
+  /**
+   * Enable PreCompact hook for context window compaction.
+   * When the estimated token count exceeds thresholdTokens,
+   * older turns are summarized into a compact prior_state block.
+   * Set to `true` for defaults, or pass a PreCompactConfig.
+   */
+  preCompact?: boolean | PreCompactConfig
+  /**
+   * Enable GenAI OpenTelemetry tracing with Langfuse export.
+   * Records LLM generations and tool calls as spans with gen_ai.* attributes.
+   * When LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY env vars are set,
+   * spans are also exported to Langfuse via HTTP API.
+   */
+  tracing?: boolean
   /**
    * Session ID for SQLite persistence.
    * If provided, every chat/streamChat exchange is automatically
@@ -97,6 +133,21 @@ export class AgentEngine {
   private sessionStartFiles: string[] = []
   private projectName = ""
 
+  // ── Plan state ────────────────────────────────────────────
+  private planStateEnabled = false
+  private planStateGoal = ""
+
+  // ── PreCompact ────────────────────────────────────────────
+  private preCompactEnabled = false
+  private preCompactThreshold = 150_000
+  private preCompactMaxTokens = 4_000
+  private lastCompactedState?: CompactedState
+  private cumulativeTokenEstimate = 0
+
+  // ── GenAI Tracing ─────────────────────────────────────────
+  private tracingEnabled = false
+  private currentTrace?: GenAIGenerationStart
+
   constructor(runtime: AgentRuntime, ai: AIProviderManager, config?: AgentEngineConfig) {
     this.runtime = runtime
     this.ai = ai
@@ -128,6 +179,30 @@ export class AgentEngine {
     // Stash evaluation criteria for completeSession()
     if (config?.evaluation) {
       this.evaluationCriteria = config.evaluation
+    }
+
+    // ── Plan state initialization ─────────────────────────
+    if (config?.planState) {
+      this.planStateEnabled = true
+      if (typeof config.planState === "object") {
+        this.planStateGoal = config.planState.goal ?? this.sessionGoal ?? ""
+      } else {
+        this.planStateGoal = this.sessionGoal ?? ""
+      }
+    }
+
+    // ── PreCompact initialization ─────────────────────────
+    if (config?.preCompact) {
+      this.preCompactEnabled = true
+      if (typeof config.preCompact === "object") {
+        this.preCompactThreshold = config.preCompact.thresholdTokens ?? 150_000
+        this.preCompactMaxTokens = config.preCompact.maxCompactTokens ?? 4_000
+      }
+    }
+
+    // ── GenAI Tracing initialization ──────────────────────
+    if (config?.tracing) {
+      this.tracingEnabled = true
     }
 
     // Initialize ratchet runtime (git-aware measure/revert kernel)
@@ -422,6 +497,23 @@ export class AgentEngine {
     lines.push(
       "When you need to accomplish a task, call the appropriate tool. The tool results will be provided to you in subsequent messages.",
     )
+
+    // Append plan state guidance if enabled
+    if (this.planStateEnabled && this.planStateGoal) {
+      lines.push("")
+      lines.push("── Plan State Instructions ──")
+      lines.push("Your goal is: " + this.planStateGoal)
+      lines.push("")
+      lines.push("At the START of every turn, call the `plan_state` tool with `operation='get'` to review your current plan.")
+      lines.push("After each tool call or significant progress, call `plan_state` with `operation='update'` to rewrite the ENTIRE plan with updated statuses.")
+      lines.push("Replace 'pending' with 'in_progress' when you start an item, and 'done' when complete.")
+      lines.push("Use the 'note' field to record key decisions, blockers, or observations.")
+      lines.push("IMPORTANT: Rewrite the FULL plan each time — never send partial updates.")
+      lines.push("")
+      lines.push("Example plan_state update format:")
+      lines.push('  plan_state(operation="update", goal="fix bug", items=\'[{"id":1,"description":"find the issue","status":"done","note":"found in worker.rs:42"},{"id":2,"description":"apply fix","status":"in_progress","note":""}]\')')
+    }
+
     return lines.join("\n")
   }
 
@@ -455,31 +547,101 @@ export class AgentEngine {
       systemPrompt = `${experienceCtx}\n\n---\n\n${systemPrompt}`
     }
 
+    // ── PreCompact: compact messages if nearing token limit ──
+    let activeMessages = messages
+    if (this.preCompactEnabled) {
+      if (this.lastCompactedState?.summary) {
+        activeMessages = [
+          { role: "system", content: `[PRIOR STATE — compacted from ${this.lastCompactedState.originalTurnCount} earlier turns]\n${this.lastCompactedState.summary}` },
+          ...messages,
+        ]
+      }
+      const estimated = estimateMessagesTokens(activeMessages) + estimateTokens(systemPrompt)
+      this.cumulativeTokenEstimate = estimated
+      if (estimated > this.preCompactThreshold) {
+        log.info("PreCompact triggered", { estimatedTokens: estimated, threshold: this.preCompactThreshold })
+        const { compacted, state, tokensSaved } = await compactMessages(
+          activeMessages,
+          { thresholdTokens: this.preCompactThreshold, maxCompactTokens: this.preCompactMaxTokens },
+          this.ai,
+        )
+        if (state.originalTurnCount > 0) {
+          activeMessages = compacted
+          this.lastCompactedState = state
+          this.cumulativeTokenEstimate = estimated - tokensSaved
+          log.info("PreCompact completed", {
+            originalTurns: state.originalTurnCount,
+            tokensSaved,
+            newEstimated: this.cumulativeTokenEstimate,
+          })
+        }
+      }
+    }
+
     const tools = this.buildVercelTools()
     const toolKeys = Object.keys(tools)
 
     // Persist incoming user messages
-    const lastUserMsg = messages.findLast((m) => m.role === "user")
+    const lastUserMsg = activeMessages.findLast((m) => m.role === "user")
     if (lastUserMsg) {
       const content =
         typeof lastUserMsg.content === "string" ? lastUserMsg.content : JSON.stringify(lastUserMsg.content)
       this.persistMessage("user", content)
     }
 
+    // ── GenAI Tracing: start generation span ──
+    const aiConfig = this.ai.getConfig()
+    const modelName = aiConfig.model ?? "unknown"
+    const providerName = aiConfig.provider ?? "unknown"
+
+    if (this.tracingEnabled && this.sessionId) {
+      this.currentTrace = genaiTracer.startGeneration({
+        sessionId: this.sessionId,
+        agentId: this.runtime.context.agentId,
+        model: modelName,
+        provider: providerName,
+        systemPrompt,
+        userMessages: activeMessages.filter((m) => m.role === "user").map((m) =>
+          typeof m.content === "string" ? m.content : JSON.stringify(m.content)
+        ),
+        maxTokens: aiConfig.maxTokens,
+        temperature: aiConfig.temperature,
+      })
+    }
+
+    const startedAt = Date.now()
     const result = streamText({
       model: this.ai.getModel(),
       system: systemPrompt,
-      messages,
+      messages: activeMessages,
       tools: toolKeys.length > 0 ? tools : undefined,
       stopWhen: stepCountIs(this.maxSteps),
       abortSignal: callbacks?.onSignal,
-      temperature: this.ai.getConfig().temperature ?? 0.7,
+      temperature: aiConfig.temperature ?? 0.7,
     })
 
     let fullText = ""
     for await (const chunk of result.textStream) {
       fullText += chunk
       callbacks?.onChunk?.(chunk)
+    }
+
+    const durationMs = Date.now() - startedAt
+
+    // ── GenAI Tracing: end generation span ──
+    if (this.tracingEnabled && this.currentTrace) {
+      genaiTracer.endGeneration(this.currentTrace, {
+        spanId: this.currentTrace.spanId,
+        output: fullText,
+        durationMs,
+        status: "success",
+      })
+      this.currentTrace = undefined
+    }
+
+    // ── PreCompact: update cumulative estimate ──
+    if (this.preCompactEnabled) {
+      this.cumulativeTokenEstimate += estimateTokens(fullText) + 100
     }
 
     // Persist assistant response
@@ -499,25 +661,98 @@ export class AgentEngine {
       systemPrompt = `${experienceCtx}\n\n---\n\n${systemPrompt}`
     }
 
+    // ── PreCompact: compact messages if nearing token limit ──
+    let activeMessages = messages
+    if (this.preCompactEnabled) {
+      if (this.lastCompactedState?.summary) {
+        activeMessages = [
+          { role: "system", content: `[PRIOR STATE — compacted from ${this.lastCompactedState.originalTurnCount} earlier turns]\n${this.lastCompactedState.summary}` },
+          ...messages,
+        ]
+      }
+      const estimated = estimateMessagesTokens(activeMessages) + estimateTokens(systemPrompt)
+      this.cumulativeTokenEstimate = estimated
+      if (estimated > this.preCompactThreshold) {
+        log.info("PreCompact triggered (chat)", { estimatedTokens: estimated, threshold: this.preCompactThreshold })
+        const { compacted, state, tokensSaved } = await compactMessages(
+          activeMessages,
+          { thresholdTokens: this.preCompactThreshold, maxCompactTokens: this.preCompactMaxTokens },
+          this.ai,
+        )
+        if (state.originalTurnCount > 0) {
+          activeMessages = compacted
+          this.lastCompactedState = state
+          this.cumulativeTokenEstimate = estimated - tokensSaved
+          log.info("PreCompact completed (chat)", {
+            originalTurns: state.originalTurnCount,
+            tokensSaved,
+          })
+        }
+      }
+    }
+
     const tools = this.buildVercelTools()
     const toolKeys = Object.keys(tools)
 
     // Persist incoming user messages
-    const lastUserMsg = messages.findLast((m) => m.role === "user")
+    const lastUserMsg = activeMessages.findLast((m) => m.role === "user")
     if (lastUserMsg) {
       const content =
         typeof lastUserMsg.content === "string" ? lastUserMsg.content : JSON.stringify(lastUserMsg.content)
       this.persistMessage("user", content)
     }
 
+    // ── GenAI Tracing: start generation span ──
+    const aiConfig = this.ai.getConfig()
+    const modelName = aiConfig.model ?? "unknown"
+    const providerName = aiConfig.provider ?? "unknown"
+
+    if (this.tracingEnabled && this.sessionId) {
+      this.currentTrace = genaiTracer.startGeneration({
+        sessionId: this.sessionId,
+        agentId: this.runtime.context.agentId,
+        model: modelName,
+        provider: providerName,
+        systemPrompt,
+        userMessages: activeMessages.filter((m) => m.role === "user").map((m) =>
+          typeof m.content === "string" ? m.content : JSON.stringify(m.content)
+        ),
+        maxTokens: aiConfig.maxTokens,
+        temperature: aiConfig.temperature,
+      })
+    }
+
+    const startedAt = Date.now()
     const result = await generateText({
       model: this.ai.getModel(),
       system: systemPrompt,
-      messages,
+      messages: activeMessages,
       tools: toolKeys.length > 0 ? tools : undefined,
       stopWhen: stepCountIs(this.maxSteps),
-      temperature: this.ai.getConfig().temperature ?? 0.7,
+      temperature: aiConfig.temperature ?? 0.7,
     })
+
+    const durationMs = Date.now() - startedAt
+
+    // ── GenAI Tracing: end generation span ──
+    if (this.tracingEnabled && this.currentTrace) {
+      const usage = result.usage
+      genaiTracer.endGeneration(this.currentTrace, {
+        spanId: this.currentTrace.spanId,
+        output: result.text,
+        inputTokens: usage?.inputTokens,
+        outputTokens: usage?.outputTokens,
+        totalTokens: usage?.totalTokens,
+        durationMs,
+        status: "success",
+      })
+      this.currentTrace = undefined
+    }
+
+    // ── PreCompact: update cumulative estimate ──
+    if (this.preCompactEnabled) {
+      this.cumulativeTokenEstimate += estimateTokens(result.text) + 100
+    }
 
     // Persist assistant response
     if (result.text) {

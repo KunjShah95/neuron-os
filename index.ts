@@ -121,6 +121,15 @@ async function gracefulShutdown(code = 0): Promise<void> {
 // Register signal handlers
 process.on("SIGINT", () => {
   if ((program as any)._interactive) return
+  // In child processes spawned from the wakeup menu, skip gracefulShutdown
+  // (heavy agent/telemetry cleanup) but still exit so the process doesn't
+  // hang. Give command-specific handlers (telegram, serve, etc.) a chance
+  // to run their cleanup first via a short delay.
+  if (process.env.AEGIS_SPAWNED) {
+    log.debug("SIGINT in spawned child — exiting (command handler may also fire)")
+    setTimeout(() => process.exit(0), 100)
+    return
+  }
   log.debug("Received SIGINT")
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
   gracefulShutdown(0)

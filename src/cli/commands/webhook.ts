@@ -164,9 +164,13 @@ async function handleWebhook(opts: {
   console.log()
   console.log(theme.dim("  Press Ctrl+C to stop"))
 
-  process.on("SIGINT", () => {
+  process.on("SIGINT", async () => {
     server.stop()
-    if (adapter) adapter.stop()
+    try {
+      if (adapter) await adapter.stop()
+    } catch {
+      /* ignore adapter stop failure */
+    }
     console.log(theme.dim("\n  Webhook receiver stopped"))
     process.exit(0)
   })

@@ -67,17 +67,17 @@ async function handleStart(opts: { port?: string; role?: string; leader?: string
   console.log()
 
   // Handle graceful shutdown
-  process.on("SIGINT", async () => {
+  async function shutdownDistributed() {
     console.log(theme.warn("\n  Shutting down distributed node..."))
-    await pool.stop()
+    try {
+      await pool.stop()
+    } catch {
+      /* ignore pool stop failure */
+    }
     process.exit(0)
-  })
-
-  process.on("SIGTERM", async () => {
-    console.log(theme.warn("\n  Shutting down distributed node..."))
-    await pool.stop()
-    process.exit(0)
-  })
+  }
+  process.on("SIGINT", shutdownDistributed)
+  process.on("SIGTERM", shutdownDistributed)
 
   // Keep alive
   await new Promise(() => {})

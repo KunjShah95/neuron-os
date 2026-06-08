@@ -9,6 +9,8 @@ export { delegateTaskTool } from "./delegate-task"
 export { memoryReadTool } from "./memory-read"
 export { memoryWriteTool } from "./memory-write"
 export { memorySearchTool } from "./memory-search"
+export { planStateTool } from "./plan-state"
+export { treeSitterTool } from "./tree-sitter"
 
 import { toolRegistry } from "./registry"
 import { bashTool } from "./bash"
@@ -30,6 +32,8 @@ import { computerTool } from "./computer"
 import { askAgentTool } from "./ask-agent"
 import { executeCodeTool } from "./execute-code"
 import { docsCrawlTool } from "../docs-crawl/tool"
+import { planStateTool } from "./plan-state"
+import { treeSitterTool } from "./tree-sitter"
 
 // Auto-register A2UI tool (import side-effect registers it)
 import "./a2ui-tool"
@@ -55,6 +59,8 @@ export function registerBuiltinTools(): void {
   toolRegistry.register(computerTool)
   toolRegistry.register(executeCodeTool)
   toolRegistry.register(docsCrawlTool)
+  toolRegistry.register(planStateTool)
+  toolRegistry.register(treeSitterTool)
 }
 
 // Auto-register on import

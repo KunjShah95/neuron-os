@@ -54,7 +54,7 @@ async function handleSMS(opts: {
   await new Promise<void>(() => {
     function handleSignal() {
       console.log(theme.warn("\n  Stopping SMS adapter…"))
-      adapter.stop().then(() => process.exit(0))
+      adapter.stop().then(() => process.exit(0)).catch(() => process.exit(1))
     }
     process.on("SIGINT", handleSignal)
     process.on("SIGTERM", handleSignal)

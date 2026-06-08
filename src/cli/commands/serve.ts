@@ -78,10 +78,12 @@ export function registerServe(program: Command) {
         console.log()
         console.log(theme.dim("  Press Ctrl+C to stop"))
 
-        process.on("SIGINT", () => {
+        const handleSignal = () => {
           server.stop()
           process.exit(0)
-        })
+        }
+        process.on("SIGINT", handleSignal)
+        process.on("SIGTERM", handleSignal)
 
         // Keep alive
         await new Promise(() => {})

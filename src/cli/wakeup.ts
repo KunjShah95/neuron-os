@@ -1,5 +1,5 @@
 import type { Command } from "commander"
-import { spawn } from "node:child_process"
+import { spawn, type ChildProcess } from "node:child_process"
 import { resolve } from "node:path"
 import { existsSync } from "node:fs"
 import { select, text, isCancel } from "@clack/prompts"
@@ -70,15 +70,79 @@ class InteractiveExit extends Error {
  * IMPORTANT: This must NOT call pause() on Windows — it breaks subsequent
  * readline/TUI input. Only remove stale listeners and reset raw mode.
  */
+const READLINE_SYMBOLS = ["Symbol(keypress-decoder)", "Symbol(escape-decoder)"]
+
 function resetStdinAfterClack(): void {
   try {
     process.stdin.removeAllListeners("data")
+    process.stdin.removeAllListeners("keypress")
+
+    // Remove stale readline internal symbols that prevent emitKeypressEvents
+    // from re-initializing after rl.close(). Without this, the next @clack/prompts
+    // select() call will have no data listener and hang forever.
+    for (const sym of Object.getOwnPropertySymbols(process.stdin)) {
+      if (READLINE_SYMBOLS.includes(sym.toString())) {
+        ;(process.stdin as any)[sym] = undefined
+      }
+    }
+
+    // Remove @clack/internal readline marker that blocks re-init
+    delete (process.stdin as any)._keypressEventsEmitted
+
     if (process.stdin.isRaw) {
       process.stdin.setRawMode(false)
     }
+    // Ensure stdin is in flowing mode — child processes with inherit can pause it
+    process.stdin.resume()
   } catch {
     // Best-effort — some environments (non-TTY, tests) don't support setRawMode
   }
+}
+
+// ── Child process tracking for SIGINT passthrough ───────────────
+// Allows Ctrl+C in interactive mode to kill the currently running
+// child process. The SIGINT handler in index.ts just returns when
+// _interactive is true, so we need our own handler here.
+let currentChild: ChildProcess | null = null
+let sigintCount = 0
+let sigintTimer: ReturnType<typeof setTimeout> | null = null
+
+process.on("SIGINT", () => {
+  if (!currentChild || currentChild.killed) {
+    sigintCount = 0
+    return
+  }
+  sigintCount++
+  if (sigintCount >= 3) {
+    // Triple Ctrl+C: force kill
+    currentChild.kill("SIGKILL")
+    currentChild = null
+    sigintCount = 0
+    console.error("\n  Force killed.")
+    process.exit(1)
+  }
+  // First/second Ctrl+C: send SIGINT, then SIGTERM
+  const signal = sigintCount === 1 ? "SIGINT" : "SIGTERM"
+  currentChild.kill(signal)
+  // Reset counter after 2s (so it only counts rapid presses)
+  if (sigintTimer) clearTimeout(sigintTimer)
+  sigintTimer = setTimeout(() => { sigintCount = 0; sigintTimer = null }, 2000)
+})
+
+function trackChild(child: ChildProcess): void {
+  currentChild = child
+  child.on("exit", () => {
+    if (currentChild === child) {
+      currentChild = null
+      sigintCount = 0
+    }
+  })
+  child.on("error", () => {
+    if (currentChild === child) {
+      currentChild = null
+      sigintCount = 0
+    }
+  })
 }
 
 async function promptForArg(entry: CommandEntry): Promise<string | null> {
@@ -143,14 +207,16 @@ async function runCommandSpawn(entry: string, script: string, args: string[]): P
     env: { ...process.env, AEGIS_SPAWNED: "1" },
   })
 
+  trackChild(child)
+
   await new Promise<void>((resolve) => {
     child.on("exit", () => resolve())
     child.on("error", () => resolve())
   })
 
   // Reset parent stdin after child exits — the child may have changed
-  // terminal state (raw mode, etc.) that could affect clack's next
-  // select() call in the while loop.
+  // terminal state (raw mode, stdin flowing, readline symbols) that
+  // could affect clack's next select() call in the while loop.
   resetStdinAfterClack()
 }
 

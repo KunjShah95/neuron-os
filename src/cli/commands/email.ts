@@ -58,7 +58,7 @@ async function handleEmail(opts: {
   await new Promise<void>(() => {
     function handleSignal() {
       console.log(theme.warn("\n  Stopping Email adapter…"))
-      adapter.stop().then(() => process.exit(0))
+      adapter.stop().then(() => process.exit(0)).catch(() => process.exit(1))
     }
     process.on("SIGINT", handleSignal)
     process.on("SIGTERM", handleSignal)

@@ -53,6 +53,7 @@ The baseline release. Aegis at v0.2.0 is a **production-shaped local agent OS** 
 ### ✅ v0.7.0 — Cost Attribution & Benchmarking — **SHIPPED**
 
 **What we delivered:**
+
 - `aegis cost {total,models,sessions,history,budget,report}` — real USD cost tracking
 - `aegis benchmark {run,status,baseline}` — regression detection with CI-compatible JSON
 - `aegis bench providers "<task>"` — benchmarks all 13 providers on quality + cost
@@ -69,6 +70,7 @@ The baseline release. Aegis at v0.2.0 is a **production-shaped local agent OS** 
 ### ✅ v0.8.0 — Knowledge Graph & Long-Term Memory — **SHIPPED**
 
 **What we delivered:**
+
 - SQLite-backed knowledge graph with entity extraction, relationship linking, confidence scoring
 - Per-agent memory namespaces with TTL-based expiry and archival
 - Cross-session knowledge synthesis across all 5 memory stores
@@ -83,6 +85,7 @@ The baseline release. Aegis at v0.2.0 is a **production-shaped local agent OS** 
 ### ✅ v0.9.0 — Distributed Runtime — **SHIPPED**
 
 **What we delivered:**
+
 - Multi-host worker pool with TCP-based bully leader election
 - AES-256-GCM encrypted transport with SHA-256 key derivation
 - Capacity-aware placement (CPU, memory, GPU scoring)
@@ -98,6 +101,7 @@ The baseline release. Aegis at v0.2.0 is a **production-shaped local agent OS** 
 ### ✅ v0.10.0 — Self-Improving Agents — **SHIPPED**
 
 **What we delivered:**
+
 - Skill candidate extraction from successful experiences
 - Failure clustering with severity scoring
 - Adversarial self-play with 8 scenario templates
@@ -113,6 +117,7 @@ The baseline release. Aegis at v0.2.0 is a **production-shaped local agent OS** 
 ### ✅ v1.0.0 — Production-Ready — **SHIPPED**
 
 **What we delivered:**
+
 - RBAC with admin/operator/developer/viewer roles, SHA-256 hashed API keys, 17 route-permission mappings
 - Encrypted credential vault — AES-256-GCM with scrypt-derived master key, per-entry IVs
 - Vault-to-provider bridge — auto-syncs vault API keys to provider resolution at unlock
@@ -125,6 +130,27 @@ The baseline release. Aegis at v0.2.0 is a **production-shaped local agent OS** 
 - Trace spans for spawn, IPC, exit events; SLO recording on agent completion
 
 **Key files:** `src/auth/`, `src/vault/`, `src/observability/`, `src/triggers/background.ts`, `src/cli/commands/production.ts`
+
+---
+
+### 🛠️ v0.10.x — Platform Stability & Resilience — **ACTIVE**
+
+**What it delivers:** The CLI won't freeze. Shutdowns are always clean. SIGTERM is never ignored.
+
+| Deliverable | Description |
+|-------------|-------------|
+| **CLI freeze fix** | Stdin readline symbol leak after `@clack/prompts` teardown — stripped via `resetStdinAfterClack()` in `wakeup.ts` |
+| **SIGINT passthrough for children** | 1st Ctrl+C sends SIGINT to child process, 2nd sends SIGTERM, 3rd force-kills — `wakeup.ts:110-125` |
+| **Adapter shutdown safety** | `.catch(() => process.exit(1))` on all 7 adapter `.stop()` chains + fire-and-forget fix in webhook adapter |
+| **SIGTERM everywhere** | Added SIGTERM handlers to chat, serve, openapi, agent, telegram, discord, slack, sms, whatsapp, voice, email, distributed, webhook |
+| **AEGIS_SPAWNED exit race** | `setTimeout(() => process.exit(0), 100)` in `index.ts` prevents child processes from swallowing signals |
+
+**Key files:** `src/cli/wakeup.ts`, `index.ts`, `src/cli/commands/*.ts`
+
+**Remaining issues:**
+
+- `status.ts --watch` mode has no SIGINT/SIGTERM handler — terminal state corrupted on unclean exit
+- `mcp.ts` discards `stop()` handle — MCP server never stopped cleanly
 
 ---
 
