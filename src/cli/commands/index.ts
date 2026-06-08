@@ -63,6 +63,11 @@ import { registerDistributed } from "./distributed"
 import { registerProduction } from "./production"
 import { registerEval } from "./eval"
 import { registerDocsCrawl } from "./docs-crawl"
+import { registerDream } from "./dream"
+import { registerSoul } from "./soul"
+import { registerSocial } from "./social"
+import { registerPersona } from "./persona"
+import { registerEvolve } from "./evolve"
 import { registerImproveValidate } from "./improve-validate"
 import { registerImproveMonitor } from "./improve-monitor"
 import { registerGolden } from "./golden"
@@ -137,4 +142,9 @@ export function registerAllCommands(program: Command) {
   registerGolden(program)
   registerMultiAgent(program)
   registerDocsCrawl(program)
+  registerEvolve(program)
+  registerSoul(program)
+  registerSocial(program)
+  registerPersona(program)
+  registerDream(program)
 }
