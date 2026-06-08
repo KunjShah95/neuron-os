@@ -49,7 +49,7 @@ export function parseManifest(yaml: string): PluginManifest {
     throw new Error("Manifest validation: 'entrypoint' is required and must be a string")
   }
 
-  const hooks = raw.hooks as Record<string, boolean> | undefined
+  const hooks = (raw.hooks != null && typeof raw.hooks === "object" ? raw.hooks : {}) as Record<string, boolean>
   const deps = raw.dependencies as Array<Record<string, string>> | undefined
   const perms = raw.permissions as string[] | undefined
 
@@ -84,9 +84,11 @@ export function validateManifest(m: PluginManifest): string[] {
   else if (!SEMVER_RE.test(m.version)) errors.push(`version "${m.version}" is not valid semver`)
   if (!m.entrypoint) errors.push("entrypoint is required")
 
-  for (const key of Object.keys(m.hooks)) {
+  for (const [key, val] of Object.entries(m.hooks)) {
     if (!VALID_HOOKS.has(key)) {
       errors.push(`Unknown hook point: "${key}"`)
+    } else if (val != null && typeof val !== "boolean") {
+      errors.push(`Hook "${key}" must be a boolean, got ${typeof val}`)
     }
   }
 

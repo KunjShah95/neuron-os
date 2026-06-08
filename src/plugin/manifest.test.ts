@@ -36,6 +36,30 @@ permissions:
     const yaml = `version: 1.0.0\nentrypoint: ./index.js\nhooks: {}\ndependencies: []\npermissions: []`
     expect(() => parseManifest(yaml)).toThrow("name")
   })
+
+  it("should throw on missing version", () => {
+    const yaml = `name: test\nentrypoint: ./index.js\nhooks: {}\ndependencies: []\npermissions: []`
+    expect(() => parseManifest(yaml)).toThrow("version")
+  })
+
+  it("should throw on missing entrypoint", () => {
+    const yaml = `name: test\nversion: 1.0.0\nhooks: {}\ndependencies: []\npermissions: []`
+    expect(() => parseManifest(yaml)).toThrow("entrypoint")
+  })
+
+  it("should default hooks, deps, permissions when missing", () => {
+    const yaml = `name: test\nversion: 1.0.0\nentrypoint: ./index.js`
+    const manifest = parseManifest(yaml)
+    expect(manifest.hooks.on_agent_spawn).toBe(false)
+    expect(manifest.dependencies).toEqual([])
+    expect(manifest.permissions).toEqual([])
+  })
+
+  it("should handle non-object hooks gracefully", () => {
+    const yaml = `name: test\nversion: 1.0.0\nentrypoint: ./index.js\nhooks: invalid`
+    const manifest = parseManifest(yaml)
+    expect(manifest.hooks.on_agent_spawn).toBe(false)
+  })
 })
 
 describe("validateManifest", () => {
@@ -58,11 +82,26 @@ describe("validateManifest", () => {
 
   it("should reject invalid semver", () => {
     const errors = validateManifest({ ...valid, version: "abc" })
-    expect(errors.length).toBeGreaterThan(0)
+    expect(errors).toContain('version "abc" is not valid semver')
   })
 
   it("should reject unknown hook names", () => {
     const errors = validateManifest({ ...valid, hooks: { on_unknown: true } as any })
-    expect(errors.length).toBeGreaterThan(0)
+    expect(errors).toContain('Unknown hook point: "on_unknown"')
+  })
+
+  it("should reject non-boolean hook values", () => {
+    const errors = validateManifest({ ...valid, hooks: { on_agent_spawn: "potato" as any } })
+    expect(errors).toContain('Hook "on_agent_spawn" must be a boolean, got string')
+  })
+
+  it("should reject missing dep name", () => {
+    const errors = validateManifest({ ...valid, dependencies: [{ name: "", version: "^1.0.0" }] })
+    expect(errors).toContain("dependency name is required")
+  })
+
+  it("should reject invalid dep constraint", () => {
+    const errors = validateManifest({ ...valid, dependencies: [{ name: "foo", version: "invalid" }] })
+    expect(errors).toContain('dependency "foo" version "invalid" is not a valid semver constraint')
   })
 })
