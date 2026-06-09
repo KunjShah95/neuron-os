@@ -152,24 +152,21 @@ Every milestone in this roadmap is checked against these five principles. When t
 
 ## 4. Active & Future Milestones
 
-### 🛠️ v0.10.x — Platform Stability & Resilience — **ACTIVE**
+### ✅ v0.10.x — Platform Stability & Resilience — **SHIPPED**
 
-**What it delivers:** The CLI won't freeze. Shutdowns are always clean. SIGTERM is never ignored.
+**What it delivered:** The CLI won't freeze. Shutdowns are always clean. SIGTERM is never ignored.
 
 | Deliverable | Description |
 |-------------|-------------|
-| **CLI freeze fix** | Stdin readline symbol leak after `@clack/prompts` teardown |
+| **CLI freeze fix** | Stdin readline symbol leak after `@clack/prompts` teardown — extracted to `src/cli/stdin.ts` |
 | **SIGINT passthrough** | 3-tier Ctrl+C handling: SIGINT → SIGTERM → force-kill |
 | **Adapter shutdown safety** | `.catch(() => process.exit(1))` on all adapter `.stop()` chains |
 | **SIGTERM everywhere** | Handlers on chat, serve, mcp, agent, all adapters, distributed |
+| **Shared keepAlive() utility** | Centralized shutdown handling in `src/cli/keepAlive.ts` with `registerShutdownHandlers()` |
+| **Command history on Ctrl+C** | `process.on("exit")` handler ensures history is written even on early exits |
+| **MCP server cleanup** | Captures `stop()` handle and stops MCP HTTP server cleanly on shutdown |
 
-**Remaining issues:**
-- `status.ts --watch` mode has no SIGINT/SIGTERM handler — terminal corrupted on unclean exit
-- `mcp.ts` discards `stop()` handle — MCP server never stopped cleanly
-- Command history lost on Ctrl+C in adapter-driven modes
-- No shared `keepAlive()` utility — 15+ commands duplicate signal-handling boilerplate
-
-**Key files:** `src/cli/wakeup.ts`, `index.ts`, `src/cli/commands/*.ts`
+**Key files:** `src/cli/keepAlive.ts`, `src/cli/stdin.ts`, `src/cli/history.ts`, `index.ts`, `src/cli/commands/*.ts`
 
 ---
 
