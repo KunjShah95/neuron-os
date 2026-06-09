@@ -1,13 +1,13 @@
-import { generateText } from "ai"
+import { generateText, type LanguageModel } from "ai"
 import { createLogger } from "../cli/logger"
 import { memorySystem } from "./index"
 
 const log = createLogger("compressor")
 
 export class ContextCompressor {
-  private aiModel: any
+  private aiModel: LanguageModel
 
-  constructor(aiModel: any) {
+  constructor(aiModel: LanguageModel) {
     this.aiModel = aiModel
   }
 

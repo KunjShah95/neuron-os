@@ -6,12 +6,13 @@ import type { CrawlConfig, CrawledPage, CrawlResult, Heading } from "./types"
 import { processPages } from "./processor"
 import { KnowledgeGraphWriter } from "./kg-writer"
 import { FileWriter } from "./file-writer"
+import type FirecrawlApp from "@mendable/firecrawl-js"
 
 const log = createLogger("docs-crawl")
 
-let firecrawlClient: any = null
+let firecrawlClient: FirecrawlApp | null = null
 
-async function getFirecrawl() {
+async function getFirecrawl(): Promise<FirecrawlApp> {
   if (firecrawlClient) return firecrawlClient
   const apiKey = process.env.FIRECRAWL_API_KEY
   if (!apiKey) throw new Error("FIRECRAWL_API_KEY required for web crawling")
@@ -66,8 +67,7 @@ export class CrawlEngine {
     try {
       const client = await getFirecrawl()
       const result = await client.crawlUrl(config.url!, {
-        maxPages: config.limit,
-        maxDepth: config.depth,
+        limit: config.limit,
         scrapeOptions: {
           formats: config.mode === "qa" ? ["markdown"] : ["markdown", "html"],
         },

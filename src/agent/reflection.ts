@@ -1,4 +1,4 @@
-import { generateText } from "ai"
+import { generateText, type LanguageModel } from "ai"
 import { createLogger } from "../cli/logger"
 import { auditStore } from "../audit/store"
 
@@ -12,9 +12,9 @@ export interface ReflectionResult {
 }
 
 export class ReflectionLoop {
-  private aiModel: any // Injected AI Provider model
+  private aiModel: LanguageModel
 
-  constructor(aiModel: any) {
+  constructor(aiModel: LanguageModel) {
     this.aiModel = aiModel
   }
 

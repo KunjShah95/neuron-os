@@ -5,6 +5,7 @@
  * Called from agent lifecycle hooks on each message in/out.
  */
 
+import type { Database } from "bun:sqlite"
 import { createLogger } from "../../cli/logger"
 import type { RecallConfig } from "./types"
 
@@ -20,12 +21,12 @@ export interface IndexTurn {
 }
 
 export class FTS5Indexer {
-  private db: any | null = null
+  private db: Database | null = null
 
   constructor(_config?: Partial<RecallConfig>) {}
 
   /** Set the database instance (must open a SQLite db first) */
-  setDb(db: any): void {
+  setDb(db: Database): void {
     this.db = db
   }
 
