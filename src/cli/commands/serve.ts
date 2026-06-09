@@ -1,5 +1,6 @@
 import type { Command } from "commander"
 import { theme } from "../theme"
+import { keepAlive } from "../keepAlive"
 
 export function registerServe(program: Command) {
   program
@@ -108,15 +109,7 @@ export function registerServe(program: Command) {
         console.log()
         console.log(theme.dim("  Press Ctrl+C to stop"))
 
-        const handleSignal = () => {
-          server.stop()
-          process.exit(0)
-        }
-        process.on("SIGINT", handleSignal)
-        process.on("SIGTERM", handleSignal)
-
-        // Keep alive
-        await new Promise(() => {})
+        await keepAlive(() => server.stop())
       },
     )
 }

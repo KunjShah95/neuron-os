@@ -3,6 +3,7 @@ import { theme } from "../theme"
 import { showBanner } from "../banner"
 import { credentialVault } from "../../vault"
 import { createDiscordAdapter } from "../../adapters"
+import { keepAlive } from "../keepAlive"
 
 export function registerDiscord(program: Command) {
   program
@@ -45,12 +46,8 @@ async function handleDiscord(opts: { token?: string; project?: string }) {
   console.log(theme.success("  ✓ Discord bot is running"))
   console.log(theme.dim("  Press Ctrl+C to stop\n"))
 
-  await new Promise<void>(() => {
-    function handleSignal() {
-      console.log(theme.warn("\n  Stopping Discord adapter…"))
-      adapter.stop().then(() => process.exit(0)).catch(() => process.exit(1))
-    }
-    process.on("SIGINT", handleSignal)
-    process.on("SIGTERM", handleSignal)
+  await keepAlive(async () => {
+    console.log(theme.warn("\n  Stopping Discord adapter…"))
+    await adapter.stop()
   })
 }

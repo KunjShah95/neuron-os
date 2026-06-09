@@ -1,6 +1,7 @@
 import type { Command } from "commander"
 import { theme } from "../theme"
 import { showBanner } from "../banner"
+import { keepAlive } from "../keepAlive"
 
 export function registerMCP(program: Command) {
   const mcp = program.command("mcp").description("Manage MCP (Model Context Protocol) servers")
@@ -22,9 +23,9 @@ export function registerMCP(program: Command) {
 
       const { startMCPServerHTTP } = await import("../../mcp")
       const port = parseInt(opts.port ?? "3100", 10)
-      startMCPServerHTTP({ port, host: opts.host ?? "0.0.0.0", apiKey: opts.key })
+      const { stop } = startMCPServerHTTP({ port, host: opts.host ?? "0.0.0.0", apiKey: opts.key })
       console.log(theme.dim("  Press Ctrl+C to stop"))
-      await new Promise(() => {})
+      await keepAlive(() => stop())
     })
 
   mcp

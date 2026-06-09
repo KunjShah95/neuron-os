@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync, existsSync, readdirSync as fsReaddirSync } from "node:fs"
+import { mkdirSync, writeFileSync, existsSync, readdirSync as fsReaddirSync, rmSync } from "node:fs"
 import { resolve } from "node:path"
 import { randomUUID } from "node:crypto"
 import { execSync } from "node:child_process"
@@ -131,7 +131,7 @@ export class HarnessSandboxManager {
 
     try {
       if (existsSync(handle.workDir)) {
-        execSync(`rm -rf "${handle.workDir}"`, { timeout: 5000 })
+        rmSync(handle.workDir, { recursive: true, force: true })
       }
     } catch {
       // Non-fatal

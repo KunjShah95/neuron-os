@@ -4,6 +4,7 @@ import { theme } from "../theme"
 import { showBanner } from "../banner"
 import { credentialVault } from "../../vault"
 import { createTelegramAdapter } from "../../adapters"
+import { keepAlive } from "../keepAlive"
 
 export function registerTelegram(program: Command) {
   program
@@ -66,16 +67,8 @@ async function handleTelegram(opts: { token?: string; project?: string }) {
   console.log(theme.success("  ✓ Telegram bot is running"))
   console.log(theme.dim("  Press Ctrl+C to stop\n"))
 
-  await new Promise<void>(() => {
-    function handleSigint() {
-      console.log(theme.warn("\n  Stopping Telegram adapter…"))
-      adapter.stop().then(() => process.exit(0)).catch(() => process.exit(1))
-    }
-    function handleSigterm() {
-      console.log(theme.warn("\n  Stopping Telegram adapter…"))
-      adapter.stop().then(() => process.exit(0)).catch(() => process.exit(1))
-    }
-    process.on("SIGINT", handleSigint)
-    process.on("SIGTERM", handleSigterm)
+  await keepAlive(async () => {
+    console.log(theme.warn("\n  Stopping Telegram adapter…"))
+    await adapter.stop()
   })
 }
