@@ -231,16 +231,19 @@ Compose tool bundles from 10 built-in toolsets (web, search, vision, code-execut
 
 ## Architecture
 
+### System Overview
+
 ```mermaid
-graph TB
+graph LR
     subgraph "User Layer"
-        CLI[CLI / index.ts] --> ML[Mode Launcher]
+        CLI[CLI / index.ts]
         WEB[Web Dashboard :5173]
         WS[WebSocket Gateway :8081]
         GW[Multi-Platform Gateway]
     end
 
     subgraph "Terminal Modes (36+)"
+        ML[Mode Launcher]
         ML --> CHAT[chat] & DASH[dashboard] & ST[status]
         ML --> MEM[memory] & AGT[agent] & CFG[config]
         ML --> CR[cron] & SK[skills] & SV[serve]
@@ -253,8 +256,13 @@ graph TB
         ML --> PRJ[project] & VC[voice] & SL[soul]
     end
 
+    CLI --> ML
+    WEB --> WS
+
     subgraph "Agent Runtime"
-        AM[AgentManager] --> RT[Runtime]
+        AM[AgentManager]
+        RT[Runtime]
+        AM --> RT
         RT --> TYPES[14 Agent Types]
         RT --> SOUL{Soul Engine}
         SOUL --> ARCH[8 Archetypes]
@@ -262,7 +270,12 @@ graph TB
         AM --> HOOKS[Plugin Hooks: 5 Points]
         AM --> IPC[Typed IPC Protocol]
     end
+```
 
+### Core Architecture
+
+```mermaid
+graph TB
     subgraph "Consciousness Layer"
         DREAM[Dream Engine] --> PHASES[Replay · Pattern · Compress<br/>Counterfactual · Share · Mood]
         EVOLVE[Evolution Engine] --> MUTATE[Refactor · Optimize · Bugfix<br/>Error-handling · Security · more]
@@ -294,12 +307,10 @@ graph TB
     end
 
     subgraph "Infrastructure"
-        PLUGIN[Plugin System]
-        PLUGIN --> SIGN[Ed25519 Signed]
+        PLUGIN[Plugin System] --> SIGN[Ed25519 Signed]
         PLUGIN --> REG[SQLite Registry]
         PLUGIN --> SEMVER[Semver Resolution]
-        DIST_RT[Distributed Runtime]
-        DIST_RT --> POOL[Multi-Host Pool]
+        DIST_RT[Distributed Runtime] --> POOL[Multi-Host Pool]
         DIST_RT --> ENC[AES-256 Transport]
         API[HMAC-signed REST API]
         AUTH[RBAC · Vault · Audit]
@@ -309,6 +320,21 @@ graph TB
         TLS[Toolset System · 10 Bundles]
     end
 
+    DREAM --> MS & SOUL
+    EVOLVE --> DREAM
+    PERSONA --> DREAM
+    SOCIAL --> EVOLVE
+    MESH_ENG --> AM
+    DEBATE --> MESH_ENG
+    HARNESS --> MESH_ENG
+    TRAIN --> AM
+    API --> AUTH
+```
+
+### AI Providers & Adapters
+
+```mermaid
+graph LR
     subgraph "AI Providers (13)"
         P_ANTH[Anthropic] & P_OAI[OpenAI] & P_DS[DeepSeek]
         P_GK[Groq] & P_GM[Gemini] & P_MS[Mistral]
@@ -323,19 +349,8 @@ graph TB
         A_MX[Matrix] & A_SG[Signal] & A_IR[IRC]
     end
 
-    AM --> MS & PLUGIN & DIST_RT & AUTH & BILL
-    DREAM --> MS & SOUL
-    EVOLVE --> DREAM
-    PERSONA --> DREAM
-    SOCIAL --> EVOLVE
-    MESH_ENG --> AM
-    DEBATE --> MESH_ENG
-    HARNESS --> MESH_ENG
-    TRAIN --> AM
-    API --> AUTH
-    GW --> A_DC & A_SL & A_TG & A_SMS & A_VC & A_WA & A_EM & A_WH & A_MX & A_SG & A_IR
-    WS --> WEB
     RTR[Model Router] --> P_ANTH & P_OAI & P_DS & P_GK & P_GM & P_MS & P_AZ & P_TG & P_OR & P_XAI & P_CH & P_PP & P_OL
+    GW[Multi-Platform Gateway] --> A_DC & A_SL & A_TG & A_SMS & A_VC & A_WA & A_EM & A_WH & A_MX & A_SG & A_IR
 ```
 
 ### Module Breakdown
@@ -666,6 +681,16 @@ Neuron OS has shipped 8 major milestones since v0.2.0. The roadmap below shows w
 - SQLite plugin registry with 5 hook points (spawn, tool_call, message, ipc, shutdown)
 - Bun-native WebSocket gateway (port 8081) with multi-user channels and token auth
 - Multi-user SQLite session store with event-driven lifecycle for WebSocket forwarding
+
+---
+
+### ✅ v0.11.1 — Dream/Evolution Tests & Soul JSON — **SHIPPED**
+
+| Deliverable | Description |
+|-------------|-------------|
+| **Testable Stores** | DreamStore/EvolutionStore accept `{ dbPath? }` for isolated testing |
+| **54 Unit Tests** | Full coverage of DreamStore, DreamEngine, EvolutionStore, EvolutionEngine, MutationGenerator |
+| **Soul JSON Output** | `soul list/card/mood --json` for programmatic access |
 
 ---
 

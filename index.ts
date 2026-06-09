@@ -56,17 +56,38 @@ function loadDotEnv(): void {
 }
 loadDotEnv()
 
-import { Command } from "commander"
-import { showBanner } from "./src/cli/banner"
-import { getVersion } from "./src/version"
-import { registerAllCommands } from "./src/cli/commands"
-import { runWakeup } from "./src/cli/wakeup"
-import { registerErrorBoundaries } from "./src/cli/guard"
-import { createLogger } from "./src/cli/logger"
-import { agentManager } from "./src/agent/manager"
-import { recordCommand, flushOnExit } from "./src/telemetry"
-import { sessionStore, getProjectSessionStore } from "./src/memory/session-persistence"
-import { getActiveProject } from "./src/project/context"
+// ── Fast path: --version (skip all heavy module loading) ──────────────
+// Static imports are hoisted in ES modules, so we must detect --version
+// before any heavy imports are even loaded. We keep only lightweight
+// imports (fs, path, history) at the top and defer everything else.
+const _rawArgs = process.argv.slice(2)
+if (_rawArgs.includes("--version") || _rawArgs.includes("-V")) {
+  let version = "0.0.0"
+  try {
+    const dir = import.meta.dir ?? process.cwd()
+    const pkg = JSON.parse(readFileSync(resolve(dir, "package.json"), "utf-8"))
+    version = String(pkg.version || "0.0.0")
+  } catch {
+    // fallback
+  }
+  console.log(version)
+  process.exit(0)
+}
+
+// ── Heavy imports (deferred so --version never loads them) ────────────
+// These are loaded lazily via dynamic import() so the --version fast path
+// above never pays the ~5s cost of transpiling 100K+ lines of TypeScript.
+const { Command } = await import("commander")
+const { showBanner } = await import("./src/cli/banner")
+const { getVersion } = await import("./src/version")
+const { registerAllCommands } = await import("./src/cli/commands")
+const { runWakeup } = await import("./src/cli/wakeup")
+const { registerErrorBoundaries } = await import("./src/cli/guard")
+const { createLogger } = await import("./src/cli/logger")
+const { agentManager } = await import("./src/agent/manager")
+const { recordCommand, flushOnExit } = await import("./src/telemetry")
+const { sessionStore, getProjectSessionStore } = await import("./src/memory/session-persistence")
+const { getActiveProject } = await import("./src/project/context")
 
 const log = createLogger("cli")
 
@@ -182,7 +203,7 @@ program.hook("preAction", () => {
 })
 
 // If no args, launch interactive picker
-const noArgs = process.argv.slice(2).length === 0
+const noArgs = _rawArgs.length === 0
 if (noArgs) {
   await runWakeup(program)
 } else {
@@ -203,8 +224,7 @@ if (noArgs) {
   // Writes to ~/.aegis/command-history.json for the /history command
   // Uses process.on("exit") via setPendingCommand() so history is flushed
   // even when signal handlers call process.exit() (skipping the finally block).
-  const rawArgs = process.argv.slice(2)
-  const commandName = rawArgs
+  const commandName = _rawArgs
     .filter((a) => !a.startsWith("-"))
     .slice(0, 2)
     .map((a) => a.replace(/[^a-zA-Z0-9_-]/g, ""))
@@ -217,7 +237,7 @@ if (noArgs) {
   setPendingCommand({
     command: commandName,
     timestamp: new Date().toISOString(),
-    args: rawArgs.length > 1 ? rawArgs.slice(1).join(" ").slice(0, 100) : undefined,
+    args: _rawArgs.length > 1 ? _rawArgs.slice(1).join(" ").slice(0, 100) : undefined,
   })
 
   // Called both from finally (normal exit) and process 'exit' handler (early
