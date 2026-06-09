@@ -1,6 +1,7 @@
 import type { Command } from "commander"
 import { theme } from "../theme"
 import { createLogger } from "../logger"
+import { keepAlive } from "../keepAlive"
 
 const log = createLogger("cli:openapi")
 
@@ -86,14 +87,7 @@ export function registerOpenApi(program: Command) {
 
       log.info("OpenAPI spec server started", { port, host })
 
-      const handleSignal = () => {
-        server.stop()
-        process.exit(0)
-      }
-      process.on("SIGINT", handleSignal)
-      process.on("SIGTERM", handleSignal)
-
-      await new Promise(() => {})
+      await keepAlive(() => server.stop())
     })
 
   // Default action

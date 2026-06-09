@@ -3,6 +3,7 @@ import { theme } from "../theme"
 import { showBanner } from "../banner"
 import { credentialVault } from "../../vault"
 import { createSlackAdapter } from "../../adapters"
+import { keepAlive } from "../keepAlive"
 
 export function registerSlack(program: Command) {
   program
@@ -53,12 +54,8 @@ async function handleSlack(opts: { token?: string; appToken?: string; project?: 
   console.log(theme.success("  ✓ Slack adapter is running"))
   console.log(theme.dim("  Press Ctrl+C to stop\n"))
 
-  await new Promise<void>(() => {
-    function handleSignal() {
-      console.log(theme.warn("\n  Stopping Slack adapter…"))
-      adapter.stop().then(() => process.exit(0)).catch(() => process.exit(1))
-    }
-    process.on("SIGINT", handleSignal)
-    process.on("SIGTERM", handleSignal)
+  await keepAlive(async () => {
+    console.log(theme.warn("\n  Stopping Slack adapter…"))
+    await adapter.stop()
   })
 }

@@ -98,7 +98,7 @@ function collectYamlListItems(
 
 function parseYamlBlock(yamlBlock: string): Record<string, unknown> {
   const result: Record<string, unknown> = {}
-  const lines = yamlBlock.split("\n")
+  const lines = yamlBlock.replace(/\r\n/g, "\n").split("\n")
   const stack: Array<{ obj: Record<string, unknown>; indent: number; key: string }> = []
 
   for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
@@ -219,14 +219,15 @@ function parseYamlBlock(yamlBlock: string): Record<string, unknown> {
 }
 
 function parseYamlFrontmatter(content: string): { frontmatter: Record<string, unknown>; body: string } {
-  let body = content
+  const normalized = content.replace(/\r\n/g, "\n")
+  let body = normalized
   const frontmatter: Record<string, unknown> = {}
 
-  if (content.startsWith("---")) {
-    const endIdx = content.indexOf("---", 3)
+  if (normalized.startsWith("---")) {
+    const endIdx = normalized.indexOf("---", 3)
     if (endIdx > 0) {
-      const yamlBlock = content.slice(3, endIdx)
-      body = content.slice(endIdx + 3).trim()
+      const yamlBlock = normalized.slice(3, endIdx)
+      body = normalized.slice(endIdx + 3).trim()
       return { frontmatter: parseYamlBlock(yamlBlock), body }
     }
   }

@@ -5,6 +5,7 @@ import { showBanner } from "../banner"
 import { agentManager } from "../../agent/manager"
 import { getVersion } from "../../version"
 import { existsSync, statSync } from "node:fs"
+import { keepAlive } from "../keepAlive"
 
 export function registerStatus(program: Command) {
   program
@@ -130,7 +131,9 @@ async function handleStatus(opts: { json?: boolean; watch?: boolean }) {
     }
     render()
     setInterval(render, 2000)
-    await new Promise(() => {}) // keep alive
+    await keepAlive(() => {
+      console.log()
+    })
     return
   }
 

@@ -6,6 +6,7 @@ import { select, text, isCancel } from "@clack/prompts"
 import { showBanner } from "../cli/banner"
 import { registerAllModes, listModes } from "../modes"
 import { theme } from "../cli/theme"
+import { resetStdin } from "./stdin"
 
 interface CommandEntry {
   name: string
@@ -57,47 +58,7 @@ class InteractiveExit extends Error {
   }
 }
 
-/**
- * Reset stdin after @clack/prompts finishes to prevent leftover raw mode
- * state or buffered data from causing subcommands to exit prematurely.
- *
- * @clack/prompts uses raw mode stdin for keystroke capture. After select()
- * or text() completes, stdin can be left in a degraded state with:
- *   1. Raw mode still enabled (common on Windows)
- *   2. Leftover bytes in the buffer (the Enter key that confirmed the selection)
- *   3. Stale data event listeners
- *
- * IMPORTANT: This must NOT call pause() on Windows — it breaks subsequent
- * readline/TUI input. Only remove stale listeners and reset raw mode.
- */
-const READLINE_SYMBOLS = ["Symbol(keypress-decoder)", "Symbol(escape-decoder)"]
-
-function resetStdinAfterClack(): void {
-  try {
-    process.stdin.removeAllListeners("data")
-    process.stdin.removeAllListeners("keypress")
-
-    // Remove stale readline internal symbols that prevent emitKeypressEvents
-    // from re-initializing after rl.close(). Without this, the next @clack/prompts
-    // select() call will have no data listener and hang forever.
-    for (const sym of Object.getOwnPropertySymbols(process.stdin)) {
-      if (READLINE_SYMBOLS.includes(sym.toString())) {
-        ;(process.stdin as any)[sym] = undefined
-      }
-    }
-
-    // Remove @clack/internal readline marker that blocks re-init
-    delete (process.stdin as any)._keypressEventsEmitted
-
-    if (process.stdin.isRaw) {
-      process.stdin.setRawMode(false)
-    }
-    // Ensure stdin is in flowing mode — child processes with inherit can pause it
-    process.stdin.resume()
-  } catch {
-    // Best-effort — some environments (non-TTY, tests) don't support setRawMode
-  }
-}
+// resetStdin is imported from ./stdin — used below to clean up after @clack/prompts
 
 // ── Child process tracking for SIGINT passthrough ───────────────
 // Allows Ctrl+C in interactive mode to kill the currently running
@@ -217,7 +178,7 @@ async function runCommandSpawn(entry: string, script: string, args: string[]): P
   // Reset parent stdin after child exits — the child may have changed
   // terminal state (raw mode, stdin flowing, readline symbols) that
   // could affect clack's next select() call in the while loop.
-  resetStdinAfterClack()
+  resetStdin()
 }
 
 export async function runWakeup(program?: Command): Promise<void> {
@@ -272,7 +233,7 @@ export async function runWakeup(program?: Command): Promise<void> {
     // raw-mode TUI, info-screen) will immediately receive stale bytes
     // and interpret them as a quit signal or EOF, causing the command
     // to exit before the user can interact.
-    resetStdinAfterClack()
+    resetStdin()
 
     try {
       await runCommandInteractive(program!, cmdArgs)

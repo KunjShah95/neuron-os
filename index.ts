@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 
-import { readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs"
-import { resolve, join } from "node:path"
+import { readFileSync, existsSync } from "node:fs"
+import { resolve } from "node:path"
+import { setPendingCommand, flushHistorySync } from "./src/cli/history"
 
 // ── Auto-load .env file ─────────────────────────────────────────────
 // Loads .env from project root if it exists (before any other imports).
@@ -200,6 +201,8 @@ if (noArgs) {
 
   // ── Record command history ──────────────────────────────────────────
   // Writes to ~/.aegis/command-history.json for the /history command
+  // Uses process.on("exit") via setPendingCommand() so history is flushed
+  // even when signal handlers call process.exit() (skipping the finally block).
   const rawArgs = process.argv.slice(2)
   const commandName = rawArgs
     .filter((a) => !a.startsWith("-"))
@@ -211,41 +214,19 @@ if (noArgs) {
   let exitCode = 0
   let historyWritten = false
 
-  // Write history synchronously. Called both from the finally block (normal
-  // exit) and from the process 'exit' handler (early exit via process.exit()
-  // in signal handlers — which skips finally). The flag prevents double-writes.
+  setPendingCommand({
+    command: commandName,
+    timestamp: new Date().toISOString(),
+    args: rawArgs.length > 1 ? rawArgs.slice(1).join(" ").slice(0, 100) : undefined,
+  })
+
+  // Called both from finally (normal exit) and process 'exit' handler (early
+  // exit via process.exit() in signal handlers). The flag prevents double-writes.
   function writeCommandHistory(code: number): void {
     if (historyWritten) return
     historyWritten = true
-    try {
-      const historyDir = join(process.env.HOME || process.env.USERPROFILE || "~", ".aegis")
-      const historyFile = join(historyDir, "command-history.json")
-      mkdirSync(historyDir, { recursive: true })
-
-      let history: Array<{ command: string; timestamp: string; args?: string }> = []
-      if (existsSync(historyFile)) {
-        try {
-          history = JSON.parse(readFileSync(historyFile, "utf-8"))
-        } catch {
-          history = []
-        }
-      }
-
-      history.push({
-        command: commandName,
-        timestamp: new Date().toISOString(),
-        args: rawArgs.length > 1 ? rawArgs.slice(1).join(" ").slice(0, 100) : undefined,
-      })
-
-      // Keep last 100 entries
-      if (history.length > 100) history = history.slice(-100)
-      writeFileSync(historyFile, JSON.stringify(history, null, 2), "utf-8")
-
-      // Record telemetry command (synchronous queue push)
-      recordCommand(commandName, code === 0, Date.now() - startTime)
-    } catch {
-      // History recording is best-effort
-    }
+    flushHistorySync()
+    recordCommand(commandName, code === 0, Date.now() - startTime)
   }
 
   // 'exit' fires synchronously even when process.exit() is called directly

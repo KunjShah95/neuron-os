@@ -1,5 +1,6 @@
 import type { Command } from "commander"
 import { showBanner } from "../banner"
+import { resetStdin } from "../stdin"
 
 export function registerVoiceLocal(program: Command) {
   program
@@ -50,14 +51,16 @@ async function handleVoiceLocal(opts: { project?: string }) {
         placeholder: status.sttOk ? "Speak or type your message..." : "Type your message...",
       })
 
+      resetStdin()
+
       if (isCancel(input)) {
-        console.log(chalk.dim("\n  👋 Exiting voice-local mode.\n"))
+        console.log(chalk.dim("\n  Exiting voice-local mode.\n"))
         process.exit(0)
       }
 
       if (!input?.trim()) continue
 
-      console.log(chalk.cyan("\n  🤖 Agent is processing your request…\n"))
+      console.log(chalk.cyan("\n  Agent is processing your request…\n"))
 
       const result = await runAgentOrchestrator(input.trim(), undefined, opts.project)
 

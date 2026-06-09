@@ -14,6 +14,7 @@ import { theme } from "../theme"
 import { showBanner } from "../banner"
 import { credentialVault } from "../../vault"
 import { createWebhookAdapter } from "../../adapters"
+import { keepAlive } from "../keepAlive"
 
 export function registerWebhook(program: Command) {
   program
@@ -164,7 +165,7 @@ async function handleWebhook(opts: {
   console.log()
   console.log(theme.dim("  Press Ctrl+C to stop"))
 
-  process.on("SIGINT", async () => {
+  await keepAlive(async () => {
     server.stop()
     try {
       if (adapter) await adapter.stop()
@@ -172,8 +173,5 @@ async function handleWebhook(opts: {
       /* ignore adapter stop failure */
     }
     console.log(theme.dim("\n  Webhook receiver stopped"))
-    process.exit(0)
   })
-
-  await new Promise(() => {})
 }
