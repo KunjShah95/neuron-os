@@ -73,6 +73,7 @@ import { registerImproveValidate } from "./improve-validate"
 import { registerImproveMonitor } from "./improve-monitor"
 import { registerGolden } from "./golden"
 import { registerMultiAgent } from "./multi-agent-scenarios"
+import { registerMetrics } from "./metrics"
 
 export function registerAllCommands(program: Command) {
   registerDoctor(program)
@@ -143,6 +144,7 @@ export function registerAllCommands(program: Command) {
   registerImproveMonitor(program)
   registerGolden(program)
   registerMultiAgent(program)
+  registerMetrics(program)
   registerDocsCrawl(program)
   registerEvolve(program)
   registerSoul(program)
