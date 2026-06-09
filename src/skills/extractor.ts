@@ -6,7 +6,7 @@ import { createLogger } from "../cli/logger"
 
 const log = createLogger("skill-extractor")
 
-export async function extractSkillsFromSession(sessionId: string, skillName: string, description: string) {
+export async function extractSkillsFromSession(sessionId: string, skillName: string, description: string): Promise<void> {
   const messages = sessionStore.getMessages(sessionId, 500)
 
   // Filter messages for those containing tool calls (shell commands)

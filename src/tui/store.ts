@@ -224,21 +224,21 @@ export function createInitialState(): AppState {
 
 // ── Mutations ─────────────────────────────────────────────────────────
 
-export function addLogEntry(state: AppState, entry: Omit<LogEntry, "timestamp">) {
+export function addLogEntry(state: AppState, entry: Omit<LogEntry, "timestamp">): void {
   state.log.push({ ...entry, timestamp: new Date().toLocaleTimeString() })
   if (state.log.length > 1000) state.log.shift()
   state.ui.logScroll = 0
   state.dirty = true
 }
 
-export function updateMetrics(state: AppState) {
+export function updateMetrics(state: AppState): void {
   const mem = process.memoryUsage()
   state.metrics.memPercent = Math.min(100, Math.round((mem.rss / 1024 / 1024 / 1024) * 100))
   state.metrics.uptime = Math.floor(process.uptime())
   state.dirty = true
 }
 
-export function setAgentStatus(state: AppState, id: string, status: AgentStatus, tool?: string) {
+export function setAgentStatus(state: AppState, id: string, status: AgentStatus, tool?: string): void {
   const agent = state.agents.get(id)
   if (agent) {
     agent.status = status

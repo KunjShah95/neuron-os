@@ -204,7 +204,7 @@ export async function handleWebhookEvent(
  * Get the API route handler for webhook events.
  * Returns a fetch-compatible handler function.
  */
-export function createWebhookHandler(config: WebhookConfig) {
+export function createWebhookHandler(config: WebhookConfig): (request: Request) => Promise<Response> {
   return async (request: Request): Promise<Response> => {
     if (request.method !== "POST") {
       return new Response(JSON.stringify({ error: "Method not allowed" }), {

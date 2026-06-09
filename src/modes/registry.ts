@@ -2,7 +2,7 @@ import type { Mode } from "./types"
 
 const modes = new Map<string, Mode>()
 
-export function registerMode(mode: Mode) {
+export function registerMode(mode: Mode): void {
   modes.set(mode.id, mode)
 }
 

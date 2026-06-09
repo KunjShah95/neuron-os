@@ -15,7 +15,7 @@ import { parseKey, handleKey } from "./input"
 import { executeCommand } from "./commands"
 import { theme, box } from "../cli/theme"
 
-export async function startDashboard() {
+export async function startDashboard(): Promise<void> {
   const state = createInitialState()
   const rows = process.stdout.rows ?? 24
   const cols = process.stdout.columns ?? 80

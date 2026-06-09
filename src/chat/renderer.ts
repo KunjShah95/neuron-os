@@ -20,7 +20,7 @@ import type { AIProviderType } from "../ai/models"
 import { saveConfig, loadConfig } from "../config"
 import type { AgentTypeName } from "../agent/agent-types"
 
-export async function startChat(agentType?: AgentTypeName) {
+export async function startChat(agentType?: AgentTypeName): Promise<void> {
   const state = createInitialChatState(agentType)
   // Create a lazy engine below when sending so that runtime config from state can be used.
   let engine = createEngine(agentType)

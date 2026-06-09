@@ -13,7 +13,7 @@ function countInstalledSkills(): number {
   return readdirSync(skillsDir, { withFileTypes: true }).filter((e) => e.isDirectory()).length
 }
 
-export function showBanner(opts?: { version?: string; tagline?: string; title?: string }) {
+export function showBanner(opts?: { version?: string; tagline?: string; title?: string }): void {
   // Suppress banner when spawned from the wakeup menu (child process)
   if (process.env.AEGIS_SPAWNED) return
   if (bannerEmitted) return
@@ -39,6 +39,6 @@ export function showBanner(opts?: { version?: string; tagline?: string; title?: 
   }
 }
 
-export function resetBanner() {
+export function resetBanner(): void {
   bannerEmitted = false
 }

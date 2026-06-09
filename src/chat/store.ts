@@ -100,7 +100,7 @@ export function createInitialChatState(agentType?: string): ChatState {
   }
 }
 
-export function addUserMessage(state: ChatState, text: string) {
+export function addUserMessage(state: ChatState, text: string): void {
   state.messages.push({
     role: "user",
     content: text,
@@ -119,7 +119,7 @@ export function addUserMessage(state: ChatState, text: string) {
   state.dirty = true
 }
 
-export function addAssistantMessage(state: ChatState) {
+export function addAssistantMessage(state: ChatState): void {
   state.messages.push({
     role: "assistant",
     content: "",
@@ -132,7 +132,7 @@ export function addAssistantMessage(state: ChatState) {
   state.dirty = true
 }
 
-export function appendToStreamingMessage(state: ChatState, text: string) {
+export function appendToStreamingMessage(state: ChatState, text: string): void {
   const last = state.messages[state.messages.length - 1]
   if (last && last.status === "streaming") {
     last.content += text
@@ -140,7 +140,7 @@ export function appendToStreamingMessage(state: ChatState, text: string) {
   }
 }
 
-export function finalizeStreamingMessage(state: ChatState) {
+export function finalizeStreamingMessage(state: ChatState): void {
   const last = state.messages[state.messages.length - 1]
   if (last && last.status === "streaming") {
     last.status = "complete"
@@ -150,7 +150,7 @@ export function finalizeStreamingMessage(state: ChatState) {
   saveChatSession(state)
 }
 
-export function saveChatSession(state: ChatState) {
+export function saveChatSession(state: ChatState): void {
   try {
     const envSnapshot: Record<string, string | undefined> = {
       AI_PROVIDER: process.env.AI_PROVIDER,
@@ -239,7 +239,7 @@ export function loadChatStateFromSession(
   }
 }
 
-export function setStreamingError(state: ChatState, error: string) {
+export function setStreamingError(state: ChatState, error: string): void {
   const last = state.messages[state.messages.length - 1]
   if (last && last.status === "streaming") {
     last.status = "error"
@@ -251,7 +251,7 @@ export function setStreamingError(state: ChatState, error: string) {
 
 let checkpointCounter = 0
 
-export function createCheckpoint(state: ChatState, label?: string) {
+export function createCheckpoint(state: ChatState, label?: string): string {
   checkpointCounter++
   const id = `cp-${checkpointCounter}`
   state.checkpoints.push({
