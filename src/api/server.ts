@@ -781,7 +781,15 @@ const wsHealth: WsHealthStats = {
  * Get current WebSocket server health information.
  * Returns connection statistics and the list of connected clients.
  */
-export function getWsHealth() {
+export function getWsHealth(): {
+  status: string
+  clients: { connected: number; subscribed: number; peak: number }
+  uptime: number
+  totalConnections: number
+  messagesBroadcast: number
+  lastConnectionAt: number | null
+  clientsList: Array<{ id: string; subscribed: boolean }>
+} {
   const now = Date.now()
   return {
     status: unsubWsRef ? "running" : "stopped",
@@ -820,7 +828,7 @@ function broadcastWsEvent(event: string, data: Record<string, unknown>) {
  * Bridge AgentManager events to WebSocket clients.
  * Call this after creating the server to start forwarding events.
  */
-export function startWsEventBridge() {
+export function startWsEventBridge(): void {
   if (unsubWsRef) return // already started
 
   wsHealth.bridgeStartedAt = Date.now()
@@ -862,7 +870,7 @@ export function startA2uiWsBridge(): () => void {
 /**
  * Stop forwarding AgentManager events to WebSocket clients.
  */
-export function stopWsEventBridge() {
+export function stopWsEventBridge(): void {
   if (unsubWsRef) {
     unsubWsRef()
     unsubWsRef = null

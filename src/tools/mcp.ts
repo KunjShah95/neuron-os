@@ -20,7 +20,7 @@ interface MCPToolDefinition {
 let mcpServers: MCPServerConfig[] = []
 let mcpToolsRegistered = false
 
-export function configureMCPServers(servers: MCPServerConfig[]) {
+export function configureMCPServers(servers: MCPServerConfig[]): void {
   mcpServers = servers
   mcpToolsRegistered = false
 }

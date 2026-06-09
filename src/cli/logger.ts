@@ -187,7 +187,12 @@ function writeToFile(line: string): void {
  * const log = createLogger("agent")
  * log.info("Spawned", { agentId: "abc", type: "build" })
  */
-export function createLogger(module: string) {
+export function createLogger(module: string): {
+  info: (msg: string, data?: Record<string, unknown>) => void
+  warn: (msg: string, data?: Record<string, unknown>) => void
+  error: (msg: string, data?: Record<string, unknown>) => void
+  debug: (msg: string, data?: Record<string, unknown>) => void
+} {
   // Lazy-init file logging on first use
   initFileLog()
 

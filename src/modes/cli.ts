@@ -30,7 +30,7 @@ function printBannerWithShadow(ascii: string) {
   console.log()
 }
 
-export async function runWakeup() {
+export async function runWakeup(): Promise<void> {
   printBannerWithShadow(NEURON_OS_BANNER)
 
   const mode = await select({

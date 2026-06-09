@@ -16,7 +16,7 @@ import { harnessMode } from "./harness"
 import { voiceMode } from "./voice"
 import { docsCrawlMode } from "./docs-crawl"
 
-export function registerAllModes() {
+export function registerAllModes(): void {
   registerMode(dashboardMode)
   registerMode(chatMode)
   registerMode(statusMode)

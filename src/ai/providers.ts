@@ -9,7 +9,7 @@ export type ProviderFactory = (config: AIConfig) => LanguageModel
 
 const registry = new Map<string, ProviderFactory>()
 
-export function registerProvider(name: string, factory: ProviderFactory) {
+export function registerProvider(name: string, factory: ProviderFactory): void {
   registry.set(name, factory)
 }
 
