@@ -64,35 +64,46 @@ bun run index.ts serve             # Start REST API server
 
 ## What's in the Box
 
-### TUI Modes (23)
+### TUI Modes (36)
 
 Run `aegis` (no args) for the interactive mode picker, or launch directly:
 
-| Mode | Command | Alias | Description |
-|------|---------|-------|-------------|
-| Mode Launcher | `aegis` / `wakeup` | `w` | Interactive mode selector |
-| Dashboard | `dashboard` | `dash` | Real-time agent monitoring TUI |
-| Chat | `chat` | `c` | Streaming AI chat with multi-provider support |
-| Status | `status` | `st` | System health overview |
-| Skills | `skills` | `sk` | Browse and manage skills |
-| Config | `config` | `cfg` | Credential vault and settings |
-| Cron | `cron` | | Scheduled job management |
-| Memory | `memory` | | Long-term memory, vector search, knowledge graph |
-| AgentMemory | `agentmemory` | `am` | Hybrid BM25+Vector+Graph sidecar |
-| Agent Manager | `agent` | `a` | Spawn, kill, inspect agents |
-| Setup | `setup` | | Interactive configuration wizard |
-| API Server | `serve` | | HTTP REST API + WebSocket |
-| MCP | `mcp` | | Model Context Protocol client/server |
-| Cost | `cost` | | Per-task, per-agent cost attribution |
-| Router | `router` | | Auto-select cheapest provider per task |
-| Estimate | `estimate` | | Pre-flight cost check before spawning |
-| Insights | `insights` | | Cross-DB analytics across all stores |
-| Benchmark | `benchmark` | | Agent quality regression detection |
-| Bench | `bench` | | Provider benchmark comparison |
-| Improve | `improve` | | Self-learning: skill extraction, failure clustering |
-| Production | `production` | | RBAC, vault, SLO, traces, background agents |
-| Distributed | `distributed` | | Multi-host worker pool, leader election |
-| Router | `router` | | Model router for cheapest viable provider |
+| Mode | Command | Description |
+|------|---------|-------------|
+| Mode Launcher | `aegis` / `wakeup` | Interactive mode selector |
+| Dashboard | `dashboard` | Real-time agent monitoring TUI |
+| Chat | `chat` | Streaming AI chat with multi-provider support |
+| Status | `status` | System health overview |
+| Skills | `skills` | Browse and manage skills |
+| Config | `config` | Credential vault and settings |
+| Cron | `cron` | Scheduled job management |
+| Memory | `memory` | Long-term memory, vector search, knowledge graph |
+| AgentMemory | `agentmemory` | Hybrid BM25+Vector+Graph sidecar |
+| Agent Manager | `agent` | Spawn, kill, inspect agents |
+| Setup | `setup` | Interactive configuration wizard |
+| API Server | `serve` | HTTP REST API + WebSocket |
+| MCP | `mcp` | Model Context Protocol client/server |
+| Cost | `cost` | Per-task, per-agent cost attribution |
+| Router | `router` | Auto-select cheapest provider per task |
+| Estimate | `estimate` | Pre-flight cost check before spawning |
+| Insights | `insights` | Cross-DB analytics across all stores |
+| Benchmark | `benchmark` | Agent quality regression detection |
+| Bench | `bench` | Provider benchmark comparison |
+| Improve | `improve` | Self-learning: skill extraction, failure clustering |
+| Production | `production` | RBAC, vault, SLO, traces, background agents |
+| Distributed | `distributed` | Multi-host worker pool, leader election |
+| **Plugin** | `plugin` | **Install, publish, and manage signed plugins** |
+| **Dream** | `dream` | **6-phase dream cycle: replay, pattern, compress** |
+| **Evolve** | `evolve` | **Auto-code mutation with test verification** |
+| **Persona** | `persona` | **Agent trait evolution from experience** |
+| **Social** | `social` | **Multi-instance gossip & peer discovery** |
+| **Eval** | `eval` | **Harness: run, CI gate, calibrate, golden dataset** |
+| **Mesh** | `mesh` | **Multi-agent orchestration (5 topologies)** |
+| **Train** | `train` | **Trajectory recording & export** |
+| **Toolset** | `toolset` | **Manage and compose tool bundles** |
+| **Project** | `project` | **Isolated workspaces with per-project state** |
+| **Voice** | `voice` | **Voice system configuration and control** |
+| **Soul** | `soul` | **Agent soul cards & mood system** |
 
 ### Web Frontends
 
@@ -127,9 +138,19 @@ Spawn typed agents with scoped tools, auto-recovery, and lifecycle hooks:
 | `monitor` | subagent | bash, read | File watching and health checks |
 | `explore` | subagent | read-only | Lightweight search |
 
-### Multi-Platform Gateway (8 Adapters)
+### Soul & Emotion System
 
-One interface, eight chat platforms. All behind `src/adapters/gateway.ts`:
+Every agent gets a **soul** — an archetype-driven emotional model that shapes communication and behavior:
+
+- **8 Archetypes:** Architect, Craftsman, Sage, Scout, Guardian, Alchemist, Oracle, Weaver
+- **6 Mood States:** elated, confident, content, anxious, frustrated, burned_out — triggered by outcome streaks
+- **Soul Cards:** ASCII art trait display with progress bars, injected into agent system prompts
+- **Behavioral Heuristics:** Mood overrides verbosity, tone, formality, and emoji usage at runtime
+- **Automatic:** SoulManager auto-creates souls on spawn, records outcomes on exit
+
+### Multi-Platform Gateway (11 Adapters)
+
+One interface, eleven chat platforms. All behind `src/adapters/gateway.ts`:
 
 - Discord bot (Socket Mode)
 - Slack bot (Socket Mode)
@@ -139,17 +160,39 @@ One interface, eight chat platforms. All behind `src/adapters/gateway.ts`:
 - WhatsApp (Twilio)
 - Email (SMTP/Nodemailer)
 - Webhook (generic + GitHub)
+- Matrix (matrix-js-sdk)
+- Signal (signal-cli REST API)
+- IRC (irc-framework)
+
+### WebSocket Gateway
+
+Bun-native WebSocket server on port 8081 with multi-user channels, token-based auth, and real-time state streaming — built for live dashboards and collaborative agent monitoring.
 
 ### AI Providers (13)
 
 Anthropic, OpenAI, DeepSeek, Groq, Gemini, Mistral, Azure OpenAI, Together AI, Ollama (local), OpenRouter, xAI, Cohere, Perplexity — plus custom endpoints. Auto-routed by cost with `aegis router route`. Switch at runtime in chat TUI with `/provider set <name>`.
 
+### Project Workspaces
+
+Isolate everything per project — sessions, memory, dreams, evolutions, personas, social data. Each project lives in its own `~/.aegis/projects/<name>/` directory. Switch with `aegis project switch`.
+
+### Toolset System
+
+Compose tool bundles from 10 built-in toolsets (web, search, vision, code-execution, delegation, file-ops, shell, research, full-stack, all) with transitive dependency resolution. Create custom toolsets with `aegis toolset new`.
+
 ### Core Features
 
 - **Typed IPC Protocol** — JSON-line messages over stdin/stdout with heartbeat, auto-recovery (exponential backoff)
 - **Lifecycle Hooks** — pre/post hooks for spawn, kill, message, error, exit events
+- **Plugin System** — Ed25519-signed plugins with semver dependency resolution, SQLite registry, 5 hook points, full CLI lifecycle
+- **Soul System** — 8 archetypes, 6 mood states, behavioral heuristics injected into agent prompts
+- **Dream Engine** — 6-phase idle-time dream cycle: memory replay, pattern discovery, knowledge compression, counterfactual exploration, shared dreaming, mood consolidation
+- **Evolution Engine** — Auto-code mutation from dream insights + failure clusters. 8 mutation strategies. Test-verified auto-apply with rollback.
+- **Persona System** — 8 tracked traits (curiosity, tenacity, caution, creativity, precision, efficiency, collaboration, confidence) that evolve from experience + dreams
+- **Social Network** — Multi-instance gossip protocol with file-beacon peer discovery, reputation scoring, trust levels, insight/mutation sharing
 - **HMAC-signed REST API** — timing-safe comparison, replay-protection window
 - **Session Persistence** — SQLite-backed session store with resume, export, prune, merge
+- **Multi-User Sessions** — Shared agent workspaces with event-driven lifecycle and WebSocket forwarding
 - **Knowledge Graph** — SQLite-backed entity-relationship store with auto-extraction from sessions
 - **Vector Memory** — TF-IDF + cosine similarity for semantic search across conversations
 - **Unified Memory Query** — Single interface across FTS5 recall, vector, sessions, experience, and graph stores
@@ -170,6 +213,10 @@ Anthropic, OpenAI, DeepSeek, Groq, Gemini, Mistral, Azure OpenAI, Together AI, O
 - **Experience Replay** — Auto-retry failed runs with adaptive strategies, auto-extract skills
 - **Self-Improvement Scheduler** — Cron-driven skill extraction (6h) and failure clustering (12h)
 - **Adversarial Self-Play** — Red-team agents challenge defenders, finds regressions
+- **Multi-Agent Mesh** — 5 orchestration topologies (sequential, fan-out, debate, ensemble, supervisor) with typed agent roles
+- **Debate Engine** — Structured disagreement resolution: agent-based, HITL, or majority-rule arbitration with signed decisions
+- **Eval Harness** — Full test framework with graders, golden dataset pipeline, CI gate, experiment management, HITL review, flaky detection
+- **Training Recorder** — Full trajectory capture (JSONL) for every agent session with export to atropos/jsonl formats
 - **Distributed Runtime** — Multi-host worker pool with bully leader election and encrypted transport
 - **Capacity-Aware Placement** — Workers self-report CPU/memory/GPU, scheduler picks best host
 - **Role-Based Access Control** — Admin/operator/developer/viewer roles with SHA-256 hashed API keys
@@ -178,43 +225,117 @@ Anthropic, OpenAI, DeepSeek, Groq, Gemini, Mistral, Azure OpenAI, Together AI, O
 - **Distributed Tracing** — SQLite-backed trace spans with parent-child relationships
 - **Production Dashboard** — Aggregated view of SLOs, costs, failures, and agent health
 - **Cross-DB Insights** — Joins audit, billing, experience, and telemetry databases
+- **Project Workspaces** — Isolated per-project state (sessions, memory, dreams, evolutions, personas)
 
 ---
 
 ## Architecture
 
 ```mermaid
-graph TD
-    CLI[index.ts] --> ML[Mode Launcher]
-    ML --> D[dashboard]
-    ML --> C[chat]
-    ML --> ST[status]
-    ML --> SK[skills]
-    ML --> CFG[config]
-    ML --> CR[cron]
-    ML --> MEM[memory]
-    ML --> AMEM[agentmemory]
-    ML --> A[agent]
-    ML --> S[setup]
-    ML --> SV[serve]
-    ML --> MCP[mcp]
+graph TB
+    subgraph "User Layer"
+        CLI[CLI / index.ts] --> ML[Mode Launcher]
+        WEB[Web Dashboard :5173]
+        WS[WebSocket Gateway :8081]
+        GW[Multi-Platform Gateway]
+    end
 
-    WB[dashboard/] --> WB1[Console]
-    WB --> WB2[Chat]
-    WB --> WB3[Agents]
-    WB --> WB4[Docs]
+    subgraph "Terminal Modes (36+)"
+        ML --> CHAT[chat] & DASH[dashboard] & ST[status]
+        ML --> MEM[memory] & AGT[agent] & CFG[config]
+        ML --> CR[cron] & SK[skills] & SV[serve]
+        ML --> CP[mcp] & COST[cost] & RTR[router]
+        ML --> EST[estimate] & INS[insights] & BNCH[bench]
+        ML --> IMP[improve] & PROD[production] & DIST[distributed]
+        ML --> PLG[plugin] & DRM[dream] & EVO[evolve]
+        ML --> PER[persona] & SOC[social] & EVAL[eval]
+        ML --> MESH[mesh] & TR[train] & TS[toolset]
+        ML --> PRJ[project] & VC[voice] & SL[soul]
+    end
 
-    A --> AM[AgentManager]
-    S --> Wiz[Setup Wizard]
-    SV --> API[API Server]
-    MCP --> MCPC[MCP Client/Server]
-    API --> WB
+    subgraph "Agent Runtime"
+        AM[AgentManager] --> RT[Runtime]
+        RT --> TYPES[14 Agent Types]
+        RT --> SOUL{Soul Engine}
+        SOUL --> ARCH[8 Archetypes]
+        SOUL --> MOOD[6 Mood States]
+        AM --> HOOKS[Plugin Hooks: 5 Points]
+        AM --> IPC[Typed IPC Protocol]
+    end
 
-    AM --> W1[Worker 1]
-    AM --> W2[Worker 2]
-    AM --> WN[Worker N]
-    AM --> HR[HookRegistry]
-    AM --> RC[Auto-Recovery]
+    subgraph "Consciousness Layer"
+        DREAM[Dream Engine] --> PHASES[Replay · Pattern · Compress<br/>Counterfactual · Share · Mood]
+        EVOLVE[Evolution Engine] --> MUTATE[Refactor · Optimize · Bugfix<br/>Error-handling · Security · more]
+        PERSONA[Persona System] --> TRAITS[Curiosity · Tenacity · Caution<br/>Creativity · Precision · more]
+        SOCIAL[Social Network] --> GOSSIP[Peer Discovery · Gossip<br/>Reputation · Trust Levels]
+    end
+
+    subgraph "Memory & Knowledge"
+        MS[Memory System]
+        MS --> KG[(Knowledge Graph)]
+        MS --> VEC[(Vector Memory)]
+        MS --> FTS5[(FTS5 Recall)]
+        MS --> SESS[(Session Store)]
+        MS --> EXP[Experience Replay]
+    end
+
+    subgraph "Coordination"
+        MESH_ENG[Mesh Orchestrator]
+        DEBATE[Debate Engine]
+        MESH_ENG --> TOPOS[5 Topologies]
+        DEBATE --> ARB[3 Arbitrator Types]
+    end
+
+    subgraph "Evaluation & Training"
+        HARNESS[Eval Harness]
+        GRADER[Grader Suite · Golden Dataset]
+        CI[CI Gate · Baselines]
+        TRAIN[Trajectory Recorder]
+    end
+
+    subgraph "Infrastructure"
+        PLUGIN[Plugin System]
+        PLUGIN --> SIGN[Ed25519 Signed]
+        PLUGIN --> REG[SQLite Registry]
+        PLUGIN --> SEMVER[Semver Resolution]
+        DIST_RT[Distributed Runtime]
+        DIST_RT --> POOL[Multi-Host Pool]
+        DIST_RT --> ENC[AES-256 Transport]
+        API[HMAC-signed REST API]
+        AUTH[RBAC · Vault · Audit]
+        OBS[SLO · Tracing · Prod Dashboard]
+        BILL[Cost Attribution]
+        PROJ[Project Workspaces]
+        TLS[Toolset System · 10 Bundles]
+    end
+
+    subgraph "AI Providers (13)"
+        P_ANTH[Anthropic] & P_OAI[OpenAI] & P_DS[DeepSeek]
+        P_GK[Groq] & P_GM[Gemini] & P_MS[Mistral]
+        P_AZ[Azure] & P_TG[Together] & P_OR[OpenRouter]
+        P_XAI[xAI] & P_CH[Cohere] & P_PP[Perplexity] & P_OL[Ollama]
+    end
+
+    subgraph "Platform Adapters (11)"
+        A_DC[Discord] & A_SL[Slack] & A_TG[Telegram]
+        A_SMS[SMS] & A_VC[Voice] & A_WA[WhatsApp]
+        A_EM[Email] & A_WH[Webhook]
+        A_MX[Matrix] & A_SG[Signal] & A_IR[IRC]
+    end
+
+    AM --> MS & PLUGIN & DIST_RT & AUTH & BILL
+    DREAM --> MS & SOUL
+    EVOLVE --> DREAM
+    PERSONA --> DREAM
+    SOCIAL --> EVOLVE
+    MESH_ENG --> AM
+    DEBATE --> MESH_ENG
+    HARNESS --> MESH_ENG
+    TRAIN --> AM
+    API --> AUTH
+    GW --> A_DC & A_SL & A_TG & A_SMS & A_VC & A_WA & A_EM & A_WH & A_MX & A_SG & A_IR
+    WS --> WEB
+    RTR[Model Router] --> P_ANTH & P_OAI & P_DS & P_GK & P_GM & P_MS & P_AZ & P_TG & P_OR & P_XAI & P_CH & P_PP & P_OL
 ```
 
 ### Module Breakdown
@@ -222,24 +343,37 @@ graph TD
 | Module | Path | Responsibility |
 |--------|------|----------------|
 | CLI | `src/cli/` | Command registration, banner, theme, palette |
-| Modes | `src/modes/` | Mode framework + 12 TUI mode screens |
-| Agent | `src/agent/` | Agent lifecycle, process management, IPC, hooks |
+| Modes | `src/modes/` | Mode framework + 36 TUI mode screens |
+| Agent | `src/agent/` | Agent lifecycle, process management, IPC, hooks, soul |
+| Soul | `src/agent/soul.ts` | 8 archetypes, 6 moods, behavioral heuristics |
 | Dashboard TUI | `src/tui/` | Dashboard rendering, state management, commands |
 | Chat TUI | `src/chat/` | Chat UI, streaming, provider integration, sessions |
 | Web Dashboard | `dashboard/` | Vite + React 19 frontend with 12 route pages |
 | Wizard | `src/wizard/` | Interactive setup flows |
 | Tools | `src/tools/` | Tool registry and 8 built-in tool implementations |
+| Toolsets | `src/toolsets/` | Composable tool bundles with dependency resolution |
 | Skills | `src/skills/` | Skill loading, registry, and remote API client |
 | Memory | `src/memory/` | Session persistence, knowledge graph, vector, namespaces, synthesis |
 | Experience | `src/experience/` | Experience replay buffer, retrieval, skill curation |
-| Economy | `src/economy/` | Cost routing, pricing registry, budget guard, pre-flight checks |
+| Dream | `src/dream/` | 6-phase idle-time dream cycle with insight generation |
+| Evolve | `src/evolve/` | Auto-code mutation, typecheck+tests verification |
+| Persona | `src/persona/` | 8-trait agent personality evolution from experience |
+| Social | `src/social/` | Multi-instance gossip protocol, peer discovery, reputation |
+| Economy | `src/economy/` | Cost routing, pricing registry, budget guard, pre-flight |
 | Improve | `src/improve/` | Skill extraction, failure clustering, adversarial self-play |
+| Plugin | `src/plugin/` | Ed25519-signed plugins, SQLite registry, hooks, resolver |
+| Mesh | `src/mesh/` | Multi-agent orchestration: 5 topologies, 7 agent roles |
+| Debate | `src/debate/` | Disagreement detection, 3 arbitrator types, signed decisions |
+| Harness | `src/harness/` | Eval suite: graders, golden dataset, CI gate, experiments, HITL |
+| Training | `src/training/` | Trajectory recording and export for every agent session |
 | Distributed | `src/distributed/` | Worker pool, encrypted transport, capacity placement, management |
-| Adapters | `src/adapters/` | 8-platform gateway (Discord, Slack, Telegram, etc.) |
+| Adapters | `src/adapters/` | 11-platform gateway (Discord, Slack, Telegram, Matrix, Signal, IRC, etc.) |
 | API | `src/api/` | HTTP REST API server with HMAC + RBAC authentication |
 | AI | `src/ai/` | Provider manager (13 providers), factory, model references |
 | Auth | `src/auth/` | RBAC role management, API key auth, HTTP middleware |
 | Vault | `src/vault/` | AES-256-GCM credential vault, env loader, provider bridge |
+| Project | `src/project/` | Isolated workspaces with per-project config and state |
+| Voice | `src/voice/` | Voice system configuration and provider integration |
 | Observability | `src/observability/` | SLO tracking, distributed tracing, production dashboard |
 | Triggers | `src/triggers/` | Cron, file_watch, webhook, condition, background agents |
 | Audit | `src/audit/` | Append-only audit logging for all agent actions |
@@ -255,6 +389,7 @@ graph TD
 - **RBAC** — Admin/operator/developer/viewer roles with SHA-256 hashed API keys; permission checks on every route
 - **Auditable** — all agent actions logged with timestamps to append-only audit log
 - **Encrypted credential vault** — AES-256-GCM with scrypt-derived master key, per-entry random IVs, key rotation
+- **Signed plugins** — Ed25519 signature verification at install time with SHA-256 checksums
 - **Distributed transport encryption** — AES-256-GCM between workers with SHA-256 derived shared key
 - **Vault-to-provider bridge** — API keys stored in vault auto-sync to provider resolution at unlock
 - **User-level permissions** — agents operate with the user's filesystem permissions
@@ -441,109 +576,119 @@ All secrets are passed via environment variables from `.env`. Keep this file sec
 
 ## Roadmap (2026-2027)
 
-Neuron OS has shipped 4 major milestones since v0.2.0. The roadmap below shows what's built and what's next.
+Neuron OS has shipped 8 major milestones since v0.2.0. The roadmap below shows what's built and what's next.
 
 ### ✅ v0.7.0 — Cost Attribution & Benchmarking — **SHIPPED**
 
-**What we delivered:**
 - `aegis cost {total,models,sessions,history,budget,report}` CLI with real USD pricing
-- `aegis benchmark {run,status,baseline}` with regression detection and CI-compatible JSON output
+- `aegis benchmark {run,status,baseline}` with regression detection and CI-compatible JSON
 - `aegis bench providers "<task>"` — benchmarks all 13 providers on quality + cost
-- `aegis insights` — cross-DB analytics joining audit, billing, experience, and telemetry stores
-- `aegis router route/list/suggest` — auto-selects cheapest viable provider per task type
-- `aegis estimate` — pre-flight cost estimation before agent spawning, with warn/block thresholds
-- Model router wired into agent spawning — `AEGIS_MODEL_HINT` auto-set to cheapest provider
+- `aegis insights` — cross-DB analytics joining audit, billing, experience, telemetry
+- `aegis router route/list/suggest` — auto-selects cheapest viable provider
+- `aegis estimate` — pre-flight cost estimation with warn/block thresholds
 - 13 providers tracked in pricing registry with real per-1k-token costs
 
 ---
 
 ### ✅ v0.8.0 — Knowledge Graph & Long-Term Memory — **SHIPPED**
 
-**What we delivered:**
 - SQLite-backed knowledge graph with entity extraction, relationship linking, confidence scoring
 - Per-agent memory namespaces with TTL-based expiry and archival
-- Cross-session knowledge synthesis (`aegis memory synthesize <topic>`) across 5 stores
-- Unified Memory Query — single interface searching FTS5 recall, vector memory, sessions, experience, and graph
-- Auto-extraction from agent sessions — every completed session populates the knowledge graph
-- `aegis memory graph {add-entity,link,search,related,stats}`
-- `aegis memory ns {create,add,query,prune}`
+- Cross-session synthesis (`aegis memory synthesize <topic>`) across 5 stores
+- Unified Memory Query — single interface searching FTS5, vector, sessions, experience, graph
+- Auto-extraction from agent sessions
 
 ---
 
 ### ✅ v0.9.0 — Distributed Runtime — **SHIPPED**
 
-**What we delivered:**
-- Multi-host worker pool with TCP-based leader election (bully algorithm)
-- AES-256-GCM encrypted transport between workers with SHA-256 key derivation
-- Capacity-aware placement — workers self-report CPU, memory, GPU; scheduler scores and picks best host
-- Remote management HTTP API (6 routes: health, workers, task dispatch, election)
+- Multi-host worker pool with TCP-based bully leader election
+- AES-256-GCM encrypted transport with SHA-256 key derivation
+- Capacity-aware placement (CPU, memory, GPU scoring)
 - Worker heartbeat monitoring with automatic timeout
-- `aegis distributed {start,status,workers,task,info}`
-- Distributed spawn integration in AgentManager — auto-dispatches to remote workers when configured
-- HMAC-signed management API with optional `X-Aegis-Signature` header
 
 ---
 
 ### ✅ v0.10.0 — Self-Improving Agents — **SHIPPED**
 
-**What we delivered:**
-- Skill candidate extraction from successful experiences — clustering by embedding similarity
+- Skill extraction from successful experiences (clustering by embedding similarity)
 - Failure clustering by goal + tag overlap with severity scoring
-- Adversarial self-play — 8 scenario templates, attacker vs defender, regression detection
-- Auto-skill packaging — validated candidates published to `src/skills/auto-*.ts`
-- Self-improvement scheduler — cron-driven skill extraction (every 6h) and failure clustering (every 12h)
-- `aegis improve skill {extract,list,validate,publish,reject,stats}`
-- `aegis improve failure {cluster,list,fix,retry}`
-- `aegis improve adversarial {run,results,analyze}`
-- `aegis improve scheduler {init,remove,status,run}`
-- Wired into agent lifecycle — completed agents flagged for skill extraction; failed agents flagged for clustering
+- Adversarial self-play — 8 scenario templates with regression detection
+- Auto-skill packaging to `src/skills/auto-*.ts`
+- Self-improvement scheduler (cron: 6h extraction, 12h clustering)
 
 ---
 
 ### ✅ v1.0.0 — Production-Ready — **SHIPPED**
 
-**What we delivered:**
-- RBAC with admin/operator/developer/viewer roles, SHA-256 hashed API keys, route-permission mapping
-- Encrypted credential vault — AES-256-GCM with scrypt-derived master key, per-entry IVs, expiration tracking
-- Vault-to-provider bridge — API keys in vault auto-sync to provider resolution at unlock
-- SLO tracking — rolling-window uptime, latency, error rate with burn rate calculation
-- Distributed tracing — SQLite-backed trace spans with parent-child relationships
+- RBAC with admin/operator/developer/viewer roles, SHA-256 hashed API keys
+- Encrypted credential vault — AES-256-GCM with scrypt-derived master key
+- SLO tracking — rolling-window uptime, latency, error rate, burn rate
+- Distributed tracing — SQLite-backed trace spans with parent-child
 - Production dashboard — aggregated SLOs, costs, failures, agent health
-- `aegis serve --auth` — RBAC-enabled HTTP server with permission checks on all routes (17 route patterns)
-- `aegis production {rbac,vault,slo,dashboard,trace,background}`
-- Background agents — file-watching and scheduled agents via TriggerEngine
-- `aegis trigger background {list,register}`
-- Event-driven triggers already existed: cron, file_watch, webhook, condition, gateway_command
+- Background agents via TriggerEngine
 
 ---
 
-### 🔮 H2 2026 — Plugin Marketplace & WebSocket Gateway
+### ✅ v0.11.0 — Plugin Marketplace & WebSocket Gateway — **SHIPPED**
 
-**Theme:** Extend without forks. Collaborate in real-time.
-
-| Milestone | Deliverable | 
-|-----------|-------------|
-| **Plugin Registry** | Signed plugins with version resolution, dependency management |
-| **Plugin CLI** | `aegis plugin {publish,install,list,remove}` with signature verification |
-| **WebSocket Gateway** | Real-time multi-user dashboards with per-user agent state |
-| **Multi-User Sessions** | Shared agent workspaces with activity streaming |
+- Ed25519-signed plugins with semver dependency resolution and integrity checks
+- Full plugin CLI: `aegis plugin {publish,install,list,remove,search,info}`
+- SQLite plugin registry with 5 hook points (spawn, tool_call, message, ipc, shutdown)
+- Bun-native WebSocket gateway (port 8081) with multi-user channels and token auth
+- Multi-user SQLite session store with event-driven lifecycle for WebSocket forwarding
 
 ---
 
-### 🔮 Q1 2027 — Multi-Agent Teams at Scale
+### ✅ v0.12.0 — Multi-Agent Teams at Scale — **SHIPPED**
 
-**Theme:** Teams form and dissolve around tasks, not topology.
-
-| Milestone | Deliverable |
-|-----------|-------------|
-| **Typed Multi-Agent Trees** | Agents declare inputs, outputs, preconditions |
-| **Coordinator Election** | Dynamic lead agent selection by capability matching |
-| **Debate Topology** | Third-agent arbitration for agent disagreement resolution |
-| **Cross-Team Memory** | Team A's learnings queryable by Team B with explicit access policies |
+- Mesh orchestrator with 5 topologies: sequential, fan-out, debate, ensemble, supervisor
+- 7 typed agent roles: researcher, implementer, reviewer, tester, architect, debugger, coordinator
+- Debate engine with 3 arbitrator types: agent-based, human-in-the-loop, majority vote
+- Structured disagreement resolution with signed decision records
 
 ---
 
-### 🔮 Q2 2027 — Tool-Level Economy & Agent Bidding
+### ✅ v0.13.0 — Consciousness Layer — **SHIPPED**
+
+- Soul Engine — 8 archetypes, 6 mood states, behavioral heuristics injected into agent prompts
+- Dream Engine — 6-phase idle-time cycle: memory replay, pattern discovery, knowledge compression, counterfactual exploration, shared dreaming, mood consolidation
+- Evolution Engine — 8 mutation strategies with auto-apply and test-backed rollback
+- Persona System — 8 tracked traits evolving from experience and dream insights
+- Social Network — gossip protocol with file-beacon peer discovery, reputation scoring, trust levels
+
+---
+
+### ✅ v0.14.0 — Eval & Training Pipeline — **SHIPPED**
+
+- Eval harness with grader suite, golden dataset pipeline (silver→gold→audit→archived), CI gate
+- Multi-agent eval with 6 coordination patterns, per-agent metrics
+- Experiment management and HITL review workflow
+- Training recorder — full trajectory capture (JSONL) for every agent session
+- Export formats: atropos, jsonl
+
+---
+
+### 🛠️ v0.10.x — Platform Stability & Resilience — **ACTIVE**
+
+**What it delivers:** The CLI won't freeze. Shutdowns are always clean. SIGTERM is never ignored.
+
+| Deliverable | Description |
+|-------------|-------------|
+| **CLI freeze fix** | Stdin readline symbol leak after `@clack/prompts` teardown |
+| **SIGINT passthrough** | 3-tier Ctrl+C handling: SIGINT → SIGTERM → force-kill |
+| **Adapter shutdown safety** | `.catch(() => process.exit(1))` on all adapter `.stop()` chains |
+| **SIGTERM everywhere** | Handlers on chat, serve, mcp, agent, all adapters, distributed |
+
+**Remaining issues:**
+- `status.ts --watch` mode has no SIGINT/SIGTERM handler — terminal corrupted on unclean exit
+- `mcp.ts` discards `stop()` handle — MCP server never stopped cleanly
+- Command history lost on Ctrl+C in adapter-driven modes
+- No shared `keepAlive()` utility — 15+ commands duplicate signal-handling boilerplate
+
+---
+
+### 🔮 v0.15.0 — Tool-Level Economy
 
 **Theme:** Every action has a price. Every dollar has a benchmark.
 
@@ -557,16 +702,27 @@ Neuron OS has shipped 4 major milestones since v0.2.0. The roadmap below shows w
 
 ---
 
-### 🔮 H2 2027 — Self-Improving Runtime (Karpathy-Delta Closure)
+### 🔮 Q1 2027 — Multi-Agent Orchestration at Platform Scale
+
+**Theme:** Swarms form and dissolve around tasks, not topology.
+
+| Milestone | Deliverable |
+|-----------|-------------|
+| **Declarative Swarm Specs** | YAML defines agent composition, budget, success criteria |
+| **Convergence Detection** | Swarm auto-terminates when consensus or diminishing returns |
+| **Debate Tree Pruning** | Active learning to prune low-value debate branches |
+
+---
+
+### 🔮 Q2 2027 — Self-Improving Runtime (Karpathy-Delta Closure)
 
 **Theme:** The system closes the loop — extract, validate, publish, repeat.
 
 | Milestone | Deliverable |
 |-----------|-------------|
-| **Auto-Skill Packaging** | Passing skill candidates auto-published with quality gates |
 | **Failure Prioritization** | Grouped failures ranked by frequency and blast radius |
-| **Adversarial Regression** | Red-team findings auto-fed into system prompts as known patterns |
-| **Dashboard v2** | Knowledge graph visualization in web app
+| **Adversarial Regression Auto-Feed** | Red-team findings auto-incorporated as known failure patterns |
+| **Dashboard v2** | Knowledge graph + dream visualization in web app |
 
 ---
 
