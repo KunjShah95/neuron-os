@@ -133,7 +133,7 @@ export class SandboxPolicyManager {
     const secrets: string[] = []
     const patterns = policy.secretPatterns ?? [
       /(?:api[_-]?key|apikey)[=:]\s*['"]?[A-Za-z0-9_\-]{16,}/i,
-      /sk-[A-Za-z0-9]{32,}/, // OpenAI-style keys
+      /sk-[a-zA-Z0-9_-]{10,}/, // OpenAI-style keys (sk-xxxx)
       /ghp_[A-Za-z0-9]{36,}/, // GitHub PAT
       /AKIA[0-9A-Z]{16}/, // AWS access key
       /-----BEGIN (?:RSA |EC )?PRIVATE KEY-----/,
