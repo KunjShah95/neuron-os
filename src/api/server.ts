@@ -193,7 +193,7 @@ const ROUTE_PERMISSIONS: Array<{ pattern: RegExp; method: string; permission: Pe
   { pattern: /^\/api\/v1\/health$/, method: "GET", permission: "admin:all" },
   { pattern: /^\/api\/v1\/metrics$/, method: "GET", permission: "admin:all" },
   { pattern: /^\/api\/v1\/souls$/, method: "GET", permission: "admin:all" },
-  { pattern: /^\/api\/v1\/souls\/(.+)$/, method: "GET", permission: "admin:all" },
+  { pattern: /^\/api\/v1\/souls\/([^/]+)$/, method: "GET", permission: "admin:all" },
   { pattern: /^\/api\/v1\/types$/, method: "GET", permission: "agent:view" },
   { pattern: /^\/api\/v1\/ws\/health$/, method: "GET", permission: "admin:all" },
 ]
@@ -507,12 +507,9 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
 
   // ── Single Soul ─────────────────────────────────────────────────────
 
-  const soulMatch = pathname.match(/^\/api\/v1\/souls\/(.+)$/)
+  const soulMatch = pathname.match(/^\/api\/v1\/souls\/([^/]+)$/)
   if (soulMatch && method === "GET") {
     const agentId = soulMatch[1]!
-    if (!agentId) {
-      return jsonResponse(400, { error: "Missing agent ID in path" }, config, req)
-    }
     const entry = soulManager.get(agentId)
     if (!entry) {
       return jsonResponse(404, { error: `No soul found for agent "${agentId}"` }, config, req)
@@ -526,7 +523,7 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
         mood: entry.mood.mood,
         moodEmoji: soulManager.getMoodEmoji(entry.mood.mood),
         traits: entry.traits.map((t) => ({ name: t.name, score: t.score })),
-        adaptations: entry.adaptations,
+        adaptations: entry.adaptations.length,
         lastEvolved: entry.lastEvolved ?? null,
       },
       config,
