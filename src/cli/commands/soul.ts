@@ -13,8 +13,23 @@ export function registerSoul(program: Command) {
   soul
     .command("list")
     .description("List all registered agent souls with mood and archetype")
-    .action(() => {
+    .option("--json", "Output as JSON")
+    .action((opts: { json?: boolean }) => {
       const souls = soulManager.list()
+
+      if (opts?.json) {
+        console.log(JSON.stringify(souls.map(({ agentId, soul: s }) => ({
+          agentId,
+          archetype: s.archetype,
+          name: s.name,
+          mood: s.mood.mood,
+          moodEmoji: soulManager.getMoodEmoji(s.mood.mood),
+          traits: s.traits,
+          adaptations: s.adaptations.length,
+          lastEvolved: s.lastEvolved,
+        })), null, 2))
+        return
+      }
 
       if (souls.length === 0) {
         console.log(`  ${theme.muted("No agent souls registered yet.")}`)
@@ -65,13 +80,34 @@ export function registerSoul(program: Command) {
   soul
     .command("card <agentId>")
     .description("Show a detailed soul card for a specific agent")
-    .action((agentId: string) => {
-      const card = soulManager.generateSoulCard(agentId)
-      if (!card) {
+    .option("--json", "Output as JSON")
+    .action((agentId: string, opts: { json?: boolean }) => {
+      const entry = soulManager.get(agentId)
+      if (!entry) {
+        if (opts?.json) {
+          console.log(JSON.stringify({ error: `No soul found for agent "${agentId}"` }))
+          process.exit(1)
+        }
         console.error(`  ${theme.error("✖")} No soul found for agent "${agentId}"`)
         console.log(`  ${theme.muted("Run 'aegis soul list' to see all registered souls.")}`)
         process.exit(1)
       }
+
+      if (opts?.json) {
+        console.log(JSON.stringify({
+          agentId,
+          archetype: entry.archetype,
+          name: entry.name,
+          mood: entry.mood.mood,
+          moodEmoji: soulManager.getMoodEmoji(entry.mood.mood),
+          traits: entry.traits,
+          adaptations: entry.adaptations.length,
+          lastEvolved: entry.lastEvolved,
+        }, null, 2))
+        return
+      }
+
+      const card = soulManager.generateSoulCard(agentId)
       console.log()
       console.log(card)
       console.log()
@@ -82,7 +118,8 @@ export function registerSoul(program: Command) {
     .description("Show the current mood and emotional state of an agent")
     .option("--set-success", "Simulate a success outcome and update mood")
     .option("--set-failure", "Simulate a failure outcome and update mood")
-    .action((agentId: string, opts: { setSuccess?: boolean; setFailure?: boolean }) => {
+    .option("--json", "Output as JSON")
+    .action((agentId: string, opts: { setSuccess?: boolean; setFailure?: boolean; json?: boolean }) => {
       if (opts.setSuccess) {
         const newMood = soulManager.updateMood(agentId, "success")
         if (!newMood) {
@@ -108,6 +145,20 @@ export function registerSoul(program: Command) {
         console.error(`  ${theme.error("✖")} No soul found for agent "${agentId}"`)
         console.log(`  ${theme.muted("Run 'aegis soul list' to see all registered souls.")}`)
         process.exit(1)
+      }
+
+      if (opts?.json) {
+        console.log(JSON.stringify({
+          agentId,
+          archetype: soul.archetype,
+          name: soul.name,
+          mood: soul.mood.mood,
+          moodEmoji: soulManager.getMoodEmoji(soul.mood.mood),
+          traits: soul.traits,
+          adaptations: soul.adaptations.length,
+          lastEvolved: soul.lastEvolved,
+        }, null, 2))
+        return
       }
 
       const moodEmoji = soulManager.getMoodEmoji(soul.mood.mood)
