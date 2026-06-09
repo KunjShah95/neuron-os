@@ -1,5 +1,5 @@
 import type { Command } from "commander"
-import { readFile, writeFile, mkdir, cp, rm } from "node:fs/promises"
+import { readFile, writeFile, mkdir, cp, rm, chmod } from "node:fs/promises"
 import { resolve, join } from "node:path"
 import { existsSync } from "node:fs"
 import { homedir } from "node:os"

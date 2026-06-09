@@ -42,11 +42,12 @@ export class EvalSuite {
     for (const category of categories) {
       const catDir = join(this.baseDir, "tasks", category)
       if (!existsSync(catDir)) {
+        log.warn(`Category directory not found: ${catDir}`)
         continue
       }
 
       const files = readdirSync(catDir).filter(
-        (f) => (f.endsWith(".yaml") || f.endsWith(".yml")) && !f.includes("-list-"),
+        (f) => (f.endsWith(".yaml") || f.endsWith(".yml")) && !/^[\w-]+-list-\d+\./.test(f),
       )
 
       for (const file of files) {
