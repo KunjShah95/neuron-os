@@ -14,7 +14,7 @@ import type {
   RecoveryState,
 } from "./types"
 import { HookRegistry } from "./hooks"
-import { getAgentType, getAllAgentTypes, type AgentType } from "./agent-types"
+import { getAgentType, getAllAgentTypes, isValidAgentType, type AgentType, type AgentTypeName } from "./agent-types"
 import { createLogger } from "../cli/logger"
 import { DockerSandbox } from "../sandbox/docker"
 import type { IsolationLevel } from "../sandbox/types"
@@ -76,6 +76,30 @@ export class AgentManager {
   /** Heartbeat timer handle */
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null
 
+  /** Dream tick timer handle — triggers subconscious processing during idle */
+  private dreamTickTimer: ReturnType<typeof setInterval> | null = null
+
+  /** Predictive pre-warming timer handle */
+  private prewarmTimer: ReturnType<typeof setInterval> | null = null
+
+  /** Tracks which agent types have been pre-warmed and when (for TTL expiry) */
+  private prewarmedTypes = new Map<string, number>()
+
+  /** How long a pre-warmed agent type stays "warm" before it can be re-spawned (ms) */
+  private readonly PREWARM_TTL = 30 * 60 * 1000 // 30 minutes
+
+  /** Max concurrent pre-warmed agents */
+  private readonly PREWARM_MAX_CONCURRENT = 2
+
+  /** Timer refs for auto-shutdown of warm agents, keyed by agent ID */
+  private prewarmShutdownTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
+  /** Prewarm prediction hit/miss counters */
+  private prewarmStats = { hits: 0, misses: 0, promotions: 0 }
+
+  /** The lightweight script used for pre-warmed agents */
+  private readonly PREWARM_SCRIPT = "src/agent/warm-worker.ts"
+
   /** Map from agent ID to abort controllers for in-flight operations */
   private abortControllers = new Map<string, AbortController>()
 
@@ -89,6 +113,14 @@ export class AgentManager {
       this.heartbeatTimer = setInterval(() => this.checkHeartbeats(), hbMs * 2)
       this.heartbeatTimer.unref()
     }
+
+    // Dream tick: check every 60s if dream engine should run a cycle
+    this.dreamTickTimer = setInterval(() => this.dreamTick(), 60_000)
+    this.dreamTickTimer.unref()
+
+    // Predictive pre-warming: check every 5 minutes for patterns
+    this.prewarmTimer = setInterval(() => this.prewarmTick(), 300_000)
+    this.prewarmTimer.unref()
   }
 
   /** Register a listener for agent events. */
@@ -216,6 +248,14 @@ export class AgentManager {
       /* observability is optional */
     }
 
+    // Mark activity on dream engine (agent activity resets idle timer)
+    try {
+      const { dreamEngine } = await import("../dream/engine")
+      dreamEngine.markActivity()
+    } catch {
+      // non-fatal
+    }
+
     await this.hooks.run("spawn", "pre", id, instance, { def: effectiveDef })
 
     // Pre-flight cost estimate
@@ -239,6 +279,12 @@ export class AgentManager {
       } catch (err) {
         if (err instanceof Error && err.message.includes("blocked")) throw err
       }
+    }
+
+    // Promote warm agent right before the actual process spawn
+    if (effectiveDef.agentType && this.tryPromoteWarmAgent(effectiveDef.agentType)) {
+      log.info(`Promoting warm agent for type ${effectiveDef.agentType} — spawning real agent`)
+      this.prewarmStats.promotions++
     }
 
     try {
@@ -330,6 +376,14 @@ export class AgentManager {
 
       // Post-spawn hook
       await this.hooks.run("spawn", "post", id, instance, { def: effectiveDef })
+
+      // Plugin hook: on_agent_spawn
+      try {
+        const { runSpawnHooks } = await import("../plugin/hook-integration")
+        await runSpawnHooks(id)
+      } catch {
+        // Plugin hooks are optional
+      }
     } catch (err) {
       instance.status = "error"
       const msg = err instanceof Error ? err.message : String(err)
@@ -342,6 +396,236 @@ export class AgentManager {
   }
 
   // ── Auto-Recovery ──────────────────────────────────────────────────
+
+  // ── Dream Tick ────────────────────────────────────────────────────
+
+  /**
+   * Called every 60s to tick the dream engine.
+   * If the system has been idle long enough, the dream engine runs a
+   * subconscious processing cycle (memory replay, pattern discovery, etc.).
+   */
+  private async dreamTick(): Promise<void> {
+    try {
+      const { dreamEngine } = await import("../dream/engine")
+      dreamEngine.tick()
+    } catch {
+      // non-fatal
+    }
+  }
+
+  // ── Predictive Pre-warming ─────────────────────────────────────────
+
+  /**
+   * Called every 5 minutes to check if we should pre-warm agents
+   * based on historical usage patterns.
+   *
+   * When a pattern is detected (an agent type used 3+ times in the same
+   * 4-hour window), a lightweight warm agent is spawned with a minimal
+   * goal and tagged "prewarmed". These agents have a 30-minute TTL —
+   * after which they can be re-spawned if still needed.
+   */
+  private async prewarmTick(): Promise<void> {
+    try {
+      const { experienceStore } = await import("../experience/store")
+
+      // Look at recent experiences to predict what agent types will be needed
+      const recent = experienceStore.listRecent(50)
+      if (recent.length < 5) return // not enough data yet
+
+      // Group by agent type and time of day
+      const typeCounts = new Map<string, number>()
+      const currentHour = new Date().getHours()
+
+      for (const exp of recent) {
+        const hour = new Date(exp.startedAt).getHours()
+        // Only count experiences from similar hours (+- 2 hours)
+        if (Math.abs(hour - currentHour) <= 2) {
+          typeCounts.set(exp.agentType, (typeCounts.get(exp.agentType) ?? 0) + 1)
+        }
+      }
+
+      // Clean up expired prewarm entries
+      const now = Date.now()
+      for (const [type, ts] of this.prewarmedTypes) {
+        if (now - ts > this.PREWARM_TTL) {
+          this.prewarmedTypes.delete(type)
+        }
+      }
+
+      // If any agent type has been used 3+ times in this time window,
+      // and it's not currently running, pre-warm it (up to PREWARM_MAX_CONCURRENT)
+      let warmedCount = 0
+      for (const [agentType, count] of typeCounts) {
+        if (count < 3) continue
+        if (warmedCount >= this.PREWARM_MAX_CONCURRENT) {
+          log.debug(`Pre-warm limit reached (${this.PREWARM_MAX_CONCURRENT}), skipping ${agentType}`)
+          break
+        }
+
+        // Check if already running or recently pre-warmed
+        const alreadyRunning = Array.from(this.agents.values()).some(
+          (a) => a.def.agentType === agentType && a.status === "running",
+        )
+        if (alreadyRunning) continue
+
+        // Check TTL — don't re-spawn if we already warmed this type recently
+        const lastPrewarmed = this.prewarmedTypes.get(agentType)
+        if (lastPrewarmed && now - lastPrewarmed < this.PREWARM_TTL) continue
+
+        // Validate that the agent type is registered before attempting to spawn
+        if (!isValidAgentType(agentType)) {
+          log.debug(`Skipping pre-warm for unknown agent type: ${agentType}`)
+          continue
+        }
+        // After isValidAgentType() guard, the cast to non-null is safe
+        const agentTypeDef = getAgentType(agentType as AgentTypeName)!
+
+        // Spawn a lightweight warm agent
+        log.info(`Predictive pre-warm: spawning ${agentType} (used ${count}x in this time window)`)
+
+        try {
+          const warmId = await this.spawn({
+            name: `warm-${agentType}`,
+            script: this.PREWARM_SCRIPT,
+            agentType: agentTypeDef!.name,
+            tags: ["prewarmed"],
+            goal: `Pre-warmed agent for ${agentType} tasks. Standing by.`,
+            stopTimeout: 300_000, // 5 min timeout before SIGKILL
+            env: {
+              AEGIS_PREWARMED: "true",
+              AEGIS_MAX_TURNS: "1", // single-turn by default
+            },
+          })
+
+          this.prewarmedTypes.set(agentType, now)
+          warmedCount++
+          log.info(`Pre-warmed ${agentType} as agent "${warmId}" (${warmedCount}/${this.PREWARM_MAX_CONCURRENT})`)
+
+          // Auto-shutdown after 15 minutes if no real work was dispatched
+          this.autoShutdownWarmAgent(warmId, agentType)
+        } catch (err) {
+          log.warn(`Pre-warm spawn failed for ${agentType}: ${err instanceof Error ? err.message : String(err)}`)
+        }
+      }
+    } catch {
+      // non-fatal
+    }
+  }
+
+  /**
+   * Schedule an automatic shutdown for a warm agent if it hasn't been
+   * used for real work within 15 minutes. Stores the timer ref in
+   * prewarmShutdownTimers for later cancellation.
+   */
+  private autoShutdownWarmAgent(agentId: string, agentType: string): void {
+    const shutdownTimer = setTimeout(async () => {
+      try {
+        const instance = this.agents.get(agentId)
+        if (!instance) {
+          this.prewarmShutdownTimers.delete(agentId)
+          return
+        }
+        // Only auto-shutdown if still tagged as prewarmed and not actively working
+        if (instance.status !== "running" && instance.status !== "idle") {
+          this.prewarmShutdownTimers.delete(agentId)
+          return
+        }
+        log.info(`Auto-shutting down warm agent "${agentId}" (${agentType}) — idle timeout`)
+        this.prewarmStats.misses++ // prewarm prediction was not used within the timeout
+        await this.kill(agentId, 5_000)
+      } catch {
+        // non-fatal
+      } finally {
+        this.prewarmShutdownTimers.delete(agentId)
+      }
+    }, 15 * 60 * 1000) // 15 minutes
+
+    // Store the timer ref for later cancellation
+    this.prewarmShutdownTimers.set(agentId, shutdownTimer)
+  }
+
+  /**
+   * Cancel the auto-shutdown timeout for a warm agent.
+   * Called when a real task is dispatched to a pre-warmed agent.
+   */
+  cancelPrewarmTimeout(agentId: string): void {
+    const timer = this.prewarmShutdownTimers.get(agentId)
+    if (timer) {
+      clearTimeout(timer)
+      this.prewarmShutdownTimers.delete(agentId)
+    }
+  }
+
+  /**
+   * Try to find and promote a pre-warmed agent for the given agent type.
+   * If a matching warm agent exists, it is killed and removed from tracking
+   * so the normal spawn flow creates a fresh real agent.
+   *
+   * Returns true if a warm agent was found and promoted, false otherwise.
+   */
+  private tryPromoteWarmAgent(agentType: string): boolean {
+    // Find a warm agent matching this type
+    const warmAgent = Array.from(this.agents.entries()).find(
+      ([_id, a]) =>
+        a.def.agentType === agentType &&
+        a.def.script === this.PREWARM_SCRIPT &&
+        a.def.tags?.includes("prewarmed"),
+    )
+    if (!warmAgent) return false
+
+    const [warmId, warmInstance] = warmAgent
+
+    // Cancel auto-shutdown timer
+    this.cancelPrewarmTimeout(warmId)
+
+    // Remove from prewarmed types tracking
+    for (const [type, _ts] of this.prewarmedTypes) {
+      if (type === agentType) {
+        this.prewarmedTypes.delete(type)
+        break
+      }
+    }
+
+    // Kill the warm agent process (fire-and-forget)
+    warmInstance.process.kill(9) // SIGKILL — warm agents are ephemeral
+    warmInstance.status = "stopped"
+    this.agents.delete(warmId)
+
+    this.prewarmStats.hits++
+    return true
+  }
+
+  /**
+   * Get prewarm prediction statistics.
+   */
+  getPrewarmStats(): { hits: number; misses: number; promotions: number; hitRate: number; hitRateFormatted: string } {
+    const total = this.prewarmStats.hits + this.prewarmStats.misses
+    const hitRate = total > 0 ? this.prewarmStats.hits / total : 0
+    return {
+      ...this.prewarmStats,
+      hitRate,
+      hitRateFormatted: `${(hitRate * 100).toFixed(1)}%`,
+    }
+  }
+
+  /**
+   * Get list of currently pre-warmed agent types with TTL info.
+   */
+  getPrewarmedTypes(): Array<{ type: string; ttlRemainingMs: number }> {
+    const now = Date.now()
+    return Array.from(this.prewarmedTypes.entries()).map(([type, ts]) => ({
+      type,
+      ttlRemainingMs: Math.max(0, this.PREWARM_TTL - (now - ts)),
+    }))
+  }
+
+  /**
+   * Public wrapper to manually trigger the prewarm analysis.
+   * Used by the CLI 'aegis agent prewarm trigger' command.
+   */
+  async runPrewarmAnalysis(): Promise<void> {
+    await this.prewarmTick()
+  }
 
   /**
    * Calculate the backoff delay for a given retry attempt.
@@ -529,6 +813,11 @@ export class AgentManager {
   async sendIpc(id: string, msg: AgentIpcMessage): Promise<void> {
     const instance = this.agents.get(id)
     if (!instance) throw new Error(`Agent "${id}" not found`)
+
+    // Auto-cancel prewarm shutdown timer when a real task is dispatched
+    if (msg.type === "dispatch") {
+      this.cancelPrewarmTimeout(id)
+    }
 
     const stdin = instance.process.stdin
     if (stdin === undefined || stdin === null || typeof stdin === "number") {

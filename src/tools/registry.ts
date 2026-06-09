@@ -64,6 +64,17 @@ export class ToolRegistry {
       }
     }
 
+    // Plugin hook: on_tool_call (can block)
+    try {
+      const { runToolCallHooks } = await import("../plugin/hook-integration")
+      const hookResult = await runToolCallHooks(name, params, ctx)
+      if (hookResult.blocked) {
+        return { success: false, output: "", error: `Tool '${name}' blocked by plugin hook` }
+      }
+    } catch {
+      // Plugin hooks are optional
+    }
+
     // Validate parameters
     for (const param of tool.parameters) {
       if (param.required && !(param.name in params)) {
