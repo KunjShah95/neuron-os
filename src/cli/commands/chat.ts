@@ -2,6 +2,7 @@ import type { Command } from "commander"
 import * as readline from "node:readline"
 import { theme } from "../theme"
 import { showBanner } from "../banner"
+import { registerShutdownHandlers } from "../keepAlive"
 import { isValidAgentType } from "../../agent"
 import { createAgentRuntime } from "../../agent/runtime"
 import { AIProviderManager, type AIConfig } from "../../ai"
@@ -262,10 +263,9 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
     rl.prompt()
   }
 
-  // Register SIGTERM handler so the rl.close() promise resolves
-  // and the process can exit cleanly (not just SIGINT).
-  const onSigterm = () => rl.close()
-  process.on("SIGTERM", onSigterm)
+  // Register process signals so the rl.close() promise resolves cleanly
+  // without exiting the process (chat handles its own exit).
+  const unregisterShutdownHandlers = registerShutdownHandlers(() => rl.close(), { exit: false })
 
   // ── Fix: Wait for readline to close before resolving ──────────────
   // Previously, rl.prompt() was called and the function returned
@@ -277,7 +277,7 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
     })
 
     rl.on("close", () => {
-      process.off("SIGTERM", onSigterm)
+      unregisterShutdownHandlers()
       console.log(`\n  ${theme.muted("Chat ended.")}\n`)
       rl.removeAllListeners()
       resolve()
