@@ -1310,5 +1310,32 @@ export class AgentManager {
   }
 }
 
-/** Singleton instance */
-export const agentManager = new AgentManager()
+/**
+ * Lazily-initialized singleton AgentManager.
+ * The instance is created on first property access, not at module load time.
+ * This reduces startup overhead for commands that don't interact with agents.
+ */
+let _agentManager: AgentManager | null = null
+function getAgentManager(): AgentManager {
+  if (!_agentManager) _agentManager = new AgentManager()
+  return _agentManager
+}
+
+/**
+ * Backward-compatible singleton reference.
+ * Uses a Proxy to defer construction until the first property access.
+ */
+export const agentManager = new Proxy({} as AgentManager, {
+  get(_, prop: PropertyKey) {
+    return getAgentManager()[prop as keyof AgentManager]
+  },
+  has(_, prop: PropertyKey) {
+    return prop in getAgentManager()
+  },
+  ownKeys() {
+    return Reflect.ownKeys(getAgentManager())
+  },
+  getOwnPropertyDescriptor(_, prop: PropertyKey) {
+    return Reflect.getOwnPropertyDescriptor(getAgentManager(), prop)
+  },
+})
