@@ -32,7 +32,7 @@ export const docs: Doc[] = [
         type: "p",
         text: "Neuron OS ships as a single binary and an npm wrapper. The npm wrapper is the easiest path on macOS and Linux; the binary works on every platform we test, including Windows via WSL2.",
       },
-      { type: "code", lang: "shell", code: "npx create-neuron-os@latest" },
+      { type: "code", lang: "shell", code: "npx neuron-aegis" },
       {
         type: "p",
         text: "The installer will: detect your shell, install the binary to ~/.neuron/bin, add it to your PATH, generate an encryption key for your vault, and print a verification command.",

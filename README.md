@@ -25,14 +25,14 @@ curl -fsSL https://raw.githubusercontent.com/KunjShah95/neuron-os/main/install.s
 
 **2. NPX** (cross-platform — auto-downloads shim)
 ```bash
-npx @kunjshah/aegis                  # interactive mode picker
-npx @kunjshah/aegis status           # system overview
-npx @kunjshah/aegis chat             # streaming AI chat
-npx @kunjshah/aegis dashboard        # live agent monitoring TUI
-npx @kunjshah/aegis serve            # start REST API server
+npx neuron-aegis                  # interactive mode picker
+npx neuron-aegis status           # system overview
+npx neuron-aegis chat             # streaming AI chat
+npx neuron-aegis dashboard        # live agent monitoring TUI
+npx neuron-aegis serve            # start REST API server
 ```
 The shim downloads the prebuilt binary on first run and caches it at `~/.aegis/bin/`.
-If you have [Bun](https://bun.sh) installed, `bunx @kunjshah/aegis` skips the download and runs TypeScript directly.
+If you have [Bun](https://bun.sh) installed, `bunx neuron-aegis` skips the download and runs TypeScript directly.
 
 **3. Docker** (containerized)
 ```bash
@@ -455,20 +455,49 @@ bun run typecheck
 # Run all tests
 bun run test
 
-# Individual test suites
-bun run test:dashboard     # Dashboard TUI tests (54)
-bun run test:chat          # Chat TUI tests (164)
-bun run src/agent/test-manager.ts       # Agent manager tests (7)
-bun run src/memory/test-agentmemory.ts  # AgentMemory connector tests (42)
-
-# Build web dashboard
-cd dashboard && bun run build
-
-# Build marketing website
-cd website && bun run build
-
-# Run CI suite
+# Run CI suite (typecheck + lint + docs check + tests)
 bun run ci
+
+# Individual test suites
+bun run test:dashboard     # Dashboard TUI tests
+bun run test:chat          # Chat TUI tests
+
+# Coverage
+bun run coverage           # Terminal coverage report
+bun run coverage:html      # HTML coverage report
+
+# Lint & format
+bun run lint               # ESLint
+bun run format             # Prettier
+
+# Docs generator
+bun run docs:generate      # Generate shared/commands.json from CLI source
+bun run docs:check         # Verify docs are up to date (runs in CI)
+
+# Benchmarking
+bun run bench              # Run memory system benchmark
+bun run bench:list         # List available benchmarks
+bun run bench:history      # Show benchmark history
+bun run bench:update       # Run and update baseline
+
+# OpenAPI spec
+bun run openapi            # Generate OpenAPI specification
+
+# Build binaries
+bun run build:binary                   # Windows x64
+bun run build:binary:linux             # Linux x64
+bun run build:binary:mac               # macOS x64
+bun run build:binary:mac-arm64         # macOS ARM64
+
+# Build web frontends
+cd dashboard && bun run build          # Web dashboard
+cd website && bun run build            # Marketing website
+
+# Docker
+bun run docker:build                   # Build Docker image
+bun run docker:push                    # Push to registry
+bun run docker:up                      # Compose up
+bun run docker:up:dev                  # Compose up with dev profile
 ```
 
 ### Extending
