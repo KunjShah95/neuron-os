@@ -486,4 +486,98 @@ export function registerSession(program: Command) {
       console.log(theme.warn(`  ✗ Session \"${existing.name}\" deleted`))
       console.log(`    id: ${theme.dim(sessionId)}`)
     })
+
+  // ── session create <name> ─────────────────────────────────────────
+  session
+    .command("create")
+    .description("Create a new shared multi-user session")
+    .argument("<name>", "Session name")
+    .action(async (name: string) => {
+      try {
+        const { SessionManager } = await import("../../session/manager")
+        const manager = new SessionManager()
+        const userId = process.env.USER || process.env.USERNAME || "anonymous"
+        const s = manager.create(name, userId)
+        console.log(theme.success(`  ✓ Created shared session "${s.name}"`))
+        console.log(`    id:   ${theme.dim(s.id)}`)
+        console.log(`    name: ${theme.dim(s.name)}`)
+        console.log()
+        console.log(theme.dim("  Join with: aegis session join " + s.id))
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.log(theme.error(`  Create failed: ${msg}`))
+        process.exit(1)
+      }
+    })
+
+  // ── session join <id> ────────────────────────────────────────────
+  session
+    .command("join")
+    .description("Join an existing shared session")
+    .argument("<id>", "Session ID to join")
+    .action(async (id: string) => {
+      try {
+        const { SessionManager } = await import("../../session/manager")
+        const manager = new SessionManager()
+        const s = manager.get(id)
+        if (!s) {
+          console.log(theme.error(`  Session "${id}" not found.`))
+          console.log(theme.dim("  Use 'aegis session list-shared' to see active sessions."))
+          process.exit(1)
+        }
+        if (s.status !== "active") {
+          console.log(theme.warn(`  Session "${s.name}" is ${s.status}. Cannot join.`))
+          process.exit(1)
+        }
+        const userId = process.env.USER || process.env.USERNAME || "anonymous"
+        manager.joinUser(s.id, userId)
+        console.log(theme.success(`  ✓ Joined shared session "${s.name}"`))
+        console.log(`    id:    ${theme.dim(s.id)}`)
+        console.log(`    users: ${theme.dim(s.users)}`)
+        console.log()
+        console.log(theme.dim("  Agent activity in this session will be streamed via WebSocket."))
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.log(theme.error(`  Join failed: ${msg}`))
+        process.exit(1)
+      }
+    })
+
+  // ── session list-shared ──────────────────────────────────────────
+  session
+    .command("list-shared")
+    .description("List active shared multi-user sessions")
+    .action(async () => {
+      try {
+        const { SessionManager } = await import("../../session/manager")
+        const manager = new SessionManager()
+        const sessions = manager.list()
+
+        if (sessions.length === 0) {
+          console.log(theme.dim("  No active shared sessions."))
+          console.log(theme.dim("  Create one with: aegis session create <name>"))
+          return
+        }
+
+        console.log(theme.heading(`  Active Shared Sessions (${sessions.length})`))
+        console.log()
+
+        for (const s of sessions) {
+          const users = JSON.parse(s.users) as string[]
+          const agents = JSON.parse(s.agents) as string[]
+          console.log(`  ${theme.bold(s.name)}`)
+          console.log(`    id:     ${theme.dim(s.id)}`)
+          console.log(`    users:  ${theme.dim(users.join(", ") || "(none)")}`)
+          console.log(`    agents: ${theme.dim(agents.length.toString())}`)
+          console.log(`    since:  ${theme.dim(new Date(s.created_at * 1000).toLocaleString())}`)
+          console.log()
+        }
+
+        console.log(theme.dim("  Join with: aegis session join <id>"))
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.log(theme.error(`  List failed: ${msg}`))
+        process.exit(1)
+      }
+    })
 }
