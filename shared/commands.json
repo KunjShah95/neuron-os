@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-07T13:31:02.904Z",
+  "generatedAt": "2026-06-09T15:08:40.930Z",
   "commands": [
     {
       "name": "adversarial",
@@ -172,6 +172,13 @@
       ],
       "sourceFile": "src/cli/commands/agent.ts",
       "description": "Show agent logs",
+      "parent": "agent"
+    },
+    {
+      "name": "agent prewarm",
+      "options": [],
+      "sourceFile": "src/cli/commands/agent.ts",
+      "description": "Manage pre-warmed agents",
       "parent": "agent"
     },
     {
@@ -456,6 +463,11 @@
         {
           "flag": "--category <name>",
           "description": "Filter by category (coding, debugging, etc.)",
+          "required": false
+        },
+        {
+          "flag": "--list-categories",
+          "description": "List available eval categories and exit",
           "required": false
         },
         {
@@ -1081,6 +1093,116 @@
       "description": "Run system health diagnostics"
     },
     {
+      "name": "dream",
+      "options": [],
+      "sourceFile": "src/cli/commands/dream.ts",
+      "description": "Agent subconscious — dream processing and insight generation"
+    },
+    {
+      "name": "dream config",
+      "options": [
+        {
+          "flag": "--enable",
+          "description": "Enable dreaming",
+          "required": false
+        },
+        {
+          "flag": "--disable",
+          "description": "Disable dreaming",
+          "required": false
+        },
+        {
+          "flag": "--min-idle <minutes>",
+          "description": "Minimum idle minutes before dreaming",
+          "required": false
+        },
+        {
+          "flag": "--max-duration <ms>",
+          "description": "Maximum dream duration in ms",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/dream.ts",
+      "description": "View or update dream configuration",
+      "parent": "dream"
+    },
+    {
+      "name": "dream insights",
+      "options": [
+        {
+          "flag": "-l, --limit <count>",
+          "description": "Number of insights to show",
+          "required": false,
+          "defaultValue": "30"
+        },
+        {
+          "flag": "--actionable",
+          "description": "Show only actionable insights",
+          "required": false
+        },
+        {
+          "flag": "--apply <id>",
+          "description": "Mark an insight as applied",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/dream.ts",
+      "description": "List generated insights",
+      "parent": "dream"
+    },
+    {
+      "name": "dream list",
+      "options": [
+        {
+          "flag": "-l, --limit <count>",
+          "description": "Number of dreams to show",
+          "required": false,
+          "defaultValue": "10"
+        },
+        {
+          "flag": "-t, --agent-type <type>",
+          "description": "Filter by agent type",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/dream.ts",
+      "description": "List recent dreams",
+      "parent": "dream"
+    },
+    {
+      "name": "dream run",
+      "options": [
+        {
+          "flag": "-t, --type <type>",
+          "description": "Dream type: memory-replay, pattern-discovery, knowledge-compression, counterfactual",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/dream.ts",
+      "description": "Run a dream cycle immediately",
+      "parent": "dream"
+    },
+    {
+      "name": "dream share",
+      "options": [
+        {
+          "flag": "-t, --agent-type <types...>",
+          "description": "Agent type(s) to share dreams between (e.g., 'build plan test'). Omitting shares across all agents + includes fleet mood consolidation.",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/dream.ts",
+      "description": "Run cross-agent dream sharing — consolidates insights across agent types",
+      "parent": "dream"
+    },
+    {
+      "name": "dream stats",
+      "options": [],
+      "sourceFile": "src/cli/commands/dream.ts",
+      "description": "Show dream system statistics",
+      "parent": "dream"
+    },
+    {
       "name": "email",
       "options": [
         {
@@ -1410,6 +1532,127 @@
       "sourceFile": "src/cli/commands/eval.ts",
       "description": "Show harness status (tests found, last run summary)",
       "parent": "eval"
+    },
+    {
+      "name": "evolve",
+      "options": [],
+      "sourceFile": "src/cli/commands/evolve.ts",
+      "description": "Self-evolving code — agents propose, verify, and apply source mutations"
+    },
+    {
+      "name": "evolve apply <id>",
+      "options": [],
+      "sourceFile": "src/cli/commands/evolve.ts",
+      "description": "Apply and verify a proposed mutation",
+      "parent": "evolve"
+    },
+    {
+      "name": "evolve config",
+      "options": [
+        {
+          "flag": "--enable",
+          "description": "Enable evolution",
+          "required": false
+        },
+        {
+          "flag": "--disable",
+          "description": "Disable evolution",
+          "required": false
+        },
+        {
+          "flag": "--auto-propose",
+          "description": "Enable auto-propose",
+          "required": false
+        },
+        {
+          "flag": "--auto-apply",
+          "description": "Enable auto-apply for low-risk mutations",
+          "required": false
+        },
+        {
+          "flag": "--confidence <threshold>",
+          "description": "Confidence threshold (0-1)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/evolve.ts",
+      "description": "View or update evolution configuration",
+      "parent": "evolve"
+    },
+    {
+      "name": "evolve list",
+      "options": [
+        {
+          "flag": "-l, --limit <count>",
+          "description": "Number of mutations to show",
+          "required": false,
+          "defaultValue": "20"
+        },
+        {
+          "flag": "-s, --status <status>",
+          "description": "Filter by status",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/evolve.ts",
+      "description": "List mutations",
+      "parent": "evolve"
+    },
+    {
+      "name": "evolve propose",
+      "options": [
+        {
+          "flag": "-f, --file <path>",
+          "description": "Relative path to the source file",
+          "required": true
+        },
+        {
+          "flag": "-d, --description <text>",
+          "description": "Description of the change",
+          "required": true
+        },
+        {
+          "flag": "-s, --strategy <strategy>",
+          "description": "Mutation strategy",
+          "required": false,
+          "defaultValue": "refactor"
+        },
+        {
+          "flag": "-c, --confidence <number>",
+          "description": "Confidence score (0-1)",
+          "required": false,
+          "defaultValue": "0.5"
+        },
+        {
+          "flag": "--diff <text>",
+          "description": "Diff or change description",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/evolve.ts",
+      "description": "Propose a new code mutation manually",
+      "parent": "evolve"
+    },
+    {
+      "name": "evolve rollback <id>",
+      "options": [],
+      "sourceFile": "src/cli/commands/evolve.ts",
+      "description": "Rollback an applied mutation",
+      "parent": "evolve"
+    },
+    {
+      "name": "evolve run",
+      "options": [],
+      "sourceFile": "src/cli/commands/evolve.ts",
+      "description": "Run an evolution cycle — scan dreams and failures for mutation opportunities",
+      "parent": "evolve"
+    },
+    {
+      "name": "evolve stats",
+      "options": [],
+      "sourceFile": "src/cli/commands/evolve.ts",
+      "description": "Show evolution system statistics",
+      "parent": "evolve"
     },
     {
       "name": "experience",
@@ -1816,6 +2059,18 @@
       "parent": "harness"
     },
     {
+      "name": "health",
+      "options": [
+        {
+          "flag": "--json",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/health.ts",
+      "description": "Show system health overview"
+    },
+    {
       "name": "improve",
       "options": [],
       "sourceFile": "src/cli/commands/improve.ts",
@@ -1992,6 +2247,13 @@
       ],
       "sourceFile": "src/cli/commands/pricing.ts",
       "description": "Show quality/USD leaderboard"
+    },
+    {
+      "name": "list",
+      "options": [],
+      "sourceFile": "src/cli/commands/agent.ts",
+      "description": "List pre-warmed agent types with TTL",
+      "alias": "ls"
     },
     {
       "name": "list",
@@ -2211,6 +2473,18 @@
       "sourceFile": "src/cli/commands/mesh.ts",
       "description": "Run a mesh topology",
       "parent": "mesh"
+    },
+    {
+      "name": "metrics",
+      "options": [
+        {
+          "flag": "--json",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/metrics.ts",
+      "description": "Show system metrics snapshot"
     },
     {
       "name": "monitor",
@@ -2504,6 +2778,101 @@
       "alias": "orch"
     },
     {
+      "name": "persona",
+      "options": [],
+      "sourceFile": "src/cli/commands/persona.ts",
+      "description": "Agent persona evolution — traits, mood, and communication style that grow from experience"
+    },
+    {
+      "name": "persona config",
+      "options": [
+        {
+          "flag": "--enable",
+          "description": "Enable persona evolution",
+          "required": false
+        },
+        {
+          "flag": "--disable",
+          "description": "Disable persona evolution",
+          "required": false
+        },
+        {
+          "flag": "--min-exp <count>",
+          "description": "Minimum experiences before evolution",
+          "required": false
+        },
+        {
+          "flag": "--cooldown <ms>",
+          "description": "Evolution cooldown in ms",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/persona.ts",
+      "description": "View or update persona configuration",
+      "parent": "persona"
+    },
+    {
+      "name": "persona evolve",
+      "options": [
+        {
+          "flag": "-t, --agent-type <type>",
+          "description": "Agent type to evolve",
+          "required": false,
+          "defaultValue": "general"
+        },
+        {
+          "flag": "-i, --agent-id <id>",
+          "description": "Specific agent ID",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/persona.ts",
+      "description": "Run persona evolution for an agent type",
+      "parent": "persona"
+    },
+    {
+      "name": "persona history",
+      "options": [
+        {
+          "flag": "-t, --agent-type <type>",
+          "description": "Filter by agent type",
+          "required": false
+        },
+        {
+          "flag": "-i, --agent-id <id>",
+          "description": "Filter by agent ID",
+          "required": false
+        },
+        {
+          "flag": "-l, --limit <count>",
+          "description": "Number of events",
+          "required": false,
+          "defaultValue": "30"
+        }
+      ],
+      "sourceFile": "src/cli/commands/persona.ts",
+      "description": "Show persona evolution history",
+      "parent": "persona"
+    },
+    {
+      "name": "persona status",
+      "options": [
+        {
+          "flag": "-t, --agent-type <type>",
+          "description": "Agent type",
+          "required": false
+        },
+        {
+          "flag": "-i, --agent-id <id>",
+          "description": "Agent ID",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/persona.ts",
+      "description": "Show persona profiles and stats",
+      "parent": "persona"
+    },
+    {
       "name": "plan",
       "options": [
         {
@@ -2524,115 +2893,67 @@
       "name": "plugin",
       "options": [],
       "sourceFile": "src/cli/commands/plugin.ts",
-      "description": "Manage the local plugin registry (publish, install, list, remove)",
+      "description": "Manage plugins (publish, install, list, remove, search, info)",
       "alias": "plugins"
     },
     {
-      "name": "plugin browse",
+      "name": "plugin info <name>",
       "options": [
         {
-          "flag": "-l, --limit <number>",
-          "description": "Max results",
-          "required": false,
-          "defaultValue": "20"
-        }
-      ],
-      "sourceFile": "src/cli/commands/plugin.ts",
-      "description": "Browse trending plugins in the marketplace (skills.sh)",
-      "parent": "plugin"
-    },
-    {
-      "name": "plugin install",
-      "options": [
-        {
-          "flag": "-f, --force",
-          "description": "Overwrite existing skill directory",
-          "required": false,
-          "defaultValue": false
-        }
-      ],
-      "sourceFile": "src/cli/commands/plugin.ts",
-      "description": "Install a plugin from the local registry into skills/",
-      "parent": "plugin"
-    },
-    {
-      "name": "plugin install-from-url",
-      "options": [
-        {
-          "flag": "--name <name>",
-          "description": "Plugin name (default: repo name)",
+          "flag": "-v, --version <version>",
+          "description": "Specific version",
           "required": false
-        },
-        {
-          "flag": "--ref <ref>",
-          "description": "Branch, tag, or commit",
-          "required": false,
-          "defaultValue": "main"
-        },
-        {
-          "flag": "-f, --force",
-          "description": "Overwrite existing skill directory",
-          "required": false,
-          "defaultValue": false
         }
       ],
       "sourceFile": "src/cli/commands/plugin.ts",
-      "description": "Install a plugin from a git URL (GitHub, GitLab, etc.)",
+      "description": "Show detailed plugin info",
+      "parent": "plugin"
+    },
+    {
+      "name": "plugin install <name>",
+      "options": [
+        {
+          "flag": "-v, --version <version>",
+          "description": "Specific version to install",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/plugin.ts",
+      "description": "Install a plugin by name (latest version)",
       "parent": "plugin"
     },
     {
       "name": "plugin list",
       "options": [],
       "sourceFile": "src/cli/commands/plugin.ts",
-      "description": "List all plugins in the local registry",
+      "description": "List all installed plugins",
       "parent": "plugin"
     },
     {
-      "name": "plugin publish",
+      "name": "plugin publish <dir>",
       "options": [
         {
-          "flag": "-d, --description <text>",
-          "description": "Description for the plugin",
+          "flag": "-k, --key <path>",
+          "description": "Path to private key file (default ~/.aegis/plugin-key.pem)",
           "required": false
-        },
-        {
-          "flag": "-v, --version <version>",
-          "description": "Version string",
-          "required": false,
-          "defaultValue": "1.0.0"
         }
       ],
       "sourceFile": "src/cli/commands/plugin.ts",
-      "description": "Package a skill directory into the local registry",
+      "description": "Publish a plugin from a directory containing plugin.yaml + dist/",
       "parent": "plugin"
     },
     {
-      "name": "plugin remove",
-      "options": [
-        {
-          "flag": "--keep-files",
-          "description": "Keep the package directory on disk",
-          "required": false,
-          "defaultValue": false
-        }
-      ],
+      "name": "plugin remove <name>",
+      "options": [],
       "sourceFile": "src/cli/commands/plugin.ts",
-      "description": "Remove a plugin from the local registry",
-      "parent": "plugin",
-      "alias": "rm"
+      "description": "Remove an installed plugin",
+      "parent": "plugin"
     },
     {
-      "name": "plugin search",
-      "options": [
-        {
-          "flag": "-l, --limit <number>",
-          "description": "Max results",
-          "required": false,
-          "defaultValue": "10"
-        }
-      ],
+      "name": "plugin search <query>",
+      "options": [],
       "sourceFile": "src/cli/commands/plugin.ts",
-      "description": "Search the remote plugin marketplace (skills.sh)",
+      "description": "Search plugins by name or description",
       "parent": "plugin"
     },
     {
@@ -3326,6 +3647,18 @@
           "flag": "--session-db",
           "description": "Enable session store endpoints at /api/v1/sessions/*",
           "required": false
+        },
+        {
+          "flag": "--ws",
+          "description": "Enable WebSocket gateway on port 8081",
+          "required": false,
+          "defaultValue": false
+        },
+        {
+          "flag": "--ws-port <port>",
+          "description": "WebSocket gateway port",
+          "required": false,
+          "defaultValue": "8081"
         }
       ],
       "sourceFile": "src/cli/commands/serve.ts",
@@ -3348,6 +3681,13 @@
       ],
       "sourceFile": "src/cli/commands/session.ts",
       "description": "Mark a message as a named checkpoint for later forking",
+      "parent": "session"
+    },
+    {
+      "name": "session create",
+      "options": [],
+      "sourceFile": "src/cli/commands/session.ts",
+      "description": "Create a new shared multi-user session",
       "parent": "session"
     },
     {
@@ -3395,6 +3735,13 @@
       "parent": "session"
     },
     {
+      "name": "session join",
+      "options": [],
+      "sourceFile": "src/cli/commands/session.ts",
+      "description": "Join an existing shared session",
+      "parent": "session"
+    },
+    {
       "name": "session list",
       "options": [
         {
@@ -3413,6 +3760,13 @@
       "description": "List recent sessions",
       "parent": "session",
       "alias": "ls"
+    },
+    {
+      "name": "session list-shared",
+      "options": [],
+      "sourceFile": "src/cli/commands/session.ts",
+      "description": "List active shared multi-user sessions",
+      "parent": "session"
     },
     {
       "name": "session merge <sourceId> <targetId>",
@@ -3654,10 +4008,199 @@
       "description": "Start the SMS adapter (Twilio)"
     },
     {
+      "name": "social",
+      "options": [],
+      "sourceFile": "src/cli/commands/social.ts",
+      "description": "Agent social network — peer discovery, messaging, reputation, gossip"
+    },
+    {
+      "name": "social discover",
+      "options": [],
+      "sourceFile": "src/cli/commands/social.ts",
+      "description": "Force peer discovery scan",
+      "parent": "social"
+    },
+    {
+      "name": "social inbox",
+      "options": [
+        {
+          "flag": "-l, --limit <count>",
+          "description": "Number of messages",
+          "required": false,
+          "defaultValue": "20"
+        }
+      ],
+      "sourceFile": "src/cli/commands/social.ts",
+      "description": "Show received messages",
+      "parent": "social"
+    },
+    {
+      "name": "social message",
+      "options": [
+        {
+          "flag": "-r, --recipient <id>",
+          "description": "Recipient peer ID",
+          "required": true
+        },
+        {
+          "flag": "-s, --subject <text>",
+          "description": "Message subject",
+          "required": true
+        },
+        {
+          "flag": "-b, --body <text>",
+          "description": "Message body",
+          "required": true
+        },
+        {
+          "flag": "-p, --priority <level>",
+          "description": "Priority (low, normal, high, critical)",
+          "required": false,
+          "defaultValue": "normal"
+        }
+      ],
+      "sourceFile": "src/cli/commands/social.ts",
+      "description": "Send a message to a peer",
+      "parent": "social"
+    },
+    {
+      "name": "social peers",
+      "options": [
+        {
+          "flag": "-s, --status <status>",
+          "description": "Filter by status (online, offline, away, unknown)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/social.ts",
+      "description": "List discovered peers",
+      "parent": "social"
+    },
+    {
+      "name": "social register",
+      "options": [
+        {
+          "flag": "-n, --name <name>",
+          "description": "Instance name",
+          "required": true
+        },
+        {
+          "flag": "--version <version>",
+          "description": "Instance version",
+          "required": false,
+          "defaultValue": "1.0.0"
+        },
+        {
+          "flag": "--capabilities <list>",
+          "description": "Comma-separated capabilities",
+          "required": false
+        },
+        {
+          "flag": "--agent-types <list>",
+          "description": "Comma-separated agent types",
+          "required": false
+        },
+        {
+          "flag": "--listen <address>",
+          "description": "Listen address for direct communication",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/social.ts",
+      "description": "Register this instance on the social network",
+      "parent": "social"
+    },
+    {
+      "name": "social reputation",
+      "options": [
+        {
+          "flag": "-p, --peer <id>",
+          "description": "Peer ID",
+          "required": true
+        },
+        {
+          "flag": "-d, --delta <number>",
+          "description": "Reputation change (-1 to 1)",
+          "required": true
+        }
+      ],
+      "sourceFile": "src/cli/commands/social.ts",
+      "description": "Update peer reputation",
+      "parent": "social"
+    },
+    {
+      "name": "social status",
+      "options": [],
+      "sourceFile": "src/cli/commands/social.ts",
+      "description": "Show social network status",
+      "parent": "social"
+    },
+    {
+      "name": "soul",
+      "options": [],
+      "sourceFile": "src/cli/commands/soul.ts",
+      "description": "Agent soul & emotion system — archetypes, moods, and emotional health"
+    },
+    {
+      "name": "soul card <agentId>",
+      "options": [
+        {
+          "flag": "--json",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/soul.ts",
+      "description": "Show a detailed soul card for a specific agent",
+      "parent": "soul"
+    },
+    {
+      "name": "soul list",
+      "options": [
+        {
+          "flag": "--json",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/soul.ts",
+      "description": "List all registered agent souls with mood and archetype",
+      "parent": "soul"
+    },
+    {
+      "name": "soul mood <agentId>",
+      "options": [
+        {
+          "flag": "--set-success",
+          "description": "Simulate a success outcome and update mood",
+          "required": false
+        },
+        {
+          "flag": "--set-failure",
+          "description": "Simulate a failure outcome and update mood",
+          "required": false
+        },
+        {
+          "flag": "--json",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/soul.ts",
+      "description": "Show the current mood and emotional state of an agent",
+      "parent": "soul"
+    },
+    {
       "name": "stats",
       "options": [],
       "sourceFile": "src/cli/commands/improve.ts",
       "description": "Show skill extraction statistics"
+    },
+    {
+      "name": "status",
+      "options": [],
+      "sourceFile": "src/cli/commands/agent.ts",
+      "description": "Show prewarm statistics and running warm agents"
     },
     {
       "name": "status",
@@ -3914,6 +4457,13 @@
       "sourceFile": "src/cli/commands/train.ts",
       "description": "Export training trajectories to file",
       "parent": "train"
+    },
+    {
+      "name": "trigger",
+      "options": [],
+      "sourceFile": "src/cli/commands/agent.ts",
+      "description": "Manually trigger prewarmTick for predictive analysis",
+      "alias": "run"
     },
     {
       "name": "trigger",

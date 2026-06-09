@@ -76,7 +76,7 @@ async function runReActLoop(goal: string, taskId: number): Promise<string> {
 
   // Load previous context to survive crashes
   const history = episodicMemory.loadContext(AGENT_ID)
-  const messages: any[] = history.length > 0 ? history : []
+  const messages = history.length > 0 ? history : []
 
   // Only add the goal if we're not resuming an identical goal
   const lastMsg = messages[messages.length - 1]
