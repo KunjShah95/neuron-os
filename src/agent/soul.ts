@@ -47,6 +47,8 @@ export interface AgentSoul {
   weaknesses: string[]
   /** Quirks that make the soul unique */
   quirks: string[]
+  /** Current emotional mood (shifts based on success/failure) */
+  mood: MoodConfig
   /** Experience-based adaptations learned over time */
   adaptations: SoulAdaptation[]
   /** Timestamp of last evolution */
@@ -58,6 +60,126 @@ export interface SoulAdaptation {
   adaptation: string
   learnedAt: string
   sourceSession?: string
+}
+
+// ── Emotion/Mood System ──────────────────────────────────────────────
+//
+// Agents have moods that shift based on their success/failure history.
+// Moods affect communication style, confidence, and behavioral heuristics.
+//
+// Mood transitions:
+//   elated    ← 5+ consecutive successes or high-reward runs
+//   confident ← 3+ consecutive successes
+//   content   ← neutral/default state
+//   anxious   ← 2+ consecutive failures
+//   frustrated← 3+ consecutive failures
+//   burned_out← 5+ consecutive failures or low-reward runs
+//
+// Each mood adjusts the agent's communication style and introduces
+// mood-appropriate heuristics and quirks.
+
+export type AgentMood =
+  | "elated"
+  | "confident"
+  | "content"
+  | "anxious"
+  | "frustrated"
+  | "burned_out"
+
+export interface MoodConfig {
+  mood: AgentMood
+  /** Running streak count that led to this mood */
+  streak: number
+  /** When the current mood started */
+  since: string
+  /** Last outcome that triggered a mood shift */
+  lastTrigger: "success" | "failure" | "initial"
+}
+
+export const DEFAULT_MOOD_CONFIG: MoodConfig = {
+  mood: "content",
+  streak: 0,
+  since: new Date().toISOString(),
+  lastTrigger: "initial",
+}
+
+/**
+ * Get mood-adjusted communication style overrides for a mood.
+ * These partially override the archetype's default communication.
+ */
+export function getMoodCommunicationOverrides(mood: AgentMood): Partial<{
+  verbosity: CommunicationStyle["verbosity"]
+  tone: CommunicationStyle["tone"]
+  formality: CommunicationStyle["formality"]
+  emoji: CommunicationStyle["emoji"]
+}> {
+  switch (mood) {
+    case "elated":
+      return { tone: "enthusiastic", emoji: "expressive", verbosity: "detailed" }
+    case "confident":
+      return { tone: "enthusiastic", emoji: "subtle", verbosity: "balanced" }
+    case "content":
+      return {} // use archetype defaults
+    case "anxious":
+      return { tone: "professional", verbosity: "detailed", formality: "formal" }
+    case "frustrated":
+      return { tone: "direct", verbosity: "concise", emoji: "none" }
+    case "burned_out":
+      return { tone: "direct", verbosity: "concise", formality: "casual", emoji: "none" }
+  }
+}
+
+/**
+ * Get mood-appropriate heuristics appended to the agent's behavioral rules.
+ */
+export function getMoodHeuristics(mood: AgentMood): string[] {
+  switch (mood) {
+    case "elated":
+      return ["Share excitement about progress while maintaining rigor", "Celebrate wins but stay focused on the next task"]
+    case "confident":
+      return ["Trust your approach but verify results", "Move with conviction — you know this domain well"]
+    case "content":
+      return []
+    case "anxious":
+      return ["Double-check assumptions before proceeding", "Ask clarifying questions when uncertain", "Prefer safer, well-tested approaches"]
+    case "frustrated":
+      return ["Take a step back and reassess the approach", "Avoid making the same mistake twice — document what went wrong", "Consider alternative strategies before retrying"]
+    case "burned_out":
+      return ["Request a break or switch to a different task type", "Focus on simpler, high-confidence subtasks", "Flag persistent issues for human review"]
+  }
+}
+
+/**
+ * Compute the next mood given current mood, streak, and latest outcome.
+ */
+export function computeNextMood(current: MoodConfig, outcome: "success" | "failure"): MoodConfig {
+  const now = new Date().toISOString()
+
+  if (outcome === "success") {
+    const newStreak = current.lastTrigger === "success" ? current.streak + 1 : 1
+
+    if (newStreak >= 5) {
+      return { mood: "elated", streak: newStreak, since: current.mood !== "elated" ? now : current.since, lastTrigger: "success" }
+    }
+    if (newStreak >= 3) {
+      return { mood: "confident", streak: newStreak, since: current.mood !== "confident" ? now : current.since, lastTrigger: "success" }
+    }
+    return { mood: "content", streak: newStreak, since: current.mood !== "content" ? now : current.since, lastTrigger: "success" }
+  }
+
+  // Failure outcome
+  const newStreak = current.lastTrigger === "failure" ? current.streak + 1 : 1
+
+  if (newStreak >= 5) {
+    return { mood: "burned_out", streak: newStreak, since: current.mood !== "burned_out" ? now : current.since, lastTrigger: "failure" }
+  }
+  if (newStreak >= 3) {
+    return { mood: "frustrated", streak: newStreak, since: current.mood !== "frustrated" ? now : current.since, lastTrigger: "failure" }
+  }
+  if (newStreak >= 2) {
+    return { mood: "anxious", streak: newStreak, since: current.mood !== "anxious" ? now : current.since, lastTrigger: "failure" }
+  }
+  return { mood: "content", streak: newStreak, since: current.mood !== "content" ? now : current.since, lastTrigger: "failure" }
 }
 
 // ── Archetype definitions ─────────────────────────────────────────────
@@ -405,6 +527,7 @@ export class SoulManager {
       heuristics: [...def.defaultHeuristics],
       weaknesses: [...def.defaultWeaknesses],
       quirks: [...def.defaultQuirks],
+      mood: { ...DEFAULT_MOOD_CONFIG },
       adaptations: [],
       lastEvolved: null,
     }
@@ -439,6 +562,22 @@ export class SoulManager {
    */
   unregister(agentId: string): boolean {
     return this.souls.delete(agentId)
+  }
+
+  /**
+   * Record an outcome (success/failure) for an agent, updating its mood.
+   * Auto-registers a soul if none exists for this agent ID.
+   */
+  recordOutcome(agentId: string, agentType: string, success: boolean): void {
+    let soul = this.souls.get(agentId)
+    if (!soul) {
+      soul = this.generateSoul(agentType, agentType)
+      this.register(agentId, soul)
+    }
+
+    const outcome: "success" | "failure" = success ? "success" : "failure"
+    soul.mood = computeNextMood(soul.mood, outcome)
+    soul.lastEvolved = new Date().toISOString()
   }
 
   /**
@@ -491,6 +630,42 @@ export class SoulManager {
   }
 
   /**
+   * Update an agent's mood based on a success or failure outcome.
+   * Uses computeNextMood() to determine the new mood state.
+   */
+  updateMood(agentId: string, outcome: "success" | "failure"): MoodConfig | null {
+    const soul = this.souls.get(agentId)
+    if (!soul) return null
+
+    const newMood = computeNextMood(soul.mood, outcome)
+    soul.mood = newMood
+    soul.lastEvolved = new Date().toISOString()
+    return newMood
+  }
+
+  /**
+   * Get the mood emoji for a given mood state.
+   */
+  getMoodEmoji(mood: AgentMood): string {
+    switch (mood) {
+      case "elated": return "🌟"
+      case "confident": return "💪"
+      case "content": return "😌"
+      case "anxious": return "😰"
+      case "frustrated": return "😤"
+      case "burned_out": return "😶"
+    }
+  }
+
+  /**
+   * Get a formatted mood label with emoji for display.
+   */
+  formatMood(mood: AgentMood): string {
+    const emoji = this.getMoodEmoji(mood)
+    return `${emoji} ${mood.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())}`
+  }
+
+  /**
    * Generate a soul card — a formatted visual representation of an agent's soul.
    */
   generateSoulCard(agentId: string): string | null {
@@ -517,6 +692,9 @@ export class SoulManager {
     }
 
     lines.push(`║${"".padEnd(43)}║`)
+    const moodLabel = this.formatMood(entry.mood.mood)
+    lines.push(`║  Mood: ${moodLabel.padEnd(34)} ║`)
+    lines.push(`║  Streak: ${String(entry.mood.streak).padStart(2)} ${entry.mood.lastTrigger === "initial" ? "" : entry.mood.lastTrigger === "success" ? "wins" : "setbacks"}        ║`)
     lines.push(`║  Communication: ${entry.communication.tone}/${entry.communication.verbosity} ║`)
     lines.push(`║  Style: ${entry.communication.formality}/${entry.communication.emoji} ║`)
 
@@ -554,6 +732,9 @@ export class SoulManager {
     name: string
     color: string
     icon: string
+    mood: AgentMood
+    moodEmoji: string
+    streak: number
     topTrait: string
     topScore: number
     adaptationCount: number
@@ -570,6 +751,9 @@ export class SoulManager {
         name: soul.name,
         color: def.color,
         icon: def.icon,
+        mood: soul.mood.mood,
+        moodEmoji: this.getMoodEmoji(soul.mood.mood),
+        streak: soul.mood.streak,
         topTrait: topTrait?.name || "unknown",
         topScore: topTrait?.score || 0,
         adaptationCount: soul.adaptations.length,

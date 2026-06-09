@@ -349,6 +349,17 @@ export class AgentManager {
         // Run exit hooks
         await this.hooks.run("exit", "post", id, instance, { code })
 
+        // Record soul outcome for mood/emotion tracking
+        try {
+          const { soulManager } = await import("./soul")
+          const agentType = effectiveDef.agentType
+          if (agentType) {
+            soulManager.recordOutcome(id, agentType, code === 0)
+          }
+        } catch {
+          /* non-fatal */
+        }
+
         if (code !== 0 && prevStatus !== "stopping") {
           this.emit("agent:error", id, { code, message: `Process exited with code ${code}` })
           // Attempt auto-recovery — if triggered, skip exit event
