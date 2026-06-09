@@ -571,7 +571,7 @@ export class SoulManager {
   recordOutcome(agentId: string, agentType: string, success: boolean): void {
     let soul = this.souls.get(agentId)
     if (!soul) {
-      soul = this.generateSoul(agentType, agentType)
+      soul = this.generateSoul(agentType)
       this.register(agentId, soul)
     }
 
@@ -654,6 +654,7 @@ export class SoulManager {
       case "anxious": return "😰"
       case "frustrated": return "😤"
       case "burned_out": return "😶"
+      default: return "❓"
     }
   }
 

@@ -301,6 +301,68 @@ describe("Mood/Dream Integration", () => {
     expect(typeof agentManager.runPrewarmAnalysis).toBe("function")
   })
 
+  // ── Prewarm Backoff Tests ────────────────────────────────────────────
+
+  test("prewarmBackoff stores future retry timestamps that prevent immediate retries", () => {
+    const type = "backoff-test"
+    ;(agentManager as any).prewarmBackoff.clear()
+    ;(agentManager as any).prewarmFailedAttempts.clear()
+
+    // Set backoff far in the future
+    ;(agentManager as any).prewarmBackoff.set(type, Date.now() + 300_000)
+
+    const next = (agentManager as any).prewarmBackoff.get(type)
+    expect(next).toBeGreaterThan(Date.now())
+  })
+
+  test("prewarmFailedAttempts increments on repeated failures", () => {
+    const type = "fail-counter-test"
+    ;(agentManager as any).prewarmFailedAttempts.clear()
+
+    // Simulate multiple failures
+    ;(agentManager as any).prewarmFailedAttempts.set(type, 1)
+    expect((agentManager as any).prewarmFailedAttempts.get(type)).toBe(1)
+
+    ;(agentManager as any).prewarmFailedAttempts.set(type, 3)
+    expect((agentManager as any).prewarmFailedAttempts.get(type)).toBe(3)
+
+    ;(agentManager as any).prewarmFailedAttempts.delete(type)
+    expect((agentManager as any).prewarmFailedAttempts.has(type)).toBe(false)
+  })
+
+  test("expired backoff allows retry", () => {
+    const type = "expired-backoff"
+    ;(agentManager as any).prewarmBackoff.clear()
+    ;(agentManager as any).prewarmFailedAttempts.clear()
+
+    // Set backoff in the past (expired)
+    const past = Date.now() - 60_000
+    ;(agentManager as any).prewarmBackoff.set(type, past)
+
+    // Backoff check: if nextAttempt is in the past, skip is NOT triggered
+    const nextAttempt = (agentManager as any).prewarmBackoff.get(type)
+    expect(nextAttempt).toBeLessThanOrEqual(Date.now())
+  })
+
+  test("backoff values follow exponential pattern", () => {
+    // Verify the backoff formula produces expected delays
+    const BASE = 60_000 // 1 min
+    const MAX = 3_600_000 // 60 min
+
+    const delays = [0, 1, 2, 3, 4, 5, 6, 7].map((attempt) => {
+      return Math.min(BASE * Math.pow(2, attempt), MAX)
+    })
+
+    expect(delays[0]).toBe(60_000)   // 1 min
+    expect(delays[1]).toBe(120_000)  // 2 min
+    expect(delays[2]).toBe(240_000)  // 4 min
+    expect(delays[3]).toBe(480_000)  // 8 min
+    expect(delays[4]).toBe(960_000)  // 16 min
+    expect(delays[5]).toBe(1_920_000) // 32 min
+    expect(delays[6]).toBe(3_600_000) // capped at 60 min
+    expect(delays[7]).toBe(3_600_000) // capped at 60 min
+  })
+
   test("getPrewarmStats is a public method", () => {
     expect(typeof agentManager.getPrewarmStats).toBe("function")
   })

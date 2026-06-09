@@ -72,7 +72,7 @@ function discoverEvalTasks(taskPath?: string, category?: string): EvalTaskYaml[]
   for (const cat of categories) {
     const catDir = resolve(EVALS_DIR, cat)
     if (!existsSync(catDir)) continue
-    const files = readdirSync(catDir).filter((f) => f.endsWith(".yaml"))
+    const files = readdirSync(catDir).filter((f) => f.endsWith(".yaml") && !f.includes("-list-"))
     for (const file of files) {
       try {
         const raw = readFileSync(resolve(catDir, file), "utf-8")
