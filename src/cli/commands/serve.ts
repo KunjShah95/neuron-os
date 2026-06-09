@@ -15,6 +15,8 @@ export function registerServe(program: Command) {
     .option("--no-auto-improve", "Skip self-improvement scheduler startup")
     .option("--webhook-secret <secret>", "Enable webhook routes at /api/v1/webhook/* with HMAC verification")
     .option("--session-db", "Enable session store endpoints at /api/v1/sessions/*")
+    .option("--ws", "Enable WebSocket gateway on port 8081", false)
+    .option("--ws-port <port>", "WebSocket gateway port", "8081")
     .action(
       async (opts: {
         port?: string
@@ -26,9 +28,12 @@ export function registerServe(program: Command) {
         autoImprove?: boolean
         webhookSecret?: string
         sessionDb?: boolean
+        ws?: boolean
+        wsPort?: string
       }) => {
         const { startApiServer } = await import("../../api")
         const port = parseInt(opts.port ?? "8080", 10)
+        const { gateway } = await import("../../adapters/gateway")
 
         console.log(theme.heading("  Starting Aegis API Server"))
         console.log()
@@ -73,6 +78,31 @@ export function registerServe(program: Command) {
 
         if (opts.sessionDb) {
           console.log(theme.info("  📂 Session store endpoints enabled at /api/v1/sessions/*"))
+        }
+
+        // Start WebSocket gateway if requested
+        if (opts.ws) {
+          const { WsGatewayAdapter } = await import("../../adapters/ws-gateway")
+          const wsPort = parseInt(opts.wsPort ?? "8081", 10)
+          const wsAdapter = new WsGatewayAdapter(wsPort)
+
+          // Wire onMessage to gateway
+          wsAdapter.onMessage = async (msg) => {
+            await gateway.handleMessage(msg)
+          }
+
+          gateway.register(wsAdapter)
+          await wsAdapter.start()
+
+          console.log(theme.info(`  WebSocket gateway started on port ${wsPort}`))
+
+          // Wire session manager to WS gateway for state streaming
+          const { SessionManager } = await import("../../session/manager")
+          const sessionManager = new SessionManager()
+          sessionManager.onStateChange = (sessionId, state) => {
+            wsAdapter.broadcastSystem({ sessionId, state })
+          }
+          console.log(theme.info("  Multi-user session manager enabled"))
         }
 
         console.log()

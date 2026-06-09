@@ -145,6 +145,19 @@ async function main() {
   await run("Experience Retriever Tests", ["bun", "test", "src/experience/retrieval.test.ts"])
   await run("Bench History Tests", ["bun", "test", "src/bench/bench.test.ts"])
 
+  // ── 6.16 Plugin Tests ─────────────────────────────────────────────
+  await run("Plugin Manifest Tests", ["bun", "test", "src/plugin/manifest.test.ts"])
+  await run("Plugin Signer Tests", ["bun", "test", "src/plugin/signer.test.ts"])
+  await run("Plugin Registry Tests", ["bun", "test", "src/plugin/registry.test.ts"])
+  await run("Plugin Hooks Tests", ["bun", "test", "src/plugin/hooks.test.ts"])
+
+  // ── 6.17 WebSocket Gateway Tests ──────────────────────────────────
+  await run("WS Gateway Tests", ["bun", "test", "src/adapters/ws-gateway.test.ts"])
+
+  // ── 6.18 Session Manager Tests ────────────────────────────────────
+  await run("Session Store Tests", ["bun", "test", "src/session/store.test.ts"])
+  await run("Session Manager Tests", ["bun", "test", "src/session/manager.test.ts"])
+
   // ── 7. TypeScript Typecheck ───────────────────────────────────────
   await run("TypeScript Typecheck", ["bun", "run", "--bun", "tsc", "--noEmit"])
 
