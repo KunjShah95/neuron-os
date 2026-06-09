@@ -687,8 +687,36 @@ export class SessionStore {
   }
 }
 
-/** Singleton instance */
-export const sessionStore = new SessionStore()
+/**
+ * Lazily-initialized singleton SessionStore.
+ * The instance is created on first property access, not at module load time.
+ * This reduces startup overhead by deferring SQLite database open + schema
+ * migration until it's actually needed (e.g., not for --help, doctor, status).
+ */
+let _sessionStore: SessionStore | null = null
+function getSessionStore(): SessionStore {
+  if (!_sessionStore) _sessionStore = new SessionStore()
+  return _sessionStore
+}
+
+/**
+ * Backward-compatible singleton reference.
+ * Uses a Proxy to defer construction until the first property access.
+ */
+export const sessionStore = new Proxy({} as SessionStore, {
+  get(_, prop: PropertyKey) {
+    return getSessionStore()[prop as keyof SessionStore]
+  },
+  has(_, prop: PropertyKey) {
+    return prop in getSessionStore()
+  },
+  ownKeys() {
+    return Reflect.ownKeys(getSessionStore())
+  },
+  getOwnPropertyDescriptor(_, prop: PropertyKey) {
+    return Reflect.getOwnPropertyDescriptor(getSessionStore(), prop)
+  },
+})
 
 // Cache of project-scoped session stores to avoid duplicate init logs and DB connections
 const projectStores = new Map<string, SessionStore>()

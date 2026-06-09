@@ -27,6 +27,12 @@ Object.defineProperty(window, "localStorage", {
   writable: true,
 })
 
+// Mock window.scrollTo (not implemented in jsdom)
+Object.defineProperty(window, "scrollTo", {
+  value: vi.fn(),
+  writable: true,
+})
+
 // Mock AudioContext for sound tests
 class MockAudioContext {
   state = "running"

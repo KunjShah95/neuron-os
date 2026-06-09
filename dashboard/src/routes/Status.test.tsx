@@ -53,17 +53,26 @@ describe("Status page — event feed", () => {
     mockClearEvents = vi.fn()
   })
 
-  it("renders the status page header", () => {
+  /**
+   * Helper: render <Status /> and wait for its initial async effects
+   * (api.health, api.listAgents) to settle, preventing act() warnings.
+   */
+  async function renderAndSettle() {
     render(<Status />)
+    // Flush the initial useEffect async calls (api.health, api.listAgents)
+    await waitFor(() => {
+      expect(screen.queryByText("Online")).toBeInTheDocument()
+    }, { timeout: 1000 })
+  }
+
+  it("renders the status page header", async () => {
+    await renderAndSettle()
     expect(screen.getByText("System Status")).toBeInTheDocument()
     expect(screen.getByText("Real-time system health, agents, and event feed")).toBeInTheDocument()
   })
 
   it("renders metric cards with initial values", async () => {
-    render(<Status />)
-    await waitFor(() => {
-      expect(screen.getByText("Online")).toBeInTheDocument()
-    })
+    await renderAndSettle()
     const statusElements = screen.getAllByText("Status")
     expect(statusElements.length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText("Agents")).toBeInTheDocument()
@@ -71,28 +80,32 @@ describe("Status page — event feed", () => {
     expect(screen.getByText("Events")).toBeInTheDocument()
   })
 
-  it("shows empty event feed message when no events", () => {
-    render(<Status />)
+  it("shows empty event feed message when no events", async () => {
+    await renderAndSettle()
     expect(
       screen.getByText("No events yet. Events appear here in real-time."),
     ).toBeInTheDocument()
   })
 
-  it("shows connecting message when WebSocket is connecting", () => {
+  it("shows connecting message when WebSocket is connecting", async () => {
     mockWsStatus = "connecting"
     render(<Status />)
-    expect(screen.getByText("Connecting to event stream...")).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText("Connecting to event stream...")).toBeInTheDocument()
+    }, { timeout: 1000 })
   })
 
-  it("shows disconnected message when WebSocket is disconnected", () => {
+  it("shows disconnected message when WebSocket is disconnected", async () => {
     mockWsStatus = "disconnected"
     render(<Status />)
-    expect(screen.getByText("Disconnected. Reconnecting...")).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText("Disconnected. Reconnecting...")).toBeInTheDocument()
+    }, { timeout: 1000 })
   })
 
   it("renders connected event", async () => {
     addEvents({ event: "connected", data: { clientId: "ws-1" }, timestamp: 1000 })
-    render(<Status />)
+    await renderAndSettle()
     expect(screen.getByText("Connected to real-time feed")).toBeInTheDocument()
   })
 
@@ -102,23 +115,23 @@ describe("Status page — event feed", () => {
       data: { agentId: "agent-1", data: { name: "worker-1", type: "coder", status: "spawning" } },
       timestamp: 1000,
     })
-    render(<Status />)
+    await renderAndSettle()
     expect(screen.getByText("Agent spawned: worker-1")).toBeInTheDocument()
   })
 
-  it("renders agent:kill event", () => {
+  it("renders agent:kill event", async () => {
     addEvents({ event: "agent:kill", data: { agentId: "agent-1" }, timestamp: 1000 })
-    render(<Status />)
+    await renderAndSettle()
     expect(screen.getByText("Agent killed: agent-1")).toBeInTheDocument()
   })
 
-  it("renders multiple events in sequence", () => {
+  it("renders multiple events in sequence", async () => {
     addEvents(
       { event: "connected", data: { clientId: "ws-1" }, timestamp: 1000 },
       { event: "agent:spawn", data: { agentId: "a1", data: { name: "alice" } }, timestamp: 2000 },
       { event: "agent:kill", data: { agentId: "a1" }, timestamp: 3000 },
     )
-    render(<Status />)
+    await renderAndSettle()
     expect(screen.getByText("Connected to real-time feed")).toBeInTheDocument()
     expect(screen.getByText("Agent spawned: alice")).toBeInTheDocument()
     expect(screen.getByText("Agent killed: a1")).toBeInTheDocument()
@@ -130,12 +143,9 @@ describe("Status page — event feed", () => {
       { event: "agent:spawn", data: { agentId: "a1", data: { name: "bot" } }, timestamp: 2000 },
       { event: "agent:kill", data: { agentId: "a1" }, timestamp: 3000 },
     )
-    render(<Status />)
+    await renderAndSettle()
 
-    expect(screen.getByText("Connected to real-time feed")).toBeInTheDocument()
-    expect(screen.getByText("Agent spawned: bot")).toBeInTheDocument()
-
-    // Select "Spawns" filter — wrap in act and use waitFor to flush React state
+    // Select "Spawns" filter
     await act(async () => {
       fireEvent.change(screen.getByRole("combobox"), { target: { value: "agent:spawn" } })
     })
@@ -149,45 +159,53 @@ describe("Status page — event feed", () => {
     })
   })
 
-  it("shows connection status indicators", () => {
+  it("shows connection status indicators", async () => {
     mockWsStatus = "connected"
-    render(<Status />)
+    await renderAndSettle()
     expect(screen.getByText("Live")).toBeInTheDocument()
   })
 
-  it("shows 'Connecting' indicator when connecting", () => {
+  it("shows 'Connecting' indicator when connecting", async () => {
     mockWsStatus = "connecting"
     render(<Status />)
-    expect(screen.getByText("Connecting")).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText("Connecting")).toBeInTheDocument()
+    }, { timeout: 1000 })
   })
 
-  it("shows 'Offline' indicator when disconnected", () => {
+  it("shows 'Offline' indicator when disconnected", async () => {
     mockWsStatus = "disconnected"
     render(<Status />)
-    expect(screen.getByText("Offline")).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText("Offline")).toBeInTheDocument()
+    }, { timeout: 1000 })
   })
 
-  it("clear button calls clearEvents", () => {
-    render(<Status />)
-    fireEvent.click(screen.getByText("Clear"))
+  it("clear button calls clearEvents", async () => {
+    await renderAndSettle()
+    await act(async () => {
+      fireEvent.click(screen.getByText("Clear"))
+    })
     expect(mockClearEvents).toHaveBeenCalled()
   })
 
-  it("auto-scroll button toggles state", () => {
-    render(<Status />)
+  it("auto-scroll button toggles state", async () => {
+    await renderAndSettle()
     expect(screen.getByText("Auto-scroll")).toBeInTheDocument()
-    fireEvent.click(screen.getByText("Auto-scroll"))
+    await act(async () => {
+      fireEvent.click(screen.getByText("Auto-scroll"))
+    })
     expect(screen.getByText("Auto-scroll")).toBeInTheDocument()
   })
 
-  it("renders SoundToggle component", () => {
-    render(<Status />)
+  it("renders SoundToggle component", async () => {
+    await renderAndSettle()
     const toggle = screen.getByTitle(/notification sounds/i)
     expect(toggle).toBeInTheDocument()
   })
 
-  it("renders connection details section", () => {
-    render(<Status />)
+  it("renders connection details section", async () => {
+    await renderAndSettle()
     expect(screen.getByText("Connection Details")).toBeInTheDocument()
     const found = screen.getAllByText(/WebSocket/)
     expect(found.length).toBeGreaterThanOrEqual(1)

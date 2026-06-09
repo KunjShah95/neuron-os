@@ -614,5 +614,32 @@ export class TriggerEngine {
   }
 }
 
-/** Singleton trigger engine instance */
-export const triggerEngine = new TriggerEngine()
+/**
+ * Lazily-initialized singleton TriggerEngine.
+ * The instance is created on first property access, not at module load time.
+ * This reduces startup overhead for commands that don't use triggers.
+ */
+let _triggerEngine: TriggerEngine | null = null
+function getTriggerEngine(): TriggerEngine {
+  if (!_triggerEngine) _triggerEngine = new TriggerEngine()
+  return _triggerEngine
+}
+
+/**
+ * Backward-compatible singleton reference.
+ * Uses a Proxy to defer construction until the first property access.
+ */
+export const triggerEngine = new Proxy({} as TriggerEngine, {
+  get(_, prop: PropertyKey) {
+    return getTriggerEngine()[prop as keyof TriggerEngine]
+  },
+  has(_, prop: PropertyKey) {
+    return prop in getTriggerEngine()
+  },
+  ownKeys() {
+    return Reflect.ownKeys(getTriggerEngine())
+  },
+  getOwnPropertyDescriptor(_, prop: PropertyKey) {
+    return Reflect.getOwnPropertyDescriptor(getTriggerEngine(), prop)
+  },
+})
