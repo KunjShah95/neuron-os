@@ -299,6 +299,8 @@ export class AgentManager {
       this.prewarmStats.promotions++
     }
 
+    const capturedDef = effectiveDef
+
     try {
       const child = spawn({
         cmd: [process.execPath, "run", scriptPath, ...(effectiveDef.args ?? [])],
@@ -364,7 +366,7 @@ export class AgentManager {
         // Record soul outcome for mood/emotion tracking
         try {
           const { soulManager } = await import("./soul")
-          const agentType = effectiveDef.agentType
+          const agentType = capturedDef.agentType
           if (agentType) {
             soulManager.recordOutcome(id, agentType, code === 0)
           }

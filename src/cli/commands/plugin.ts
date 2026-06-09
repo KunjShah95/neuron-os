@@ -55,6 +55,7 @@ export function registerPlugin(program: Command): void {
 
           const rawPrivate = await crypto.subtle.exportKey("raw", privateKey)
           await writeFile(keyPath, Buffer.from(rawPrivate))
+          await chmod(keyPath, 0o600)
 
           const pubKeyData = await exportPublicKey(pair.publicKey)
           const pubPath = keyPath.replace(/\.pem$/, ".pub")
@@ -69,18 +70,21 @@ export function registerPlugin(program: Command): void {
 
         const dbPath = join(homedir(), ".aegis", "plugins.db")
         const registry = new PluginRegistry(dbPath)
-        registry.register(manifest, signature, checksum)
-        registry.close()
+        try {
+          registry.register(manifest, signature, checksum)
 
-        const storeDir = join(homedir(), ".aegis", "plugins", manifest.name, manifest.version)
-        await mkdir(storeDir, { recursive: true })
-        await cp(pluginDir, storeDir, { recursive: true })
+          const storeDir = join(homedir(), ".aegis", "plugins", manifest.name, manifest.version)
+          await mkdir(storeDir, { recursive: true })
+          await cp(pluginDir, storeDir, { recursive: true })
 
-        console.log(theme.success(`\u2713 Published ${manifest.name}@${manifest.version}`))
-        console.log(theme.info(`  Signature: ${signature.slice(0, 16)}...${signature.slice(-8)}`))
-        console.log(theme.info(`  Checksum:  ${checksum.slice(0, 16)}...`))
+          console.log(theme.success(`\u2713 Published ${manifest.name}@${manifest.version}`))
+          console.log(theme.info(`  Signature: ${signature.slice(0, 16)}...${signature.slice(-8)}`))
+          console.log(theme.info(`  Checksum:  ${checksum.slice(0, 16)}...`))
+        } finally {
+          registry.close()
+        }
       } catch (err) {
-        console.log(theme.error(`\u2717 Publish failed: ${(err as Error).message}`))
+        console.log(theme.error(`\u2717 Publish failed: ${String(err)}`))
         process.exit(1)
       }
     })
@@ -95,28 +99,30 @@ export function registerPlugin(program: Command): void {
         const { PluginRegistry } = await import("../../plugin/registry")
         const dbPath = join(homedir(), ".aegis", "plugins.db")
         const registry = new PluginRegistry(dbPath)
+        try {
+          const pluginDir = join(homedir(), ".aegis", "plugins", name)
+          if (!existsSync(pluginDir)) {
+            console.log(theme.error(`\u2717 Plugin '${name}' not found in local store`))
+            process.exit(1)
+          }
 
-        const pluginDir = join(homedir(), ".aegis", "plugins", name)
-        if (!existsSync(pluginDir)) {
-          console.log(theme.error(`\u2717 Plugin '${name}' not found in local store`))
-          process.exit(1)
+          const yaml = await readFile(join(pluginDir, "plugin.yaml"), "utf-8").catch(() => null)
+          if (!yaml) {
+            console.log(theme.error(`\u2717 Corrupted plugin: no plugin.yaml in ${pluginDir}`))
+            process.exit(1)
+          }
+
+          const { parseManifest } = await import("../../plugin/manifest")
+          const manifest = parseManifest(yaml)
+          const version = opts.version ?? manifest.version
+          registry.incrementInstalls(manifest.name, version)
+
+          console.log(theme.success(`\u2713 Installed ${name}@${version}`))
+        } finally {
+          registry.close()
         }
-
-        const yaml = await readFile(join(pluginDir, "plugin.yaml"), "utf-8").catch(() => null)
-        if (!yaml) {
-          console.log(theme.error(`\u2717 Corrupted plugin: no plugin.yaml in ${pluginDir}`))
-          process.exit(1)
-        }
-
-        const { parseManifest } = await import("../../plugin/manifest")
-        const manifest = parseManifest(yaml)
-        const version = opts.version ?? manifest.version
-        registry.incrementInstalls(manifest.name, version)
-        registry.close()
-
-        console.log(theme.success(`\u2713 Installed ${name}@${version}`))
       } catch (err) {
-        console.log(theme.error(`\u2717 Install failed: ${(err as Error).message}`))
+        console.log(theme.error(`\u2717 Install failed: ${String(err)}`))
         process.exit(1)
       }
     })
@@ -130,21 +136,24 @@ export function registerPlugin(program: Command): void {
         const { PluginRegistry } = await import("../../plugin/registry")
         const dbPath = join(homedir(), ".aegis", "plugins.db")
         const registry = new PluginRegistry(dbPath)
-        const plugins = registry.list()
-        registry.close()
+        try {
+          const plugins = registry.list()
 
-        if (plugins.length === 0) {
-          console.log(theme.info("No plugins installed"))
-          return
-        }
+          if (plugins.length === 0) {
+            console.log(theme.info("No plugins installed"))
+            return
+          }
 
-        console.log(theme.heading(`Plugins (${plugins.length}):`))
-        for (const p of plugins) {
-          const line = `  ${p.name}@${p.version}  ${p.description ? `- ${p.description}` : ""}`
-          console.log(theme.info(line))
+          console.log(theme.heading(`Plugins (${plugins.length}):`))
+          for (const p of plugins) {
+            const line = `  ${p.name}@${p.version}  ${p.description ? `- ${p.description}` : ""}`
+            console.log(theme.info(line))
+          }
+        } finally {
+          registry.close()
         }
       } catch (err) {
-        console.log(theme.error(`\u2717 List failed: ${(err as Error).message}`))
+        console.log(theme.error(`\u2717 List failed: ${String(err)}`))
         process.exit(1)
       }
     })
@@ -158,17 +167,20 @@ export function registerPlugin(program: Command): void {
         const { PluginRegistry } = await import("../../plugin/registry")
         const dbPath = join(homedir(), ".aegis", "plugins.db")
         const registry = new PluginRegistry(dbPath)
-        registry.remove(name)
-        registry.close()
+        try {
+          registry.remove(name)
 
-        const pluginDir = join(homedir(), ".aegis", "plugins", name)
-        if (existsSync(pluginDir)) {
-          await rm(pluginDir, { recursive: true, force: true })
+          const pluginDir = join(homedir(), ".aegis", "plugins", name)
+          if (existsSync(pluginDir)) {
+            await rm(pluginDir, { recursive: true, force: true })
+          }
+
+          console.log(theme.success(`\u2713 Removed ${name}`))
+        } finally {
+          registry.close()
         }
-
-        console.log(theme.success(`\u2713 Removed ${name}`))
       } catch (err) {
-        console.log(theme.error(`\u2717 Remove failed: ${(err as Error).message}`))
+        console.log(theme.error(`\u2717 Remove failed: ${String(err)}`))
         process.exit(1)
       }
     })
@@ -182,20 +194,23 @@ export function registerPlugin(program: Command): void {
         const { PluginRegistry } = await import("../../plugin/registry")
         const dbPath = join(homedir(), ".aegis", "plugins.db")
         const registry = new PluginRegistry(dbPath)
-        const results = registry.search(query)
-        registry.close()
+        try {
+          const results = registry.search(query)
 
-        if (results.length === 0) {
-          console.log(theme.info(`No plugins matching "${query}"`))
-          return
-        }
+          if (results.length === 0) {
+            console.log(theme.info(`No plugins matching "${query}"`))
+            return
+          }
 
-        console.log(theme.heading(`Results (${results.length}):`))
-        for (const p of results) {
-          console.log(theme.info(`  ${p.name}@${p.version}  ${p.description ?? ""}`))
+          console.log(theme.heading(`Results (${results.length}):`))
+          for (const p of results) {
+            console.log(theme.info(`  ${p.name}@${p.version}  ${p.description ?? ""}`))
+          }
+        } finally {
+          registry.close()
         }
       } catch (err) {
-        console.log(theme.error(`\u2717 Search failed: ${(err as Error).message}`))
+        console.log(theme.error(`\u2717 Search failed: ${String(err)}`))
         process.exit(1)
       }
     })
@@ -210,25 +225,28 @@ export function registerPlugin(program: Command): void {
         const { PluginRegistry } = await import("../../plugin/registry")
         const dbPath = join(homedir(), ".aegis", "plugins.db")
         const registry = new PluginRegistry(dbPath)
-        const plugin = registry.get(name, opts.version)
-        registry.close()
+        try {
+          const plugin = registry.get(name, opts.version)
 
-        if (!plugin) {
-          console.log(theme.error(`\u2717 Plugin '${name}' not found`))
-          process.exit(1)
+          if (!plugin) {
+            console.log(theme.error(`\u2717 Plugin '${name}' not found`))
+            process.exit(1)
+          }
+
+          console.log(theme.heading(`${plugin.name}@${plugin.version}`))
+          console.log(theme.info(`  Description: ${plugin.description ?? "N/A"}`))
+          console.log(theme.info(`  Author: ${plugin.author ?? "N/A"}`))
+          console.log(theme.info(`  License: ${plugin.license ?? "N/A"}`))
+          console.log(theme.info(`  Signature: ${plugin.signature.slice(0, 16)}...`))
+          console.log(theme.info(`  Checksum: ${plugin.checksum.slice(0, 16)}...`))
+          console.log(theme.info(`  Installs: ${plugin.installs_count}`))
+          const date = new Date(plugin.created_at * 1000).toISOString().slice(0, 10)
+          console.log(theme.info(`  Published: ${date}`))
+        } finally {
+          registry.close()
         }
-
-        console.log(theme.heading(`${plugin.name}@${plugin.version}`))
-        console.log(theme.info(`  Description: ${plugin.description ?? "N/A"}`))
-        console.log(theme.info(`  Author: ${plugin.author ?? "N/A"}`))
-        console.log(theme.info(`  License: ${plugin.license ?? "N/A"}`))
-        console.log(theme.info(`  Signature: ${plugin.signature.slice(0, 16)}...`))
-        console.log(theme.info(`  Checksum: ${plugin.checksum.slice(0, 16)}...`))
-        console.log(theme.info(`  Installs: ${plugin.installs_count}`))
-        const date = new Date(plugin.created_at * 1000).toISOString().slice(0, 10)
-        console.log(theme.info(`  Published: ${date}`))
       } catch (err) {
-        console.log(theme.error(`\u2717 Info failed: ${(err as Error).message}`))
+        console.log(theme.error(`\u2717 Info failed: ${String(err)}`))
         process.exit(1)
       }
     })
