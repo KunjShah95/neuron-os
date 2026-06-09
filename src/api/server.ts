@@ -1,12 +1,14 @@
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { agentManager } from "../agent/manager"
+import { soulManager } from "../agent/soul"
 import { createLogger } from "../cli/logger"
 import type { AgentTypeName } from "../agent/agent-types"
 import { a2uiManager, type A2uiEvent } from "../tools/a2ui"
 import { z } from "zod"
 import { mkdirSync, writeFileSync, existsSync, readdirSync, readFileSync as fsReadFile } from "node:fs"
 import { join } from "node:path"
+import { homedir } from "node:os"
 import { rbacManager, type Permission } from "../auth"
 
 const log = createLogger("api")
@@ -399,6 +401,24 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
   // ── Health ──────────────────────────────────────────────────────────
 
   if (pathname === "/api/v1/health" && method === "GET") {
+    const agentSouls = soulManager.list()
+    const moodCounts: Record<string, number> = {}
+    for (const { soul: s } of agentSouls) {
+      moodCounts[s.mood.mood] = (moodCounts[s.mood.mood] ?? 0) + 1
+    }
+
+    const { PluginRegistry } = await import("../plugin/registry")
+    let pluginsInstalled = 0
+    let registryReachable = false
+    try {
+      const reg = new PluginRegistry(join(homedir(), ".aegis", "plugins.db"))
+      pluginsInstalled = reg.list().length
+      reg.close()
+      registryReachable = true
+    } catch {
+      /* non-fatal */
+    }
+
     return jsonResponse(
       200,
       {
@@ -408,6 +428,17 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
         agents: {
           total: agentManager.agents.size,
           running: agentManager.list().filter((a) => a.status === "running").length,
+        },
+        warmPool: {
+          available: typeof (agentManager as any).getWarmPoolSize === "function" ? (agentManager as any).getWarmPoolSize() : 0,
+        },
+        souls: {
+          total: agentSouls.length,
+          moodBreakdown: moodCounts,
+        },
+        plugins: {
+          installed: pluginsInstalled,
+          registryReachable,
         },
       },
       config,
