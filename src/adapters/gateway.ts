@@ -13,6 +13,11 @@ export class MultiPlatformGateway {
     log.info(`Registered platform adapter: ${adapter.name}`)
   }
 
+  /** Get a registered adapter by name */
+  getAdapter(name: string): PlatformAdapter | undefined {
+    return this.adapters.get(name)
+  }
+
   public async startAll() {
     for (const adapter of this.adapters.values()) {
       try {
