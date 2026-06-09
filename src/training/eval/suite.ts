@@ -37,16 +37,17 @@ export class EvalSuite {
    */
   load(): EvalTask[] {
     this.tasks = []
-    const categories = ["coding", "debugging", "refactoring", "web-research", "multi-agent"]
+    const categories = ["coding", "debugging", "refactoring", "web-research", "multi-agent", "adversarial"]
 
     for (const category of categories) {
       const catDir = join(this.baseDir, "tasks", category)
       if (!existsSync(catDir)) {
-        log.warn(`Category directory not found: ${catDir}`)
         continue
       }
 
-      const files = readdirSync(catDir).filter((f) => f.endsWith(".yaml") || f.endsWith(".yml"))
+      const files = readdirSync(catDir).filter(
+        (f) => (f.endsWith(".yaml") || f.endsWith(".yml")) && !f.includes("-list-"),
+      )
 
       for (const file of files) {
         try {

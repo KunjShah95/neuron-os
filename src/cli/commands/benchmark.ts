@@ -29,6 +29,7 @@ export function registerBenchmark(program: Command) {
   bm.command("run [task-path]")
     .description("Run eval tasks and compare vs baseline")
     .option("--category <name>", "Filter by category (coding, debugging, etc.)")
+    .option("--list-categories", "List available eval categories and exit")
     .option("--update-baseline", "Accept current results as new baseline")
     .option("--threshold <pct>", "Fail if regression > X%", "10")
     .option("--json", "Output as JSON for CI consumption")
@@ -91,8 +92,28 @@ function estimateCostUsd(durationMs: number): number {
 
 async function handleRun(
   taskPath: string | undefined,
-  opts: { category?: string; updateBaseline?: boolean; threshold?: string; json?: boolean },
+  opts: { category?: string; listCategories?: boolean; updateBaseline?: boolean; threshold?: string; json?: boolean },
 ) {
+  if (opts.listCategories) {
+    const categories = readdirSync(EVALS_DIR).filter((d) => {
+      const full = resolve(EVALS_DIR, d)
+      try {
+        return readdirSync(full).some((f) => f.endsWith(".yaml"))
+      } catch {
+        return false
+      }
+    })
+    console.log("\n  Available eval categories:\n")
+    for (const cat of categories.sort()) {
+      const count = readdirSync(resolve(EVALS_DIR, cat)).filter(
+        (f) => f.endsWith(".yaml") && !f.includes("-list-"),
+      ).length
+      console.log(`  ${cat.padEnd(20)} ${count} tasks`)
+    }
+    console.log()
+    return
+  }
+
   if (!opts.json) showBanner()
 
   const threshold = parseFloat(opts.threshold ?? "10")
