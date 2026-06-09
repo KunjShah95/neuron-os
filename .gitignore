@@ -61,6 +61,17 @@ tmp-*
 # Git worktrees (never commit the worktree directory itself)
 .worktrees/
 
+# Windows junk / accidental redirections
+nul
+C:*
+
+# Generated signed plugin manifests
+*.signed.json
+
+# Demo / temp artifacts
+demo-video/
+tmp/
+
 # Top-level planning artifacts (one-time, not source)
 task.md
 implementation_plan.md
