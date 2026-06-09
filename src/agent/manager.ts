@@ -1325,9 +1325,21 @@ function getAgentManager(): AgentManager {
  * Backward-compatible singleton reference.
  * Uses a Proxy to defer construction until the first property access.
  */
+/**
+ * AgentManager proxy with full Reflect forwarding.
+ *
+ * The `set` trap is deliberate: the proxy stores no state of its own —
+ * all reads/writes/ownership queries are forwarded to the lazy singleton.
+ * This enables tests to inject state (e.g. `(agentManager as any).prewarmStats`)
+ * and guarantees the proxy never gets out of sync with the real instance.
+ */
 export const agentManager = new Proxy({} as AgentManager, {
   get(_, prop: PropertyKey) {
     return getAgentManager()[prop as keyof AgentManager]
+  },
+  set(_, prop: PropertyKey, value: unknown) {
+    ;(getAgentManager() as Record<PropertyKey, unknown>)[prop] = value
+    return true
   },
   has(_, prop: PropertyKey) {
     return prop in getAgentManager()
