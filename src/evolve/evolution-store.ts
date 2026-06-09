@@ -14,11 +14,15 @@ export class EvolutionStore {
   private db: Database
   private initialized = false
 
-  constructor(project?: string) {
-    const dataDir = project
-      ? join(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "projects", project)
-      : join(process.cwd(), "data")
-    const dir = join(dataDir, "evolve")
+  constructor(project?: string, options?: { dbPath?: string }) {
+    const dir = options?.dbPath
+      ? options.dbPath
+      : (() => {
+          const dataDir = project
+            ? join(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "projects", project)
+            : join(process.cwd(), "data")
+          return join(dataDir, "evolve")
+        })()
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
     this.db = new Database(join(dir, "evolution.db"))
     this.db.exec("PRAGMA journal_mode = WAL")
