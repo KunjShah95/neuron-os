@@ -52,14 +52,14 @@ export async function runBenchTask(task: BenchTask, config?: BenchRunnerConfig):
       `  ${result.passed ? "✅" : "❌"} score=${result.score.toFixed(2)} in ${(result.durationMs / 1000).toFixed(1)}s`,
     )
     return result
-  } catch (err: any) {
-    log(`  ❌ error: ${err.message ?? String(err)}`)
+  } catch (err: unknown) {
+    log(`  ❌ error: ${err instanceof Error ? err.message : String(err)}`)
     return {
       taskId: task.id,
       score: 0,
       passed: false,
       durationMs: Date.now() - start,
-      error: err.message ?? String(err),
+      error: err instanceof Error ? err.message : String(err),
     }
   }
 }

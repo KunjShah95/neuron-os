@@ -1,0 +1,36 @@
+---
+name: Quick sort with dependencies and grader weights
+id: coding-list-002
+category: coding
+priority: medium
+tags:
+  - typescript
+  - sorting
+  - algorithms
+  - intermediate
+description: Implement an in-place quicksort with Lomuto partition scheme
+dependsOn:
+  - coding-list-001
+  - coding-001
+expected:
+  pattern: "function quickSort"
+  filesExist:
+    - /tmp/quicksort.ts
+  maxTokens: 2000
+graderWeights:
+  deterministic: 0.4
+  llm: 0.6
+timeout: 180000
+author: test-automation
+---
+Implement an in-place quicksort function in TypeScript:
+
+```typescript
+function quickSort(arr: number[], left?: number, right?: number): void
+```
+
+Save to /tmp/quicksort.ts. Requirements:
+- Use the Lomuto partition scheme
+- Sort in-place (mutate the input array)
+- Handle empty and single-element arrays
+- Export as default

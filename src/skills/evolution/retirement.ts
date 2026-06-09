@@ -144,8 +144,8 @@ export async function retireSkill(skillName: string, reason: string): Promise<bo
     })
     log.info(`skill "${skillName}" retired → ${archive}`)
     return true
-  } catch (err: any) {
-    log.error(`failed to retire "${skillName}": ${err.message}`)
+  } catch (err: unknown) {
+    log.error(`failed to retire "${skillName}": ${err instanceof Error ? err.message : String(err)}`)
     return false
   }
 }

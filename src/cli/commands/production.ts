@@ -156,8 +156,8 @@ export function registerProduction(program: Command): void {
         const pw = await promptPassword("Enter master password: ")
         vault.initialize(pw)
         console.log("\n  Vault initialized.\n")
-      } catch (err: any) {
-        console.log(`\n  ❌ ${err.message}\n`)
+      } catch (err: unknown) {
+        console.log(`\n  ❌ ${err instanceof Error ? err.message : String(err)}\n`)
       }
     })
 
@@ -194,8 +194,8 @@ export function registerProduction(program: Command): void {
       try {
         const entry = vault.store(name, value, opts.type as any)
         console.log(`\n  Stored: ${entry.id} (${entry.name})\n`)
-      } catch (err: any) {
-        console.log(`\n  ❌ ${err.message}\n`)
+      } catch (err: unknown) {
+        console.log(`\n  ❌ ${err instanceof Error ? err.message : String(err)}\n`)
       }
     })
 
@@ -211,8 +211,8 @@ export function registerProduction(program: Command): void {
         } else {
           console.log("\n  Credential not found.\n")
         }
-      } catch (err: any) {
-        console.log(`\n  ❌ ${err.message}\n`)
+      } catch (err: unknown) {
+        console.log(`\n  ❌ ${err instanceof Error ? err.message : String(err)}\n`)
       }
     })
 
@@ -256,8 +256,8 @@ export function registerProduction(program: Command): void {
         console.log(
           `\n  Loaded "${entryName}" as AEGIS_VAULT_${entryName.toUpperCase().replace(/[^a-zA-Z0-9_]/g, "_")}\n`,
         )
-      } catch (err: any) {
-        console.log(`\n  ❌ ${err.message}\n`)
+      } catch (err: unknown) {
+        console.log(`\n  ❌ ${err instanceof Error ? err.message : String(err)}\n`)
       }
     })
 

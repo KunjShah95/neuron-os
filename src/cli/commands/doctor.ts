@@ -212,8 +212,8 @@ async function checkVault(): Promise<CheckResult> {
       return { status: "pass", message: "Vault initialized (empty)", detail: filePath }
     }
     return { status: "pass", message: `${entries.length} credential(s) stored`, detail: filePath }
-  } catch (err: any) {
-    return { status: "fail", message: "Vault error", detail: err.message }
+  } catch (err: unknown) {
+    return { status: "fail", message: "Vault error", detail: err instanceof Error ? err.message : String(err) }
   }
 }
 
@@ -226,8 +226,8 @@ async function checkSessions(): Promise<CheckResult> {
       message: `${stats.totalSessions} session(s), ${stats.totalMessages} message(s)`,
       detail: `${stats.activeSessions} active`,
     }
-  } catch (err: any) {
-    return { status: "fail", message: "Session store unavailable", detail: err.message }
+  } catch (err: unknown) {
+    return { status: "fail", message: "Session store unavailable", detail: err instanceof Error ? err.message : String(err) }
   }
 }
 
@@ -240,8 +240,8 @@ async function checkAudit(): Promise<CheckResult> {
       message: `${stats.totalEntries} entries, ${stats.totalSessions} session(s)`,
       detail: `Types: ${Object.keys(stats.byType).length}`,
     }
-  } catch (err: any) {
-    return { status: "fail", message: "Audit store unavailable", detail: err.message }
+  } catch (err: unknown) {
+    return { status: "fail", message: "Audit store unavailable", detail: err instanceof Error ? err.message : String(err) }
   }
 }
 
@@ -254,8 +254,8 @@ async function checkExperience(): Promise<CheckResult> {
       message: `${stats.totalExperiences} experience(s), ${stats.avgReward.toFixed(2)} avg reward`,
       detail: `${stats.successCount} success, ${stats.failureCount} failed`,
     }
-  } catch (err: any) {
-    return { status: "fail", message: "Experience store unavailable", detail: err.message }
+  } catch (err: unknown) {
+    return { status: "fail", message: "Experience store unavailable", detail: err instanceof Error ? err.message : String(err) }
   }
 }
 

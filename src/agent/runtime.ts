@@ -6,7 +6,7 @@ import type { SkillContext } from "../skills"
 import type { MemoryContext } from "../memory"
 import type { AgentInstance } from "./types"
 import { agentManager } from "./manager"
-import { loadSoul } from "./soul"
+import { soulManager, loadSoul, getMoodCommunicationOverrides, getMoodHeuristics } from "./soul"
 
 export interface AgentContext {
   agentId: string
@@ -154,6 +154,45 @@ export class AgentRuntime {
       })
       if (soul.trim()) {
         parts.push(`## Soul\n\n${soul.trim()}`)
+      }
+
+      // ── Inject mood state from the live agent soul ────────────────
+      // If this agent has a registered soul with mood tracking, inject the
+      // current emotional state, communication overrides, and mood-appropriate heuristics.
+      const agentSoul = soulManager.get(this.context.agentId)
+      if (agentSoul) {
+        const moodParts: string[] = []
+
+        // Mood state
+        const moodEmoji = soulManager.getMoodEmoji(agentSoul.mood.mood)
+        const moodLabel = agentSoul.mood.mood.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())
+        const streakDesc =
+          agentSoul.mood.streak > 0
+            ? ` (${agentSoul.mood.streak} ${agentSoul.mood.lastTrigger === "success" ? "consecutive wins" : "consecutive setbacks"})`
+            : ""
+        moodParts.push(`${moodEmoji} ${moodLabel}${streakDesc}`)
+
+        // Communication overrides
+        const overrides = getMoodCommunicationOverrides(agentSoul.mood.mood)
+        const commOverrideParts: string[] = []
+        if (overrides.tone) commOverrideParts.push(`tone: ${overrides.tone}`)
+        if (overrides.verbosity) commOverrideParts.push(`verbosity: ${overrides.verbosity}`)
+        if (overrides.formality) commOverrideParts.push(`formality: ${overrides.formality}`)
+        if (overrides.emoji) commOverrideParts.push(`emoji: ${overrides.emoji}`)
+        if (commOverrideParts.length > 0) {
+          moodParts.push(`Communication style: ${commOverrideParts.join(", ")}`)
+        }
+
+        // Mood heuristics
+        const moodH = getMoodHeuristics(agentSoul.mood.mood)
+        if (moodH.length > 0) {
+          moodParts.push("Behavioral guidelines:")
+          for (const h of moodH) {
+            moodParts.push(`- ${h}`)
+          }
+        }
+
+        parts.push(`## Mood\n\n${moodParts.join("\n")}`)
       }
     }
 

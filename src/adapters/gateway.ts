@@ -18,8 +18,8 @@ export class MultiPlatformGateway {
       try {
         await adapter.start()
         log.info(`Started adapter: ${adapter.name}`)
-      } catch (err: any) {
-        log.error(`Failed to start adapter ${adapter.name}: ${err.message}`)
+      } catch (err: unknown) {
+        log.error(`Failed to start adapter ${adapter.name}: ${err instanceof Error ? err.message : String(err)}`)
       }
     }
   }
@@ -28,8 +28,8 @@ export class MultiPlatformGateway {
     for (const adapter of this.adapters.values()) {
       try {
         await adapter.stop()
-      } catch (err: any) {
-        log.error(`Failed to stop adapter ${adapter.name}: ${err.message}`)
+      } catch (err: unknown) {
+        log.error(`Failed to stop adapter ${adapter.name}: ${err instanceof Error ? err.message : String(err)}`)
       }
     }
   }
@@ -82,8 +82,8 @@ export class MultiPlatformGateway {
 
     try {
       await adapter.send({ channelId, text, replyToId })
-    } catch (err: any) {
-      log.error(`Error sending message to ${platformName} (channel: ${channelId}): ${err.message}`)
+    } catch (err: unknown) {
+      log.error(`Error sending message to ${platformName} (channel: ${channelId}): ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 

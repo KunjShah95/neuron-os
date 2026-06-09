@@ -386,6 +386,25 @@ export class AgentEngine {
       }
     }
 
+    // ── Mood/Emotion update ──────────────────────────────────────────
+    if (this.runtime.context.agentId) {
+      try {
+        const { soulManager } = await import("./soul")
+        const moodOutcome = outcome === "success" ? "success" : "failure"
+        soulManager.updateMood(this.runtime.context.agentId, moodOutcome)
+      } catch (err) {
+        log.warn("Mood update failed", { error: String(err) })
+      }
+    }
+
+    // ── Dream engine activity mark ────────────────────────────────────
+    try {
+      const { dreamEngine } = await import("../dream/engine")
+      dreamEngine.markActivity()
+    } catch {
+      // non-fatal
+    }
+
     // ── Knowledge graph integration ──────────────────────────────────
     if (this.sessionGoal) {
       try {

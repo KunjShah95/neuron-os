@@ -142,11 +142,12 @@ export const delegateTaskTool: Tool = {
           // Agent may have already exited; ignore cleanup errors
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
       return {
         success: false,
         output: "",
-        error: `Delegation failed: ${err?.message || String(err)}`,
+        error: `Delegation failed: ${msg}`,
       }
     }
   },

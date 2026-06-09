@@ -342,9 +342,10 @@ export class TriggerEngine {
         default:
           return { success: false, error: "Unknown action mode: " + (trigger.action as any).mode }
       }
-    } catch (err: any) {
-      log.error('Trigger "' + trigger.name + '" failed', { error: String(err) })
-      return { success: false, error: err?.message ?? String(err) }
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err)
+      log.error('Trigger "' + trigger.name + '" failed', { error: errMsg })
+      return { success: false, error: errMsg }
     }
   }
 
@@ -456,7 +457,7 @@ export class TriggerEngine {
       let watcher: FSWatcher
       try {
         watcher = watch(watchDir, { recursive: true }, handleEvent)
-      } catch (recursiveErr: any) {
+      } catch (recursiveErr: unknown) {
         if (String(recursiveErr).includes("ERR_FEATURE_UNAVAILABLE_ON_PLATFORM")) {
           log.warn('Recursive watch not supported, falling back to non-recursive for "' + trigger.name + '"')
           watcher = watch(watchDir, { recursive: false }, handleEvent)

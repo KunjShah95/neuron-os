@@ -97,6 +97,18 @@ export class AgentManager {
   /** Prewarm prediction hit/miss counters */
   private prewarmStats = { hits: 0, misses: 0, promotions: 0 }
 
+  /** Per-agent-type exponential backoff: next allowed retry timestamp (ms) */
+  private prewarmBackoff = new Map<string, number>()
+
+  /** Consecutive spawn failure count per agent type */
+  private prewarmFailedAttempts = new Map<string, number>()
+
+  /** Base backoff delay for first failed prewarm spawn (ms) */
+  private readonly PREWARM_BACKOFF_BASE_MS = 60_000 // 1 minute
+
+  /** Max backoff delay for prewarm spawn failures (ms) */
+  private readonly PREWARM_BACKOFF_MAX_MS = 3_600_000 // 60 minutes
+
   /** The lightweight script used for pre-warmed agents */
   private readonly PREWARM_SCRIPT = "src/agent/warm-worker.ts"
 
@@ -483,6 +495,13 @@ export class AgentManager {
         const lastPrewarmed = this.prewarmedTypes.get(agentType)
         if (lastPrewarmed && now - lastPrewarmed < this.PREWARM_TTL) continue
 
+        // Check backoff — skip if we're still in cooldown from a previous failure
+        const nextAttempt = this.prewarmBackoff.get(agentType)
+        if (nextAttempt && now < nextAttempt) {
+          log.debug(`Pre-warm backoff for ${agentType}: ${Math.round((nextAttempt - now) / 1000)}s remaining`)
+          continue
+        }
+
         // Validate that the agent type is registered before attempting to spawn
         if (!isValidAgentType(agentType)) {
           log.debug(`Skipping pre-warm for unknown agent type: ${agentType}`)
@@ -512,10 +531,25 @@ export class AgentManager {
           warmedCount++
           log.info(`Pre-warmed ${agentType} as agent "${warmId}" (${warmedCount}/${this.PREWARM_MAX_CONCURRENT})`)
 
+          // Clear any previous backoff state — this type is working again
+          this.prewarmFailedAttempts.delete(agentType)
+          this.prewarmBackoff.delete(agentType)
+
           // Auto-shutdown after 15 minutes if no real work was dispatched
           this.autoShutdownWarmAgent(warmId, agentType)
         } catch (err) {
-          log.warn(`Pre-warm spawn failed for ${agentType}: ${err instanceof Error ? err.message : String(err)}`)
+          // Track failures and apply exponential backoff
+          const attempts = (this.prewarmFailedAttempts.get(agentType) ?? 0) + 1
+          this.prewarmFailedAttempts.set(agentType, attempts)
+          const delay = Math.min(
+            this.PREWARM_BACKOFF_BASE_MS * Math.pow(2, attempts - 1),
+            this.PREWARM_BACKOFF_MAX_MS,
+          )
+          this.prewarmBackoff.set(agentType, now + delay)
+          log.warn(
+            `Pre-warm spawn failed for ${agentType} (attempt #${attempts}), ` +
+              `backing off ${Math.round(delay / 1000)}s`,
+          )
         }
       }
     } catch {
@@ -603,6 +637,11 @@ export class AgentManager {
     this.agents.delete(warmId)
 
     this.prewarmStats.hits++
+
+    // Clear any backoff state — promotion proves this type works
+    this.prewarmFailedAttempts.delete(agentType)
+    this.prewarmBackoff.delete(agentType)
+
     return true
   }
 

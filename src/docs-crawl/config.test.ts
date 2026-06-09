@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test"
-import { buildConfig, getDefaultOutputDir } from "./config"
+import { buildConfig } from "./config"
 
 describe("buildConfig", () => {
   it("builds a valid config from URL", () => {

@@ -135,9 +135,9 @@ export async function publishToHub(options: PublishOptions): Promise<PublishResu
     const result = (await res.json()) as { id: string; url: string }
     log.info(`skill "${options.name}" published to agentskills.io: ${result.url}`)
     return { success: true, url: result.url }
-  } catch (err: any) {
-    log.error(`publish failed: ${err.message}`)
-    return { success: false, error: err.message }
+  } catch (err: unknown) {
+    log.error(`publish failed: ${err instanceof Error ? err.message : String(err)}`)
+    return { success: false, error: err instanceof Error ? err.message : String(err) }
   }
 }
 
@@ -165,7 +165,7 @@ export async function installFromHub(id: string): Promise<{ success: boolean; pa
 
     log.info(`skill "${detail.name}" installed from agentskills.io`)
     return { success: true, path: join(skillDir, "SKILL.md") }
-  } catch (err: any) {
-    return { success: false, error: err.message }
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) }
   }
 }

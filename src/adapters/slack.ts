@@ -33,8 +33,8 @@ export function createSlackAdapter(config: SlackConfig): PlatformAdapter {
       try {
         const auth = await client.auth.test()
         log.info(`Slack adapter connected as ${auth.user}`)
-      } catch (err: any) {
-        log.error(`Slack auth test failed: ${err.message}`)
+      } catch (err: unknown) {
+        log.error(`Slack auth test failed: ${err instanceof Error ? err.message : String(err)}`)
         throw err
       }
 
@@ -80,8 +80,8 @@ export function createSlackAdapter(config: SlackConfig): PlatformAdapter {
               try {
                 const result = await handler(args, config.project)
                 await client.chat.postMessage({ channel, text: result.text, mrkdwn: true })
-              } catch (err: any) {
-                await client.chat.postMessage({ channel, text: `❌ Error: ${err.message ?? String(err)}` })
+              } catch (err: unknown) {
+                await client.chat.postMessage({ channel, text: `❌ Error: ${err instanceof Error ? err.message : String(err) ?? String(err)}` })
               }
             }
           }

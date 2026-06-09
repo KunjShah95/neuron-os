@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test"
-import { existsSync, readFileSync, writeFileSync, rmSync, mkdirSync } from "node:fs"
+import { existsSync, readFileSync, rmSync } from "node:fs"
 import { resolve } from "node:path"
 import { randomUUID } from "node:crypto"
 import { HarnessSandboxManager } from "./sandbox"
@@ -89,7 +89,6 @@ describe("HarnessSandboxManager", () => {
 
     expect(existsSync(handle.workDir)).toBe(true)
     // Should have no files
-    const files = manager.snapshot(handle)
     // Cleanup
     await manager.cleanup(handle)
   })

@@ -41,8 +41,8 @@ async function handleResearch(goal: string, opts: { maxIterations?: string; proj
 
     console.log(result.finalSummary)
     console.log()
-  } catch (err: any) {
-    console.error(theme.error(`\n  ✗ Error: ${err.message ?? String(err)}\n`))
+  } catch (err: unknown) {
+    console.error(theme.error(`\n  ✗ Error: ${err instanceof Error ? err.message : String(err)}\n`))
     process.exit(1)
   }
 }

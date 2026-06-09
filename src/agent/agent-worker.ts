@@ -108,9 +108,10 @@ async function runReActLoop(goal: string, taskId: number): Promise<string> {
       }
 
       messages.push({ role: "assistant", content: stepText })
-    } catch (err: any) {
-      log("error", `ReAct error at step ${stepCount}: ${err?.message ?? String(err)}`)
-      finalText = finalText || `Error: ${err?.message ?? String(err)}`
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      log("error", `ReAct error at step ${stepCount}: ${msg}`)
+      finalText = finalText || `Error: ${msg}`
       break
     }
   }
@@ -149,8 +150,8 @@ async function handleRunTask(msg: AgentIpcMessage): Promise<void> {
   try {
     const output = await runReActLoop(goal, taskCount)
     replyTo(msg, "result", { taskId: taskCount, output, steps: taskCount })
-  } catch (err: any) {
-    replyTo(msg, "error", { message: err.message, taskId: taskCount })
+  } catch (err: unknown) {
+    replyTo(msg, "error", { message: err instanceof Error ? err.message : String(err), taskId: taskCount })
   }
 }
 
@@ -214,15 +215,15 @@ async function handleDispatch(msg: AgentIpcMessage): Promise<void> {
         durationMs: Date.now() - (msg.timestamp || Date.now()),
       },
     })
-  } catch (err: any) {
+  } catch (err: unknown) {
     send({
       id: msg.id,
       type: "dispatch-result",
       payload: {
         success: false,
-        output: err?.message || String(err),
+        output: err instanceof Error ? err.message : String(err),
         durationMs: Date.now() - (msg.timestamp || Date.now()),
-        error: err?.message || String(err),
+        error: err instanceof Error ? err.message : String(err),
       },
     })
   }
@@ -309,7 +310,7 @@ async function pollQueue(): Promise<void> {
       try {
         const output = await runReActLoop(task.goal, ++taskCount)
         taskQueue.complete(task.id, true, output)
-      } catch (err: any) {
+      } catch (err: unknown) {
         taskQueue.complete(task.id, false, String(err))
       }
     } else {

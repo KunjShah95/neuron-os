@@ -137,11 +137,11 @@ export class RatchetRuntime {
           output: output.slice(0, 500),
           filesChanged,
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         return {
           outcome: "degraded",
           score: 0,
-          output: err.message?.slice(0, 500) || String(err),
+          output: err instanceof Error ? (err.message?.slice(0, 500) || String(err)) : String(err),
           filesChanged,
         }
       }

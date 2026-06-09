@@ -68,8 +68,8 @@ async function handleAuditReplay(sessionId: string) {
     const replay = new SessionReplay(sessionId)
     const summary = replay.getSummary()
     console.log(summary)
-  } catch (err: any) {
-    console.log(theme.error(`\n  ✗ ${err.message}\n`))
+  } catch (err: unknown) {
+    console.log(theme.error(`\n  ✗ ${err instanceof Error ? err.message : String(err)}\n`))
   }
 }
 
@@ -82,8 +82,8 @@ async function handleAuditTimeline(sessionId: string) {
     const timeline = replay.getTimeline()
     console.log(timeline)
     console.log()
-  } catch (err: any) {
-    console.log(theme.error(`\n  ✗ ${err.message}\n`))
+  } catch (err: unknown) {
+    console.log(theme.error(`\n  ✗ ${err instanceof Error ? err.message : String(err)}\n`))
   }
 }
 

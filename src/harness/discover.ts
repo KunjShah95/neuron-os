@@ -12,6 +12,90 @@ interface TestLoader {
 
 // ── Built-in Loaders ─────────────────────────────────────────────
 
+/**
+ * Look ahead from startIdx to determine whether the next content lines
+ * at a deeper indentation are YAML list items (starting with "- ").
+ * Returns true if the first content line deeper than parentIndent starts with "- ".
+ */
+function peekIsYamlList(lines: string[], startIdx: number, parentIndent: number): boolean {
+  for (let i = startIdx; i < lines.length; i++) {
+    const line = lines[i]
+    if (!line || !line.trim() || line.trim().startsWith("#")) continue
+    const indent = line.search(/\S/)
+    if (indent <= parentIndent) return false
+    return line.trim().startsWith("- ")
+  }
+  return false
+}
+
+/**
+ * Collect YAML list items (lines starting with "- ") at the same indentation level.
+ * Returns the collected string items and the index of the last consumed line.
+ */
+function collectYamlListItems(
+  lines: string[],
+  startIdx: number,
+  parentIndent: number,
+): { items: string[]; endIdx: number } {
+  const items: string[] = []
+
+  // Find the indentation of the first list item
+  let firstIdx = startIdx
+  let listItemIndent = -1
+  for (; firstIdx < lines.length; firstIdx++) {
+    const line = lines[firstIdx]
+    if (!line || !line.trim() || line.trim().startsWith("#")) continue
+    const indent = line.search(/\S/)
+    if (indent <= parentIndent) {
+      // Back to parent level — no list found
+      return { items: [], endIdx: startIdx }
+    }
+    const trimmed = line.trim()
+    if (trimmed.startsWith("- ")) {
+      listItemIndent = indent
+      items.push(trimmed.slice(2).trim())
+      break
+    } else if (trimmed === "-") {
+      listItemIndent = indent
+      items.push("")
+      break
+    } else {
+      // Content at deeper indent but not a list — it's a nested object
+      return { items: [], endIdx: startIdx }
+    }
+  }
+
+  if (listItemIndent === -1) {
+    return { items: [], endIdx: startIdx }
+  }
+
+  // Collect remaining items at the same indentation
+  let idx = firstIdx + 1
+  while (idx < lines.length) {
+    const line = lines[idx]
+    if (!line || !line.trim() || line.trim().startsWith("#")) {
+      idx++
+      continue
+    }
+    const indent = line.search(/\S/)
+    if (indent < listItemIndent) break
+    if (indent === listItemIndent) {
+      const trimmed = line.trim()
+      if (trimmed.startsWith("- ")) {
+        items.push(trimmed.slice(2).trim())
+      } else if (trimmed === "-") {
+        items.push("")
+      } else {
+        break // Not a list item — stop
+      }
+    }
+    // indent > listItemIndent: skip deeper content (list of objects — not supported)
+    idx++
+  }
+
+  return { items, endIdx: idx }
+}
+
 function parseYamlBlock(yamlBlock: string): Record<string, unknown> {
   const result: Record<string, unknown> = {}
   const lines = yamlBlock.split("\n")
@@ -79,8 +163,21 @@ function parseYamlBlock(yamlBlock: string): Record<string, unknown> {
       continue
     }
 
-    // If value is empty, this key is a parent of nested children
+    // If value is empty, this key could be a parent of nested children or a YAML list
     if (value === "") {
+      // Peek ahead to check if subsequent lines form a YAML list
+      if (peekIsYamlList(lines, lineIdx + 1, indent)) {
+        const { items, endIdx } = collectYamlListItems(lines, lineIdx + 1, indent)
+        if (currentParent) {
+          currentParent.obj[key] = items
+        } else {
+          result[key] = items
+        }
+        lineIdx = endIdx - 1 // -1 because the loop increments
+        continue
+      }
+
+      // Not a list — create nested object
       const newObj: Record<string, unknown> = {}
       if (currentParent) {
         currentParent.obj[key] = newObj

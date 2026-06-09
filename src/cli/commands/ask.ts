@@ -30,8 +30,8 @@ async function handleAsk(question: string, opts: { sessionDb?: boolean; project?
     const answer = await runAskOrchestrator(question, opts.sessionDb, opts.project)
     console.log(answer)
     console.log()
-  } catch (err: any) {
-    console.error(theme.error(`\n  ✗ Error: ${err.message ?? String(err)}\n`))
+  } catch (err: unknown) {
+    console.error(theme.error(`\n  ✗ Error: ${err instanceof Error ? err.message : String(err)}\n`))
     process.exit(1)
   }
 }

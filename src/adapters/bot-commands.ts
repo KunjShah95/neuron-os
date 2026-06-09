@@ -164,8 +164,8 @@ export async function handleAsk(question: string, project?: string): Promise<Com
     const { runAskOrchestrator } = await import("../modes/ask")
     const answer = await runAskOrchestrator(question, undefined, project)
     return { text: clip(answer, 4000) }
-  } catch (err: any) {
-    return { text: `❌ Error: ${err.message ?? String(err)}` }
+  } catch (err: unknown) {
+    return { text: `❌ Error: ${err instanceof Error ? err.message : String(err)}` }
   }
 }
 
@@ -200,8 +200,8 @@ export async function handleAgent(goal: string, project?: string): Promise<Comma
       project,
     )
     return { text: `✅ *Done*\n\n${clip(result, 3500)}` }
-  } catch (err: any) {
-    return { text: `❌ Error: ${err.message ?? String(err)}` }
+  } catch (err: unknown) {
+    return { text: `❌ Error: ${err instanceof Error ? err.message : String(err)}` }
   }
 }
 
@@ -245,8 +245,8 @@ export async function handleMemory(query: string): Promise<CommandResult> {
     const { runSearch } = await import("../modes/search")
     const result = await runSearch({ scope: "memory", query, maxResults: 5 })
     return { text: clip(result, 4000) }
-  } catch (err: any) {
-    return { text: `❌ Memory search error: ${err.message ?? String(err)}` }
+  } catch (err: unknown) {
+    return { text: `❌ Memory search error: ${err instanceof Error ? err.message : String(err)}` }
   }
 }
 
@@ -275,8 +275,8 @@ export async function handleSearch(raw: string): Promise<CommandResult> {
     const { runSearch } = await import("../modes/search")
     const result = await runSearch({ scope, query, maxResults: 8 })
     return { text: clip(result, 4000) }
-  } catch (err: any) {
-    return { text: `❌ Search error: ${err.message ?? String(err)}` }
+  } catch (err: unknown) {
+    return { text: `❌ Search error: ${err instanceof Error ? err.message : String(err)}` }
   }
 }
 
@@ -297,8 +297,8 @@ export async function handlePlan(goal: string): Promise<CommandResult> {
     return {
       text: `*📋 Plan: ${plan.goal}*\n\n${steps}\n\n_${plan.steps.length} steps generated_`,
     }
-  } catch (err: any) {
-    return { text: `❌ Error: ${err.message ?? String(err)}` }
+  } catch (err: unknown) {
+    return { text: `❌ Error: ${err instanceof Error ? err.message : String(err)}` }
   }
 }
 
@@ -329,8 +329,8 @@ export async function handleChat(msg: string): Promise<CommandResult> {
     })
 
     return { text: clip(result.text, 4000) }
-  } catch (err: any) {
-    return { text: `❌ Chat error: ${err.message ?? String(err)}` }
+  } catch (err: unknown) {
+    return { text: `❌ Chat error: ${err instanceof Error ? err.message : String(err)}` }
   }
 }
 
@@ -390,8 +390,8 @@ export async function handleDocs(topic: string): Promise<CommandResult> {
 
     const cleanContent = content.replace(/^---[\s\S]*?---\n*/, "")
     return { text: clip(cleanContent, 4000) }
-  } catch (err: any) {
-    return { text: `❌ Docs error: ${err.message ?? String(err)}` }
+  } catch (err: unknown) {
+    return { text: `❌ Docs error: ${err instanceof Error ? err.message : String(err)}` }
   }
 }
 
@@ -446,8 +446,8 @@ export async function handleResearch(raw: string): Promise<CommandResult> {
     ].join("\n")
 
     return { text: clip(summary, 4000) }
-  } catch (err: any) {
-    return { text: `❌ Research error: ${err.message ?? String(err)}` }
+  } catch (err: unknown) {
+    return { text: `❌ Research error: ${err instanceof Error ? err.message : String(err)}` }
   }
 }
 
@@ -483,8 +483,8 @@ export async function handleHistory(): Promise<CommandResult> {
     }
 
     return { text: clip(lines.join("\n"), 4000) }
-  } catch (err: any) {
-    return { text: `❌ History error: ${err.message ?? String(err)}` }
+  } catch (err: unknown) {
+    return { text: `❌ History error: ${err instanceof Error ? err.message : String(err)}` }
   }
 }
 
@@ -546,8 +546,8 @@ export async function handleConfig(): Promise<CommandResult> {
     ].join("\n")
 
     return { text: clip(lines, 4000) }
-  } catch (err: any) {
-    return { text: `❌ Config error: ${err.message ?? String(err)}` }
+  } catch (err: unknown) {
+    return { text: `❌ Config error: ${err instanceof Error ? err.message : String(err)}` }
   }
 }
 
@@ -572,8 +572,8 @@ export async function handleCron(): Promise<CommandResult> {
     }
 
     return { text: clip(lines.join("\n"), 4000) }
-  } catch (err: any) {
-    return { text: `❌ Cron error: ${err.message ?? String(err)}` }
+  } catch (err: unknown) {
+    return { text: `❌ Cron error: ${err instanceof Error ? err.message : String(err)}` }
   }
 }
 
@@ -596,8 +596,8 @@ export async function handleSkill(): Promise<CommandResult> {
     }
 
     return { text: clip(lines.join("\n"), 4000) }
-  } catch (err: any) {
-    return { text: `❌ Skill error: ${err.message ?? String(err)}` }
+  } catch (err: unknown) {
+    return { text: `❌ Skill error: ${err instanceof Error ? err.message : String(err)}` }
   }
 }
 
@@ -638,8 +638,8 @@ export async function handleAgents(): Promise<CommandResult> {
 
     lines.push("Use `/logs <name>` to see agent logs.")
     return { text: clip(lines.join("\n"), 4000) }
-  } catch (err: any) {
-    return { text: `❌ Agents error: ${err.message ?? String(err)}` }
+  } catch (err: unknown) {
+    return { text: `❌ Agents error: ${err instanceof Error ? err.message : String(err)}` }
   }
 }
 
@@ -684,8 +684,8 @@ export async function handleLogs(arg: string): Promise<CommandResult> {
     }
 
     return { text: clip(lines.join("\n"), 4000) }
-  } catch (err: any) {
-    return { text: `❌ Logs error: ${err.message ?? String(err)}` }
+  } catch (err: unknown) {
+    return { text: `❌ Logs error: ${err instanceof Error ? err.message : String(err)}` }
   }
 }
 
@@ -827,8 +827,8 @@ export async function handleTwilioWebhook(
     try {
       const result = await handler(args, config.project)
       await sendReply(rawFrom, result.text)
-    } catch (err: any) {
-      await sendReply(rawFrom, `❌ Error: ${err.message ?? String(err)}`)
+    } catch (err: unknown) {
+      await sendReply(rawFrom, `❌ Error: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 

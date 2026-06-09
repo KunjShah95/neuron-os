@@ -81,7 +81,7 @@ describe("Cron Tests", () => {
     try {
       await ensureHeartbeatFile()
       expect(true).toBe(true)
-    } catch (err) {
+    } catch {
       expect(false).toBe(true)
     }
   })

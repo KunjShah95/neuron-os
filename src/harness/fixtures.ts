@@ -15,113 +15,121 @@ export interface TestFixture {
   generate(params?: Record<string, unknown>): FixtureOutput
 }
 
-// ── Built-in Fixtures ────────────────────────────────────────────
+// ── Built-in Fixtures (factory) ───────────────────────────────────
 
-const FIXTURES: Record<string, TestFixture> = {
-  "typescript-project": {
-    name: "TypeScript Project",
-    description: "Bare TypeScript project with tsconfig, package.json",
-    generate: (params?: Record<string, unknown>) => {
-      const deps = (params?.deps as string[]) ?? []
-      return {
-        files: {
-          "package.json": JSON.stringify(
-            {
-              name: (params?.name as string) ?? "test-project",
-              dependencies: Object.fromEntries(deps.map((d) => [d, "*"])),
-            },
-            null,
-            2,
-          ),
-          "tsconfig.json": JSON.stringify(
-            { compilerOptions: { target: "ES2022", module: "ESNext", strict: true } },
-            null,
-            2,
-          ),
-          "src/index.ts": "// Entry point\n",
-        },
-        commands: ["npm install"],
-      }
+function builtInFixtures(): Record<string, TestFixture> {
+  return {
+    "typescript-project": {
+      name: "TypeScript Project",
+      description: "Bare TypeScript project with tsconfig, package.json",
+      generate: (params?: Record<string, unknown>) => {
+        const deps = (params?.deps as string[]) ?? []
+        return {
+          files: {
+            "package.json": JSON.stringify(
+              {
+                name: (params?.name as string) ?? "test-project",
+                dependencies: Object.fromEntries(deps.map((d) => [d, "*"])),
+              },
+              null,
+              2,
+            ),
+            "tsconfig.json": JSON.stringify(
+              { compilerOptions: { target: "ES2022", module: "ESNext", strict: true } },
+              null,
+              2,
+            ),
+            "src/index.ts": "// Entry point\n",
+          },
+          commands: ["npm install"],
+        }
+      },
     },
-  },
 
-  "express-api": {
-    name: "Express API Server",
-    description: "Express server with basic route structure",
-    generate: (params?: Record<string, unknown>) => {
-      const routes = (params?.routes as string[]) ?? []
-      return {
-        files: {
-          "src/index.ts": [
-            "import express from 'express'",
-            "const app = express()",
-            "app.use(express.json())",
-            ...routes.map((r) => `// TODO: implement ${r}`),
-            "app.listen(3000)",
-          ].join("\n"),
-          "package.json": JSON.stringify({ name: "express-api", dependencies: { express: "*" } }, null, 2),
-        },
-        commands: ["npm install"],
-      }
+    "express-api": {
+      name: "Express API Server",
+      description: "Express server with basic route structure",
+      generate: (params?: Record<string, unknown>) => {
+        const routes = (params?.routes as string[]) ?? []
+        return {
+          files: {
+            "src/index.ts": [
+              "import express from 'express'",
+              "const app = express()",
+              "app.use(express.json())",
+              ...routes.map((r) => `// TODO: implement ${r}`),
+              "app.listen(3000)",
+            ].join("\n"),
+            "package.json": JSON.stringify({ name: "express-api", dependencies: { express: "*" } }, null, 2),
+          },
+          commands: ["npm install"],
+        }
+      },
     },
-  },
 
-  "node-package": {
-    name: "Node Package",
-    description: "Empty Node.js package with optional tests",
-    generate: (params?: Record<string, unknown>) => {
-      const hasTests = params?.hasTests as boolean
-      return {
-        files: {
-          "package.json": JSON.stringify({ name: "test-pkg", type: "module" }, null, 2),
-          "index.js": "export const greet = (name) => `Hello, ${name}!`\n",
-          ...(hasTests
-            ? {
-                "index.test.js": [
-                  "import { describe, it, expect } from 'bun:test'",
-                  "import { greet } from './index'",
-                  "describe('greet', () => {",
-                  "  it('should greet by name', () => {",
-                  "    expect(greet('World')).toBe('Hello, World!')",
-                  "  })",
-                  "})",
-                ].join("\n"),
-              }
-            : {}),
-        },
-        commands: [],
-      }
+    "node-package": {
+      name: "Node Package",
+      description: "Empty Node.js package with optional tests",
+      generate: (params?: Record<string, unknown>) => {
+        const hasTests = params?.hasTests as boolean
+        return {
+          files: {
+            "package.json": JSON.stringify({ name: "test-pkg", type: "module" }, null, 2),
+            "index.js": "export const greet = (name) => `Hello, ${name}!`\n",
+            ...(hasTests
+              ? {
+                  "index.test.js": [
+                    "import { describe, it, expect } from 'bun:test'",
+                    "import { greet } from './index'",
+                    "describe('greet', () => {",
+                    "  it('should greet by name', () => {",
+                    "    expect(greet('World')).toBe('Hello, World!')",
+                    "  })",
+                    "})",
+                  ].join("\n"),
+                }
+              : {}),
+          },
+          commands: [],
+        }
+      },
     },
-  },
 
-  "git-repo": {
-    name: "Git Repository",
-    description: "Initialize a git repo with one commit",
-    generate: () => ({
-      files: { ".gitignore": "node_modules\n" },
-      commands: ["git init", "git add .", "git commit -m 'initial'"],
-    }),
-  },
-
-  "python-project": {
-    name: "Python Project",
-    description: "Minimal Python project with requirements.txt",
-    generate: (params?: Record<string, unknown>) => {
-      const deps = (params?.deps as string[]) ?? []
-      return {
-        files: {
-          "requirements.txt": deps.join("\n") + "\n",
-          "main.py": "# Entry point\n",
-        },
-        commands: deps.length > 0 ? ["pip install -r requirements.txt"] : [],
-      }
+    "git-repo": {
+      name: "Git Repository",
+      description: "Initialize a git repo with one commit",
+      generate: () => ({
+        files: { ".gitignore": "node_modules\n" },
+        commands: ["git init", "git add .", "git commit -m 'initial'"],
+      }),
     },
-  },
+
+    "python-project": {
+      name: "Python Project",
+      description: "Minimal Python project with requirements.txt",
+      generate: (params?: Record<string, unknown>) => {
+        const deps = (params?.deps as string[]) ?? []
+        return {
+          files: {
+            "requirements.txt": deps.join("\n") + "\n",
+            "main.py": "# Entry point\n",
+          },
+          commands: deps.length > 0 ? ["pip install -r requirements.txt"] : [],
+        }
+      },
+    },
+  }
 }
 
 // ── Fixture Manager ──────────────────────────────────────────────
 
 export class FixtureManager {
+  private fixtures: Record<string, TestFixture>
+
+  constructor() {
+    this.fixtures = builtInFixtures()
+  }
+
   /**
    * Apply fixtures referenced in test tags (tags starting with "fixture:").
    * Then apply test-specific setup overrides on top.
@@ -133,7 +141,7 @@ export class FixtureManager {
     for (const tag of test.tags) {
       if (tag.startsWith("fixture:")) {
         const fixtureName = tag.slice(8)
-        const fixture = FIXTURES[fixtureName]
+        const fixture = this.fixtures[fixtureName]
         if (fixture) {
           const output = fixture.generate({})
           Object.assign(files, output.files)
@@ -153,13 +161,13 @@ export class FixtureManager {
 
   /** Register a custom fixture at runtime */
   register(name: string, fixture: TestFixture): void {
-    FIXTURES[name] = fixture
+    this.fixtures[name] = fixture
   }
 
   /** List all available fixtures */
   listFixtures(): Array<{ name: string; description: string }> {
-    return Object.entries(FIXTURES).map(([name, f]) => ({
-      name,
+    return Object.values(this.fixtures).map((f) => ({
+      name: f.name,
       description: f.description,
     }))
   }

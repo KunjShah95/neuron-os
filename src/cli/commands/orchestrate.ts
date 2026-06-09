@@ -74,8 +74,8 @@ export function registerOrchestrate(program: Command) {
             if (r.error) console.log(`      ${theme.error(r.error)}`)
           }
         }
-      } catch (err: any) {
-        console.log(theme.error(`\n  ✗ Orchestration error: ${err.message ?? String(err)}`))
+      } catch (err: unknown) {
+        console.log(theme.error(`\n  ✗ Orchestration error: ${err instanceof Error ? err.message : String(err)}`))
         process.exit(1)
       }
     })

@@ -209,13 +209,13 @@ export async function executePlan(plan: OrchestrationPlan): Promise<Orchestratio
         })
 
         return poolResult
-      } catch (err: any) {
+      } catch (err: unknown) {
         results.push({
           subTaskId: subTask.id,
           title: subTask.title,
           success: false,
-          summary: `Failed: ${err.message ?? String(err)}`,
-          error: err.message ?? String(err),
+          summary: `Failed: ${err instanceof Error ? err.message : String(err)}`,
+          error: err instanceof Error ? err.message : String(err),
         })
         return null
       }

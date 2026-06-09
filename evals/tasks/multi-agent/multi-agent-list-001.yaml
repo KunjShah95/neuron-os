@@ -1,0 +1,51 @@
+---
+name: Distributed web scraper with YAML list fixtures
+id: multi-agent-list-001
+category: capability
+priority: critical
+tags:
+  - multi-agent
+  - web-scraping
+  - distributed
+  - advanced
+  - parallel
+description: >
+  Spawn a coordinator agent and two worker agents to scrape and combine data
+  from multiple API endpoints concurrently
+dependsOn:
+  - debugging-list-001
+  - coding-list-002
+expected:
+  pattern: "combined"
+  filesExist:
+    - /tmp/scraped-data.json
+  maxSteps: 15
+  minScore: 0.7
+setup:
+  commands:
+    - mkdir -p /tmp/scraper-data
+  env:
+    SCRAPER_TIMEOUT: "30000"
+    MAX_CONCURRENCY: "3"
+    OUTPUT_DIR: "/tmp/scraper-data"
+timeout: 300000
+model: claude-sonnet-4-20250514
+agentType: build
+author: test-automation
+createdAt: "2025-03-01"
+---
+Implement a distributed web scraper using multi-agent coordination:
+
+1. Spawn a coordinator agent that:
+   - Receives a list of 5 URL targets
+   - Dispatches each URL to a worker agent
+   - Collects and merges results
+   - Handles worker failures gracefully
+
+2. Each worker agent should:
+   - Accept a single URL
+   - Fetch and parse the content
+   - Extract title, description, and key terms
+   - Return structured JSON
+
+3. Save the combined results to /tmp/scraped-data.json

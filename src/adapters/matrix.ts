@@ -107,8 +107,8 @@ export function createMatrixAdapter(config: MatrixConfig): PlatformAdapter {
             try {
               const result = await handler(args, config.project)
               await sendMatrixMessage(roomId, result.text)
-            } catch (err: any) {
-              await sendMatrixMessage(roomId, `❌ Error: ${err.message ?? String(err)}`)
+            } catch (err: unknown) {
+              await sendMatrixMessage(roomId, `❌ Error: ${err instanceof Error ? err.message : String(err)}`)
             }
           }
         }

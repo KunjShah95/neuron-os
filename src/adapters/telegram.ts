@@ -182,12 +182,12 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       await ctx.telegram.editMessageText(ctx.chat!.id, statusMsg.message_id, undefined, clip(answer, 4000), {
         parse_mode: "Markdown",
       })
-    } catch (err: any) {
+    } catch (err: unknown) {
       await ctx.telegram.editMessageText(
         ctx.chat!.id,
         statusMsg.message_id,
         undefined,
-        `❌ Error: ${err.message ?? String(err)}`,
+        `❌ Error: ${err instanceof Error ? err.message : String(err)}`,
       )
     }
   })
@@ -256,12 +256,12 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
         `✅ *Done*\n\n${clip(result, 3500)}`,
         { parse_mode: "Markdown" },
       )
-    } catch (err: any) {
+    } catch (err: unknown) {
       await ctx.telegram.editMessageText(
         ctx.chat!.id,
         statusMsg.message_id,
         undefined,
-        `❌ Error: ${err.message ?? String(err)}`,
+        `❌ Error: ${err instanceof Error ? err.message : String(err)}`,
       )
     }
   })
@@ -316,12 +316,12 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       await ctx.telegram.editMessageText(ctx.chat!.id, statusMsg.message_id, undefined, clip(result, 4000), {
         parse_mode: "Markdown",
       })
-    } catch (err: any) {
+    } catch (err: unknown) {
       await ctx.telegram.editMessageText(
         ctx.chat!.id,
         statusMsg.message_id,
         undefined,
-        `❌ Memory search error: ${err.message ?? String(err)}`,
+        `❌ Memory search error: ${err instanceof Error ? err.message : String(err)}`,
       )
     }
   })
@@ -362,12 +362,12 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       await ctx.telegram.editMessageText(ctx.chat!.id, statusMsg.message_id, undefined, clip(result, 4000), {
         parse_mode: "Markdown",
       })
-    } catch (err: any) {
+    } catch (err: unknown) {
       await ctx.telegram.editMessageText(
         ctx.chat!.id,
         statusMsg.message_id,
         undefined,
-        `❌ Search error: ${err.message ?? String(err)}`,
+        `❌ Search error: ${err instanceof Error ? err.message : String(err)}`,
       )
     }
   })
@@ -404,12 +404,12 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       })
 
       planSessions.set(ctx.chat!.id, session)
-    } catch (err: any) {
+    } catch (err: unknown) {
       await ctx.telegram.editMessageText(
         ctx.chat!.id,
         statusMsg.message_id,
         undefined,
-        `❌ Error: ${err.message ?? String(err)}`,
+        `❌ Error: ${err instanceof Error ? err.message : String(err)}`,
       )
     }
   })
@@ -448,12 +448,12 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       await ctx.telegram.editMessageText(ctx.chat!.id, statusMsg.message_id, undefined, clip(result.text, 4000), {
         parse_mode: "Markdown",
       })
-    } catch (err: any) {
+    } catch (err: unknown) {
       await ctx.telegram.editMessageText(
         ctx.chat!.id,
         statusMsg.message_id,
         undefined,
-        `❌ Chat error: ${err.message ?? String(err)}`,
+        `❌ Chat error: ${err instanceof Error ? err.message : String(err)}`,
       )
     }
   })
@@ -526,8 +526,8 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       const cleanContent = content.replace(/^---[\s\S]*?---\n*/, "")
 
       await ctx.reply(clip(cleanContent, 4000), { parse_mode: "Markdown" })
-    } catch (err: any) {
-      await ctx.reply(`❌ Docs error: ${err.message ?? String(err)}`)
+    } catch (err: unknown) {
+      await ctx.reply(`❌ Docs error: ${err instanceof Error ? err.message : String(err)}`)
     }
   })
 
@@ -598,12 +598,12 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       await ctx.telegram.editMessageText(ctx.chat!.id, statusMsg.message_id, undefined, clip(summary, 4000), {
         parse_mode: "Markdown",
       })
-    } catch (err: any) {
+    } catch (err: unknown) {
       await ctx.telegram.editMessageText(
         ctx.chat!.id,
         statusMsg.message_id,
         undefined,
-        `❌ Research error: ${err.message ?? String(err)}`,
+        `❌ Research error: ${err instanceof Error ? err.message : String(err)}`,
       )
     }
   })
@@ -644,8 +644,8 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       }
 
       await ctx.reply(clip(lines.join("\n"), 4000), { parse_mode: "Markdown" })
-    } catch (err: any) {
-      await ctx.reply(`❌ History error: ${err.message ?? String(err)}`)
+    } catch (err: unknown) {
+      await ctx.reply(`❌ History error: ${err instanceof Error ? err.message : String(err)}`)
     }
   })
 
@@ -710,8 +710,8 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       ].join("\n")
 
       await ctx.reply(clip(lines, 4000), { parse_mode: "Markdown" })
-    } catch (err: any) {
-      await ctx.reply(`❌ Config error: ${err.message ?? String(err)}`)
+    } catch (err: unknown) {
+      await ctx.reply(`❌ Config error: ${err instanceof Error ? err.message : String(err)}`)
     }
   })
 
@@ -738,8 +738,8 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       }
 
       await ctx.reply(clip(lines.join("\n"), 4000), { parse_mode: "Markdown" })
-    } catch (err: any) {
-      await ctx.reply(`❌ Cron error: ${err.message ?? String(err)}`)
+    } catch (err: unknown) {
+      await ctx.reply(`❌ Cron error: ${err instanceof Error ? err.message : String(err)}`)
     }
   })
 
@@ -764,8 +764,8 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       }
 
       await ctx.reply(clip(lines.join("\n"), 4000), { parse_mode: "Markdown" })
-    } catch (err: any) {
-      await ctx.reply(`❌ Skill error: ${err.message ?? String(err)}`)
+    } catch (err: unknown) {
+      await ctx.reply(`❌ Skill error: ${err instanceof Error ? err.message : String(err)}`)
     }
   })
 
@@ -809,8 +809,8 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       lines.push("Use `/logs <name>` to see agent logs.")
 
       await ctx.reply(clip(lines.join("\n"), 4000), { parse_mode: "Markdown" })
-    } catch (err: any) {
-      await ctx.reply(`❌ Agents error: ${err.message ?? String(err)}`)
+    } catch (err: unknown) {
+      await ctx.reply(`❌ Agents error: ${err instanceof Error ? err.message : String(err)}`)
     }
   })
 
@@ -860,8 +860,8 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
       }
 
       await ctx.reply(clip(lines.join("\n"), 4000), { parse_mode: "Markdown" })
-    } catch (err: any) {
-      await ctx.reply(`❌ Logs error: ${err.message ?? String(err)}`)
+    } catch (err: unknown) {
+      await ctx.reply(`❌ Logs error: ${err instanceof Error ? err.message : String(err)}`)
     }
   })
 
@@ -933,7 +933,7 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
     await ctx.answerCbQuery()
 
     void runPlanSteps(ctx, ctx.chat!.id, plan, steps).catch((err: any) => {
-      ctx.reply(`❌ Execution error: ${err.message ?? String(err)}`)
+      ctx.reply(`❌ Execution error: ${err instanceof Error ? err.message : String(err)}`)
     })
   })
 

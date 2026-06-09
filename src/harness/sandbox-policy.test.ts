@@ -144,7 +144,7 @@ describe("SandboxPolicyManager", () => {
   })
 
   it("should detect OpenAI-style API keys", () => {
-    const secrets = manager.detectSecrets(SANDBOX_POLICIES.standard, "sk-proj-abc123def456...")
+    const secrets = manager.detectSecrets(SANDBOX_POLICIES.standard, "sk-abc123def456ghi789jkl012mno345pqr678stuv")
     expect(secrets.length).toBeGreaterThan(0)
   })
 

@@ -15,7 +15,9 @@ name: Basic Test
 prompt: Run echo hello
 category: smoke
 priority: high
-tags: [smoke, quick]
+tags:
+  - smoke
+  - quick
 timeout: 30000
 ---
 Run echo hello world
@@ -115,6 +117,42 @@ setup:
     }
   })
 
+  it("should parse multi-item YAML lists", () => {
+    const yaml = `---
+name: Multi List Test
+prompt: test multi lists
+category: capability
+tags:
+  - smoke
+  - integration
+  - regression
+timeout: 30000
+dependsOn:
+  - setup-test
+  - build-test
+setup:
+  commands:
+    - npm install
+    - npm run build
+---
+`
+    const dir = mkdtempSync(".test-discover-multi-")
+
+    try {
+      writeFileSync(join(dir, "multi-list.yaml"), yaml, "utf-8")
+      const discoverer = new TestDiscoverer()
+      const tests = discoverer.discover([dir])
+      expect(tests).toHaveLength(1)
+      expect(tests[0].tags).toEqual(["smoke", "integration", "regression"])
+      expect(tests[0].dependsOn).toEqual(["setup-test", "build-test"])
+      expect(tests[0].setup?.commands).toContain("npm install")
+      expect(tests[0].setup?.commands).toContain("npm run build")
+      expect(tests[0].setup?.commands).toHaveLength(2)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
   it("should parse boolean and number values", () => {
     const yaml = `---
 name: Types Test
@@ -171,15 +209,22 @@ Run a simple hello world
     }
   })
 
-  it("should skip files with no valid name", () => {
-    const md = ``
+  it("should use first line as name fallback for non-heading content", () => {
+    // Content without a markdown heading — the loader uses the first line as name
+    const md = `Content without a heading
+
+## tags: smoke
+## timeout: 30000
+`
     const dir = mkdtempSync(".test-discover-empty-")
 
     try {
-      writeFileSync(join(dir, "empty.md"), md, "utf-8")
+      writeFileSync(join(dir, "naming.md"), md, "utf-8")
       const discoverer = new TestDiscoverer()
       const tests = discoverer.discover([dir])
-      expect(tests).toHaveLength(0)
+      // The loader uses first line as name if no # heading, so it loads successfully
+      expect(tests).toHaveLength(1)
+      expect(tests[0]!.name).toBe("Content without a heading")
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

@@ -1,0 +1,40 @@
+---
+name: Implement binary search with YAML list setup
+id: coding-list-001
+category: coding
+priority: high
+tags:
+  - typescript
+  - algorithms
+  - binary-search
+  - beginner
+description: Implement a generic binary search function in TypeScript with proper type annotations
+expected:
+  pattern: "function binarySearch"
+  exitCode: 0
+  filesExist:
+    - /tmp/binary-search.ts
+  minScore: 0.8
+setup:
+  commands:
+    - npm init -y
+    - npm install typescript @types/node --save-dev
+  files:
+    /tmp/binary-search.ts: |
+      // Implement binary search here
+timeout: 120000
+model: claude-sonnet-4-20250514
+author: test-automation
+createdAt: "2025-01-15"
+---
+Write a generic binary search function in TypeScript:
+
+```typescript
+function binarySearch<T>(arr: T[], target: T, comparator: (a: T, b: T) => number): number
+```
+
+Save the implementation to /tmp/binary-search.ts. The function should:
+- Return the index of the target if found, or -1 if not found
+- Work with any type T using a comparator function
+- Handle empty arrays gracefully
+- Export the function as a default export

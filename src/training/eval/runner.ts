@@ -88,9 +88,9 @@ export class EvalRunner {
         passed,
         transcript: `Task: ${task.id}\nCompleted in ${duration_ms}ms\nScore: ${score}`,
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       const duration_ms = Date.now() - start
-      const isTimeout = err.message === "timeout"
+      const isTimeout = err instanceof Error && err.message === "timeout"
 
       return {
         taskId: task.id,
@@ -99,7 +99,7 @@ export class EvalRunner {
         score: 0,
         duration_ms,
         passed: false,
-        error: isTimeout ? `timeout (${task.timeout_ms}ms)` : String(err.message ?? err),
+        error: isTimeout ? `timeout (${task.timeout_ms}ms)` : String(err instanceof Error ? err.message : String(err)),
       }
     }
   }

@@ -217,8 +217,8 @@ async function handleRequest(req: MCPRequest): Promise<MCPResponse> {
       default:
         return jsonRpc(id, undefined, { code: -32601, message: `Method not found: ${method}` })
     }
-  } catch (err: any) {
-    return jsonRpc(id, undefined, { code: -32000, message: err.message })
+  } catch (err: unknown) {
+    return jsonRpc(id, undefined, { code: -32000, message: err instanceof Error ? err.message : String(err) })
   }
 }
 

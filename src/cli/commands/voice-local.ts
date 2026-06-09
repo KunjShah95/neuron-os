@@ -70,8 +70,8 @@ async function handleVoiceLocal(opts: { project?: string }) {
 
       console.log(chalk.white(`\n${result}\n`))
     }
-  } catch (err: any) {
-    console.log(chalk.red(`\nError: ${err.message ?? String(err)}\n`))
+  } catch (err: unknown) {
+    console.log(chalk.red(`\nError: ${err instanceof Error ? err.message : String(err)}\n`))
     process.exit(1)
   }
 }

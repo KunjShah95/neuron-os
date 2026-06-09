@@ -76,13 +76,13 @@ async function llmJudge(
     }
 
     return { verdict: "fail", reason: "Malformed judge response" }
-  } catch (err: any) {
-    if (err.message === "timeout") {
+  } catch (err: unknown) {
+    if (err instanceof Error ? err.message : String(err) === "timeout") {
       log.warn(`LLM judge timed out for ${candidate.name}, falling back to regression-only gate`)
       return { verdict: "skipped", reason: "timeout" }
     }
-    log.warn(`LLM judge error for ${candidate.name}: ${err.message}`)
-    return { verdict: "skipped", reason: err.message }
+    log.warn(`LLM judge error for ${candidate.name}: ${err instanceof Error ? err.message : String(err)}`)
+    return { verdict: "skipped", reason: err instanceof Error ? err.message : String(err) }
   }
 }
 

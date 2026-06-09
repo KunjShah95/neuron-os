@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "bun:test"
+import { describe, it, expect, afterAll } from "bun:test"
 import { mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from "node:fs"
 import { resolve, join } from "node:path"
 import { CrawlEngine } from "./engine"

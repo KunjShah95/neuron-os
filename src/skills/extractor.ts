@@ -25,7 +25,7 @@ export async function extractSkillsFromSession(sessionId: string, skillName: str
             }
           }
         }
-      } catch (e) {
+      } catch {
         // Ignore parse errors
       }
     }
@@ -79,7 +79,7 @@ ${shellCommands.join("\n")}
 
     fs.writeFileSync(path.join(skillDir, "SKILL.md"), text, "utf-8")
     log.info(`Successfully extracted skill to ${skillDir}/SKILL.md`)
-  } catch (err: any) {
-    log.error(`Failed to generate skill: ${err.message}`)
+  } catch (err: unknown) {
+    log.error(`Failed to generate skill: ${err instanceof Error ? err.message : String(err)}`)
   }
 }

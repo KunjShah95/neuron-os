@@ -2,8 +2,8 @@ export { AgentManager, agentManager } from "./manager"
 export { HookRegistry, globalHooks } from "./hooks"
 export { AgentRuntime, createAgentRuntime } from "./runtime"
 export type { AgentContext } from "./runtime"
-export { loadSoul, soulManager, SoulManager, ARCHETYPE_DEFINITIONS } from "./soul"
-export type { AgentSoul, AgentArchetype, SoulTrait, CommunicationStyle, SoulAdaptation } from "./soul"
+export { loadSoul, soulManager, SoulManager, ARCHETYPE_DEFINITIONS, computeNextMood, getMoodCommunicationOverrides, getMoodHeuristics, DEFAULT_MOOD_CONFIG } from "./soul"
+export type { AgentSoul, AgentArchetype, SoulTrait, CommunicationStyle, SoulAdaptation, AgentMood, MoodConfig } from "./soul"
 export { capabilityRegistry, CapabilityRegistry } from "./capability-registry"
 export type {
   Capability,

@@ -237,10 +237,8 @@ export class MultiAgentMetricCollector {
     const sumContrib = contributions.reduce((s, c) => s + c, 0)
     if (sumContrib === 0) return 0
 
-    let cumulative = 0
     let giniSum = 0
     for (let i = 0; i < n; i++) {
-      cumulative += contributions[i]!
       giniSum += (2 * (i + 1) - n - 1) * contributions[i]!
     }
 

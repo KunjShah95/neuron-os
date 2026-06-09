@@ -42,8 +42,8 @@ export function createEmailAdapter(config: EmailConfig): PlatformAdapter {
       try {
         await transporter.verify()
         log.info(`Email adapter connected to ${config.host}:${config.port}`)
-      } catch (err: any) {
-        log.error(`Email adapter verification failed: ${err.message}`)
+      } catch (err: unknown) {
+        log.error(`Email adapter verification failed: ${err instanceof Error ? err.message : String(err)}`)
         throw err
       }
     },

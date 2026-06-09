@@ -51,7 +51,7 @@ export class PolicyEngine {
             }
             return rule.allow
           }
-        } catch (e) {
+        } catch {
           log.error(`Invalid regex in policy rule: ${rule.targetPattern}`)
         }
       }

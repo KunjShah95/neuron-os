@@ -54,8 +54,8 @@ async function handleAgentRun(
     })
     console.log(summary)
     console.log()
-  } catch (err: any) {
-    console.error(theme.error(`\n  ✗ Error: ${err.message ?? String(err)}\n`))
+  } catch (err: unknown) {
+    console.error(theme.error(`\n  ✗ Error: ${err instanceof Error ? err.message : String(err)}\n`))
     process.exit(1)
   }
 }

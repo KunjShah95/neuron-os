@@ -124,8 +124,8 @@ async function handleMeshRun(
       console.log(`  ${icon} ${ar.role}: ${ar.summary.slice(0, 100)}`)
     }
     console.log()
-  } catch (err: any) {
-    console.error(theme.error(`\n  ✗ Error: ${err.message}\n`))
+  } catch (err: unknown) {
+    console.error(theme.error(`\n  ✗ Error: ${err instanceof Error ? err.message : String(err)}\n`))
   }
 }
 
@@ -150,8 +150,8 @@ async function handleMeshEval(runId: string, script: string) {
       console.log(`  ${icon} ${r.metric}: ${r.details || r.output.slice(0, 100)}`)
     }
     console.log()
-  } catch (err: any) {
-    console.error(theme.error(`\n  ✗ Error: ${err.message}\n`))
+  } catch (err: unknown) {
+    console.error(theme.error(`\n  ✗ Error: ${err instanceof Error ? err.message : String(err)}\n`))
   }
 }
 

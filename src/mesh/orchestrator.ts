@@ -219,17 +219,17 @@ export class MeshOrchestrator {
         output: summary,
         durationMs: Date.now() - startTime,
       }
-    } catch (err: any) {
-      log.error("Mesh agent failed", { agentId: agent.id, error: err.message })
+    } catch (err: unknown) {
+      log.error("Mesh agent failed", { agentId: agent.id, error: err instanceof Error ? err.message : String(err) })
       return {
         agentId: agent.id,
         role: agent.role,
         goal: agent.goal,
         outcome: "failed",
-        summary: `Error: ${err.message}`,
+        summary: `Error: ${err instanceof Error ? err.message : String(err)}`,
         output: "",
         durationMs: Date.now() - startTime,
-        error: err.message,
+        error: err instanceof Error ? err.message : String(err),
       }
     }
   }

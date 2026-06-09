@@ -119,13 +119,13 @@ export function createIRCAdapter(config: IRCConfig): PlatformAdapter {
             try {
               const result = await handler(args, config.project)
               sendIRCMessage(replyTarget, result.text)
-            } catch (err: any) {
-              sendIRCMessage(replyTarget, `❌ Error: ${err.message ?? String(err)}`)
+            } catch (err: unknown) {
+              sendIRCMessage(replyTarget, `❌ Error: ${err instanceof Error ? err.message : String(err)}`)
             }
           }
         }
 
-        reply().catch((err) => log.warn(`IRC reply error: ${err.message}`))
+        reply().catch((err) => log.warn(`IRC reply error: ${err instanceof Error ? err.message : String(err)}`))
       })
 
       // ── Connection error handler ────────────────────────────────────

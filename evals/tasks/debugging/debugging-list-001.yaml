@@ -1,0 +1,58 @@
+---
+name: Fix race condition in async queue with YAML list fixtures
+id: debugging-list-001
+category: debugging
+priority: high
+tags:
+  - typescript
+  - async
+  - race-condition
+  - queues
+  - intermediate
+description: Fix a race condition in an async task queue where concurrent enqueues lose tasks
+dependsOn:
+  - coding-list-001
+expected:
+  pattern: "class TaskQueue"
+  filesExist:
+    - /tmp/fixed-queue.ts
+  minScore: 0.9
+setup:
+  commands:
+    - npm init -y
+    - npm install typescript --save-dev
+  files:
+    /tmp/buggy-queue.ts: |
+      // Buggy async queue — enqueue calls can interleave and lose tasks
+      export class BuggyQueue {
+        private items: string[] = [];
+        private processing = false;
+        async enqueue(task: string): Promise<void> {
+          this.items.push(task);
+          if (!this.processing) {
+            this.processing = true;
+            await this.processNext();
+          }
+        }
+        private async processNext(): Promise<void> {
+          while (this.items.length > 0) {
+            const item = this.items.shift()!;
+            await this.handle(item);
+          }
+          this.processing = false;
+        }
+        private async handle(item: string): Promise<void> {
+          // Simulate async work
+        }
+      }
+timeout: 120000
+author: test-automation
+createdAt: "2025-02-01"
+---
+The file /tmp/buggy-queue.ts contains a race condition where concurrent
+`enqueue` calls can lose tasks when `processNext` finishes before a
+concurrent `enqueue` completes its `this.items.push()`.
+
+Fix the race condition and save the corrected implementation to
+/tmp/fixed-queue.ts. The fix should ensure no tasks are lost under
+concurrent enqueue operations.

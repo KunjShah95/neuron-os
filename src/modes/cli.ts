@@ -61,8 +61,8 @@ export async function runWakeup() {
     try {
       const answer = await runAskOrchestrator(question.trim())
       console.log("\n" + renderTerminalMarkdown(answer) + "\n")
-    } catch (err: any) {
-      console.log(chalk.red(`\nError: ${err.message ?? String(err)}\n`))
+    } catch (err: unknown) {
+      console.log(chalk.red(`\nError: ${err instanceof Error ? err.message : String(err)}\n`))
     }
   } else if (mode === "agent") {
     const goal = await text({
@@ -74,8 +74,8 @@ export async function runWakeup() {
     try {
       const result = await runAgentOrchestrator(goal.trim())
       console.log("\n" + result + "\n")
-    } catch (err: any) {
-      console.log(chalk.red(`\nError: ${err.message ?? String(err)}\n`))
+    } catch (err: unknown) {
+      console.log(chalk.red(`\nError: ${err instanceof Error ? err.message : String(err)}\n`))
     }
   } else if (mode === "plan") {
     await runPlanModeInteractive()

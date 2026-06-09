@@ -41,8 +41,8 @@ export function registerSupervise(program: Command) {
 
         console.log()
         console.log(`  ${theme.success("✅ Supervision complete.")}`)
-      } catch (err: any) {
-        console.log(`  ${theme.error(`❌ Supervision failed: ${err.message}`)}`)
+      } catch (err: unknown) {
+        console.log(`  ${theme.error(`❌ Supervision failed: ${err instanceof Error ? err.message : String(err)}`)}`)
         process.exit(1)
       }
     })

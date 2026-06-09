@@ -397,7 +397,7 @@ describe("Engine Tests", () => {
     ;(inst.process as any).stdin = fakeStdin
     mgr.agents.set("send-test", inst)
 
-    mgr.sendIpc("send-test", { type: "ping", id: "ping-1", payload: {}, timestamp: Date.now() })
+    await mgr.sendIpc("send-test", { type: "ping", id: "ping-1", payload: {}, timestamp: Date.now() })
 
     expect(written.length >= 1).toBe(true)
     expect(flushed).toBe(true)
@@ -410,9 +410,9 @@ describe("Engine Tests", () => {
   it("should send ipc nonexistent", async () => {
     const mgr = freshManager()
     try {
-      mgr.sendIpc("no-such-agent", { type: "ping", id: "1", payload: {}, timestamp: Date.now() })
+      await mgr.sendIpc("no-such-agent", { type: "ping", id: "1", payload: {}, timestamp: Date.now() })
       expect(false).toBe(true)
-    } catch (e: any) {
+    } catch (e: unknown) {
       expect(e.message.includes("not found")).toBe(true)
     }
   })
@@ -424,9 +424,9 @@ describe("Engine Tests", () => {
     mgr.agents.set("closed-stdin", inst)
 
     try {
-      mgr.sendIpc("closed-stdin", { type: "ping", id: "1", payload: {}, timestamp: Date.now() })
+      await mgr.sendIpc("closed-stdin", { type: "ping", id: "1", payload: {}, timestamp: Date.now() })
       expect(false).toBe(true)
-    } catch (e: any) {
+    } catch (e: unknown) {
       expect(e.message.includes("no writable stdin")).toBe(true)
     }
   })
@@ -455,7 +455,7 @@ describe("Engine Tests", () => {
     try {
       await mgr.kill("no-such-agent", 100)
       expect(false).toBe(true)
-    } catch (e: any) {
+    } catch (e: unknown) {
       expect(e.message.includes("not found")).toBe(true)
     }
   })
@@ -668,7 +668,7 @@ describe("Engine Tests", () => {
     try {
       await mgr.routeIpc("no-source", "target", { type: "ping", id: "1", payload: {}, timestamp: Date.now() })
       expect(false).toBe(true)
-    } catch (e: any) {
+    } catch (e: unknown) {
       expect(e.message.includes("Source agent")).toBe(true)
     }
   })
@@ -681,7 +681,7 @@ describe("Engine Tests", () => {
     try {
       await mgr.routeIpc("source", "no-target", { type: "ping", id: "1", payload: {}, timestamp: Date.now() })
       expect(false).toBe(true)
-    } catch (e: any) {
+    } catch (e: unknown) {
       expect(e.message.includes("Target agent")).toBe(true)
     }
   })

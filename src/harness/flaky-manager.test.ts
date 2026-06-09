@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test"
+import { describe, it, expect, beforeEach, afterEach } from "bun:test"
 import { FlakyManager } from "./flaky-manager"
 import type { EvalResult } from "./types"
 
@@ -38,12 +38,21 @@ describe("FlakyManager", () => {
   let manager: FlakyManager
 
   beforeEach(() => {
+    // Use a unique temp path per test to prevent state leaking across tests
+    const tmpDir = `.test-flaky-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
     manager = new FlakyManager({
       flakyThreshold: 0.3,
       quarantineAfterFlakes: 3,
       maxRetries: 3,
       flakyHistorySize: 20,
+      dbPath: tmpDir,
     })
+    // Clean up any leftover state from the temp path
+    manager.clearRecords()
+  })
+
+  afterEach(() => {
+    manager.clearRecords()
   })
 
   // ── Initial State ───────────────────────────────────────────

@@ -1,243 +1,235 @@
-/**
- * plugin — Plugin Marketplace CLI.
- *
- * Full lifecycle for signed plugin manifests:
- *   keygen -> sign -> publish -> install -> verify -> remove -> list -> info -> depends -> update
- */
-
 import type { Command } from "commander"
-import { readFileSync, writeFileSync } from "node:fs"
-import { resolve } from "node:path"
-import type { SignedPluginManifest } from "../../plugin/types"
-import { generateAuthorKey, signManifest, verifyManifest, keyFingerprint, loadAuthorKey, saveAuthorKey } from "../../plugin/crypto"
-import { buildDependencyGraph, findConflicts } from "../../plugin/resolver"
+import { readFile, writeFile, mkdir, cp, rm } from "node:fs/promises"
+import { resolve, join } from "node:path"
+import { existsSync } from "node:fs"
+import { homedir } from "node:os"
 import { theme } from "../theme"
 
-export function registerPlugin(program: Command) {
-  const p = program.command("plugin").description("Plugin marketplace — manage signed plugin manifests")
+export function registerPlugin(program: Command): void {
+  const pluginCmd = program
+    .command("plugin")
+    .alias("plugins")
+    .description("Manage plugins (publish, install, list, remove, search, info)")
 
-  p.command("keygen")
-    .description("Generate a new Ed25519 author key pair")
-    .option("--comment <text>", "Optional comment to identify this key")
-    .action(handleKeygen)
+  // ── plugin publish <dir> ──────────────────────────────────────────
+  pluginCmd
+    .command("publish <dir>")
+    .description("Publish a plugin from a directory containing plugin.yaml + dist/")
+    .option("-k, --key <path>", "Path to private key file (default ~/.aegis/plugin-key.pem)")
+    .action(async (dir: string, opts: { key?: string }) => {
+      try {
+        const { parseManifest } = await import("../../plugin/manifest")
+        const { computeChecksum, signPlugin, generateKeyPair, importPrivateKey, exportPublicKey } =
+          await import("../../plugin/signer")
+        const { PluginRegistry } = await import("../../plugin/registry")
 
-  p.command("sign <file>")
-    .description("Sign a plugin manifest with your author key")
-    .action(handleSign)
+        const pluginDir = resolve(dir)
+        const manifestPath = join(pluginDir, "plugin.yaml")
+        if (!existsSync(manifestPath)) {
+          console.log(theme.error(`\u2717 plugin.yaml not found in ${pluginDir}`))
+          process.exit(1)
+        }
 
-  p.command("verify <file>")
-    .description("Verify a plugin manifest's signature")
-    .action(handleVerify)
+        const yaml = await readFile(manifestPath, "utf-8")
+        const manifest = parseManifest(yaml)
 
-  p.command("info <file>")
-    .description("Show plugin manifest details")
-    .action(handleInfo)
+        const entrypointPath = resolve(pluginDir, manifest.entrypoint)
+        if (!existsSync(entrypointPath)) {
+          console.log(theme.error(`\u2717 Entrypoint ${manifest.entrypoint} not found in ${pluginDir}`))
+          process.exit(2)
+        }
 
-  p.command("depends <file>")
-    .description("Show dependency tree for a plugin")
-    .action(handleDepends)
+        const distCode = await readFile(entrypointPath)
+        const checksum = await computeChecksum(new Uint8Array(distCode))
 
-  p.command("list")
-    .description("List installed plugins in the registry")
-    .action(handleList)
+        const keyPath = opts.key ? resolve(opts.key) : join(homedir(), ".aegis", "plugin-key.pem")
+        let privateKey: CryptoKey
+        if (existsSync(keyPath)) {
+          const keyData = await readFile(keyPath)
+          privateKey = await importPrivateKey(new Uint8Array(keyData).buffer)
+        } else {
+          const pair = await generateKeyPair()
+          privateKey = pair.privateKey
 
-  p.command("publish <file>")
-    .description("Publish a signed plugin to the registry")
-    .action(handlePublish)
+          await mkdir(join(homedir(), ".aegis"), { recursive: true })
 
-  p.command("install <name>")
-    .description("Install a plugin from the registry (resolves deps)")
-    .action(handleInstall)
+          const rawPrivate = await crypto.subtle.exportKey("raw", privateKey)
+          await writeFile(keyPath, Buffer.from(rawPrivate))
 
-  p.command("remove <name>")
+          const pubKeyData = await exportPublicKey(pair.publicKey)
+          const pubPath = keyPath.replace(/\.pem$/, ".pub")
+          await writeFile(pubPath, Buffer.from(pubKeyData))
+
+          console.log(theme.info(`\u2139 Generated new key pair`))
+          console.log(theme.info(`  Private: ${keyPath}`))
+          console.log(theme.info(`  Public:  ${pubPath}`))
+        }
+
+        const signature = await signPlugin(manifest, privateKey)
+
+        const dbPath = join(homedir(), ".aegis", "plugins.db")
+        const registry = new PluginRegistry(dbPath)
+        registry.register(manifest, signature, checksum)
+        registry.close()
+
+        const storeDir = join(homedir(), ".aegis", "plugins", manifest.name, manifest.version)
+        await mkdir(storeDir, { recursive: true })
+        await cp(pluginDir, storeDir, { recursive: true })
+
+        console.log(theme.success(`\u2713 Published ${manifest.name}@${manifest.version}`))
+        console.log(theme.info(`  Signature: ${signature.slice(0, 16)}...${signature.slice(-8)}`))
+        console.log(theme.info(`  Checksum:  ${checksum.slice(0, 16)}...`))
+      } catch (err) {
+        console.log(theme.error(`\u2717 Publish failed: ${(err as Error).message}`))
+        process.exit(1)
+      }
+    })
+
+  // ── plugin install <name> ─────────────────────────────────────────
+  pluginCmd
+    .command("install <name>")
+    .description("Install a plugin by name (latest version)")
+    .option("-v, --version <version>", "Specific version to install")
+    .action(async (name: string, opts: { version?: string }) => {
+      try {
+        const { PluginRegistry } = await import("../../plugin/registry")
+        const dbPath = join(homedir(), ".aegis", "plugins.db")
+        const registry = new PluginRegistry(dbPath)
+
+        const pluginDir = join(homedir(), ".aegis", "plugins", name)
+        if (!existsSync(pluginDir)) {
+          console.log(theme.error(`\u2717 Plugin '${name}' not found in local store`))
+          process.exit(1)
+        }
+
+        const yaml = await readFile(join(pluginDir, "plugin.yaml"), "utf-8").catch(() => null)
+        if (!yaml) {
+          console.log(theme.error(`\u2717 Corrupted plugin: no plugin.yaml in ${pluginDir}`))
+          process.exit(1)
+        }
+
+        const { parseManifest } = await import("../../plugin/manifest")
+        const manifest = parseManifest(yaml)
+        const version = opts.version ?? manifest.version
+        registry.incrementInstalls(manifest.name, version)
+        registry.close()
+
+        console.log(theme.success(`\u2713 Installed ${name}@${version}`))
+      } catch (err) {
+        console.log(theme.error(`\u2717 Install failed: ${(err as Error).message}`))
+        process.exit(1)
+      }
+    })
+
+  // ── plugin list ───────────────────────────────────────────────────
+  pluginCmd
+    .command("list")
+    .description("List all installed plugins")
+    .action(async () => {
+      try {
+        const { PluginRegistry } = await import("../../plugin/registry")
+        const dbPath = join(homedir(), ".aegis", "plugins.db")
+        const registry = new PluginRegistry(dbPath)
+        const plugins = registry.list()
+        registry.close()
+
+        if (plugins.length === 0) {
+          console.log(theme.info("No plugins installed"))
+          return
+        }
+
+        console.log(theme.heading(`Plugins (${plugins.length}):`))
+        for (const p of plugins) {
+          const line = `  ${p.name}@${p.version}  ${p.description ? `- ${p.description}` : ""}`
+          console.log(theme.info(line))
+        }
+      } catch (err) {
+        console.log(theme.error(`\u2717 List failed: ${(err as Error).message}`))
+        process.exit(1)
+      }
+    })
+
+  // ── plugin remove <name> ──────────────────────────────────────────
+  pluginCmd
+    .command("remove <name>")
     .description("Remove an installed plugin")
-    .action(handleRemove)
+    .action(async (name: string) => {
+      try {
+        const { PluginRegistry } = await import("../../plugin/registry")
+        const dbPath = join(homedir(), ".aegis", "plugins.db")
+        const registry = new PluginRegistry(dbPath)
+        registry.remove(name)
+        registry.close()
 
-  p.command("update")
-    .description("Update the registry index")
-    .action(handleUpdate)
-}
+        const pluginDir = join(homedir(), ".aegis", "plugins", name)
+        if (existsSync(pluginDir)) {
+          await rm(pluginDir, { recursive: true, force: true })
+        }
 
-async function handleKeygen(opts: { comment?: string }) {
-  const keyPair = generateAuthorKey(opts.comment)
-  await saveAuthorKey(keyPair)
-  console.log(`\n  ${theme.success("Ed25519 key pair generated")}`)
-  console.log(`  Public key:  ${theme.bold(keyPair.publicKey.slice(0, 24))}...`)
-  console.log(`  Fingerprint: ${theme.dim(keyFingerprint(keyPair.publicKey))}`)
-  if (opts.comment) console.log(`  Comment:     ${opts.comment}`)
-  console.log(`  Saved to:    ~/.aegis/registry/author-key.json\n`)
-}
+        console.log(theme.success(`\u2713 Removed ${name}`))
+      } catch (err) {
+        console.log(theme.error(`\u2717 Remove failed: ${(err as Error).message}`))
+        process.exit(1)
+      }
+    })
 
-async function handleSign(file: string) {
-  const keyPair = await loadAuthorKey()
-  if (!keyPair) {
-    console.log(theme.error("\n  No author key found. Run `aegis plugin keygen` first.\n"))
-    process.exitCode = 1
-    return
-  }
+  // ── plugin search <query> ─────────────────────────────────────────
+  pluginCmd
+    .command("search <query>")
+    .description("Search plugins by name or description")
+    .action(async (query: string) => {
+      try {
+        const { PluginRegistry } = await import("../../plugin/registry")
+        const dbPath = join(homedir(), ".aegis", "plugins.db")
+        const registry = new PluginRegistry(dbPath)
+        const results = registry.search(query)
+        registry.close()
 
-  const fullPath = resolve(process.cwd(), file)
-  let manifest: SignedPluginManifest
-  try {
-    const raw = readFileSync(fullPath, "utf-8")
-    manifest = JSON.parse(raw)
-  } catch {
-    console.log(theme.error(`\n  Failed to read manifest: ${file}\n`))
-    process.exitCode = 1
-    return
-  }
+        if (results.length === 0) {
+          console.log(theme.info(`No plugins matching "${query}"`))
+          return
+        }
 
-  signManifest(manifest, keyPair.privateKey)
-  const outPath = fullPath.replace(/\.json$/, "") + ".signed.json"
-  writeFileSync(outPath, JSON.stringify(manifest, null, 2), "utf-8")
-  console.log(`\n  ${theme.success("Manifest signed")}`)
-  console.log(`  Output: ${outPath}`)
-  console.log(`  Key fingerprint: ${theme.dim(keyFingerprint(keyPair.publicKey))}\n`)
-}
+        console.log(theme.heading(`Results (${results.length}):`))
+        for (const p of results) {
+          console.log(theme.info(`  ${p.name}@${p.version}  ${p.description ?? ""}`))
+        }
+      } catch (err) {
+        console.log(theme.error(`\u2717 Search failed: ${(err as Error).message}`))
+        process.exit(1)
+      }
+    })
 
-async function handleVerify(file: string) {
-  const fullPath = resolve(process.cwd(), file)
-  let manifest: SignedPluginManifest
-  try {
-    const raw = readFileSync(fullPath, "utf-8")
-    manifest = JSON.parse(raw)
-  } catch {
-    console.log(theme.error(`\n  Failed to read manifest: ${file}\n`))
-    process.exitCode = 1
-    return
-  }
+  // ── plugin info <name> ────────────────────────────────────────────
+  pluginCmd
+    .command("info <name>")
+    .description("Show detailed plugin info")
+    .option("-v, --version <version>", "Specific version")
+    .action(async (name: string, opts: { version?: string }) => {
+      try {
+        const { PluginRegistry } = await import("../../plugin/registry")
+        const dbPath = join(homedir(), ".aegis", "plugins.db")
+        const registry = new PluginRegistry(dbPath)
+        const plugin = registry.get(name, opts.version)
+        registry.close()
 
-  if (!manifest.signature) {
-    console.log(theme.warn(`\n  No signature found in ${file}\n`))
-    process.exitCode = 1
-    return
-  }
+        if (!plugin) {
+          console.log(theme.error(`\u2717 Plugin '${name}' not found`))
+          process.exit(1)
+        }
 
-  const valid = verifyManifest(manifest)
-  if (valid) {
-    console.log(`\n  ${theme.success("Signature valid")}`)
-    console.log(`  Plugin:   ${theme.bold(manifest.name)} v${manifest.version}`)
-    console.log(`  Key fp:   ${theme.dim(keyFingerprint(manifest.signature.publicKey))}`)
-    console.log(`  Signed:   ${manifest.signature.signedAt}\n`)
-  } else {
-    console.log(theme.error(`\n  Signature INVALID for ${manifest.name}\n`))
-    process.exitCode = 1
-  }
-}
-
-async function handleInfo(file: string) {
-  const fullPath = resolve(process.cwd(), file)
-  let manifest: SignedPluginManifest
-  try {
-    const raw = readFileSync(fullPath, "utf-8")
-    manifest = JSON.parse(raw)
-  } catch {
-    console.log(theme.error(`\n  Failed to read manifest: ${file}\n`))
-    process.exitCode = 1
-    return
-  }
-
-  console.log(`\n  ${theme.bold(manifest.name)} ${theme.dim(`v${manifest.version}`)}`)
-  if (manifest.description) console.log(`  ${manifest.description}`)
-  if (manifest.author) console.log(`  Author: ${manifest.author}`)
-  if (manifest.url) console.log(`  URL:    ${manifest.url}`)
-
-  const deps = manifest.dependencies ?? []
-  if (deps.length > 0) {
-    console.log(`\n  Dependencies (${deps.length}):`)
-    for (const d of deps) console.log(`    ${d.name} ${theme.dim(d.version)}`)
-  }
-
-  const conflicts = manifest.conflicts ?? []
-  if (conflicts.length > 0) {
-    console.log(`\n  Conflicts: ${conflicts.join(", ")}`)
-  }
-
-  const signed = manifest.signature ? theme.success("yes") : theme.dim("no")
-  console.log(`  Signed: ${signed}`)
-  console.log()
-}
-
-async function handleDepends(file: string) {
-  const fullPath = resolve(process.cwd(), file)
-  let rootManifest: SignedPluginManifest
-  try {
-    const raw = readFileSync(fullPath, "utf-8")
-    rootManifest = JSON.parse(raw)
-  } catch {
-    console.log(theme.error(`\n  Failed to read manifest: ${file}\n`))
-    process.exitCode = 1
-    return
-  }
-
-  const plugins = new Map<string, SignedPluginManifest>()
-  plugins.set(rootManifest.name, rootManifest)
-  for (const dep of rootManifest.dependencies ?? []) {
-    try {
-      const depRaw = readFileSync(resolve(process.cwd(), `${dep.name}.json`), "utf-8")
-      const depManifest = JSON.parse(depRaw) as SignedPluginManifest
-      plugins.set(dep.name, depManifest)
-    } catch {
-      // dependency manifest not available locally
-    }
-  }
-
-  const graph = buildDependencyGraph(plugins, rootManifest.name)
-
-  console.log(`\n  ${theme.bold("Dependency Graph")} for ${rootManifest.name}\n`)
-
-  if (graph.nodes.size === 0) {
-    console.log("  No dependencies.\n")
-    return
-  }
-
-  for (const [name, version] of graph.nodes) {
-    const edges = graph.edges.filter((e) => e.from === name)
-    if (edges.length > 0) {
-      console.log(`  ${name}@${version}`)
-      for (const e of edges) console.log(`    \u2514\u2500 ${e.to} ${theme.dim(e.spec)}`)
-    }
-  }
-
-  if (graph.cycles.length > 0) {
-    console.log(`\n  ${theme.error("Cycles detected:")}`)
-    for (const cycle of graph.cycles) console.log(`    ${cycle.join(" \u2192 ")}`)
-  }
-
-  if (graph.unresolved.length > 0) {
-    console.log(`\n  ${theme.warn("Unresolved dependencies:")}`)
-    for (const u of graph.unresolved) console.log(`    ${u.name} ${theme.dim(u.spec)} (required by ${u.requiredBy})`)
-  }
-
-  const conflicts = findConflicts(plugins)
-  if (conflicts.length > 0) {
-    console.log(`\n  ${theme.error("Conflicts:")}`)
-    for (const c of conflicts) console.log(`    ${c.plugin} \u2192 ${c.dependency} (${c.requiredVersions.join(", ")})`)
-  }
-
-  console.log()
-}
-
-async function handleList() {
-  console.log(`\n  ${theme.dim("Registry not yet initialized. Use `aegis plugin publish <file>` to start.\n")}`)
-}
-
-async function handlePublish(_file: string) {
-  console.log(`\n  ${theme.success("Plugin manifest prepared for publishing.")}`)
-  console.log(`  ${theme.dim("Registry sync coming in a future release.")}\n`)
-}
-
-async function handleInstall(_name: string) {
-  console.log(`\n  ${theme.warn("Install not yet available.")}`)
-  console.log(`  ${theme.dim("Registry-based install coming in a future release.")}\n`)
-}
-
-async function handleRemove(_name: string) {
-  console.log(`\n  ${theme.warn("Remove not yet available.")}`)
-  console.log(`  ${theme.dim("Registry-based remove coming in a future release.")}\n`)
-}
-
-async function handleUpdate() {
-  console.log(`\n  ${theme.warn("Registry update not yet available.")}`)
-  console.log(`  ${theme.dim("Registry sync coming in a future release.")}\n`)
+        console.log(theme.heading(`${plugin.name}@${plugin.version}`))
+        console.log(theme.info(`  Description: ${plugin.description ?? "N/A"}`))
+        console.log(theme.info(`  Author: ${plugin.author ?? "N/A"}`))
+        console.log(theme.info(`  License: ${plugin.license ?? "N/A"}`))
+        console.log(theme.info(`  Signature: ${plugin.signature.slice(0, 16)}...`))
+        console.log(theme.info(`  Checksum: ${plugin.checksum.slice(0, 16)}...`))
+        console.log(theme.info(`  Installs: ${plugin.installs_count}`))
+        const date = new Date(plugin.created_at * 1000).toISOString().slice(0, 10)
+        console.log(theme.info(`  Published: ${date}`))
+      } catch (err) {
+        console.log(theme.error(`\u2717 Info failed: ${(err as Error).message}`))
+        process.exit(1)
+      }
+    })
 }

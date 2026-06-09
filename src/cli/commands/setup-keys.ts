@@ -357,7 +357,7 @@ async function setupTelegramBot(): Promise<void> {
     }
 
     saveSpinner.stop("✓ Telegram bot credentials saved (AES-256-GCM encrypted)")
-  } catch (err) {
+  } catch {
     saveSpinner.stop("✗ Failed to save Telegram credentials")
   }
 }

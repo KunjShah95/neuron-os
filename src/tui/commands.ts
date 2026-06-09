@@ -379,8 +379,8 @@ async function runDistill(state: AppState): Promise<void> {
         addLogEntry(state, { text: `    ${c.clusterKey} (${c.count} occurrences)`, type: "warn" })
       }
     }
-  } catch (err: any) {
-    addLogEntry(state, { text: `Distillation error: ${err.message ?? String(err)}`, type: "error" })
+  } catch (err: unknown) {
+    addLogEntry(state, { text: `Distillation error: ${err instanceof Error ? err.message : String(err)}`, type: "error" })
   }
 }
 

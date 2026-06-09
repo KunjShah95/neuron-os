@@ -134,7 +134,7 @@ export async function handleKey(state: AppState, key: KeyEvent): Promise<"contin
             cfg.provider = name
             saveConfig(cfg)
             addLogEntry(state, { text: `Provider set to ${name}`, type: "event" })
-          } catch (e) {
+          } catch {
             addLogEntry(state, { text: `Provider set to ${name} (could not persist)`, type: "warn" })
           }
         }

@@ -75,8 +75,8 @@ export function createDiscordAdapter(config: DiscordConfig): PlatformAdapter {
     try {
       const result = await handler(args, config.project)
       await message.channel.send(clip(result.text, DISCORD_MAX - 100, TRUNCATION_SUFFIX))
-    } catch (err: any) {
-      await message.channel.send(`❌ Error: ${err.message ?? String(err)}`)
+    } catch (err: unknown) {
+      await message.channel.send(`❌ Error: ${err instanceof Error ? err.message : String(err)}`)
     }
   })
 

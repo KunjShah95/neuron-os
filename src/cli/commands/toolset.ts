@@ -98,7 +98,7 @@ export function registerToolset(program: Command): void {
           console.log(`    - ${t}`)
         }
         console.log()
-      } catch (err) {
+      } catch {
         console.error(`Unknown toolset: ${name}`)
         process.exit(1)
       }

@@ -9,7 +9,6 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test"
 import { existsSync, unlinkSync, rmdirSync } from "node:fs"
 import { join } from "node:path"
 import { SkillMonitor } from "./skill-monitor"
-import type { SkillPerformanceRecord } from "./skill-monitor"
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -198,11 +197,6 @@ describe("SkillMonitor", () => {
   describe("trend detection", () => {
     it("detects improving trend with increasing success", () => {
       // Simulate improving performance
-      const dates = [
-        new Date(Date.now() - 86400000 * 10).toISOString(),
-        new Date(Date.now() - 86400000 * 5).toISOString(),
-        new Date().toISOString(),
-      ]
       // We can't inject timestamps directly, so we test trend field exists
       monitor.recordUsage("trend-skill", "Trend Skill", true, 0.9, 100, 1000)
 

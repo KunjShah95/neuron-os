@@ -212,7 +212,8 @@ export class CredentialVault {
     const rows = this.db.prepare(sql).all(...params) as Record<string, unknown>[]
     return rows.map((r) => {
       const entry = this.rowToEntry(r)
-      const { encryptedValue: _, iv: __, authTag: ___, ...rest } = entry
+      const { encryptedValue, iv, authTag, ...rest } = entry
+      void encryptedValue; void iv; void authTag
       return rest
     })
   }

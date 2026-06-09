@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test"
-import { existsSync, unlinkSync, rmdirSync, readdirSync, statSync } from "node:fs"
+import { existsSync, unlinkSync, rmdirSync, readdirSync } from "node:fs"
 import { resolve, join } from "node:path"
 import { BaselineManager } from "./baseline"
 import type { EvalReport } from "./types"

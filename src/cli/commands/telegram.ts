@@ -52,8 +52,8 @@ async function handleTelegram(opts: { token?: string; project?: string }) {
     const me = await verifyBot.telegram.getMe()
     console.log(theme.success(`  ✓ Connected as @${me.username} (${me.first_name})`))
     console.log()
-  } catch (err: any) {
-    console.log(theme.error(`\n  ✗ Failed to connect: ${err.message ?? String(err)}`))
+  } catch (err: unknown) {
+    console.log(theme.error(`\n  ✗ Failed to connect: ${err instanceof Error ? err.message : String(err)}`))
     console.log(theme.muted("  Check that your token is correct and the network can reach api.telegram.org"))
     console.log()
     process.exit(1)

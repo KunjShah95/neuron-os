@@ -122,7 +122,7 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
     return { ai, engine }
   }
 
-  let { engine, ai: _ai } = buildEngine(chatConfig)
+  let { ai: _ai, engine } = buildEngine(chatConfig)
   const messages: ModelMessage[] = []
 
   // ── Ensure stdin is in a usable state before readline ──────────
@@ -252,8 +252,8 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
 
       // Add assistant response to message history
       messages.push({ role: "assistant", content: fullText || "(no response)" })
-    } catch (err: any) {
-      const errorMsg = err.message || String(err)
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err)
       console.log(theme.error(`\n  Error: ${errorMsg}`))
     }
 

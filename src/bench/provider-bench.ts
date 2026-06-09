@@ -127,14 +127,14 @@ export class ProviderBenchmark {
     let lm: ReturnType<typeof factory>
     try {
       lm = factory(config)
-    } catch (err: any) {
+    } catch (err: unknown) {
       return {
         provider,
         model: modelName,
         success: false,
         durationMs: 0,
         outputLength: 0,
-        error: `Factory error: ${err.message ?? String(err)}`,
+        error: `Factory error: ${err instanceof Error ? err.message : String(err)}`,
       }
     }
 
@@ -179,14 +179,14 @@ export class ProviderBenchmark {
         outputTokens,
         costUsd,
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       return {
         provider,
         model: modelName,
         success: false,
         durationMs: Date.now() - start,
         outputLength: 0,
-        error: err.message ?? String(err),
+        error: err instanceof Error ? err.message : String(err),
       }
     }
   }

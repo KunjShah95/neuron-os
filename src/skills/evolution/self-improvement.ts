@@ -137,8 +137,8 @@ export function applyPatch(patch: PatchCandidate): boolean {
 
     log.info(`patch applied to "${patch.skill_name}" (${patch.id})`)
     return true
-  } catch (err: any) {
-    log.error(`failed to apply patch: ${err.message}`)
+  } catch (err: unknown) {
+    log.error(`failed to apply patch: ${err instanceof Error ? err.message : String(err)}`)
     return false
   }
 }

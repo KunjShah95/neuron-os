@@ -166,8 +166,8 @@ export function createWebhookAdapter(config: WebhookAdapterConfig): PlatformAdap
                 status: 202,
                 headers: { "Content-Type": "application/json" },
               })
-            } catch (err: any) {
-              return new Response(JSON.stringify({ error: err.message ?? "Invalid payload" }), {
+            } catch (err: unknown) {
+              return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Invalid payload" }), {
                 status: 400,
                 headers: { "Content-Type": "application/json" },
               })

@@ -302,7 +302,7 @@ export class AgentPool {
 
       this.completed.push(result)
       this.config.onComplete(result)
-    } catch (err: any) {
+    } catch (err: unknown) {
       const completedAt = Date.now()
       const result: PoolTaskResult = {
         taskId: task.id,
@@ -312,7 +312,7 @@ export class AgentPool {
         startedAt,
         completedAt,
         durationMs: completedAt - startedAt,
-        error: err.message ?? String(err),
+        error: err instanceof Error ? err.message : String(err),
       }
 
       this.completed.push(result)

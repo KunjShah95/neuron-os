@@ -199,7 +199,6 @@ describe("GoldenDatasetManager", () => {
       const tooHigh = manager.promoteToGold(task.id, "r", 10)
       expect(tooHigh!.goldenQualityScore).toBe(5)
 
-      const tooLow = manager.promoteToGold("nonexistent", "r", -5)
       // New task for below-min test
       const task2 = manager.createSilverTask({
         name: "Clamp low",

@@ -63,8 +63,8 @@ export function registerPool(program: Command) {
           console.log(`    duration:  ${theme.dim(`${(result.durationMs / 1000).toFixed(1)}s`)}`)
           console.log(`    summary:   ${result.summary.slice(0, 200)}`)
           if (result.error) console.log(`    error:     ${theme.error(result.error)}`)
-        } catch (err: any) {
-          console.log(theme.error(`  ✗ Task did not complete in time: ${err.message ?? String(err)}`))
+        } catch (err: unknown) {
+          console.log(theme.error(`  ✗ Task did not complete in time: ${err instanceof Error ? err.message : String(err)}`))
         }
       } else {
         // Show pool summary

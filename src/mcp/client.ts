@@ -88,8 +88,8 @@ export async function connectMCPClients(): Promise<number> {
                 success: true,
                 output: typeof result === "string" ? result : JSON.stringify(result, null, 2),
               }
-            } catch (err: any) {
-              return { success: false, output: "", error: err.message }
+            } catch (err: unknown) {
+              return { success: false, output: "", error: err instanceof Error ? err.message : String(err) }
             }
           },
         }

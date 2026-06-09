@@ -29,8 +29,8 @@ async function handlePlan(goal: string, opts: { sessionDb?: boolean; project?: s
     const { runPlanOrchestrator } = await import("../../modes/plan")
     const result = await runPlanOrchestrator(goal, opts.sessionDb, opts.project)
     console.log(result)
-  } catch (err: any) {
-    console.error(theme.error(`\n  ✗ Error: ${err.message ?? String(err)}\n`))
+  } catch (err: unknown) {
+    console.error(theme.error(`\n  ✗ Error: ${err instanceof Error ? err.message : String(err)}\n`))
     process.exit(1)
   }
 }

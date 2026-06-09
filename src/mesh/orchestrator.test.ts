@@ -10,15 +10,40 @@
  * Usage: bun test ./src/mesh/test-orchestrator.ts
  */
 
-import { describe, it, expect, beforeEach } from "bun:test"
+import { describe, it, expect, beforeEach, afterEach } from "bun:test"
 import { MeshOrchestrator } from "./orchestrator"
 import type { MeshAgent } from "./types"
 
 describe("MeshOrchestrator", () => {
   let orchestrator: MeshOrchestrator
 
+  const mockResult = {
+    agentId: "mock",
+    role: "mock",
+    goal: "mock",
+    outcome: "failed" as const,
+    summary: "Mock execution (no AI key)",
+    output: "",
+    durationMs: 1,
+    error: "Mock: no AI provider",
+  }
+
+  // Save original prototype method for restoration in afterEach
+  const originalExecuteAgent = (MeshOrchestrator.prototype as any).executeAgent
+
   beforeEach(() => {
     orchestrator = new MeshOrchestrator()
+    // Mock executeAgent to return instantly without AI provider dependency
+    ;(MeshOrchestrator.prototype as any).executeAgent = async () => mockResult
+  })
+
+  afterEach(() => {
+    // Restore the original method on the prototype
+    if (originalExecuteAgent) {
+      ;(MeshOrchestrator.prototype as any).executeAgent = originalExecuteAgent
+    } else {
+      delete (MeshOrchestrator.prototype as any).executeAgent
+    }
   })
 
   // ── Constructor ─────────────────────────────────────────────────────
@@ -164,7 +189,7 @@ describe("MeshOrchestrator", () => {
     try {
       await (orchestrator as any).run({ topology: "unknown", agents: [] })
       expect(true).toBe(false) // Should not reach here
-    } catch (err: any) {
+    } catch (err: unknown) {
       expect(err.message).toContain("Unknown topology")
     }
   })

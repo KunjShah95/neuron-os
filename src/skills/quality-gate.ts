@@ -61,7 +61,7 @@ export class SkillQualityGate {
     } finally {
       try {
         unlinkSync(tempSkillPath)
-      } catch (e) {
+      } catch {
         // ignore cleanup error
       }
     }

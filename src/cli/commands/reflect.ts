@@ -68,8 +68,8 @@ export function registerReflect(program: Command) {
           console.log(`  ${result.suggestedPivot}`)
         }
         console.log()
-      } catch (err: any) {
-        console.log(`  ${theme.error(`❌ Reflection failed: ${err.message}`)}`)
+      } catch (err: unknown) {
+        console.log(`  ${theme.error(`❌ Reflection failed: ${err instanceof Error ? err.message : String(err)}`)}`)
         process.exit(1)
       }
     })

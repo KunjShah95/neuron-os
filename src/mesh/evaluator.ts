@@ -55,12 +55,12 @@ export class Evaluator {
       try {
         const result = await this.runEvaluation(criterion)
         results.push(result)
-      } catch (err: any) {
+      } catch (err: unknown) {
         results.push({
           metric: criterion.metric,
           passed: false,
           score: 0,
-          output: `Evaluation error: ${err.message}`,
+          output: `Evaluation error: ${err instanceof Error ? err.message : String(err)}`,
           durationMs: 0,
         })
       }
@@ -135,12 +135,13 @@ export class Evaluator {
         durationMs,
         details: `${passCount} pass, ${failCount} fail`,
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const output = err instanceof Error ? err.message : String(err)
       return {
         metric: "tests-pass",
         passed: false,
         score: 0,
-        output: err.stderr?.slice(0, 500) || err.message,
+        output: output.slice(0, 500),
         durationMs: Date.now() - startTime,
       }
     }
@@ -160,8 +161,8 @@ export class Evaluator {
         output: output.slice(0, 500),
         durationMs: Date.now() - startTime,
       }
-    } catch (err: any) {
-      const output = err.stderr?.slice(0, 500) || err.stdout?.slice(0, 500) || err.message
+    } catch (err: unknown) {
+      const output = err instanceof Error ? err.message : String(err)
       const errorCount = (output.match(/(\d+)\s+error/) || [])[1]
       const warningCount = (output.match(/(\d+)\s+warning/) || [])[1]
       const score = errorCount
@@ -191,8 +192,8 @@ export class Evaluator {
         output: output.slice(0, 500),
         durationMs: Date.now() - startTime,
       }
-    } catch (err: any) {
-      const output = err.stdout?.slice(0, 500) || err.stderr?.slice(0, 500) || err.message
+    } catch (err: unknown) {
+      const output = err instanceof Error ? err.message : String(err)
       return {
         metric: "typecheck",
         passed: false,
@@ -214,12 +215,13 @@ export class Evaluator {
         output: output.slice(0, 500),
         durationMs: Date.now() - startTime,
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const output = err instanceof Error ? err.message : String(err)
       return {
         metric: "build",
         passed: false,
         score: 0,
-        output: err.stderr?.slice(0, 500) || err.message,
+        output: output.slice(0, 500),
         durationMs: Date.now() - startTime,
       }
     }
@@ -253,12 +255,13 @@ export class Evaluator {
         output: output.slice(0, 500),
         durationMs: Date.now() - startTime,
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const output = err instanceof Error ? err.message : String(err)
       return {
         metric: "custom-script",
         passed: false,
         score: 0,
-        output: err.stderr?.slice(0, 500) || err.message,
+        output: output.slice(0, 500),
         durationMs: Date.now() - startTime,
       }
     }

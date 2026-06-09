@@ -201,8 +201,8 @@ async function handleTask(type: string, payload: string) {
     console.log(theme.success("  ✓ Task completed"))
     console.log(`  Result: ${theme.dim(JSON.stringify(result, null, 2))}`)
     console.log()
-  } catch (err: any) {
-    console.log(theme.error(`  ✗ Task failed: ${err.message ?? String(err)}`))
+  } catch (err: unknown) {
+    console.log(theme.error(`  ✗ Task failed: ${err instanceof Error ? err.message : String(err)}`))
     console.log()
   }
 }

@@ -129,7 +129,7 @@ describe("Chat Integration Tests", () => {
     try {
       saveChatSession(state)
       expect(true).toBe(true)
-    } catch (err: any) {
+    } catch {
       expect(false).toBe(true)
     }
   })

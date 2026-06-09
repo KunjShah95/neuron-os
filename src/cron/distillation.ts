@@ -123,8 +123,8 @@ export async function runDistillationPipeline(config: DistillationConfig = {}): 
       })
 
       log.info(`Extracted skill: ${candidate.name} (${candidate.confidence}%)`)
-    } catch (err: any) {
-      log.warn(`Failed to extract skill ${candidate.name}: ${err.message}`)
+    } catch (err: unknown) {
+      log.warn(`Failed to extract skill ${candidate.name}: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 
@@ -143,8 +143,8 @@ export async function runDistillationPipeline(config: DistillationConfig = {}): 
       await writeInsightsToMemory()
       insightsWritten = true
       log.info("Wrote insights to MEMORY.md")
-    } catch (err: any) {
-      log.warn(`Failed to write insights to memory: ${err.message}`)
+    } catch (err: unknown) {
+      log.warn(`Failed to write insights to memory: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 
@@ -171,8 +171,8 @@ export async function runDistillationPipeline(config: DistillationConfig = {}): 
         clusters: report.topClusters.length,
       }),
     })
-  } catch (err: any) {
-    log.warn(`Failed to record distillation experience: ${err.message}`)
+  } catch (err: unknown) {
+    log.warn(`Failed to record distillation experience: ${err instanceof Error ? err.message : String(err)}`)
   }
 
   log.info(`Distillation pipeline ${runId} complete`)
@@ -225,8 +225,8 @@ export function recordSessionToExperience(record: SessionRecord): boolean {
     })
     log.info(`Session recorded: ${record.sessionId} (${record.outcome})`)
     return true
-  } catch (err: any) {
-    log.warn(`Failed to record session: ${err.message}`)
+  } catch (err: unknown) {
+    log.warn(`Failed to record session: ${err instanceof Error ? err.message : String(err)}`)
     return false
   }
 }

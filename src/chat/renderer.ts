@@ -401,7 +401,7 @@ export async function startChat(agentType?: AgentTypeName) {
           if (state.config.model) override.model = state.config.model
           if (state.config.maxTokens) override.maxTokens = state.config.maxTokens
           engine = createEngine(agentType, override)
-        } catch (e) {
+        } catch {
           // fall back to previously created engine
         }
 

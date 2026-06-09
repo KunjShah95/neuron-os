@@ -299,9 +299,10 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
       })
       log.info("Agent spawned via API", { agentId: id, name: payload.name })
       return jsonResponse(201, { id, name: payload.name, status: "spawning" }, config, req)
-    } catch (err: any) {
-      log.error("Failed to spawn agent via API", { error: err.message })
-      return jsonResponse(500, { error: err.message }, config, req)
+    } catch (err: unknown) {
+      const spawnErrMsg = err instanceof Error ? err.message : String(err)
+      log.error("Failed to spawn agent via API", { error: spawnErrMsg })
+      return jsonResponse(500, { error: spawnErrMsg }, config, req)
     }
   }
 
@@ -531,9 +532,10 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
       )
       log.info("Skill saved from A2UI playground", { name: payload.name, type: payload.type })
       return jsonResponse(201, { status: "saved", path: join(skillsDir, "SKILL.md") }, config, req)
-    } catch (err: any) {
-      log.error("Failed to save skill", { error: err.message })
-      return jsonResponse(500, { error: err.message }, config, req)
+    } catch (err: unknown) {
+      const skillErrMsg = err instanceof Error ? err.message : String(err)
+      log.error("Failed to save skill", { error: skillErrMsg })
+      return jsonResponse(500, { error: skillErrMsg }, config, req)
     }
   }
 
@@ -596,9 +598,10 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
       }
 
       return jsonResponse(200, { skills }, config, req)
-    } catch (err: any) {
-      log.error("Failed to list skills", { error: err.message })
-      return jsonResponse(500, { error: err.message }, config, req)
+    } catch (err: unknown) {
+      const listErrMsg = err instanceof Error ? err.message : String(err)
+      log.error("Failed to list skills", { error: listErrMsg })
+      return jsonResponse(500, { error: listErrMsg }, config, req)
     }
   }
 

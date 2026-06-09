@@ -220,8 +220,9 @@ export function registerSession(program: Command) {
         console.log()
         console.log(theme.dim("  Use `aegis session view " + fork.id.slice(0, 24) + "...` to see messages."))
         console.log(theme.dim("  The original session is unchanged."))
-      } catch (err: any) {
-        console.log(theme.error(`  Fork failed: ${err.message ?? String(err)}`))
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.log(theme.error(`  Fork failed: ${msg}`))
         process.exit(1)
       }
     })
@@ -253,8 +254,9 @@ export function registerSession(program: Command) {
         console.log(
           theme.dim(`  Use \`aegis session fork ${sessionId.slice(0, 24)}... --at ${msgId}\` to fork at this point.`),
         )
-      } catch (err: any) {
-        console.log(theme.error(`  Checkpoint failed: ${err.message ?? String(err)}`))
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.log(theme.error(`  Checkpoint failed: ${msg}`))
         process.exit(1)
       }
     })
@@ -328,8 +330,9 @@ export function registerSession(program: Command) {
         console.log(theme.success(`  ✓ Merged ${sourceMsgs.length} messages into "${target.name}"`))
         console.log(theme.dim(`  Source session "${sourceId}" marked as completed.`))
         console.log(theme.dim(`  Use \`aegis session view ${targetId.slice(0, 24)}...\` to see merged messages.`))
-      } catch (err: any) {
-        console.log(theme.error(`  Merge failed: ${err.message ?? String(err)}`))
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.log(theme.error(`  Merge failed: ${msg}`))
         process.exit(1)
       }
     })

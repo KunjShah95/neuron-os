@@ -110,7 +110,7 @@ export function renderMarkdown(markdown: string): string {
 
   try {
     return marked.parse(markdown) as string
-  } catch (err) {
+  } catch {
     // Fallback to plain text if parsing fails
     return markdown
   }

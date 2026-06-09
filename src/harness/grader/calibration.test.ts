@@ -2,7 +2,7 @@
  * Tests for judge calibration module
  */
 import { describe, it, expect, beforeEach, afterEach } from "bun:test"
-import { existsSync, rmSync, mkdirSync } from "node:fs"
+import { rmSync, mkdirSync } from "node:fs"
 import { resolve } from "node:path"
 import { tmpdir } from "node:os"
 import { JudgeCalibration, createDefaultCalibrationSet } from "./calibration"

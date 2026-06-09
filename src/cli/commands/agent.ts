@@ -279,6 +279,80 @@ export function registerAgent(program: Command) {
         )
       }
     })
+
+  // ── prewarm ────────────────────────────────────────────────────────
+  const prewarm = agent.command("prewarm").description("Manage pre-warmed agents")
+
+  prewarm
+    .command("list")
+    .alias("ls")
+    .description("List pre-warmed agent types with TTL")
+    .action(() => {
+      const prewarmed = agentManager.getPrewarmedTypes()
+      if (prewarmed.length === 0) {
+        console.log(theme.dim("  No pre-warmed agents. Run 'aegis agent prewarm trigger' to check."))
+        return
+      }
+
+      console.log(theme.heading(`  Pre-warmed Agent Types (${prewarmed.length})`))
+      console.log()
+      for (const { type, ttlRemainingMs } of prewarmed) {
+        if (ttlRemainingMs < 60_000) {
+          const ttlSec = Math.round(ttlRemainingMs / 1_000)
+          console.log(`  ${theme.accent(type.padEnd(12))} TTL: ${theme.dim(`${ttlSec}s`)}`)
+        } else {
+          const ttlMin = Math.round(ttlRemainingMs / 60_000)
+          console.log(`  ${theme.accent(type.padEnd(12))} TTL: ${theme.dim(`${ttlMin}min`)}`)
+        }
+      }
+    })
+
+  prewarm
+    .command("status")
+    .description("Show prewarm statistics and running warm agents")
+    .action(() => {
+      const stats = agentManager.getPrewarmStats()
+      const warmAgents = agentManager.list({ tag: "prewarmed" })
+
+      console.log(theme.heading("  Prewarm Statistics"))
+      console.log()
+      console.log(`  ${theme.bold("Hits:")}        ${stats.hits}`)
+      console.log(`  ${theme.bold("Misses:")}      ${stats.misses}`)
+      console.log(`  ${theme.bold("Promotions:")}  ${stats.promotions}`)
+      console.log(`  ${theme.bold("Hit rate:")}    ${stats.hitRateFormatted}`)
+
+      console.log()
+      console.log(theme.heading(`  Running Warm Agents (${warmAgents.length})`))
+      if (warmAgents.length === 0) {
+        console.log(theme.dim("    No warm agents currently running."))
+      } else {
+        for (const a of warmAgents) {
+          const uptime = a.spawnTime ? `${Math.floor((Date.now() - a.spawnTime) / 1000)}s` : "-"
+          console.log(`  ${theme.accent(a.def.name.padEnd(18))} pid:${a.pid}  uptime:${uptime}`)
+        }
+      }
+    })
+
+  prewarm
+    .command("trigger")
+    .alias("run")
+    .description("Manually trigger prewarmTick for predictive analysis")
+    .action(async () => {
+      console.log(theme.info("  Running prewarm analysis…"))
+      try {
+        await agentManager.runPrewarmAnalysis()
+        console.log(theme.success("  ✓ Prewarm analysis complete"))
+
+        const prewarmed = agentManager.getPrewarmedTypes()
+        if (prewarmed.length > 0) {
+          console.log(`  Types pre-warmed: ${prewarmed.map((p) => p.type).join(", ")}`)
+        } else {
+          console.log(theme.dim("  No agent types met the threshold for pre-warming."))
+        }
+      } catch (err) {
+        console.log(theme.error(`  ✗ Prewarm analysis failed: ${err instanceof Error ? err.message : String(err)}`))
+      }
+    })
 }
 
 // ── Helper ─────────────────────────────────────────────────────────────

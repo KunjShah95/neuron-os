@@ -55,8 +55,8 @@ export class Summarizer {
       })
 
       return response.text ?? ""
-    } catch (err: any) {
-      if (err?.name === "AbortError") {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") {
         throw new Error("timeout")
       }
       throw err

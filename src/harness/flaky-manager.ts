@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs"
+import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from "node:fs"
 import { resolve } from "node:path"
 import type { FlakyConfig, FlakyTestRecord, EvalResult } from "./types"
 
@@ -14,9 +14,9 @@ export class FlakyManager {
   private records: Map<string, FlakyTestRecord> = new Map()
   private config: FlakyConfig
 
-  constructor(config: Partial<FlakyConfig> = {}) {
+  constructor(config: Partial<FlakyConfig> & { dbPath?: string } = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config }
-    this.dbPath = resolve(process.cwd(), ".aegis/harness/flaky-tests.json")
+    this.dbPath = config.dbPath ?? resolve(process.cwd(), ".aegis/harness/flaky-tests.json")
     this.loadRecords()
   }
 
@@ -27,7 +27,11 @@ export class FlakyManager {
    * failed but the retry passed, the test is marked as flaky.
    */
   recordRun(testId: string, firstAttempt: EvalResult, retryResult?: EvalResult): void {
-    const record = this.records.get(testId) ?? this.createRecord(testId)
+    let record = this.records.get(testId)
+    if (!record) {
+      record = this.createRecord(testId)
+      this.records.set(testId, record)
+    }
     record.totalRuns++
 
     if (retryResult && !firstAttempt.passed && retryResult.passed) {
@@ -46,15 +50,16 @@ export class FlakyManager {
       }
 
       // Auto-quarantine check
+      const rateCheck = record.totalRuns >= 5 && record.flakyRuns / record.totalRuns >= this.config.flakyThreshold
       if (
         record.consecutiveFlakes >= this.config.quarantineAfterFlakes ||
-        record.flakyRuns / record.totalRuns >= this.config.flakyThreshold
+        rateCheck
       ) {
         record.status = "quarantined"
         console.warn(
           `[FLAKY] Test "${testId}" automatically quarantined (${record.flakyRuns}/${record.totalRuns} flaky runs)`,
         )
-      } else if (record.flakyRuns >= 2) {
+      } else if (record.flakyRuns >= 1) {
         record.status = "flaky"
       }
     } else {
@@ -126,6 +131,14 @@ export class FlakyManager {
     }
 
     return { success: true, suggestion }
+  }
+
+  /** Clear all records (for testing) */
+  clearRecords(): void {
+    this.records.clear()
+    try {
+      if (existsSync(this.dbPath)) unlinkSync(this.dbPath)
+    } catch {}
   }
 
   /** Get summary statistics */

@@ -61,8 +61,8 @@ export function createVoiceAdapter(config: VoiceConfig): PlatformAdapter {
       try {
         const account = await twilioClient.api.accounts(config.accountSid).fetch()
         log.info(`Twilio account verified: ${account.friendlyName} (${account.status})`)
-      } catch (err: any) {
-        log.error(`Twilio account verification failed: ${err.message}`)
+      } catch (err: unknown) {
+        log.error(`Twilio account verification failed: ${err instanceof Error ? err.message : String(err)}`)
         throw err
       }
     },

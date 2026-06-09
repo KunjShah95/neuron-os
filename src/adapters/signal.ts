@@ -102,14 +102,14 @@ export function createSignalAdapter(config: SignalConfig): PlatformAdapter {
           try {
             const result = await handler(args, config.project)
             await sendMessage(source, result.text)
-          } catch (err: any) {
-            await sendMessage(source, `❌ Error: ${err.message ?? String(err)}`)
+          } catch (err: unknown) {
+            await sendMessage(source, `❌ Error: ${err instanceof Error ? err.message : String(err)}`)
           }
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Timeouts and transient errors are expected during polling
-      if (err.name !== "TimeoutError" && err.name !== "AbortError") {
+      if (err instanceof Error && (err.name !== "TimeoutError" && err.name !== "AbortError")) {
         log.warn(`Signal poll error: ${err.message}`)
       }
     }
@@ -128,8 +128,8 @@ export function createSignalAdapter(config: SignalConfig): PlatformAdapter {
           throw new Error(`Health check returned ${health.status}`)
         }
         log.info(`Signal adapter connected to ${config.apiUrl}`)
-      } catch (err: any) {
-        log.error(`Signal health check failed: ${err.message}`)
+      } catch (err: unknown) {
+        log.error(`Signal health check failed: ${err instanceof Error ? err.message : String(err)}`)
         throw err
       }
 
