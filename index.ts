@@ -209,18 +209,14 @@ if (noArgs) {
     .join(" ") || "(interactive)"
   const startTime = Date.now()
   let exitCode = 0
+  let historyWritten = false
 
-  try {
-    await program.parseAsync(process.argv)
-    exitCode = 0
-  } catch (err) {
-    exitCode = 1
-    throw err
-  } finally {
-    const duration = Date.now() - startTime
-    recordCommand(commandName, exitCode === 0, duration)
-
-    // Write to command history file for /history Telegram command
+  // Write history synchronously. Called both from the finally block (normal
+  // exit) and from the process 'exit' handler (early exit via process.exit()
+  // in signal handlers — which skips finally). The flag prevents double-writes.
+  function writeCommandHistory(code: number): void {
+    if (historyWritten) return
+    historyWritten = true
     try {
       const historyDir = join(process.env.HOME || process.env.USERPROFILE || "~", ".aegis")
       const historyFile = join(historyDir, "command-history.json")
@@ -244,8 +240,25 @@ if (noArgs) {
       // Keep last 100 entries
       if (history.length > 100) history = history.slice(-100)
       writeFileSync(historyFile, JSON.stringify(history, null, 2), "utf-8")
+
+      // Record telemetry command (synchronous queue push)
+      recordCommand(commandName, code === 0, Date.now() - startTime)
     } catch {
       // History recording is best-effort
     }
+  }
+
+  // 'exit' fires synchronously even when process.exit() is called directly
+  // (e.g. from adapter SIGINT handlers), ensuring history is always recorded.
+  process.on("exit", writeCommandHistory)
+
+  try {
+    await program.parseAsync(process.argv)
+    exitCode = 0
+  } catch (err) {
+    exitCode = 1
+    throw err
+  } finally {
+    writeCommandHistory(exitCode)
   }
 }
