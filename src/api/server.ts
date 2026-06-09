@@ -192,6 +192,8 @@ const ROUTE_PERMISSIONS: Array<{ pattern: RegExp; method: string; permission: Pe
   { pattern: /^\/api\/v1\/sessions/, method: "DELETE", permission: "admin:all" },
   { pattern: /^\/api\/v1\/health$/, method: "GET", permission: "admin:all" },
   { pattern: /^\/api\/v1\/metrics$/, method: "GET", permission: "admin:all" },
+  { pattern: /^\/api\/v1\/souls$/, method: "GET", permission: "admin:all" },
+  { pattern: /^\/api\/v1\/souls\/(.+)$/, method: "GET", permission: "admin:all" },
   { pattern: /^\/api\/v1\/types$/, method: "GET", permission: "agent:view" },
   { pattern: /^\/api\/v1\/ws\/health$/, method: "GET", permission: "admin:all" },
 ]
@@ -481,6 +483,51 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
         souls: { total: agentSouls.length, moodBreakdown, avgMoodScore: Math.round(avgMoodScore * 10) / 10 },
         plugins: { installed: pluginsInstalled },
         system: { uptime: process.uptime(), version: _version },
+      },
+      config,
+      req,
+    )
+  }
+
+  // ── Souls ───────────────────────────────────────────────────────────
+
+  if (pathname === "/api/v1/souls" && method === "GET") {
+    const souls = soulManager.list().map(({ agentId, soul: s }) => ({
+      agentId,
+      archetype: s.archetype,
+      name: s.name,
+      mood: s.mood.mood,
+      moodEmoji: soulManager.getMoodEmoji(s.mood.mood),
+      traits: s.traits.map((t) => ({ name: t.name, score: t.score })),
+      adaptations: s.adaptations.length,
+      lastEvolved: s.lastEvolved ?? null,
+    }))
+    return jsonResponse(200, { souls, total: souls.length }, config, req)
+  }
+
+  // ── Single Soul ─────────────────────────────────────────────────────
+
+  const soulMatch = pathname.match(/^\/api\/v1\/souls\/(.+)$/)
+  if (soulMatch && method === "GET") {
+    const agentId = soulMatch[1]!
+    if (!agentId) {
+      return jsonResponse(400, { error: "Missing agent ID in path" }, config, req)
+    }
+    const entry = soulManager.get(agentId)
+    if (!entry) {
+      return jsonResponse(404, { error: `No soul found for agent "${agentId}"` }, config, req)
+    }
+    return jsonResponse(
+      200,
+      {
+        agentId,
+        archetype: entry.archetype,
+        name: entry.name,
+        mood: entry.mood.mood,
+        moodEmoji: soulManager.getMoodEmoji(entry.mood.mood),
+        traits: entry.traits.map((t) => ({ name: t.name, score: t.score })),
+        adaptations: entry.adaptations,
+        lastEvolved: entry.lastEvolved ?? null,
       },
       config,
       req,
