@@ -191,6 +191,7 @@ const ROUTE_PERMISSIONS: Array<{ pattern: RegExp; method: string; permission: Pe
   { pattern: /^\/api\/v1\/sessions/, method: "GET", permission: "admin:all" },
   { pattern: /^\/api\/v1\/sessions/, method: "DELETE", permission: "admin:all" },
   { pattern: /^\/api\/v1\/health$/, method: "GET", permission: "admin:all" },
+  { pattern: /^\/api\/v1\/metrics$/, method: "GET", permission: "admin:all" },
   { pattern: /^\/api\/v1\/types$/, method: "GET", permission: "agent:view" },
   { pattern: /^\/api\/v1\/ws\/health$/, method: "GET", permission: "admin:all" },
 ]
@@ -440,6 +441,46 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
           installed: pluginsInstalled,
           registryReachable,
         },
+      },
+      config,
+      req,
+    )
+  }
+
+  // ── Metrics ─────────────────────────────────────────────────────────
+
+  if (pathname === "/api/v1/metrics" && method === "GET") {
+    const agentSouls = soulManager.list()
+    const moodBreakdown: Record<string, number> = {}
+    let totalMoodScore = 0
+    for (const { soul: s } of agentSouls) {
+      moodBreakdown[s.mood.mood] = (moodBreakdown[s.mood.mood] ?? 0) + 1
+      const moodScore = s.mood.mood === "elated" ? 100 : s.mood.mood === "confident" ? 80 : s.mood.mood === "content" ? 60 : s.mood.mood === "anxious" ? 40 : s.mood.mood === "frustrated" ? 20 : 0
+      totalMoodScore += moodScore
+    }
+    const avgMoodScore = agentSouls.length > 0 ? totalMoodScore / agentSouls.length : 0
+
+    const agents = agentManager.list()
+    const totalAgents = agents.length
+    const runningAgents = agents.filter((a) => a.status === "running").length
+
+    const { PluginRegistry } = await import("../plugin/registry")
+    let pluginsInstalled = 0
+    try {
+      const reg = new PluginRegistry(join(homedir(), ".aegis", "plugins.db"))
+      pluginsInstalled = reg.list().length
+      reg.close()
+    } catch {
+      /* non-fatal */
+    }
+
+    return jsonResponse(
+      200,
+      {
+        agents: { total: totalAgents, running: runningAgents },
+        souls: { total: agentSouls.length, moodBreakdown, avgMoodScore: Math.round(avgMoodScore * 10) / 10 },
+        plugins: { installed: pluginsInstalled },
+        system: { uptime: process.uptime(), version: _version },
       },
       config,
       req,
