@@ -36,6 +36,7 @@ jobs:
           restore-keys: bun-
 
       - run: bun install --frozen-lockfile
+      - run: bun run lint
       - run: bun run --bun tsc --noEmit
       - run: bun run scripts/run-tests.ts
 
