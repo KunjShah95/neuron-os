@@ -13,6 +13,8 @@ export function registerPlan(program: Command) {
 }
 
 async function handlePlan(goal: string, opts: { sessionDb?: boolean; project?: string }) {
+  const { requireAnyProvider } = await import("../../ai/provider-guard")
+  requireAnyProvider()
   showBanner()
 
   console.log(theme.info(`\n  📋 Generating plan for: ${goal}\n`))
