@@ -246,6 +246,30 @@ const PROVIDERS: ProviderConfig[] = [
     },
   },
   {
+    key: "nvidia",
+    label: "NVIDIA NIM (Self-hosted inference)",
+    envVar: "NVIDIA_API_KEY",
+    defaultBaseUrl: "https://api.nvcf.nvidia.com/v1",
+    needsBaseUrl: false,
+    testKey: async (apiKey) => {
+      const url = "https://api.nvcf.nvidia.com/v1/models"
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 10000)
+      try {
+        const res = await fetch(url, {
+          headers: { authorization: `Bearer ${apiKey}` },
+          signal: controller.signal,
+        })
+        if (res.ok) return { ok: true }
+        const body = await res.json().catch(() => ({}))
+        const err = (body as any).error?.message || `HTTP ${res.status}`
+        return { ok: false, error: err }
+      } finally {
+        clearTimeout(timeout)
+      }
+    },
+  },
+  {
     key: "togetherai",
     label: "Together AI",
     envVar: "TOGETHERAI_API_KEY",

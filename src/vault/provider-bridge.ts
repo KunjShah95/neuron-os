@@ -14,6 +14,7 @@ const PROVIDER_ENV_NAMES: Record<string, string> = {
   xai: "XAI_API_KEY",
   cohere: "COHERE_API_KEY",
   perplexity: "PERPLEXITY_API_KEY",
+  nvidia: "NVIDIA_API_KEY",
 }
 
 export function syncVaultToProviders(vault: CredentialVault): number {

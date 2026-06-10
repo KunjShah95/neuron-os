@@ -204,6 +204,22 @@ Every milestone in this roadmap is checked against these five principles. When t
 
 ---
 
+### ✅ v1.1.5 — Model Provider Diversity
+
+**What it unlocks:** Run on NVIDIA NIM for self-hosted inference, with automatic free-tier fallback via Groq and OpenRouter. No single provider dependency.
+
+| Deliverable | Description |
+|-------------|-------------|
+| **NVIDIA NIM Support** | Register NVIDIA NIM as an AI provider via OpenAI-compatible adapter at `api.nvcf.nvidia.com/v1` |
+| **Groq Fallback** | Free-tier `llama-3.3-70b-versatile` as first fallback provider |
+| **OpenRouter Free Fallback** | Free `:free` models as second fallback tier |
+| **Default Fallback Chain** | Primary → Groq (free) → OpenRouter (free) configured out of the box |
+| **Pricing Registry** | Free model entries so cost routing accounts for zero-cost options |
+
+**Key files:** `src/ai/providers.ts`, `src/ai/models.ts`, `src/ai/provider.ts`, `src/economy/pricing-registry.ts`, `src/cli/commands/setup-keys.ts`, `src/vault/provider-bridge.ts`
+
+---
+
 ### 🔮 v0.15.0 — Tool-Level Economy
 
 **What it unlocks:** Every action has a price. Every dollar has a benchmark. Agents self-throttle.

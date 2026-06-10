@@ -96,6 +96,11 @@ registerProvider("perplexity", (config: AIConfig) => {
   return createOpenAI({ apiKey, baseURL: baseUrl ?? "https://api.perplexity.ai" }).chat(config.model)
 })
 
+registerProvider("nvidia", (config: AIConfig) => {
+  const { apiKey, baseUrl } = config
+  return createOpenAI({ apiKey, baseURL: baseUrl ?? "https://api.nvcf.nvidia.com/v1" }).chat(config.model)
+})
+
 registerProvider("custom", (config: AIConfig) => {
   if (!config.baseUrl) throw new Error("baseUrl is required for custom provider")
   return createOpenAI({ apiKey: config.apiKey, baseURL: config.baseUrl }).chat(config.model)
