@@ -15,6 +15,8 @@ import chalk from "chalk"
 import { generateText, stepCountIs } from "ai"
 import { AIProviderManager } from "../ai"
 import type { AIConfig } from "../ai"
+import { getDefaultConfiguredProvider } from "../ai/provider-guard"
+import { resolveApiKey } from "../ai/provider"
 import { AgentToolExecutor } from "../agent/agent-tools"
 import { ActionTracker } from "../agent/action-tracker"
 import { RatchetRuntime } from "../agent/ratchet"
@@ -66,10 +68,12 @@ export async function runResearchLoop(
 
   const ratchet = new RatchetRuntime()
 
+  const defaultProvider = getDefaultConfiguredProvider()
+  const resolvedProvider = process.env.AEGIS_AI_PROVIDER ?? defaultProvider?.provider ?? "anthropic"
   const ai = new AIProviderManager({
-    provider: (process.env.AEGIS_AI_PROVIDER ?? "openai") as any,
-    model: process.env.AEGIS_AI_MODEL ?? "gpt-4o",
-    apiKey: process.env.AEGIS_AI_API_KEY,
+    provider: resolvedProvider as any,
+    model: process.env.AEGIS_AI_MODEL ?? defaultProvider?.model ?? "claude-sonnet-4-20250514",
+    apiKey: resolveApiKey(resolvedProvider),
     baseUrl: process.env.AEGIS_AI_BASE_URL,
     temperature: 0.8,
   } as AIConfig)
