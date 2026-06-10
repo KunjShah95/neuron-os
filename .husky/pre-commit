@@ -1,0 +1,95 @@
+#!/bin/sh
+# Pre-commit hook: scan for secrets and block commits containing API keys/tokens
+
+echo "🔍 Scanning for secrets..."
+
+# Patterns that indicate leaked secrets
+PATTERNS=(
+  'sk-[a-zA-Z0-9]{20,}'           # OpenAI API keys
+  'ghp_[a-zA-Z0-9]{36}'           # GitHub personal access tokens
+  'gho_[a-zA-Z0-9]{36}'           # GitHub OAuth tokens
+  'glpat-[a-zA-Z0-9\-]{20,}'     # GitLab personal access tokens
+  'xox[bpsar]-[a-zA-Z0-9\-]+'    # Slack tokens
+  'AKIA[0-9A-Z]{16}'              # AWS access key IDs
+  '-----BEGIN (RSA |EC )?PRIVATE KEY'  # Private keys
+  'password\s*[:=]\s*["\x27].+["\x27]'  # Hardcoded passwords (exclude test fixtures)
+  'vault:\/\/.+'                   # Vault paths
+)
+
+# Files to always exclude from scanning
+EXCLUDES=(
+  "*.md"
+  "*.txt"
+  "*.lock"
+  "node_modules/**"
+  ".git/**"
+  "*.test.ts"
+  "*.test.js"
+  "*.spec.ts"
+  "*.spec.js"
+  "test/**"
+  "tests/**"
+  "fixtures/**"
+  "scripts/**"
+)
+
+# Build exclude arguments for grep
+EXCLUDE_ARGS=""
+for pattern in "${EXCLUDES[@]}"; do
+  EXCLUDE_ARGS="$EXCLUDE_ARGS --exclude-pattern=$pattern"
+done
+
+# Stage changed files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [ -z "$STAGED_FILES" ]; then
+  echo "  ✓ No staged files to scan"
+  exit 0
+fi
+
+VIOLATIONS=0
+
+for pattern in "${PATTERNS[@]}"; do
+  # Check staged files only
+  MATCHES=$(echo "$STAGED_FILES" | xargs grep -nI "$pattern" 2>/dev/null || true)
+  if [ -n "$MATCHES" ]; then
+    echo ""
+    echo "  ❌ SECRET DETECTED: $pattern"
+    echo "  $MATCHES"
+    VIOLATIONS=$((VIOLATIONS + 1))
+  fi
+done
+
+# Check for common secret files being committed
+SECRET_FILES=(
+  ".env"
+  ".env.local"
+  ".env.production"
+  "*.pem"
+  "*.key"
+  "*.p12"
+  "*.pfx"
+  "*.jks"
+  "credentials.json"
+  "service-account*.json"
+)
+
+for file_pattern in "${SECRET_FILES[@]}"; do
+  MATCHING_FILES=$(echo "$STAGED_FILES" | grep -E "^$file_pattern$" 2>/dev/null || true)
+  if [ -n "$MATCHING_FILES" ]; then
+    echo ""
+    echo "  ❌ SENSITIVE FILE COMMITTED: $MATCHING_FILES"
+    VIOLATIONS=$((VIOLATIONS + 1))
+  fi
+done
+
+if [ $VIOLATIONS -gt 0 ]; then
+  echo ""
+  echo "  ⛔ Commit blocked: $VIOLATIONS secret(s) detected"
+  echo "  To bypass: git commit --no-verify (NOT recommended)"
+  echo ""
+  exit 1
+fi
+
+echo "  ✓ No secrets found"
+exit 0

@@ -19,6 +19,11 @@ import Setup from "./routes/Setup"
 import Docs from "./routes/Docs"
 import Eval from "./routes/Eval"
 import SystemModules from "./routes/SystemModules"
+import Costs from "./pages/Costs"
+import SLOs from "./pages/SLOs"
+import Audit from "./pages/Audit"
+import Failures from "./pages/Failures"
+import AgentDetail from "./pages/AgentDetail"
 import ErrorBoundary from "./components/ErrorBoundary"
 import { ProjectProvider } from "./contexts/ProjectContext"
 import { A2uiStreamProvider } from "./contexts/A2uiStreamContext"
@@ -50,6 +55,11 @@ export default function App() {
           <Route path="docs" element={<ErrorBoundary><Docs /></ErrorBoundary>} />
           <Route path="eval" element={<ErrorBoundary><Eval /></ErrorBoundary>} />
           <Route path="modules" element={<ErrorBoundary><SystemModules /></ErrorBoundary>} />
+          <Route path="costs" element={<ErrorBoundary><Costs /></ErrorBoundary>} />
+          <Route path="slos" element={<ErrorBoundary><SLOs /></ErrorBoundary>} />
+          <Route path="audit" element={<ErrorBoundary><Audit /></ErrorBoundary>} />
+          <Route path="failures" element={<ErrorBoundary><Failures /></ErrorBoundary>} />
+          <Route path="agents/:id" element={<ErrorBoundary><AgentDetail /></ErrorBoundary>} />
         </Route>
       </Routes>
     </AnimatePresence>

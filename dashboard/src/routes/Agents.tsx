@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { useNavigate } from "react-router-dom"
 import AnimatedPage from "../components/AnimatedPage"
 import StatusDot from "../components/UI"
 import { api } from "../api/client"
@@ -18,6 +19,7 @@ export default function Agents() {
   const [spawnName, setSpawnName] = useState("")
   const [spawnType, setSpawnType] = useState("build")
   const [spawning, setSpawning] = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => {
     api.listAgents().then(setAgents)
@@ -115,7 +117,8 @@ export default function Agents() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ delay: i * 0.05 }}
-              className={`glass rounded-2xl p-5 border ${statusColors[agent.status] || "border-surface-700"}`}
+              className={`glass rounded-2xl p-5 border ${statusColors[agent.status] || "border-surface-700"} cursor-pointer hover:border-amber-400/30 transition-colors`}
+              onClick={() => navigate(`/agents/${agent.id}`)}
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">

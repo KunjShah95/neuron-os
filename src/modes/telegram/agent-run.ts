@@ -4,8 +4,9 @@
  */
 
 import { ToolLoopAgent, stepCountIs, jsonSchema } from "ai"
+import type { Tool } from "ai"
 import { AIProviderManager, resolveApiKey } from "../../ai"
-import type { AIConfig } from "../../ai"
+import type { AIConfig, AIProvider } from "../../ai"
 import { ActionTracker } from "../../agent/action-tracker"
 import { AgentToolExecutor } from "../../agent/agent-tools"
 import { createWebTools } from "../plan/web-tools"
@@ -14,7 +15,7 @@ import { replyMd } from "./text"
 import { finishOrApprove } from "./approval-session"
 
 function buildAIConfig(): AIConfig {
-  const provider = (process.env.AEGIS_AI_PROVIDER ?? "openai") as any
+  const provider = (process.env.AEGIS_AI_PROVIDER ?? "openai") as AIProvider
   return {
     provider,
     model: process.env.AEGIS_AI_MODEL ?? "gpt-4o",

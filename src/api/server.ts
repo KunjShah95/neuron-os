@@ -10,6 +10,7 @@ import { mkdirSync, writeFileSync, existsSync, readdirSync, readFileSync as fsRe
 import { join } from "node:path"
 import { homedir } from "node:os"
 import { rbacManager, type Permission } from "../auth"
+import { createRedirectServer } from "./redirect"
 
 const log = createLogger("api")
 
@@ -143,7 +144,12 @@ const SECURITY_HEADERS: Record<string, string> = {
   "X-XSS-Protection": "1; mode=block",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  "Cross-Origin-Embedder-Policy": "require-corp",
+  "Cross-Origin-Opener-Policy": "same-origin",
 }
+
+// HSTS header added when TLS is active
+const HSTS_HEADER = "max-age=63072000; includeSubDomains"
 
 // ── CORS ──────────────────────────────────────────────────────────────
 
@@ -886,6 +892,18 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
   rbacEnabled = config.auth ?? false
   rbacRequired = config.authRequired ?? false
 
+  // Check for TLS configuration
+  const tlsCertPath = process.env.AEGIS_TLS_CERT
+  const tlsKeyPath = process.env.AEGIS_TLS_KEY
+  const tlsActive = !!(tlsCertPath && tlsKeyPath)
+  let redirectServer: { stop: () => void } | null = null
+
+  if (tlsActive) {
+    log.info("TLS enabled", { cert: tlsCertPath, key: tlsKeyPath })
+    // Add HSTS header when TLS is active
+    SECURITY_HEADERS["Strict-Transport-Security"] = HSTS_HEADER
+  }
+
   log.info("Starting API server", {
     port: config.port,
     host: config.host,
@@ -894,6 +912,7 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
     rbacRequired,
     corsOrigins: allowedOrigins.join(", "),
     rateLimit: `${config.rateLimitMax ?? 100}/min`,
+    tls: tlsActive,
   })
 
   const server = Bun.serve({
@@ -1102,12 +1121,26 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
   startWsEventBridge()
   const unsubA2ui = startA2uiWsBridge()
 
-  log.info("API server listening", { url: `http://${config.host}:${config.port}` })
+  // Start HTTP → HTTPS redirect server when TLS is active
+  if (tlsActive) {
+    const httpRedirectPort = config.port
+    const httpsPort = config.port + 1
+    try {
+      redirectServer = createRedirectServer(httpRedirectPort, httpsPort)
+      log.info("TLS redirect active", { httpPort: httpRedirectPort, httpsPort })
+    } catch (err) {
+      log.warn("Failed to start redirect server", { error: String(err) })
+    }
+  }
+
+  const protocol = tlsActive ? "https" : "http"
+  log.info("API server listening", { url: `${protocol}://${config.host}:${config.port}` })
 
   return {
     stop: () => {
       stopWsEventBridge()
       if (unsubA2ui) unsubA2ui()
+      if (redirectServer) redirectServer.stop()
       wsClients.clear()
       server.stop()
       log.info("API server stopped")

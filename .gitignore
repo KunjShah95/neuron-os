@@ -83,9 +83,10 @@ src/utils/greet.ts
 src/utils/hello.ts
 
 # Ignore docs (design specs, plans, etc.)
-# docs/
+docs/
 
 # Ignore all Markdown files except the top-level README and ROADMAP
 *.md
 !/README.md
 !/ROADMAP.md
+!/security-whitepaper.md

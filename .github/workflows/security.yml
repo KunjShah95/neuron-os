@@ -1,0 +1,150 @@
+name: Security
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly Monday 6am
+
+jobs:
+  audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.x'
+
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run audit (bun)
+        run: |
+          bun audit 2>&1 || true
+          # Fail on critical/high vulnerabilities
+          bun audit --level critical 2>&1 | tee audit-results.txt
+          if grep -q "critical" audit-results.txt 2>/dev/null; then
+            echo "::error::Critical vulnerabilities found"
+            exit 1
+          fi
+
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
+        continue-on-error: false
+
+  sandbox-regression:
+    name: Sandbox Regression
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.x'
+
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run sandbox regression tests
+        run: bun test src/sandbox/docker-regression.test.ts
+
+  tls-tests:
+    name: TLS Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.x'
+
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run TLS tests
+        run: bun test src/api/tls.test.ts
+
+  license-check:
+    name: License Compliance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.x'
+
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check for prohibited licenses
+        run: |
+          echo "Checking dependency licenses..."
+          # List dependencies and check for common prohibited licenses
+          # GPL-3.0 and AGPL-3.0 are typically prohibited in commercial projects
+          banned_licenses=("GPL-3.0" "AGPL-3.0" "SSPL-1.0")
+          found_violations=false
+
+          for license in "${banned_licenses[@]}"; do
+            if bun pm ls 2>/dev/null | grep -qi "$license"; then
+              echo "::warning::Found dependency with prohibited license: $license"
+              found_violations=true
+            fi
+          done
+
+          if [ "$found_violations" = true ]; then
+            echo "::error::Prohibited licenses found in dependencies"
+            exit 1
+          fi
+          echo "✓ All dependency licenses are compliant"

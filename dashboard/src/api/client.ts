@@ -9,10 +9,10 @@ const RETRY_CONFIG = {
   maxDelayMs: 2000,
 }
 
-/** WebSocket URL for real-time updates (derived from current origin). */
+/** WebSocket URL for real-time updates (connects to port 8081). */
 export function getWsUrl(): string {
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:"
-  return `${proto}//${window.location.host}/api/v1/ws`
+  return `${proto}//${window.location.hostname}:8081/api/v1/ws`
 }
 
 /** SSE fallback URL for environments without WebSocket support. */
@@ -113,6 +113,95 @@ function withProject(path: string, project?: string | null): string {
   return `${path}${sep}project=${encodeURIComponent(project)}`
 }
 
+// ── Observability API types ───────────────────────────────────
+
+export interface CostEntry {
+  timestamp: string
+  model: string
+  agentType: string
+  inputTokens: number
+  outputTokens: number
+  costUsd: number
+}
+
+export interface CostSummary {
+  totalCostUsd: number
+  budgetUsd: number
+  entries: CostEntry[]
+  byModel: Record<string, number>
+  byAgentType: Record<string, number>
+  dailyCosts: Array<{ date: string; cost: number }>
+}
+
+export interface SLOMetrics {
+  uptimePercent: number
+  uptimeHistory: number[]
+  p95LatencyMs: number
+  p95LatencyByEndpoint: Array<{ endpoint: string; p95Ms: number; count: number }>
+  errorRate: number
+  burnRate: number
+  agentSuccessRate: number
+  totalRequests: number
+  totalErrors: number
+}
+
+export interface AuditEntry {
+  id: string
+  timestamp: string
+  action: string
+  agentId?: string
+  agentName?: string
+  userId?: string
+  resource: string
+  detail: Record<string, unknown>
+  severity: "info" | "warn" | "error"
+}
+
+export interface AuditResponse {
+  entries: AuditEntry[]
+  total: number
+}
+
+export interface FailureCluster {
+  id: string
+  type: string
+  count: number
+  frequency: number
+  severity: number
+  lastOccurrence: string
+  sampleMessages: string[]
+}
+
+export interface AgentDetail {
+  id: string
+  name: string
+  type: string
+  status: string
+  duration: number
+  costUsd: number
+  toolCalls: Array<{
+    name: string
+    startTime: string
+    endTime: string
+    status: string
+    input?: string
+    output?: string
+  }>
+  traceSpans: Array<{
+    id: string
+    name: string
+    startTime: string
+    endTime: string
+    duration: number
+    attributes: Record<string, string>
+  }>
+  memoryContributions: Array<{
+    content: string
+    timestamp: string
+    category: string
+  }>
+}
+
 export const api = {
   /** Server health check with no retry (fast fail). */
   health: () =>
@@ -198,4 +287,34 @@ export const api = {
         widgetJson: Record<string, unknown>
       }>
     }>("/skills", { method: "GET" }).then((r) => r.skills),
+
+  // ── Observability endpoints ────────────────────────────────
+
+  getCosts: (params?: { from?: string; to?: string }) => {
+    const qs = params?.from ? `?from=${params.from}${params.to ? `&to=${params.to}` : ""}` : ""
+    return requestWithRetry<CostSummary>(`/cost${qs}`)
+  },
+
+  getSLO: () =>
+    requestWithRetry<SLOMetrics>("/status/slo"),
+
+  getAudit: (params?: { action?: string; agent?: string; user?: string; from?: string; to?: string; search?: string; page?: number; limit?: number }) => {
+    const entries = new URLSearchParams()
+    if (params?.action) entries.set("action", params.action)
+    if (params?.agent) entries.set("agent", params.agent)
+    if (params?.user) entries.set("user", params.user)
+    if (params?.from) entries.set("from", params.from)
+    if (params?.to) entries.set("to", params.to)
+    if (params?.search) entries.set("search", params.search)
+    if (params?.page) entries.set("page", String(params.page))
+    if (params?.limit) entries.set("limit", String(params.limit))
+    const qs = entries.toString()
+    return requestWithRetry<AuditResponse>(`/audit${qs ? `?${qs}` : ""}`)
+  },
+
+  getFailures: () =>
+    requestWithRetry<{ clusters: FailureCluster[] }>("/agents/failures"),
+
+  getAgentDetail: (id: string) =>
+    requestWithRetry<AgentDetail>(`/agents/${id}/detail`),
 }

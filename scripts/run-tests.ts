@@ -139,11 +139,41 @@ async function main() {
   await run("Dashboard Dependencies Install", ["bun", "install", "--frozen-lockfile"], { cwd: "dashboard" })
   await run("Dashboard Unit Tests", ["bun", "run", "test"], { cwd: "dashboard" })
 
+  // ── 6.15 Economy Tests ─────────────────────────────────────────────
+  await run("Budget Guard Tests", ["bun", "test", "src/economy/budget-guard.test.ts"])
+  await run("Cost Router Tests", ["bun", "test", "src/economy/cost-router.test.ts"])
+  await run("Predictor Tests", ["bun", "test", "src/economy/predictor.test.ts"])
+  await run("Preflight Tests", ["bun", "test", "src/economy/preflight.test.ts"])
+
+  // ── 6.16 Dream Engine Tests ─────────────────────────────────────────
+  await run("Dream Engine Tests", ["bun", "test", "src/dream/engine.test.ts"])
+
+  // ── 6.17 Evolution Engine Tests ─────────────────────────────────────
+  await run("Evolution Engine Tests", ["bun", "test", "src/evolve/engine.test.ts"])
+
   // ── 6.15 Self-Improving Runtime Tests ───────────────────────────────
   await run("Memory Embedding Tests", ["bun", "test", "src/memory/embedding.test.ts"])
   await run("RatchetRuntime Tests", ["bun", "test", "src/agent/ratchet.test.ts"])
   await run("Experience Retriever Tests", ["bun", "test", "src/experience/retrieval.test.ts"])
   await run("Bench History Tests", ["bun", "test", "src/bench/bench.test.ts"])
+
+  // ── 6.18 Mesh Tests ─────────────────────────────────────────────────
+  await run("Mesh Orchestrator Tests", ["bun", "test", "src/mesh/orchestrator.test.ts"])
+
+  // ── 6.19 Adapter Tests ──────────────────────────────────────────────
+  await run("Gateway Tests", ["bun", "test", "src/adapters/gateway.test.ts"])
+  await run("SMS Tests", ["bun", "test", "src/adapters/sms.test.ts"])
+  await run("WhatsApp Tests", ["bun", "test", "src/adapters/whatsapp.test.ts"])
+
+  // ── 6.20 Docs Crawl Tests ───────────────────────────────────────────
+  await run("Docs Crawl Config Tests", ["bun", "test", "src/docs-crawl/config.test.ts"])
+  await run("Docs Crawl Engine Tests", ["bun", "test", "src/docs-crawl/engine.test.ts"])
+  await run("Docs Crawl Processor Tests", ["bun", "test", "src/docs-crawl/processor.test.ts"])
+
+  // ── 6.21 Toolsets Tests ─────────────────────────────────────────────
+  await run("Toolsets Bundled Tests", ["bun", "test", "src/toolsets/bundled.test.ts"])
+  await run("Toolsets Registry Tests", ["bun", "test", "src/toolsets/registry.test.ts"])
+  await run("Toolsets Types Tests", ["bun", "test", "src/toolsets/types.test.ts"])
 
   // ── 6.16 Plugin Tests ─────────────────────────────────────────────
   await run("Plugin Manifest Tests", ["bun", "test", "src/plugin/manifest.test.ts"])

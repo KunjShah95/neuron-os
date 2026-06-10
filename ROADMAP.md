@@ -170,6 +170,40 @@ Every milestone in this roadmap is checked against these five principles. When t
 
 ---
 
+### ✅ v1.1.0 — Docs, Dashboard & Marketplace — **SHIPPED**
+
+**What it delivered:** Comprehensive documentation, a web-based observability dashboard, a TUI workflow builder, production hardening, and an agent marketplace.
+
+| Deliverable | Description |
+|-------------|-------------|
+| **API Reference** | Auto-generated from Zod schemas via `scripts/generate-api-docs.ts` |
+| **Architecture Docs** | System overview, agent lifecycle, memory pipeline, distributed runtime, security model |
+| **Getting Started Guide** | 5-minute quickstart: install → first agent → first tool → first multi-agent run |
+| **CONTRIBUTING.md** | Dev setup, code conventions, PR workflow, component guides |
+| **Module Guides** | 12 guides: memory, dream, evolve, mesh, distributed, plugin, soul, persona, social, harness, training, economy |
+| **Observability Dashboard** | Web pages: Costs, SLOs, Audit, Failures, AgentDetail with live WebSocket updates |
+| **Cost Charts** | Recharts area charts for USD spend over time, per-model/type breakdown |
+| **SLO Sparklines** | Mini cards for uptime, p95 latency, error rate, burn rate |
+| **Audit Log Viewer** | Filterable table with JSON expand/collapse and search |
+| **Failure Clusters** | Grouped failures with severity scores and frequency bars |
+| **Workflow Builder** | TUI mode for composing multi-agent workflows as directed graphs |
+| **Workflow YAML Schema** | Validated schema for workflow definitions with cycle detection |
+| **Workflow Executor** | Maps workflows to mesh orchestrator configs for execution |
+| **TLS Support** | `aegis tls gen/check/env` — cert generation, validation, HTTP→HTTPS redirect |
+| **CI Security Gate** | Dependency audit, secret scanning, sandbox regression tests in GitHub Actions |
+| **Pre-commit Hook** | Blocks API keys, tokens, vault files from being committed |
+| **Security Headers** | COEP, COOP, HSTS added to existing CSP/X-Frame-Options |
+| **Docker Sandbox Regression** | 17 tests verifying caps, network, read-only, non-root defaults |
+| **Agent Marketplace** | Browse, install, rate, publish community agent configs |
+| **Marketplace Registry** | SQLite-backed with Ed25519 signing, search, ratings |
+| **Example Agent Configs** | code-reviewer, test-runner, doc-writer templates |
+
+**Key files:** `docs/`, `dashboard/src/pages/`, `src/workflow/`, `src/marketplace/`, `src/api/tls.ts`, `.github/workflows/security.yml`
+
+**New tests:** 62 (21 workflow + 30 marketplace + 11 TLS)
+
+---
+
 ### 🔮 v0.15.0 — Tool-Level Economy
 
 **What it unlocks:** Every action has a price. Every dollar has a benchmark. Agents self-throttle.
@@ -205,6 +239,62 @@ Every milestone in this roadmap is checked against these five principles. When t
 | **Failure Prioritization** | Grouped failures ranked by frequency, blast radius, and user impact |
 | **Adversarial Regression Auto-Feed** | Red-team findings auto-incorporated into system prompts as known failure patterns |
 | **Dashboard v2** | Knowledge graph visualization + dream engine insights in web app |
+
+---
+
+### 🔮 v1.2.0 — Performance & Scale
+
+**What it unlocks:** Handles 10x more concurrent agents with sub-second response times.
+
+| Deliverable | Description |
+|-------------|-------------|
+| **Connection Pooling** | Reuse SQLite connections across modules, reduce file handle pressure |
+| **Streaming Responses** | SSE-based streaming for chat and API endpoints |
+| **Agent Concurrency** | Target 50+ concurrent agents per host with <2s spawn time |
+| **Memory Indexing** | Incremental index updates instead of full rebuilds on every session |
+| **Dashboard Caching** | Client-side query caching with stale-while-revalidate pattern |
+
+---
+
+### 🔮 v1.3.0 — Enterprise Integration
+
+**What it unlocks:** Neuron OS plugs into existing enterprise identity, observability, and compliance stacks.
+
+| Deliverable | Description |
+|-------------|-------------|
+| **SSO / SAML / OIDC** | Enterprise SSO login for dashboard and API |
+| **Webhook Events** | Outbound webhooks for agent lifecycle events (spawn, complete, fail) |
+| **Audit Log Export** | Ship audit logs to Splunk, Datadog, ELK via OpenTelemetry |
+| **RBAC Policies as Code** | YAML-based RBAC policy files with version control |
+| **Config-as-Code** | Full system configuration exportable/importable as YAML |
+
+---
+
+### 🔮 v1.4.0 — Plugin Ecosystem Maturity
+
+**What it unlocks:** Community plugins work reliably, with dependency resolution and version management.
+
+| Deliverable | Description |
+|-------------|-------------|
+| **Plugin Dependency Resolution** | Full semver resolution with conflict detection |
+| **Plugin Sandboxing** | Isolate plugin execution with permission scoping |
+| **Plugin Testing Framework** | `aegis plugin test` — run plugin test suites |
+| **Marketplace Revenue** | Optional paid plugins with Stripe integration |
+| **Plugin Analytics** | Download counts, ratings, usage metrics per plugin |
+
+---
+
+### 🔮 v2.0.0 — Distributed Production OS
+
+**What it unlocks:** Multi-region, multi-tenant production deployment with full HA.
+
+| Deliverable | Description |
+|-------------|-------------|
+| **Multi-Region Runtime** | Agents span multiple cloud regions with latency-aware routing |
+| **Hot Standby Workers** | Automatic failover when a worker node goes down |
+| **Cost Optimization Engine** | ML-based provider selection based on historical cost/quality data |
+| **Compliance Certifications** | SOC 2 Type II, GDPR compliance tooling |
+| **Mobile Companion App** | iOS/Android app for agent monitoring and approval |
 
 ---
 

@@ -74,6 +74,10 @@ import { registerSoul } from "./soul"
 import { registerSocial } from "./social"
 import { registerPersona } from "./persona"
 import { registerDream } from "./dream"
+import { registerPredict } from "./predict"
+import { registerWorkflow } from "./workflow"
+import { registerTls } from "./tls"
+import { registerMarketplace } from "./marketplace"
 
 export function registerAllCommands(program: Command) {
   registerDoctor(program)
@@ -151,4 +155,8 @@ export function registerAllCommands(program: Command) {
   registerSocial(program)
   registerPersona(program)
   registerDream(program)
+  registerPredict(program)
+  registerWorkflow(program)
+  registerTls(program)
+  registerMarketplace(program)
 }

@@ -20,6 +20,19 @@ export interface QueuedTask {
   result: string | null
 }
 
+interface QueueRow {
+  id: string
+  goal: string
+  priority: string
+  priority_level: number
+  status: string
+  agent_id: string | null
+  created_at: number
+  started_at: number | null
+  completed_at: number | null
+  result: string | null
+}
+
 export class TaskQueue {
   private db: Database
   private initialized = false
@@ -99,7 +112,7 @@ export class TaskQueue {
         LIMIT 1
       `,
         )
-        .get() as Record<string, any> | null
+        .get() as QueueRow | null
 
       if (task) {
         this.db
@@ -115,7 +128,7 @@ export class TaskQueue {
         return { ...task, status: "running", agent_id: agentId }
       }
       return null
-    })() as Record<string, any> | null
+    })() as QueueRow | null
 
     if (!pulledTask) return null
 
@@ -148,21 +161,21 @@ export class TaskQueue {
   }
 
   public getStats() {
-    const queued = (this.db.prepare("SELECT COUNT(*) as c FROM queue WHERE status = 'queued'").get() as any).c
-    const running = (this.db.prepare("SELECT COUNT(*) as c FROM queue WHERE status = 'running'").get() as any).c
-    const completed = (this.db.prepare("SELECT COUNT(*) as c FROM queue WHERE status = 'completed'").get() as any).c
-    const failed = (this.db.prepare("SELECT COUNT(*) as c FROM queue WHERE status = 'failed'").get() as any).c
+    const queued = (this.db.prepare("SELECT COUNT(*) as c FROM queue WHERE status = 'queued'").get() as { c: number }).c
+    const running = (this.db.prepare("SELECT COUNT(*) as c FROM queue WHERE status = 'running'").get() as { c: number }).c
+    const completed = (this.db.prepare("SELECT COUNT(*) as c FROM queue WHERE status = 'completed'").get() as { c: number }).c
+    const failed = (this.db.prepare("SELECT COUNT(*) as c FROM queue WHERE status = 'failed'").get() as { c: number }).c
     return { queued, running, completed, failed }
   }
 
   public getTask(id: string): QueuedTask | null {
-    const row = this.db.prepare("SELECT * FROM queue WHERE id = ?").get(id) as any
+    const row = this.db.prepare("SELECT * FROM queue WHERE id = ?").get(id) as QueueRow | null
     if (!row) return null
     return {
       id: row.id,
       goal: row.goal,
-      priority: row.priority,
-      status: row.status,
+      priority: row.priority as TaskPriority,
+      status: row.status as QueuedTask["status"],
       agentId: row.agent_id,
       createdAt: row.created_at,
       startedAt: row.started_at,

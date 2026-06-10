@@ -1,0 +1,73 @@
+name: refactor-auth
+description: Refactor authentication module with plan → implement → test → review pipeline
+topology: sequential
+budget_usd: 15
+timeout_minutes: 60
+nodes:
+  - id: plan-auth
+    type: plan
+    prompt_template: >
+      Analyze the current authentication module. Identify:
+      - Current auth flow and state management
+      - Security concerns (token handling, session management)
+      - Areas for improvement (clarity, testability, modularity)
+      Produce a detailed refactoring plan with specific file changes.
+    model: claude-opus-4
+    sandbox:
+      enabled: false
+
+  - id: implement-auth
+    type: build
+    depends_on:
+      - plan-auth
+    prompt_template: >
+      Implement the refactoring plan for the authentication module.
+      Focus on:
+      - Clean separation of concerns
+      - Proper error handling
+      - Type safety throughout
+      Follow the existing code conventions and patterns.
+    tools:
+      - read
+      - write
+      - edit
+      - bash
+    sandbox:
+      enabled: true
+      type: process
+
+  - id: test-auth
+    type: test
+    depends_on:
+      - implement-auth
+    prompt_template: >
+      Run all existing tests for the auth module.
+      If tests fail, analyze failures and fix them.
+      Ensure no regressions were introduced.
+    tools:
+      - read
+      - bash
+    sandbox:
+      enabled: true
+      type: process
+
+  - id: review-auth
+    type: review
+    depends_on:
+      - test-auth
+    prompt_template: >
+      Review the auth refactoring for:
+      - Security vulnerabilities (token leaks, injection, XSS)
+      - Code quality and adherence to project conventions
+      - Missing edge cases or error handling
+      Provide specific file:line feedback.
+    model: claude-opus-4
+    sandbox:
+      enabled: false
+edges:
+  - from: plan-auth
+    to: implement-auth
+  - from: implement-auth
+    to: test-auth
+  - from: test-auth
+    to: review-auth
