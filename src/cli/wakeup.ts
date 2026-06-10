@@ -196,6 +196,12 @@ export async function runWakeup(program?: Command): Promise<void> {
 
   if (!interactive) {
     console.log(buildHelpText())
+    const { getDefaultConfiguredProvider } = await import("../ai/provider-guard")
+    if (!getDefaultConfiguredProvider()) {
+      console.log()
+      console.log(`  ${theme.warn("👋 First time?")} Run: ${theme.heading("aegis init")}`)
+      console.log()
+    }
     return
   }
 

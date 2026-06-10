@@ -18,12 +18,29 @@ export function registerSetup(program: Command) {
     .alias("start")
     .description("Quick start guide - configure API keys and launch Aegis")
     .action(async () => {
-      const { runSetupKeysWizard } = await import("./setup-keys")
-      console.log("\n🛡️  Welcome to Aegis! Let's get you set up...\n")
-      await runSetupKeysWizard()
-      console.log("\n✨ Setup complete! Launching Aegis...\n")
-      const { runWakeup } = await import("../wakeup")
-      await runWakeup(program)
+      const { getDefaultConfiguredProvider } = await import("../../ai/provider-guard")
+      console.log("\n🛡️  Welcome to Aegis!\n")
+
+      if (!getDefaultConfiguredProvider()) {
+        console.log("  No API keys found. Starting interactive setup...\n")
+        const { runSetupKeysWizard } = await import("./setup-keys")
+        await runSetupKeysWizard()
+      } else {
+        console.log("  API keys already configured.\n")
+      }
+
+      console.log("\n  Verifying setup...\n")
+      const { spawn } = await import("node:child_process")
+      await new Promise<void>((resolve) => {
+        const scriptArg = process.argv[1] ?? ""
+        const child = spawn(process.execPath, [scriptArg, "doctor"], {
+          stdio: "inherit" as const,
+          env: process.env,
+        })
+        child.on("exit", () => resolve())
+      })
+
+      console.log("\n✨ Ready! Run: aegis chat\n")
     })
 
   // version command alias (complement to --version flag)
