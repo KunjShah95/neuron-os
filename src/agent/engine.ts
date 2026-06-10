@@ -14,6 +14,8 @@ import type { EvaluationCriteria } from "../mesh/types"
 import { createLogger } from "../cli/logger"
 import { compactMessages, estimateMessagesTokens, estimateTokens, type CompactedState } from "../tools/precompact"
 import { genaiTracer, type GenAIGenerationStart } from "../observability/genai-tracing"
+import { buildInsightContext } from "../dream/insight-injector"
+import { loadConfig } from "../config"
 
 const log = createLogger("agent-engine")
 
@@ -505,20 +507,20 @@ export class AgentEngine {
             const { billingTracker } = await import("../billing/tracker")
             const pricing = loadPricing()
             const toolPrice = pricing.tools[toolName]
+            let costUSD = 0
             if (toolPrice) {
-              const costUSD =
-                toolPrice.api_usd ??
-                (toolPrice.compute_usd_per_second ? (elapsedMs / 1000) * toolPrice.compute_usd_per_second : 0) ??
-                0
-              if (costUSD > 0) {
-                billingTracker.recordToolUsage(
-                  this.runtime.context.agentId,
-                  toolName,
-                  costUSD,
-                  this.runtime.context.agentId,
-                )
-                this.totalToolCost += costUSD
-              }
+              const apiPart = toolPrice.api_usd ?? 0
+              const computePart = toolPrice.compute_usd_per_second ? (elapsedMs / 1000) * toolPrice.compute_usd_per_second : 0
+              costUSD = apiPart + computePart
+            }
+            if (costUSD > 0) {
+              billingTracker.recordToolUsage(
+                this.runtime.context.agentId,
+                toolName,
+                costUSD,
+                this.runtime.context.agentId,
+              )
+              this.totalToolCost += costUSD
             }
             // Wire cost alert engine (singleton, best-effort)
             const { CostAlertEngine } = await import("../economy/cost-alert")
@@ -578,6 +580,19 @@ export class AgentEngine {
     return lines.join("\n")
   }
 
+  private buildDreamInsightContext(): string {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { dreamEngine } = require("../dream/engine") as typeof import("../dream/engine")
+      const fresh = dreamEngine.getInsights(10, true)
+      const config = loadConfig()
+      const persisted = config.persistedInsights ?? []
+      return buildInsightContext(fresh, persisted)
+    } catch {
+      return ""
+    }
+  }
+
   private buildExperienceContext(): string {
     if (!this.experienceEnabled || !this.sessionGoal) return ""
     try {
@@ -603,9 +618,13 @@ export class AgentEngine {
     const base = await this.runtime.buildSystemPrompt()
     const toolDesc = this.buildToolDescription()
     const experienceCtx = this.buildExperienceContext()
+    const dreamCtx = this.buildDreamInsightContext()
     let systemPrompt = base.trim() ? `${base}\n\n---\n\n${toolDesc}` : toolDesc
     if (experienceCtx) {
       systemPrompt = `${experienceCtx}\n\n---\n\n${systemPrompt}`
+    }
+    if (dreamCtx) {
+      systemPrompt = `${dreamCtx}\n\n---\n\n${systemPrompt}`
     }
 
     // ── PreCompact: compact messages if nearing token limit ──
@@ -717,9 +736,13 @@ export class AgentEngine {
     const base = await this.runtime.buildSystemPrompt()
     const toolDesc = this.buildToolDescription()
     const experienceCtx = this.buildExperienceContext()
+    const dreamCtx = this.buildDreamInsightContext()
     let systemPrompt = base.trim() ? `${base}\n\n---\n\n${toolDesc}` : toolDesc
     if (experienceCtx) {
       systemPrompt = `${experienceCtx}\n\n---\n\n${systemPrompt}`
+    }
+    if (dreamCtx) {
+      systemPrompt = `${dreamCtx}\n\n---\n\n${systemPrompt}`
     }
 
     // ── PreCompact: compact messages if nearing token limit ──
