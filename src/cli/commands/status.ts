@@ -41,7 +41,7 @@ function getLogFileStats(): { path: string; sizeMB: string } | null {
   }
 }
 
-function buildStatusReport() {
+export function buildStatusReport() {
   const mem = process.memoryUsage()
   const memMB = (mem.rss / 1024 / 1024).toFixed(1)
   const heapMB = (mem.heapUsed / 1024 / 1024).toFixed(1)
@@ -78,7 +78,7 @@ function buildStatusReport() {
   }
 }
 
-function renderStatus(report: ReturnType<typeof buildStatusReport>) {
+export function renderStatus(report: ReturnType<typeof buildStatusReport>) {
   const lines: string[] = []
 
   lines.push(theme.heading("System Status"))
@@ -130,9 +130,12 @@ async function handleStatus(opts: { json?: boolean; watch?: boolean }) {
       console.log(theme.muted("\n  Watching — Ctrl+C to stop"))
     }
     render()
-    setInterval(render, 2000)
+    const timer = setInterval(render, 2000)
     await keepAlive(() => {
-      console.log()
+      clearInterval(timer)
+      process.stdout.write("\x1b[?25h")   // show cursor
+      process.stdout.write("\x1b[?1049l") // exit alternate screen if active
+      process.stdout.write("\r\n")
     })
     return
   }
