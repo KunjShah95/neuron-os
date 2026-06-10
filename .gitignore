@@ -90,3 +90,5 @@ docs/
 !/README.md
 !/ROADMAP.md
 !/security-whitepaper.md
+!.planning/specs/*.md
+!CONTRIBUTING.md
