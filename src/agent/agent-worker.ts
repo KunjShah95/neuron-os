@@ -39,7 +39,14 @@ let engine: AgentEngine | null = null
 function buildAIConfig(): AIConfig {
   // Read provider + model from env, with a reasonable default
   const provider = (process.env.AEGIS_AI_PROVIDER || process.env.AEGIS_DEFAULT_PROVIDER || "openai") as any
-  const model = process.env.AEGIS_AI_MODEL || process.env.AEGIS_DEFAULT_MODEL || getDefaultModel(provider)
+  const defaultModel = process.env.AEGIS_AI_MODEL || process.env.AEGIS_DEFAULT_MODEL || getDefaultModel(provider)
+  // Budget-aware model degradation: use cheaper model when budget is tight
+  const budgetStatus = process.env.AEGIS_BUDGET_STATUS
+  const degradedModel = process.env.AEGIS_DEGRADED_MODEL
+  const model = degradedModel && budgetStatus && budgetStatus !== "continue" ? degradedModel : defaultModel
+  if (model !== defaultModel) {
+    log("info", `Budget degradation: ${defaultModel} → ${model} (status: ${budgetStatus})`)
+  }
   return {
     provider,
     model,
@@ -67,6 +74,19 @@ import { episodicMemory } from "../memory/store"
 
 // ── ReAct Loop ─────────────────────────────────────────────────────────
 
+let lastReportedCost = 0
+
+function reportSpend(engine: AgentEngine): void {
+  const delta = engine.totalToolCost - lastReportedCost
+  if (delta > 0) {
+    send({
+      type: "spend-report",
+      payload: { costUsd: delta, description: `tool usage (${AGENT_NAME})` },
+    })
+    lastReportedCost = engine.totalToolCost
+  }
+}
+
 async function runReActLoop(goal: string, taskId: number): Promise<string> {
   log("info", `Starting ReAct loop for task #${taskId}: ${goal.slice(0, 100)}`)
   send({ id: `task-${taskId}`, type: "log", payload: { level: "info", text: `🧠 ReAct: ${goal}` } })
@@ -89,6 +109,8 @@ async function runReActLoop(goal: string, taskId: number): Promise<string> {
 
   while (stepCount < MAX_TURNS) {
     stepCount++
+    // Report spend to manager periodically (every 5 steps)
+    if (stepCount % 5 === 0) reportSpend(engine)
     try {
       const reply = await engine.chat(messages)
       const stepText = reply.text || ""
@@ -120,7 +142,9 @@ async function runReActLoop(goal: string, taskId: number): Promise<string> {
     finalText += "\n\n(Reached maximum turn limit)"
   }
 
-  log("info", `Task #${taskId} completed in ${stepCount} steps`)
+  // Final spend report
+  reportSpend(engine)
+  log("info", `Task #${taskId} completed in ${stepCount} steps (total tool cost: $${engine.totalToolCost.toFixed(6)})`)
   return finalText
 }
 
