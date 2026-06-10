@@ -70,8 +70,16 @@ describe("provider-bridge", () => {
     vault.isUnlocked = false
     vault.store("ANTHROPIC_API_KEY", "sk-locked")
 
+    const savedAnthropic = process.env.ANTHROPIC_API_KEY
+    const savedFallback = process.env.AEGIS_AI_API_KEY
+    delete process.env.ANTHROPIC_API_KEY
+    delete process.env.AEGIS_AI_API_KEY
+
     const count = syncVaultToProviders(vault as any)
     expect(count).toBe(0)
     expect(resolveApiKey("anthropic")).toBeUndefined()
+
+    if (savedAnthropic !== undefined) process.env.ANTHROPIC_API_KEY = savedAnthropic
+    if (savedFallback !== undefined) process.env.AEGIS_AI_API_KEY = savedFallback
   })
 })

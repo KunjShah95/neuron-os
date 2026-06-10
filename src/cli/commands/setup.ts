@@ -25,4 +25,13 @@ export function registerSetup(program: Command) {
       const { runWakeup } = await import("../wakeup")
       await runWakeup(program)
     })
+
+  // version command alias (complement to --version flag)
+  program
+    .command("version")
+    .description("Show Aegis version")
+    .action(async () => {
+      const { getVersion } = await import("../../version")
+      console.log(getVersion())
+    })
 }
