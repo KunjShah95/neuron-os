@@ -4,7 +4,8 @@
  */
 
 import { Output, extractJsonMiddleware, generateText, jsonSchema, wrapLanguageModel, stepCountIs } from "ai"
-import type { LanguageModel, Tool } from "ai"
+import type { LanguageModel } from "ai"
+import type { LanguageModelV3 } from "@ai-sdk/provider"
 import { z } from "zod"
 import chalk from "chalk"
 import { AIProviderManager, resolveApiKey } from "../../ai"
@@ -14,9 +15,10 @@ import { AgentToolExecutor } from "../../agent/agent-tools"
 import { createWebTools } from "./web-tools"
 import type { Plan, PlanStep } from "./types"
 
-interface PlanTool extends Tool {
-  parameters?: Tool["inputSchema"]
-  execute?: (args: Record<string, unknown>) => Promise<string>
+type PlanTool = {
+  description: string
+  parameters: ReturnType<typeof jsonSchema>
+  execute: (args: Record<string, unknown>) => Promise<string>
 }
 
 const planSchema = z.object({
@@ -69,7 +71,7 @@ export async function generatePlan(goal: string): Promise<Plan> {
 
   const ai = new AIProviderManager(buildAIConfig())
   const model = wrapLanguageModel({
-    model: ai.getModel() as LanguageModel,
+    model: ai.getModel() as unknown as LanguageModelV3,
     middleware: extractJsonMiddleware(),
   })
 
@@ -81,7 +83,7 @@ export async function generatePlan(goal: string): Promise<Plan> {
         properties: { path: { type: "string", description: "Relative file path" } },
         required: ["path"],
       }),
-      execute: async (args: { path: string }) => executor.readFile(args.path),
+      execute: async (args) => executor.readFile(args["path"] as string),
     },
     list_files: {
       description: "List files and directories under a path.",
@@ -90,7 +92,7 @@ export async function generatePlan(goal: string): Promise<Plan> {
         properties: { path: { type: "string" }, recursive: { type: "boolean" } },
         required: ["path"],
       }),
-      execute: async (args: { path: string; recursive?: boolean }) => executor.listFiles(args.path, args.recursive ?? false),
+      execute: async (args) => executor.listFiles(args["path"] as string, (args["recursive"] as boolean | undefined) ?? false),
     },
     search_files: {
       description: 'Find files matching a glob pattern (e.g. "*.ts", "**/*.md"). Optional content substring filter.',
@@ -103,12 +105,12 @@ export async function generatePlan(goal: string): Promise<Plan> {
         },
         required: ["root", "pattern"],
       }),
-      execute: async (args: { root: string; pattern: string; content_contains?: string }) => executor.searchFiles(args.root, args.pattern, args.content_contains),
+      execute: async (args) => executor.searchFiles(args["root"] as string, args["pattern"] as string, args["content_contains"] as string | undefined),
     },
     analyze_codebase: {
       description: "Summarize structure: file counts, size, extensions. Read-only.",
       parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: [] }),
-      execute: async (args: { path?: string }) => executor.analyzeCodebase(args.path || "."),
+      execute: async (args) => executor.analyzeCodebase((args["path"] as string | undefined) ?? "."),
     },
     list_skills: {
       description: "List absolute paths to SKILL.md files under configured skill directories.",
@@ -118,7 +120,7 @@ export async function generatePlan(goal: string): Promise<Plan> {
     read_skill: {
       description: "Read a SKILL.md file. Path must be absolute and under skill roots.",
       parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: ["path"] }),
-      execute: async (args: { path: string }) => executor.readSkill(args.path),
+      execute: async (args) => executor.readSkill(args["path"] as string),
     },
     ...(hasWeb ? createWebTools(tracker) : {}),
   }
@@ -127,7 +129,7 @@ export async function generatePlan(goal: string): Promise<Plan> {
 
   const result = await generateText({
     model: model as LanguageModel,
-    tools,
+    tools: tools as unknown as Parameters<typeof generateText>[0]["tools"],
     stopWhen: stepCountIs(20),
     system: PLAN_INSTRUCTIONS(process.cwd(), hasWeb),
     prompt: `User goal: \n${goal}`,
