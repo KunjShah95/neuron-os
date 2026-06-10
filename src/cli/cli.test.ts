@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test"
 import { resetStdin } from "./stdin"
-import { keepAlive } from "./keepAlive"
+import { keepAlive, registerShutdownHandlers } from "./keepAlive"
 import { setPendingCommand, flushHistorySync } from "./history"
 import { existsSync, unlinkSync, mkdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
@@ -68,6 +68,50 @@ describe("keepAlive", () => {
 
     process.removeAllListeners("SIGINT")
     process.removeAllListeners("SIGTERM")
+  })
+})
+
+describe("registerShutdownHandlers", () => {
+  afterEach(() => {
+    process.removeAllListeners("SIGINT")
+    process.removeAllListeners("SIGTERM")
+  })
+
+  it("registers and unregisters SIGINT/SIGTERM handlers", () => {
+    const before = process.listeners("SIGINT").length
+    const unregister = registerShutdownHandlers(() => {}, { exit: false })
+    expect(process.listeners("SIGINT").length).toBe(before + 1)
+    unregister()
+    expect(process.listeners("SIGINT").length).toBe(before)
+  })
+
+  it("invokes cleanup when SIGINT fires", async () => {
+    let called = 0
+    const unregister = registerShutdownHandlers(async () => { called++ }, { exit: false })
+    process.emit("SIGINT", "SIGINT")
+    await new Promise((r) => setTimeout(r, 20))
+    expect(called).toBe(1)
+    unregister()
+  })
+
+  it("invokes cleanup when SIGTERM fires", async () => {
+    let called = 0
+    const unregister = registerShutdownHandlers(async () => { called++ }, { exit: false })
+    process.emit("SIGTERM", "SIGTERM")
+    await new Promise((r) => setTimeout(r, 20))
+    expect(called).toBe(1)
+    unregister()
+  })
+
+  it("does not invoke cleanup more than once on repeated signals", async () => {
+    let called = 0
+    const unregister = registerShutdownHandlers(async () => { called++ }, { exit: false })
+    process.emit("SIGINT", "SIGINT")
+    process.emit("SIGINT", "SIGINT")
+    process.emit("SIGTERM", "SIGTERM")
+    await new Promise((r) => setTimeout(r, 30))
+    expect(called).toBe(1)
+    unregister()
   })
 })
 
