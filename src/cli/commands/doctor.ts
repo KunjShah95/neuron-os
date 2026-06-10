@@ -25,10 +25,11 @@ export function registerDoctor(program: Command) {
     .description("Run system health diagnostics")
     .option("--json", "JSON output")
     .option("--verbose", "Show detailed information for each check")
+    .option("--fix", "Auto-fix issues where possible")
     .action(handleDoctor)
 }
 
-async function handleDoctor(opts: { json?: boolean; verbose?: boolean }) {
+async function handleDoctor(opts: { json?: boolean; verbose?: boolean; fix?: boolean }) {
   const results: Record<string, CheckResult> = {}
 
   // ── 1. Runtime check ──────────────────────────────────────────────
@@ -107,7 +108,23 @@ async function handleDoctor(opts: { json?: boolean; verbose?: boolean }) {
     console.log(`  ${theme.error(`❌ ${failed2} failed, ${warn2} warnings, ${passed2} passed`)}`)
     process.exitCode = 1
   }
+
+  if (failed2 > 0 || warn2 > 0) {
+    const noProvider = results.aiProvider?.status !== "pass"
+    console.log()
+    console.log(`  ${theme.dim("Fix issues:")}`)
+    if (noProvider) {
+      console.log(`  ${theme.muted("  aegis setup-keys       → configure AI provider API keys")}`)
+    }
+    console.log(`  ${theme.muted("  aegis doctor --fix     → auto-fix what's possible")}`)
+    console.log(`  ${theme.muted("  aegis doctor --verbose → see full details")}`)
+  }
+
   console.log()
+
+  if (opts.fix) {
+    await runAutoFix(results)
+  }
 }
 
 // ── Individual checks ─────────────────────────────────────────────────
@@ -321,4 +338,36 @@ async function getVersionString(): Promise<string> {
   } catch {
     return "unknown"
   }
+}
+
+async function runAutoFix(results: Record<string, CheckResult>): Promise<void> {
+  const { mkdirSync, existsSync } = await import("node:fs")
+  const { homedir } = await import("node:os")
+  const { resolve } = await import("node:path")
+
+  console.log(`\n  ${theme.heading("Auto-Fix")}`)
+  let fixed = 0
+
+  const aegisDir = resolve(homedir(), ".aegis")
+  if (!existsSync(aegisDir)) {
+    try {
+      mkdirSync(aegisDir, { recursive: true })
+      console.log(`  ${theme.success("✓")} Created ${aegisDir}`)
+      fixed++
+    } catch {
+      console.log(`  ${theme.error("✗")} Could not create ${aegisDir}`)
+    }
+  }
+
+  if (results.aiProvider?.status !== "pass") {
+    console.log(`  ${theme.info("→")} Launching API key setup...`)
+    const { runSetupKeysWizard } = await import("./setup-keys")
+    await runSetupKeysWizard()
+    fixed++
+  }
+
+  if (fixed === 0) {
+    console.log(`  ${theme.muted("No auto-fixable issues found.")}`)
+  }
+  console.log()
 }
