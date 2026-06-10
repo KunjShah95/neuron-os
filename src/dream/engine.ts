@@ -5,6 +5,7 @@ import { MemoryReplay } from "./memory-replay"
 import { InsightGenerator } from "./insight-generator"
 import type { DreamConfig, DreamEntry, DreamInsight, DreamCycleReport } from "./types"
 import { DEFAULT_DREAM_CONFIG } from "./types"
+import { promoteInsights } from "./insight-injector"
 
 const log = createLogger("dream-engine")
 
@@ -441,6 +442,8 @@ export class DreamEngine {
     log.info(
       `Dream cycle #${this.cycleCount} complete: ${report.dreamsCreated} dreams, ${report.insightsGenerated} insights in ${durationMs}ms`,
     )
+
+    promoteInsights(allInsights)
 
     return report
   }
