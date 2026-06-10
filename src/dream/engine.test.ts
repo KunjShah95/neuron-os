@@ -7,7 +7,7 @@ import { DreamStore } from "./dream-store"
 import { InsightGenerator } from "./insight-generator"
 import { MemoryReplay } from "./memory-replay"
 import { DEFAULT_DREAM_CONFIG } from "./types"
-import type { DreamEntry, DreamInsight, MemoryReplayResult } from "./types"
+import type { DreamInsight, MemoryReplayResult } from "./types"
 
 function tempDbDir(): string {
   return mkdtempSync(join(tmpdir(), "dream-test-"))
