@@ -23,6 +23,7 @@ export const AppConfigSchema = z.object({
   agentName: z.string().min(1, "Agent name cannot be empty").optional(),
   startOnBoot: z.boolean().optional(),
   telemetryOptIn: z.boolean().optional(),
+  persistedInsights: z.array(z.string()).optional(),
 })
 
 /** Zod inference type for AppConfig */
