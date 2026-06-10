@@ -53,6 +53,25 @@ function now(): number {
   return Date.now()
 }
 
+/** Map expensive models to cheaper alternatives when budget is tight. */
+function degradeModelForBudget(model?: string): string | undefined {
+  if (!model) return undefined
+  const degradationMap: Record<string, string> = {
+    "claude-sonnet-4-20250514": "gpt-4o-mini",
+    "claude-sonnet-4-6": "gpt-4o-mini",
+    "claude-3-5-sonnet-latest": "gpt-4o-mini",
+    "claude-3-opus-latest": "claude-3-haiku-latest",
+    "gpt-4o": "gpt-4o-mini",
+    "gpt-4-turbo": "gpt-4o-mini",
+    "o3-mini": "gpt-4o-mini",
+    "gemini-2.0-flash": "gemini-2.0-flash-lite",
+    "gemini-1.5-pro": "gemini-1.5-flash",
+    "mistral-large-latest": "mistral-small-latest",
+    "deepseek-chat": "deepseek-chat",
+  }
+  return degradationMap[model]
+}
+
 const DEFAULT_RECOVERY: Required<RecoveryConfig> = {
   maxRetries: 5,
   backoffMs: 1_000,
@@ -329,12 +348,29 @@ export class AgentManager {
     if (effectiveDef.budgetUsd !== undefined && effectiveDef.budgetUsd > 0) {
       const guard = new BudgetGuard(effectiveDef.budgetUsd)
       this.budgetGuards.set(id, guard)
+      const initialStatus = guard.status()
       instance.metadata = {
         ...instance.metadata,
         budget_usd: String(effectiveDef.budgetUsd),
         budget_spent: "0",
+        budget_status: initialStatus.recommendation,
       }
-      log.info(`Budget ${effectiveDef.budgetUsd.toFixed(4)} USD cap active for "${effectiveDef.name}"`,)
+      // Pass budget info to the worker process so it can self-throttle
+      if (!effectiveDef.env) effectiveDef.env = {}
+      effectiveDef.env.AEGIS_BUDGET_USD = String(effectiveDef.budgetUsd)
+      effectiveDef.env.AEGIS_BUDGET_SPENT = "0"
+      effectiveDef.env.AEGIS_BUDGET_STATUS = initialStatus.recommendation
+      // Compute degraded model if budget is already tight
+      if (initialStatus.recommendation !== "continue") {
+        const degraded = degradeModelForBudget(effectiveDef.env.AEGIS_ROUTED_MODEL)
+        if (degraded) {
+          effectiveDef.env.AEGIS_DEGRADED_MODEL = degraded
+          log.info(
+            `Budget tight (${initialStatus.recommendation}) — degrading model to "${degraded}" for "${effectiveDef.name}"`,
+          )
+        }
+      }
+      log.info(`Budget ${effectiveDef.budgetUsd.toFixed(4)} USD cap active for "${effectiveDef.name}"`)
     }
 
     // Promote warm agent right before the actual process spawn

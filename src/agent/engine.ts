@@ -148,6 +148,9 @@ export class AgentEngine {
   private tracingEnabled = false
   private currentTrace?: GenAIGenerationStart
 
+  // ── Cost tracking ─────────────────────────────────────────
+  totalToolCost = 0
+
   constructor(runtime: AgentRuntime, ai: AIProviderManager, config?: AgentEngineConfig) {
     this.runtime = runtime
     this.ai = ai
@@ -496,7 +499,7 @@ export class AgentEngine {
           const result = await toolRegistry.execute(toolName, args, toolCtx)
           const elapsedMs = performance.now() - startTime
 
-          // Record tool cost to billing tracker (best-effort)
+          // Record tool cost to billing tracker + cost alert engine (best-effort)
           try {
             const { loadPricing } = await import("../economy/pricing-registry")
             const { billingTracker } = await import("../billing/tracker")
@@ -514,6 +517,18 @@ export class AgentEngine {
                   costUSD,
                   this.runtime.context.agentId,
                 )
+                this.totalToolCost += costUSD
+              }
+            }
+            // Wire cost alert engine (singleton, best-effort)
+            const { CostAlertEngine } = await import("../economy/cost-alert")
+            const alertEngine = CostAlertEngine.getInstance()
+            alertEngine.recordCost(toolName, costUSD)
+            // Evaluate every 25 records to keep latency low
+            if (alertEngine.getSamples().length % 25 === 0) {
+              const alerts = alertEngine.evaluate()
+              for (const a of alerts) {
+                log.warn(`[CostAlert] ${a.severity}: ${a.message}`)
               }
             }
           } catch {
