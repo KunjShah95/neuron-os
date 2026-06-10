@@ -20,9 +20,9 @@ function parseVersion(v: string): { major: number; minor: number; patch: number;
   const match = v.match(/^(\d+)\.(\d+)\.(\d+)(?:-([a-zA-Z0-9.]+))?(?:\+[a-zA-Z0-9.]+)?$/)
   if (!match) return null
   return {
-    major: parseInt(match[1]!, 10),
-    minor: parseInt(match[2]!, 10),
-    patch: parseInt(match[3]!, 10),
+    major: parseInt(match[1] ?? "", 10),
+    minor: parseInt(match[2] ?? "", 10),
+    patch: parseInt(match[3] ?? "", 10),
     prerelease: match[4] || "",
   }
 }
@@ -79,9 +79,9 @@ export function satisfies(version: ConcreteVersion, range: string): boolean {
   // ^0.0.3 → >=0.0.3 <0.0.4 (patch only, major=0 minor=0 locks patch)
   const caretMatch = range.match(/^\^(\d+)\.(\d+)\.(\d+)(?:-([a-zA-Z0-9.]+))?$/)
   if (caretMatch) {
-    const major = parseInt(caretMatch[1]!, 10)
-    const minor = parseInt(caretMatch[2]!, 10)
-    const patch = parseInt(caretMatch[3]!, 10)
+    const major = parseInt(caretMatch[1] ?? "", 10)
+    const minor = parseInt(caretMatch[2] ?? "", 10)
+    const patch = parseInt(caretMatch[3] ?? "", 10)
     const lower = { major, minor, patch, prerelease: caretMatch[4] || "" }
 
     // Per semver spec, caret range upper bound depends on major/minor
@@ -101,9 +101,9 @@ export function satisfies(version: ConcreteVersion, range: string): boolean {
   const tildeMatch = range.match(/^~(\d+)\.(\d+)\.(\d+)$/)
   if (tildeMatch) {
     const lower = {
-      major: parseInt(tildeMatch[1]!, 10),
-      minor: parseInt(tildeMatch[2]!, 10),
-      patch: parseInt(tildeMatch[3]!, 10),
+      major: parseInt(tildeMatch[1] ?? "", 10),
+      minor: parseInt(tildeMatch[2] ?? "", 10),
+      patch: parseInt(tildeMatch[3] ?? "", 10),
       prerelease: "",
     }
     const upper = { major: lower.major, minor: lower.minor + 1, patch: 0, prerelease: "" }
@@ -120,9 +120,9 @@ export function satisfies(version: ConcreteVersion, range: string): boolean {
   const gteMatch = range.match(/^>=(\d+)\.(\d+)\.(\d+)$/)
   if (gteMatch) {
     const lower = {
-      major: parseInt(gteMatch[1]!, 10),
-      minor: parseInt(gteMatch[2]!, 10),
-      patch: parseInt(gteMatch[3]!, 10),
+      major: parseInt(gteMatch[1] ?? "", 10),
+      minor: parseInt(gteMatch[2] ?? "", 10),
+      patch: parseInt(gteMatch[3] ?? "", 10),
       prerelease: "",
     }
     return compareParsed(parsed, lower) >= 0
@@ -132,9 +132,9 @@ export function satisfies(version: ConcreteVersion, range: string): boolean {
   const lteMatch = range.match(/^<=(\d+)\.(\d+)\.(\d+)$/)
   if (lteMatch) {
     const upper = {
-      major: parseInt(lteMatch[1]!, 10),
-      minor: parseInt(lteMatch[2]!, 10),
-      patch: parseInt(lteMatch[3]!, 10),
+      major: parseInt(lteMatch[1] ?? "", 10),
+      minor: parseInt(lteMatch[2] ?? "", 10),
+      patch: parseInt(lteMatch[3] ?? "", 10),
       prerelease: "",
     }
     return compareParsed(parsed, upper) <= 0
@@ -144,9 +144,9 @@ export function satisfies(version: ConcreteVersion, range: string): boolean {
   const gtMatch = range.match(/^>(\d+)\.(\d+)\.(\d+)$/)
   if (gtMatch) {
     const lower = {
-      major: parseInt(gtMatch[1]!, 10),
-      minor: parseInt(gtMatch[2]!, 10),
-      patch: parseInt(gtMatch[3]!, 10),
+      major: parseInt(gtMatch[1] ?? "", 10),
+      minor: parseInt(gtMatch[2] ?? "", 10),
+      patch: parseInt(gtMatch[3] ?? "", 10),
       prerelease: "",
     }
     return compareParsed(parsed, lower) > 0
@@ -156,9 +156,9 @@ export function satisfies(version: ConcreteVersion, range: string): boolean {
   const ltMatch = range.match(/^<(\d+)\.(\d+)\.(\d+)$/)
   if (ltMatch) {
     const upper = {
-      major: parseInt(ltMatch[1]!, 10),
-      minor: parseInt(ltMatch[2]!, 10),
-      patch: parseInt(ltMatch[3]!, 10),
+      major: parseInt(ltMatch[1] ?? "", 10),
+      minor: parseInt(ltMatch[2] ?? "", 10),
+      patch: parseInt(ltMatch[3] ?? "", 10),
       prerelease: "",
     }
     return compareParsed(parsed, upper) < 0
@@ -168,9 +168,9 @@ export function satisfies(version: ConcreteVersion, range: string): boolean {
   const exactMatch = range.match(/^=?\s*(\d+)\.(\d+)\.(\d+)$/)
   if (exactMatch) {
     const exact = {
-      major: parseInt(exactMatch[1]!, 10),
-      minor: parseInt(exactMatch[2]!, 10),
-      patch: parseInt(exactMatch[3]!, 10),
+      major: parseInt(exactMatch[1] ?? "", 10),
+      minor: parseInt(exactMatch[2] ?? "", 10),
+      patch: parseInt(exactMatch[3] ?? "", 10),
       prerelease: "",
     }
     return compareParsed(parsed, exact) === 0
@@ -195,7 +195,7 @@ export function bestMatch(versions: ConcreteVersion[], range: string): ConcreteV
     return compareParsed(pb, pa) // descending (swap for reverse)
   })
 
-  return satisfying[0]!
+  return satisfying[0] ?? null
 }
 
 // ── Dependency Graph ─────────────────────────────────────────────────
@@ -292,7 +292,7 @@ export function findConflicts(plugins: Map<string, SignedPluginManifest>): Array
       if (!requirements.has(dep.name)) {
         requirements.set(dep.name, new Set())
       }
-      requirements.get(dep.name)!.add(dep.version)
+      requirements.get(dep.name)?.add(dep.version)
     }
   }
 
