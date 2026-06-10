@@ -67,6 +67,8 @@ interface ChatConfig {
 }
 
 async function handleChat(opts: { type?: string; provider?: string; model?: string }) {
+  const { requireAnyProvider } = await import("../../ai/provider-guard")
+  requireAnyProvider()
   showBanner()
 
   if (opts.type && !isValidAgentType(opts.type)) {

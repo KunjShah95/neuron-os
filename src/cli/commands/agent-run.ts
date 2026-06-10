@@ -19,6 +19,8 @@ async function handleAgentRun(
   goal: string,
   opts: { project?: string; ratchet?: boolean; eval?: string; testCmd?: string },
 ) {
+  const { requireAnyProvider } = await import("../../ai/provider-guard")
+  requireAnyProvider()
   showBanner()
 
   console.log(theme.info(`\n  🤖 Agent orchestrator starting for: ${goal}\n`))

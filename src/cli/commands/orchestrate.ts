@@ -17,6 +17,8 @@ export function registerOrchestrate(program: Command) {
     .argument("<goal>", "The complex goal to decompose and execute")
     .option("--dry-run", "Show the decomposition plan without executing")
     .action(async (goal: string, opts: { dryRun?: boolean }) => {
+      const { requireAnyProvider } = await import("../../ai/provider-guard")
+      requireAnyProvider()
       showBanner()
 
       console.log(theme.heading(`\n  🧠 Multi-Agent Orchestration\n`))

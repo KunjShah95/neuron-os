@@ -13,6 +13,8 @@ export function registerAsk(program: Command) {
 }
 
 async function handleAsk(question: string, opts: { sessionDb?: boolean; project?: string }) {
+  const { requireAnyProvider } = await import("../../ai/provider-guard")
+  requireAnyProvider()
   showBanner()
 
   console.log(theme.info(`\n  🔍 Researching: ${question}\n`))
