@@ -220,6 +220,25 @@ Every milestone in this roadmap is checked against these five principles. When t
 
 ---
 
+### ✅ v1.1.6 — Dream→Agent Feedback Loop & Stability — **SHIPPED**
+
+**What it delivered:** Dream insights now actively change agent behavior every session. npm onboarding is seamless. 1294 tests pass, 0 fail.
+
+| Deliverable | Description |
+|-------------|-------------|
+| **Dream→Agent Feedback Loop** | `InsightInjector` pulls actionable insights from `DreamEngine` and injects them as a 4th system prompt layer in every agent session |
+| **Persistent Insight Promotion** | After each dream cycle, insights with `confidence ≥ 0.8` and `sourceCount ≥ 3` written to `~/.aegis/config.json` as `persistedInsights[]` — survive restarts |
+| **4-Layer System Prompt** | Agent context stack: dream learnings → experience context → base prompt → tool descriptions |
+| **`aegis` bin alias** | `npm install -g neuron-aegis` now registers both `aegis` and `neuron-aegis` commands |
+| **Postinstall onboarding** | `scripts/postinstall.js` ships with npm package, guides new users to `aegis setup-keys` immediately after install |
+| **Postinstall bug fix** | Fixed `await` in sync function — replaced dynamic `await import()` with static `readFileSync` |
+| **`aegis version` command** | Added `version` as a proper subcommand (complement to `--version` flag) |
+| **0 test failures** | Fixed env pollution in `providers.test.ts` and `provider-bridge.test.ts` — 1294 pass, 0 fail across 112 files |
+
+**Key files:** `src/dream/insight-injector.ts`, `src/agent/engine.ts`, `src/config.ts`, `src/dream/engine.ts`, `scripts/postinstall.js`, `package.json`
+
+---
+
 ### 🔮 v0.15.0 — Tool-Level Economy
 
 **What it unlocks:** Every action has a price. Every dollar has a benchmark. Agents self-throttle.

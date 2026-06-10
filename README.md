@@ -2,7 +2,7 @@
 
 *The Operating System for Autonomous AI Agents*
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue)]()
+[![Version](https://img.shields.io/badge/version-1.1.6-blue)]()
 [![Roadmap](https://img.shields.io/badge/roadmap-1--year%20plan-purple)]()
 [![Status](https://img.shields.io/badge/status-active%20development-orange)]()
 [![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.3.14-black)]()
@@ -206,6 +206,7 @@ Compose tool bundles from 10 built-in toolsets (web, search, vision, code-execut
 - **Plugin System** — Ed25519-signed plugins with semver dependency resolution, SQLite registry, 5 hook points, full CLI lifecycle
 - **Soul System** — 8 archetypes, 6 mood states, behavioral heuristics injected into agent prompts
 - **Dream Engine** — 6-phase idle-time dream cycle: memory replay, pattern discovery, knowledge compression, counterfactual exploration, shared dreaming, mood consolidation
+- **Dream→Agent Feedback Loop** — Dream insights inject into every agent session's system prompt as a 4th context layer. High-confidence insights (`confidence ≥ 0.8`, `sourceCount ≥ 3`) promoted to `~/.aegis/config.json` and survive restarts.
 - **Evolution Engine** — Auto-code mutation from dream insights + failure clusters. 8 mutation strategies. Test-verified auto-apply with rollback.
 - **Persona System** — 8 tracked traits (curiosity, tenacity, caution, creativity, precision, efficiency, collaboration, confidence) that evolve from experience + dreams
 - **Social Network** — Multi-instance gossip protocol with file-beacon peer discovery, reputation scoring, trust levels, insight/mutation sharing
