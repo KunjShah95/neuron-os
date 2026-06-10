@@ -58,10 +58,8 @@ export function registerSoul(program: Command) {
 
       // Fleet health summary
       const moodCounts = new Map<string, number>()
-      let totalStreak = 0
       for (const { soul: s } of souls) {
         moodCounts.set(s.mood.mood, (moodCounts.get(s.mood.mood) ?? 0) + 1)
-        totalStreak += s.mood.streak
       }
 
       const burnedOut = moodCounts.get("burned_out") ?? 0

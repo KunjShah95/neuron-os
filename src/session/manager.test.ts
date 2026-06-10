@@ -77,17 +77,17 @@ describe("SessionManager", () => {
     const events: string[] = []
     manager.on("user_joined", (e) => events.push(e.event))
 
-    const session = manager.create("test", "user-1")
+    manager.create("test", "user-1")
     expect(events).toContain("user_joined")
   })
 
   it("should call onStateChange callback", () => {
     const changes: string[] = []
-    manager.onStateChange = (id, state) => {
+    manager.onStateChange = (id) => {
       changes.push(id)
     }
 
-    const session = manager.create("test", "user-1")
+    manager.create("test", "user-1")
     expect(changes.length).toBeGreaterThanOrEqual(1)
   })
 })

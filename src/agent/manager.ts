@@ -293,6 +293,48 @@ export class AgentManager {
       }
     }
 
+    // Pre-spawn failure risk prediction
+    if (effectiveDef.agentType && process.env.AEGIS_PREDICTIVE !== "disabled") {
+      try {
+        const { FailurePredictor } = await import("../economy/failure-predictor")
+        await FailurePredictor.initialize()
+        const risk = FailurePredictor.evaluateSpawnRisk({
+          agentType: effectiveDef.agentType,
+          cpu: effectiveDef.limits?.cpu,
+          memoryMB: effectiveDef.limits?.memoryMB,
+        })
+        if (risk.level === "high" || risk.level === "critical") {
+          const warn = risk.level === "critical"
+          const msg =
+            `[FailurePredictor] ${warn ? "🚫" : "⚠️"} ${risk.level} risk ` +
+            `(${risk.score}/100) for "${effectiveDef.name}" ` +
+            `(${effectiveDef.agentType}): ${risk.reason}`
+          if (warn) {
+            log.warn(msg)
+          } else {
+            log.info(msg)
+          }
+        }
+      } catch {
+        // non-fatal
+      }
+    }
+
+    // Budget guard: attach a budget tracker when budgetUsd is set on the agent def.
+    // NOTE: Full lifecycle budget tracking (agent reports spend via IPC → manager
+    // forwards to BudgetGuard.recordSpend()) is not yet implemented. The field
+    // exists for API compatibility and future integration.
+    if (effectiveDef.budgetUsd !== undefined && effectiveDef.budgetUsd > 0) {
+      instance.metadata = {
+        ...instance.metadata,
+        budget_usd: String(effectiveDef.budgetUsd),
+        budget_spent: "0",
+      }
+      log.info(
+        `Budget ${effectiveDef.budgetUsd.toFixed(4)} USD cap stored for "${effectiveDef.name}" (tracking TBD)`,
+      )
+    }
+
     // Promote warm agent right before the actual process spawn
     if (effectiveDef.agentType && this.tryPromoteWarmAgent(effectiveDef.agentType)) {
       log.info(`Promoting warm agent for type ${effectiveDef.agentType} — spawning real agent`)
@@ -539,7 +581,7 @@ export class AgentManager {
 
           // Auto-shutdown after 15 minutes if no real work was dispatched
           this.autoShutdownWarmAgent(warmId, agentType)
-        } catch (err) {
+        } catch {
           // Track failures and apply exponential backoff
           const attempts = (this.prewarmFailedAttempts.get(agentType) ?? 0) + 1
           this.prewarmFailedAttempts.set(agentType, attempts)
@@ -626,7 +668,7 @@ export class AgentManager {
     this.cancelPrewarmTimeout(warmId)
 
     // Remove from prewarmed types tracking
-    for (const [type, _ts] of this.prewarmedTypes) {
+    for (const [type] of this.prewarmedTypes) {
       if (type === agentType) {
         this.prewarmedTypes.delete(type)
         break
@@ -1338,7 +1380,7 @@ export const agentManager = new Proxy({} as AgentManager, {
     return getAgentManager()[prop as keyof AgentManager]
   },
   set(_, prop: PropertyKey, value: unknown) {
-    ;(getAgentManager() as Record<PropertyKey, unknown>)[prop] = value
+    ;(getAgentManager() as unknown as Record<PropertyKey, unknown>)[prop] = value
     return true
   },
   has(_, prop: PropertyKey) {

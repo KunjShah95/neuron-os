@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test"
-import { mkdtempSync, rmSync, existsSync, mkdirSync, writeFileSync } from "node:fs"
+import { mkdtempSync, rmSync, existsSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { EvolutionEngine } from "./engine"

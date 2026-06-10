@@ -51,7 +51,7 @@ describe("keepAlive", () => {
     const sigintBefore = process.listeners("SIGINT").length
     const sigtermBefore = process.listeners("SIGTERM").length
 
-    const promise = keepAlive(() => {})
+    keepAlive(() => {})
     expect(process.listeners("SIGINT").length).toBe(sigintBefore + 1)
     expect(process.listeners("SIGTERM").length).toBe(sigtermBefore + 1)
 
