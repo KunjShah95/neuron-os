@@ -18,6 +18,7 @@ export type AIProviderType =
   | "xai"
   | "cohere"
   | "perplexity"
+  | "nvidia"
 
 export const MODEL_REFERENCES: Record<AIProviderType, ModelOption[]> = {
   anthropic: [
@@ -100,6 +101,12 @@ export const MODEL_REFERENCES: Record<AIProviderType, ModelOption[]> = {
     { id: "sonar", label: "Sonar" },
     { id: "sonar-deep-research", label: "Sonar Deep Research" },
   ],
+  nvidia: [
+    { id: "mistralai/mixtral-8x22b-instruct-v0.1", label: "Mixtral 8x22B" },
+    { id: "meta/llama-3.1-70b-instruct", label: "Llama 3.1 70B" },
+    { id: "meta/llama-3.1-8b-instruct", label: "Llama 3.1 8B" },
+    { id: "mistralai/mistral-7b-instruct-v0.3", label: "Mistral 7B v0.3" },
+  ],
 }
 
 export function getDefaultModel(provider: AIProviderType): string {
@@ -134,6 +141,8 @@ export function getProviderBaseUrl(provider: AIProviderType, userBaseUrl?: strin
       return "https://api.cohere.com/v1"
     case "perplexity":
       return "https://api.perplexity.ai"
+    case "nvidia":
+      return "https://api.nvcf.nvidia.com/v1"
     case "custom":
       return userBaseUrl
   }

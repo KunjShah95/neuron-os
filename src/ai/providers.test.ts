@@ -6,7 +6,7 @@ import { getDefaultModel, getProviderBaseUrl, type AIProviderType } from "./mode
 describe("Provider Registry", () => {
   it("should list all registered providers", () => {
     const providers = listProviders()
-    expect(providers.length).toBeGreaterThanOrEqual(14)
+    expect(providers.length).toBeGreaterThanOrEqual(15)
     expect(providers).toContain("openai")
     expect(providers).toContain("anthropic")
     expect(providers).toContain("deepseek")
@@ -22,6 +22,7 @@ describe("Provider Registry", () => {
     expect(providers).toContain("xai")
     expect(providers).toContain("cohere")
     expect(providers).toContain("perplexity")
+    expect(providers).toContain("nvidia")
   })
 
   it("should get provider factory for each registered provider", () => {
@@ -60,6 +61,7 @@ describe("Provider Model References", () => {
       "xai",
       "cohere",
       "perplexity",
+      "nvidia",
     ]
     for (const p of providers) {
       const model = getDefaultModel(p)
@@ -85,6 +87,7 @@ describe("Provider Model References", () => {
       ["xai", "https://api.x.ai/v1"],
       ["cohere", "https://api.cohere.com/v1"],
       ["perplexity", "https://api.perplexity.ai"],
+      ["nvidia", "https://api.nvcf.nvidia.com/v1"],
     ]
     for (const [provider, expectedUrl] of cases) {
       expect(getProviderBaseUrl(provider)).toBe(expectedUrl)
@@ -104,6 +107,7 @@ describe("resolveApiKey", () => {
     XAI_API_KEY: process.env.XAI_API_KEY,
     COHERE_API_KEY: process.env.COHERE_API_KEY,
     PERPLEXITY_API_KEY: process.env.PERPLEXITY_API_KEY,
+    NVIDIA_API_KEY: process.env.NVIDIA_API_KEY,
     AEGIS_AI_API_KEY: process.env.AEGIS_AI_API_KEY,
   }
 
@@ -124,12 +128,14 @@ describe("resolveApiKey", () => {
     process.env.XAI_API_KEY = "sk-xai-test"
     process.env.COHERE_API_KEY = "sk-cohere-test"
     process.env.PERPLEXITY_API_KEY = "pplx-test"
+    process.env.NVIDIA_API_KEY = "nv-test"
 
     expect(resolveApiKey("anthropic")).toBe("sk-ant-test")
     expect(resolveApiKey("openai")).toBe("sk-openai-test")
     expect(resolveApiKey("xai")).toBe("sk-xai-test")
     expect(resolveApiKey("cohere")).toBe("sk-cohere-test")
     expect(resolveApiKey("perplexity")).toBe("pplx-test")
+    expect(resolveApiKey("nvidia")).toBe("nv-test")
   })
 
   it("should fallback to AEGIS_AI_API_KEY", () => {
@@ -271,6 +277,7 @@ describe("AIProviderManager", () => {
       "xai",
       "cohere",
       "perplexity",
+      "nvidia",
     ]
 
     for (const providerName of knownProviders) {

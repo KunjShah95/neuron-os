@@ -59,6 +59,7 @@ export function resolveApiKey(provider: string): string | undefined {
     xai: "XAI_API_KEY",
     cohere: "COHERE_API_KEY",
     perplexity: "PERPLEXITY_API_KEY",
+    nvidia: "NVIDIA_API_KEY",
   }
   return process.env[envMap[provider] || ""] || process.env.AEGIS_AI_API_KEY
 }
