@@ -409,7 +409,7 @@ async function handleRequest(req: ApiRequest, config: ApiServerConfig): Promise<
 
   // ── Health ──────────────────────────────────────────────────────────
 
-  if (pathname === "/api/v1/health" && method === "GET") {
+  if ((pathname === "/api/v1/health" || pathname === "/health") && method === "GET") {
     const agentSouls = soulManager.list()
     const moodCounts: Record<string, number> = {}
     for (const { soul: s } of agentSouls) {
