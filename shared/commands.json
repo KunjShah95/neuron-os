@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-10T00:44:56.882Z",
+  "generatedAt": "2026-06-10T02:47:29.853Z",
   "commands": [
     {
       "name": "adversarial",
@@ -2310,6 +2310,129 @@
       "description": "Lock the vault"
     },
     {
+      "name": "marketplace",
+      "options": [],
+      "sourceFile": "src/cli/commands/marketplace.ts",
+      "description": "Agent Marketplace — publish, install, search, and rate agent configs",
+      "alias": "mp"
+    },
+    {
+      "name": "marketplace info <name>",
+      "options": [
+        {
+          "flag": "-v, --version <version>",
+          "description": "Specific version",
+          "required": false
+        },
+        {
+          "flag": "--json",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/marketplace.ts",
+      "description": "Show detailed info about an agent",
+      "parent": "marketplace"
+    },
+    {
+      "name": "marketplace install <name>",
+      "options": [
+        {
+          "flag": "-v, --version <version>",
+          "description": "Specific version to install",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/marketplace.ts",
+      "description": "Install an agent config from the marketplace",
+      "parent": "marketplace"
+    },
+    {
+      "name": "marketplace list",
+      "options": [
+        {
+          "flag": "--json",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/marketplace.ts",
+      "description": "List locally installed agents",
+      "parent": "marketplace"
+    },
+    {
+      "name": "marketplace publish <dir>",
+      "options": [
+        {
+          "flag": "-k, --key <path>",
+          "description": "Path to private key file",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/marketplace.ts",
+      "description": "Publish an agent config from a directory containing agent.yaml",
+      "parent": "marketplace"
+    },
+    {
+      "name": "marketplace rate <name> <stars>",
+      "options": [],
+      "sourceFile": "src/cli/commands/marketplace.ts",
+      "description": "Rate an agent (1-5 stars)",
+      "parent": "marketplace"
+    },
+    {
+      "name": "marketplace search <query>",
+      "options": [
+        {
+          "flag": "-t, --type <type>",
+          "description": "Filter by agent type (coder, reviewer, planner, etc.)",
+          "required": false
+        },
+        {
+          "flag": "-p, --provider <provider>",
+          "description": "Filter by provider",
+          "required": false
+        },
+        {
+          "flag": "-r, --min-rating <rating>",
+          "description": "Minimum average rating",
+          "required": false
+        },
+        {
+          "flag": "--sort <field>",
+          "description": "Sort by: rating, installs, recent, name",
+          "required": false
+        },
+        {
+          "flag": "--page <n>",
+          "description": "Page number (0-indexed)",
+          "required": false,
+          "defaultValue": "0"
+        },
+        {
+          "flag": "--json",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/marketplace.ts",
+      "description": "Search the marketplace for agents",
+      "parent": "marketplace"
+    },
+    {
+      "name": "marketplace update",
+      "options": [
+        {
+          "flag": "--json",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/marketplace.ts",
+      "description": "Update all installed agents to latest versions",
+      "parent": "marketplace"
+    },
+    {
       "name": "mcp",
       "options": [],
       "sourceFile": "src/cli/commands/mcp.ts",
@@ -4430,6 +4553,50 @@
       "alias": "stats"
     },
     {
+      "name": "tls",
+      "options": [],
+      "sourceFile": "src/cli/commands/tls.ts",
+      "description": "TLS certificate management — generate, validate, and configure HTTPS"
+    },
+    {
+      "name": "tls check",
+      "options": [
+        {
+          "flag": "--cert <path>",
+          "description": "Path to certificate PEM file",
+          "required": false
+        },
+        {
+          "flag": "--key <path>",
+          "description": "Path to private key PEM file",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/tls.ts",
+      "description": "Validate an existing cert/key pair",
+      "parent": "tls"
+    },
+    {
+      "name": "tls env",
+      "options": [],
+      "sourceFile": "src/cli/commands/tls.ts",
+      "description": "Show current TLS environment configuration",
+      "parent": "tls"
+    },
+    {
+      "name": "tls gen",
+      "options": [
+        {
+          "flag": "--out <dir>",
+          "description": "Output directory",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/tls.ts",
+      "description": "Generate a self-signed dev certificate for local HTTPS",
+      "parent": "tls"
+    },
+    {
       "name": "toolset",
       "options": [],
       "sourceFile": "src/cli/commands/toolset.ts",
@@ -4941,6 +5108,40 @@
       ],
       "sourceFile": "src/cli/commands/whatsapp.ts",
       "description": "Start the WhatsApp bot adapter (Twilio)"
+    },
+    {
+      "name": "workflow",
+      "options": [],
+      "sourceFile": "src/cli/commands/workflow.ts",
+      "description": "Workflow builder — design and execute agent pipelines"
+    },
+    {
+      "name": "workflow build",
+      "options": [],
+      "sourceFile": "src/cli/commands/workflow.ts",
+      "description": "Interactive TUI workflow builder",
+      "parent": "workflow"
+    },
+    {
+      "name": "workflow list",
+      "options": [],
+      "sourceFile": "src/cli/commands/workflow.ts",
+      "description": "List saved workflows",
+      "parent": "workflow"
+    },
+    {
+      "name": "workflow run",
+      "options": [],
+      "sourceFile": "src/cli/commands/workflow.ts",
+      "description": "Execute a workflow file",
+      "parent": "workflow"
+    },
+    {
+      "name": "workflow validate",
+      "options": [],
+      "sourceFile": "src/cli/commands/workflow.ts",
+      "description": "Validate a workflow file",
+      "parent": "workflow"
     }
   ]
 }
