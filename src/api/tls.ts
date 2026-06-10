@@ -1,6 +1,6 @@
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs"
 import { resolve } from "node:path"
-import { createHash } from "node:crypto"
+import { createHash, generateKeyPairSync } from "node:crypto"
 import { execSync } from "node:child_process"
 import { createLogger } from "../cli/logger"
 
@@ -166,8 +166,6 @@ export function generateSelfSignedCert(outputDir?: string): { certPath: string; 
   } catch {
     // Fallback: generate using Node.js crypto key pair + self-signed via openssl
     log.info("OpenSSL req failed, using Node.js crypto fallback")
-    const { generateKeyPairSync } = require("node:crypto") as typeof import("node:crypto")
-
     const { privateKey } = generateKeyPairSync("rsa", {
       modulusLength: 2048,
       publicKeyEncoding: { type: "spki", format: "pem" },

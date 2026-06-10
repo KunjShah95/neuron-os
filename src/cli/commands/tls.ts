@@ -2,6 +2,7 @@ import type { Command } from "commander"
 import { theme } from "../theme"
 import { resolve } from "node:path"
 import { existsSync } from "node:fs"
+import { loadCertAndKey } from "../../api/tls"
 
 export function registerTls(program: Command) {
   const tls = program
@@ -124,7 +125,6 @@ export function registerTls(program: Command) {
 
         if (certExists && keyExists) {
           try {
-            const { loadCertAndKey } = require("../../api/tls")
             const { info } = loadCertAndKey(resolvedCert, resolvedKey)
             console.log(`  ${theme.success("✓ TLS is configured and valid")}`)
             console.log(`  ${theme.info("Subject:")}   ${info.subject["DN"]}`)

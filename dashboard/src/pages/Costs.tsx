@@ -94,8 +94,8 @@ export default function Costs() {
           <div className="glass rounded-2xl p-5 space-y-3">
             {data?.byModel && Object.entries(data.byModel).length > 0 ? (
               Object.entries(data.byModel)
-                .sort(([, a], [, b]) => b - a)
-                .map(([model, cost]) => (
+                .sort(([, a]: [string, number], [, b]: [string, number]) => b - a)
+                .map(([model, cost]: [string, number]) => (
                   <div key={model} className="flex items-center justify-between">
                     <span className="text-sm text-surface-300 font-mono truncate mr-3">{model}</span>
                     <div className="flex items-center gap-3">
@@ -125,8 +125,8 @@ export default function Costs() {
           <div className="glass rounded-2xl p-5 space-y-3">
             {data?.byAgentType && Object.entries(data.byAgentType).length > 0 ? (
               Object.entries(data.byAgentType)
-                .sort(([, a], [, b]) => b - a)
-                .map(([agentType, cost]) => (
+                .sort(([, a]: [string, number], [, b]: [string, number]) => b - a)
+                .map(([agentType, cost]: [string, number]) => (
                   <div key={agentType} className="flex items-center justify-between">
                     <span className="text-sm text-surface-300 truncate mr-3">{agentType}</span>
                     <div className="flex items-center gap-3">
