@@ -37,8 +37,8 @@ function extractSections(markdown: string, pageId: string): Section[] {
   let match: RegExpExecArray | null
   while ((match = headingPattern.exec(markdown)) !== null) {
     headingMatches.push({
-      level: match[1]!.length,
-      text: match[2]!.trim(),
+      level: (match[1] ?? "").length,
+      text: (match[2] ?? "").trim(),
       index: match.index,
     })
   }
@@ -51,11 +51,13 @@ function extractSections(markdown: string, pageId: string): Section[] {
   }
 
   for (let i = 0; i < headingMatches.length; i++) {
-    const h = headingMatches[i]!
+    const h = headingMatches[i]
+    if (!h) continue
     let endIndex: number
     for (let j = i + 1; j < headingMatches.length; j++) {
-      if (headingMatches[j]!.level <= h.level) {
-        endIndex = headingMatches[j]!.index
+      const nextH = headingMatches[j]
+      if (nextH && nextH.level <= h.level) {
+        endIndex = nextH.index
         break
       }
     }
@@ -91,7 +93,7 @@ function extractEntities(markdown: string, pageId: string): ExtractedEntity[] {
   let match: RegExpExecArray | null
   while ((match = codeBlockPattern.exec(markdown)) !== null) {
     const language = match[1] || "unknown"
-    const code = match[2]!.trim()
+    const code = (match[2] ?? "").trim()
     if (code.length >= 10) {
       const name = `${pageId}::code::${++codeIdx}`
       entities.push({
@@ -105,7 +107,7 @@ function extractEntities(markdown: string, pageId: string): ExtractedEntity[] {
 
     const apiMatch = code.match(/(?:def|function|class|fn)\s+(\w+)/)
     if (apiMatch) {
-      const apiName = apiMatch[1]!
+      const apiName = apiMatch[1] ?? ""
       if (!seen.has(apiName)) {
         seen.add(apiName)
         entities.push({
@@ -121,7 +123,7 @@ function extractEntities(markdown: string, pageId: string): ExtractedEntity[] {
 
   const headingPattern = /^##+\s+(.+)$/gm
   while ((match = headingPattern.exec(markdown)) !== null) {
-    const concept = match[1]!.trim()
+    const concept = (match[1] ?? "").trim()
     if (concept.length >= 3 && !seen.has(concept)) {
       seen.add(concept)
       entities.push({
@@ -135,7 +137,7 @@ function extractEntities(markdown: string, pageId: string): ExtractedEntity[] {
 
   const boldPattern = /\*\*([^*]+)\*\*/g
   while ((match = boldPattern.exec(markdown)) !== null) {
-    const word = match[1]!.trim()
+    const word = (match[1] ?? "").trim()
     if (word.length >= 3 && word.split(/\s+/).length <= 4 && !seen.has(word)) {
       seen.add(word)
       entities.push({
@@ -154,9 +156,11 @@ function extractRelationships(entities: ExtractedEntity[], sections: Section[]):
   const rels: ExtractedRelationship[] = []
 
   for (let i = 0; i < entities.length; i++) {
-    const a = entities[i]!
+    const a = entities[i]
+    if (!a) continue
     for (let j = i + 1; j < entities.length; j++) {
-      const b = entities[j]!
+      const b = entities[j]
+      if (!b) continue
       if (a.type === "api_function" && b.type === "code_example") {
         rels.push({ sourceId: b.name, targetId: a.name, type: "example_of", weight: 0.8 })
       }
