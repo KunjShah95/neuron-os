@@ -139,6 +139,7 @@ describe("resolveApiKey", () => {
   })
 
   it("should fallback to AEGIS_AI_API_KEY", () => {
+    delete process.env.ANTHROPIC_API_KEY
     process.env.AEGIS_AI_API_KEY = "sk-fallback"
     expect(resolveApiKey("anthropic")).toBe("sk-fallback")
   })
