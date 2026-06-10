@@ -492,7 +492,34 @@ export class AgentEngine {
             cwd: this.runtime.context.cwd,
             permissions: FULL_TOOL_PERMISSIONS,
           }
+          const startTime = performance.now()
           const result = await toolRegistry.execute(toolName, args, toolCtx)
+          const elapsedMs = performance.now() - startTime
+
+          // Record tool cost to billing tracker (best-effort)
+          try {
+            const { loadPricing } = await import("../economy/pricing-registry")
+            const { billingTracker } = await import("../billing/tracker")
+            const pricing = loadPricing()
+            const toolPrice = pricing.tools[toolName]
+            if (toolPrice) {
+              const costUSD =
+                toolPrice.api_usd ??
+                (toolPrice.compute_usd_per_second ? (elapsedMs / 1000) * toolPrice.compute_usd_per_second : 0) ??
+                0
+              if (costUSD > 0) {
+                billingTracker.recordToolUsage(
+                  this.runtime.context.agentId,
+                  toolName,
+                  costUSD,
+                  this.runtime.context.agentId,
+                )
+              }
+            }
+          } catch {
+            // Cost tracking is best-effort
+          }
+
           if (result.success) {
             return result.output || "(tool completed with no output)"
           }

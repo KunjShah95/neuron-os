@@ -18,6 +18,8 @@ import { getAgentType, getAllAgentTypes, isValidAgentType, type AgentType, type 
 import { createLogger } from "../cli/logger"
 import { DockerSandbox } from "../sandbox/docker"
 import type { IsolationLevel } from "../sandbox/types"
+import { BudgetGuard } from "../economy/budget-guard"
+import { billingTracker } from "../billing/tracker"
 
 const log = createLogger("agent:manager")
 
@@ -114,6 +116,9 @@ export class AgentManager {
 
   /** Map from agent ID to abort controllers for in-flight operations */
   private abortControllers = new Map<string, AbortController>()
+
+  /** Per-agent budget guards, keyed by agent ID */
+  private budgetGuards = new Map<string, BudgetGuard>()
 
   constructor(opts: AgentManagerOptions = {}) {
     if (opts.onEvent) {
@@ -321,18 +326,15 @@ export class AgentManager {
     }
 
     // Budget guard: attach a budget tracker when budgetUsd is set on the agent def.
-    // NOTE: Full lifecycle budget tracking (agent reports spend via IPC → manager
-    // forwards to BudgetGuard.recordSpend()) is not yet implemented. The field
-    // exists for API compatibility and future integration.
     if (effectiveDef.budgetUsd !== undefined && effectiveDef.budgetUsd > 0) {
+      const guard = new BudgetGuard(effectiveDef.budgetUsd)
+      this.budgetGuards.set(id, guard)
       instance.metadata = {
         ...instance.metadata,
         budget_usd: String(effectiveDef.budgetUsd),
         budget_spent: "0",
       }
-      log.info(
-        `Budget ${effectiveDef.budgetUsd.toFixed(4)} USD cap stored for "${effectiveDef.name}" (tracking TBD)`,
-      )
+      log.info(`Budget ${effectiveDef.budgetUsd.toFixed(4)} USD cap active for "${effectiveDef.name}"`,)
     }
 
     // Promote warm agent right before the actual process spawn
@@ -1280,6 +1282,26 @@ export class AgentManager {
         const p2 = msg.payload as { message?: string } | undefined
         instance.log.push(this.makeLog("error", p2?.message ?? "Unknown error"))
         this.emit("agent:error", id, { message: p2?.message })
+        break
+      }
+      case "spend-report": {
+        const p3 = msg.payload as { costUsd: number; description?: string } | undefined
+        if (p3?.costUsd !== undefined) {
+          const guard = this.budgetGuards.get(id)
+          if (guard) {
+            guard.recordSpend(p3.costUsd, p3.description)
+            const status = guard.status()
+            instance.metadata.budget_spent = String(guard.spentUsd)
+            // Log warning if approaching budget limit
+            if (status.recommendation === "skip_optional") {
+              log.warn(`Agent "${id}" nearing budget: $${guard.spentUsd.toFixed(4)} of $${guard.budgetUsd.toFixed(4)}`)
+            } else if (status.recommendation === "abort") {
+              log.warn(`Agent "${id}" over budget: $${guard.spentUsd.toFixed(4)} of $${guard.budgetUsd.toFixed(4)}`)
+            }
+          }
+          // Also record to global billing tracker
+          billingTracker.recordToolUsage(id, "agent-spend", p3.costUsd, id)
+        }
         break
       }
     }

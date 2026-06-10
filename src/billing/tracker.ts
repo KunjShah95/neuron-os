@@ -16,6 +16,15 @@ export interface CostRecord {
 const COST_PER_1K_PROMPT = 0.0035
 const COST_PER_1K_COMPLETION = 0.0105
 
+export interface ToolCostRecord {
+  id: string
+  sessionId: string
+  toolName: string
+  costUSD: number
+  agentId: string
+  timestamp: number
+}
+
 export class BillingTracker {
   private db: Database
 
@@ -40,6 +49,17 @@ export class BillingTracker {
     `)
 
     this.db.exec(`
+      CREATE TABLE IF NOT EXISTS tool_usage (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        tool_name TEXT NOT NULL,
+        cost_usd REAL NOT NULL,
+        agent_id TEXT NOT NULL,
+        timestamp INTEGER NOT NULL
+      )
+    `)
+
+    this.db.exec(`
       CREATE TABLE IF NOT EXISTS budget (
         id TEXT PRIMARY KEY,
         limit_usd REAL NOT NULL
@@ -54,7 +74,14 @@ export class BillingTracker {
   }
 
   public recordUsage(sessionId: string, model: string, promptTokens: number, completionTokens: number): CostRecord {
-    const costUSD = (promptTokens / 1000) * COST_PER_1K_PROMPT + (completionTokens / 1000) * COST_PER_1K_COMPLETION
+    let modelCost: number
+    try {
+      const { estimateModelCost: fn } = await import("../economy/cost-router")
+      modelCost = fn(model, promptTokens, completionTokens)
+    } catch {
+      modelCost = Infinity
+    }
+    const costUSD = isFinite(modelCost) ? modelCost : (promptTokens / 1000) * COST_PER_1K_PROMPT + (completionTokens / 1000) * COST_PER_1K_COMPLETION
 
     const record: CostRecord = {
       id: `usage-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
@@ -82,6 +109,28 @@ export class BillingTracker {
         record.costUSD,
         record.timestamp,
       )
+
+    return record
+  }
+
+  public recordToolUsage(sessionId: string, toolName: string, costUSD: number, agentId: string): ToolCostRecord {
+    const record: ToolCostRecord = {
+      id: `tool-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+      sessionId,
+      toolName,
+      costUSD,
+      agentId,
+      timestamp: Date.now(),
+    }
+
+    this.db
+      .prepare(
+        `
+      INSERT INTO tool_usage (id, session_id, tool_name, cost_usd, agent_id, timestamp)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `,
+      )
+      .run(record.id, record.sessionId, record.toolName, record.costUSD, record.agentId, record.timestamp)
 
     return record
   }
