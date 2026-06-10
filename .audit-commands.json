@@ -1,0 +1,1454 @@
+{
+  "generatedAt": "2026-06-10T15:00:44.998Z",
+  "results": [
+    {
+      "command": "(root)",
+      "test": "--version",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 751
+    },
+    {
+      "command": "doctor",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4474
+    },
+    {
+      "command": "completion",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4646
+    },
+    {
+      "command": "zsh",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4495
+    },
+    {
+      "command": "supervise",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4580
+    },
+    {
+      "command": "auto-restart",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4686
+    },
+    {
+      "command": "reflect",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4535
+    },
+    {
+      "command": "progress",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4352
+    },
+    {
+      "command": "project",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4464
+    },
+    {
+      "command": "sessions",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4280
+    },
+    {
+      "command": "experience",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4204
+    },
+    {
+      "command": "trajectories",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4132
+    },
+    {
+      "command": "insights",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4359
+    },
+    {
+      "command": "billing",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4525
+    },
+    {
+      "command": "train",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4316
+    },
+    {
+      "command": "manage",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4343
+    },
+    {
+      "command": "benchmark",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4459
+    },
+    {
+      "command": "regression",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4654
+    },
+    {
+      "command": "adversarial",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 5044
+    },
+    {
+      "command": "ci",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4691
+    },
+    {
+      "command": "pricing",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4645
+    },
+    {
+      "command": "debate",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4860
+    },
+    {
+      "command": "cost",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4818
+    },
+    {
+      "command": "usage",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 7796
+    },
+    {
+      "command": "plugin",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4671
+    },
+    {
+      "command": "remove",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4523
+    },
+    {
+      "command": "trigger",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4584
+    },
+    {
+      "command": "router",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4582
+    },
+    {
+      "command": "provider",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4799
+    },
+    {
+      "command": "improve",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4688
+    },
+    {
+      "command": "failure",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4756
+    },
+    {
+      "command": "estimate",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4677
+    },
+    {
+      "command": "before",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4671
+    },
+    {
+      "command": "audit",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4610
+    },
+    {
+      "command": "decisions",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4814
+    },
+    {
+      "command": "mesh",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4592
+    },
+    {
+      "command": "bench",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4669
+    },
+    {
+      "command": "email",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4716
+    },
+    {
+      "command": "discord",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4562
+    },
+    {
+      "command": "slack",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4679
+    },
+    {
+      "command": "whatsapp",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4571
+    },
+    {
+      "command": "sms",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4745
+    },
+    {
+      "command": "voice",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4735
+    },
+    {
+      "command": "voice-local",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4789
+    },
+    {
+      "command": "wakeup",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4820
+    },
+    {
+      "command": "setup",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4978
+    },
+    {
+      "command": "dashboard",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4659
+    },
+    {
+      "command": "agent",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4703
+    },
+    {
+      "command": "chat",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4563
+    },
+    {
+      "command": "status",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4863
+    },
+    {
+      "command": "runtime",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4609
+    },
+    {
+      "command": "skills",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4508
+    },
+    {
+      "command": "config",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4339
+    },
+    {
+      "command": "cron",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4661
+    },
+    {
+      "command": "serve",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4435
+    },
+    {
+      "command": "mcp",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4534
+    },
+    {
+      "command": "memory",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4353
+    },
+    {
+      "command": "agentmemory",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4441
+    },
+    {
+      "command": "telegram",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4326
+    },
+    {
+      "command": "ask",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4570
+    },
+    {
+      "command": "plan",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4793
+    },
+    {
+      "command": "sandbox",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4916
+    },
+    {
+      "command": "computer",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4738
+    },
+    {
+      "command": "health",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4251
+    },
+    {
+      "command": "harness",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4124
+    },
+    {
+      "command": "agent-run",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4166
+    },
+    {
+      "command": "openapi",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4124
+    },
+    {
+      "command": "specification",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4179
+    },
+    {
+      "command": "telemetry",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 3857
+    },
+    {
+      "command": "setup-keys",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 3786
+    },
+    {
+      "command": "providers",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4001
+    },
+    {
+      "command": "pool",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4217
+    },
+    {
+      "command": "distributed",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4262
+    },
+    {
+      "command": "pool",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4191
+    },
+    {
+      "command": "production",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4231
+    },
+    {
+      "command": "eval",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4203
+    },
+    {
+      "command": "baseline",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4168
+    },
+    {
+      "command": "calibrate",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4146
+    },
+    {
+      "command": "research",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4248
+    },
+    {
+      "command": "ratchet",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4265
+    },
+    {
+      "command": "orchestrate",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4048
+    },
+    {
+      "command": "multiple",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4023
+    },
+    {
+      "command": "webhook",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4225
+    },
+    {
+      "command": "session",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4143
+    },
+    {
+      "command": "toolset",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4220
+    },
+    {
+      "command": "metrics",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4173
+    },
+    {
+      "command": "docscrawl",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4183
+    },
+    {
+      "command": "evolve",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4182
+    },
+    {
+      "command": "verify",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4239
+    },
+    {
+      "command": "soul",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4154
+    },
+    {
+      "command": "moods",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4159
+    },
+    {
+      "command": "social",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4336
+    },
+    {
+      "command": "messaging",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4193
+    },
+    {
+      "command": "persona",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4113
+    },
+    {
+      "command": "communication",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4191
+    },
+    {
+      "command": "experience",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4199
+    },
+    {
+      "command": "dream",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4172
+    },
+    {
+      "command": "insight",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4039
+    },
+    {
+      "command": "predict",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 4037
+    },
+    {
+      "command": "cost",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 3837
+    },
+    {
+      "command": "workflow",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 3870
+    },
+    {
+      "command": "pipelines",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 3803
+    },
+    {
+      "command": "tls",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 3842
+    },
+    {
+      "command": "validate",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 3844
+    },
+    {
+      "command": "marketplace",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 3868
+    },
+    {
+      "command": "search",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 3740
+    },
+    {
+      "command": "build",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 3859
+    },
+    {
+      "command": "help",
+      "test": "--help",
+      "status": "help_ok",
+      "exitCode": 0,
+      "ms": 3856
+    },
+    {
+      "command": "adversarial disable",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3787
+    },
+    {
+      "command": "adversarial enable",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3740
+    },
+    {
+      "command": "adversarial findings",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3845
+    },
+    {
+      "command": "adversarial ratchet",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3792
+    },
+    {
+      "command": "adversarial status",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3797
+    },
+    {
+      "command": "agent list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3861
+    },
+    {
+      "command": "agentmemory status",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3844
+    },
+    {
+      "command": "audit stats",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3854
+    },
+    {
+      "command": "bench baseline",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3838
+    },
+    {
+      "command": "bench history",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3745
+    },
+    {
+      "command": "bench list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3878
+    },
+    {
+      "command": "bench providers",
+      "test": "execute",
+      "status": "timeout",
+      "exitCode": null,
+      "error": "\u001b[38;2;96;165;250m\n  Running provider benchmark: \"Write a short poem about artificial intelligence.\"\n\u001b[39m\n\u001b[38;2;96;165;250m  Provider             Model                  Status   Duration   Output   Cost      \u001b[39m\n  ──────────────────────────────────────────────────────────────────────────────\n  o",
+      "ms": 30027
+    },
+    {
+      "command": "benchmark baseline",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3879
+    },
+    {
+      "command": "benchmark status",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3986
+    },
+    {
+      "command": "ci config",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3904
+    },
+    {
+      "command": "ci disable",
+      "test": "execute",
+      "status": "fail",
+      "exitCode": 1,
+      "error": "error: missing required argument 'repo'\n",
+      "ms": 4025
+    },
+    {
+      "command": "ci repos",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3955
+    },
+    {
+      "command": "ci status",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3893
+    },
+    {
+      "command": "config list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3916
+    },
+    {
+      "command": "config validate",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3967
+    },
+    {
+      "command": "cost dashboard",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4035
+    },
+    {
+      "command": "cost estimate",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3854
+    },
+    {
+      "command": "cost history",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3828
+    },
+    {
+      "command": "cost models",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3868
+    },
+    {
+      "command": "cost report",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3820
+    },
+    {
+      "command": "cost sessions",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3964
+    },
+    {
+      "command": "cost total",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4048
+    },
+    {
+      "command": "cron list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4007
+    },
+    {
+      "command": "debate show",
+      "test": "execute",
+      "status": "fail",
+      "exitCode": 1,
+      "error": "error: missing required argument 'disagreement_id'\n",
+      "ms": 4086
+    },
+    {
+      "command": "distributed info",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4048
+    },
+    {
+      "command": "distributed status",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3921
+    },
+    {
+      "command": "docscrawl config",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4044
+    },
+    {
+      "command": "docscrawl list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4108
+    },
+    {
+      "command": "dream config",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4171
+    },
+    {
+      "command": "dream list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4179
+    },
+    {
+      "command": "dream stats",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4097
+    },
+    {
+      "command": "eval baseline",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4122
+    },
+    {
+      "command": "eval calibrate",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4111
+    },
+    {
+      "command": "eval ci",
+      "test": "execute",
+      "status": "fail",
+      "exitCode": 1,
+      "error": "\u001b[38;2;96;165;250m\n  Running CI gate on 6 test(s)...\n\u001b[39m\n\n  \u001b[38;2;251;113;133m✗\u001b[39m CI Gate: \u001b[38;2;251;113;133mFAILED\u001b[39m\n\n  Score:      0.0%\n[DEPRECATED] 1 test(s) in old format at C:\\neuron os\\.aegis\\harness\n  Migrate to YAML format: evals/tasks/<category>/<name>.yaml\n",
+      "ms": 10131
+    },
+    {
+      "command": "eval experiment",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3911
+    },
+    {
+      "command": "eval report",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4053
+    },
+    {
+      "command": "eval review",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4357
+    },
+    {
+      "command": "eval status",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4009
+    },
+    {
+      "command": "evolve config",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4093
+    },
+    {
+      "command": "evolve list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3845
+    },
+    {
+      "command": "evolve stats",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3818
+    },
+    {
+      "command": "experience list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3865
+    },
+    {
+      "command": "experience stats",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3771
+    },
+    {
+      "command": "golden list",
+      "test": "execute",
+      "status": "fail",
+      "exitCode": 1,
+      "error": "error: unknown command 'golden'\n",
+      "ms": 3832
+    },
+    {
+      "command": "golden stats",
+      "test": "execute",
+      "status": "fail",
+      "exitCode": 1,
+      "error": "error: unknown command 'golden'\n",
+      "ms": 4060
+    },
+    {
+      "command": "graph stats",
+      "test": "execute",
+      "status": "fail",
+      "exitCode": 1,
+      "error": "error: unknown command 'graph'\n",
+      "ms": 4047
+    },
+    {
+      "command": "harness report",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3812
+    },
+    {
+      "command": "harness status",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3855
+    },
+    {
+      "command": "insights sessions",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3914
+    },
+    {
+      "command": "key list",
+      "test": "execute",
+      "status": "fail",
+      "exitCode": 1,
+      "error": "error: unknown command 'key'\n",
+      "ms": 3878
+    },
+    {
+      "command": "marketplace list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4008
+    },
+    {
+      "command": "mcp list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4087
+    },
+    {
+      "command": "memory facts",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4096
+    },
+    {
+      "command": "memory show",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4023
+    },
+    {
+      "command": "memory stats",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3566
+    },
+    {
+      "command": "memory vector",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3355
+    },
+    {
+      "command": "mesh list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 3832
+    },
+    {
+      "command": "monitor list",
+      "test": "execute",
+      "status": "fail",
+      "exitCode": 1,
+      "error": "error: unknown command 'monitor'\n(Did you mean doctor?)\n",
+      "ms": 4108
+    },
+    {
+      "command": "monitor status",
+      "test": "execute",
+      "status": "fail",
+      "exitCode": 1,
+      "error": "error: unknown command 'monitor'\n(Did you mean doctor?)\n",
+      "ms": 4061
+    },
+    {
+      "command": "multi-agent list",
+      "test": "execute",
+      "status": "fail",
+      "exitCode": 1,
+      "error": "error: unknown command 'multi-agent'\n",
+      "ms": 4173
+    },
+    {
+      "command": "multi-agent metrics",
+      "test": "execute",
+      "status": "fail",
+      "exitCode": 1,
+      "error": "error: unknown command 'multi-agent'\n",
+      "ms": 4071
+    },
+    {
+      "command": "ns list",
+      "test": "execute",
+      "status": "fail",
+      "exitCode": 1,
+      "error": "error: unknown command 'ns'\n(Did you mean one of rs, ts?)\n",
+      "ms": 4115
+    },
+    {
+      "command": "persona config",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4135
+    },
+    {
+      "command": "persona history",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4089
+    },
+    {
+      "command": "persona status",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4057
+    },
+    {
+      "command": "plugin list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4039
+    },
+    {
+      "command": "policy list",
+      "test": "execute",
+      "status": "fail",
+      "exitCode": 1,
+      "error": "error: unknown command 'policy'\n(Did you mean voice?)\n",
+      "ms": 4154
+    },
+    {
+      "command": "policy show",
+      "test": "execute",
+      "status": "fail",
+      "exitCode": 1,
+      "error": "error: unknown command 'policy'\n(Did you mean voice?)\n",
+      "ms": 4340
+    },
+    {
+      "command": "pool stats",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4279
+    },
+    {
+      "command": "predict status",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4348
+    },
+    {
+      "command": "pricing estimate",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4097
+    },
+    {
+      "command": "pricing list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4083
+    },
+    {
+      "command": "production dashboard",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4119
+    },
+    {
+      "command": "project list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4456
+    },
+    {
+      "command": "router list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4180
+    },
+    {
+      "command": "session list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4104
+    },
+    {
+      "command": "skills list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4058
+    },
+    {
+      "command": "social discover",
+      "test": "execute",
+      "status": "fail",
+      "exitCode": 1,
+      "error": "  \u001b[38;2;251;113;133m✖\u001b[39m Not registered — use 'aegis social register' first\n",
+      "ms": 4181
+    },
+    {
+      "command": "social inbox",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4299
+    },
+    {
+      "command": "social peers",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4176
+    },
+    {
+      "command": "social reputation",
+      "test": "execute",
+      "status": "fail",
+      "exitCode": 1,
+      "error": "error: required option '-p, --peer <id>' not specified\n",
+      "ms": 4157
+    },
+    {
+      "command": "social status",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4138
+    },
+    {
+      "command": "soul list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4163
+    },
+    {
+      "command": "telemetry status",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4208
+    },
+    {
+      "command": "toolset list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4172
+    },
+    {
+      "command": "trigger list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4173
+    },
+    {
+      "command": "user list",
+      "test": "execute",
+      "status": "fail",
+      "exitCode": 1,
+      "error": "error: unknown command 'user'\n(Did you mean router?)\n",
+      "ms": 4115
+    },
+    {
+      "command": "validate list",
+      "test": "execute",
+      "status": "fail",
+      "exitCode": 1,
+      "error": "error: unknown command 'validate'\n",
+      "ms": 4127
+    },
+    {
+      "command": "validate stats",
+      "test": "execute",
+      "status": "fail",
+      "exitCode": 1,
+      "error": "error: unknown command 'validate'\n",
+      "ms": 4055
+    },
+    {
+      "command": "workflow list",
+      "test": "execute",
+      "status": "ok",
+      "exitCode": 0,
+      "ms": 4169
+    },
+    {
+      "command": "workflow validate",
+      "test": "execute",
+      "status": "fail",
+      "exitCode": 1,
+      "error": "error: missing required argument 'file'\n",
+      "ms": 4073
+    }
+  ]
+}

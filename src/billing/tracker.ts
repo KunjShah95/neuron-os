@@ -1,6 +1,7 @@
 import { Database } from "bun:sqlite"
 import { join } from "node:path"
 import { existsSync, mkdirSync } from "node:fs"
+import { estimateModelCost } from "../economy/cost-router"
 
 export interface CostRecord {
   id: string
@@ -76,8 +77,7 @@ export class BillingTracker {
   public recordUsage(sessionId: string, model: string, promptTokens: number, completionTokens: number): CostRecord {
     let modelCost: number
     try {
-      const { estimateModelCost: fn } = await import("../economy/cost-router")
-      modelCost = fn(model, promptTokens, completionTokens)
+      modelCost = estimateModelCost(model, promptTokens, completionTokens)
     } catch {
       modelCost = Infinity
     }

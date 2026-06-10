@@ -16,8 +16,8 @@
     ],
     "id": "builtin-agent",
     "createdAt": "2026-06-07T05:12:43.330Z",
-    "fireCount": 20,
-    "lastFiredAt": "2026-06-10T01:20:12.731Z"
+    "fireCount": 21,
+    "lastFiredAt": "2026-06-10T13:40:22.866Z"
   },
   {
     "name": "ping",
@@ -35,7 +35,7 @@
     ],
     "id": "builtin-ping",
     "createdAt": "2026-06-07T05:12:43.330Z",
-    "fireCount": 20,
-    "lastFiredAt": "2026-06-10T01:20:12.739Z"
+    "fireCount": 21,
+    "lastFiredAt": "2026-06-10T13:40:22.870Z"
   }
 ]

@@ -292,6 +292,101 @@ const PROVIDERS: ProviderConfig[] = [
       }
     },
   },
+  {
+    key: "xai",
+    label: "xAI (Grok)",
+    envVar: "XAI_API_KEY",
+    defaultBaseUrl: "https://api.x.ai/v1",
+    needsBaseUrl: false,
+    testKey: async (apiKey) => {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 10000)
+      try {
+        const res = await fetch("https://api.x.ai/v1/models", {
+          headers: { authorization: `Bearer ${apiKey}` },
+          signal: controller.signal,
+        })
+        if (res.ok) return { ok: true }
+        const body = await res.json().catch(() => ({}))
+        const err = (body as any).error?.message || `HTTP ${res.status}`
+        return { ok: false, error: err }
+      } finally {
+        clearTimeout(timeout)
+      }
+    },
+  },
+  {
+    key: "cohere",
+    label: "Cohere (Command)",
+    envVar: "COHERE_API_KEY",
+    defaultBaseUrl: "https://api.cohere.com/v1",
+    needsBaseUrl: false,
+    testKey: async (apiKey) => {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 10000)
+      try {
+        const res = await fetch("https://api.cohere.com/v1/models", {
+          headers: { authorization: `Bearer ${apiKey}` },
+          signal: controller.signal,
+        })
+        if (res.ok) return { ok: true }
+        const body = await res.json().catch(() => ({}))
+        const err = (body as any).error?.message || `HTTP ${res.status}`
+        return { ok: false, error: err }
+      } finally {
+        clearTimeout(timeout)
+      }
+    },
+  },
+  {
+    key: "perplexity",
+    label: "Perplexity (Sonar)",
+    envVar: "PERPLEXITY_API_KEY",
+    defaultBaseUrl: "https://api.perplexity.ai",
+    needsBaseUrl: false,
+    testKey: async (apiKey) => {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 10000)
+      try {
+        const res = await fetch("https://api.perplexity.ai/models", {
+          headers: { authorization: `Bearer ${apiKey}` },
+          signal: controller.signal,
+        })
+        if (res.ok) return { ok: true }
+        const body = await res.json().catch(() => ({}))
+        const err = (body as any).error?.message || `HTTP ${res.status}`
+        return { ok: false, error: err }
+      } finally {
+        clearTimeout(timeout)
+      }
+    },
+  },
+  {
+    key: "custom",
+    label: "Custom (OpenAI-compatible)",
+    envVar: "CUSTOM_API_KEY",
+    defaultBaseUrl: "https://api.example.com/v1",
+    needsBaseUrl: true,
+    baseUrlLabel: "Custom API base URL (any OpenAI-compatible endpoint)",
+    testKey: async (apiKey, baseUrl) => {
+      const url = baseUrl ? `${baseUrl.replace(/\/+$/, "")}/models` : ""
+      if (!url) return { ok: false, error: "Base URL is required" }
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 10000)
+      try {
+        const headers: Record<string, string> = { authorization: `Bearer ${apiKey}` }
+        const res = await fetch(url, { headers, signal: controller.signal })
+        if (res.ok) return { ok: true }
+        const body = await res.json().catch(() => ({}))
+        const err = (body as any).error?.message || `HTTP ${res.status}`
+        return { ok: false, error: err }
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : String(err) }
+      } finally {
+        clearTimeout(timeout)
+      }
+    },
+  },
 ]
 
 // ── Telegram Bot Setup ────────────────────────────────────────────────

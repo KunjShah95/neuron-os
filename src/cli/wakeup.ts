@@ -131,9 +131,18 @@ async function promptForArg(entry: CommandEntry): Promise<string | null> {
  *
  * This is a well-established pattern used by git, fzf, neovim, etc.
  */
+function isScriptEntry(script: string | undefined, entry: string): boolean {
+  if (!script || script === entry) return false
+  return /\.(ts|js|mjs|cjs)$/.test(script)
+}
+
 async function runCommandInteractive(_program: Command, args: string[]): Promise<void> {
   const entry = process.execPath
   const script = process.argv[1]
+  if (!isScriptEntry(script, entry)) {
+    await runCommandSpawn(entry, null, args)
+    return
+  }
   if (!script) {
     // Fallback: resolve project root and use that path
     const fallbackScript = resolve(process.cwd(), "index.ts")
@@ -159,10 +168,8 @@ async function runCommandInteractive(_program: Command, args: string[]): Promise
   await runCommandSpawn(entry, script, args)
 }
 
-async function runCommandSpawn(entry: string, script: string, args: string[]): Promise<void> {
-  // Pass AEGIS_SPAWNED=1 so the child knows it was spawned from wakeup
-  // and can suppress duplicate banner rendering.
-  const child = spawn(entry, [script, ...args], {
+async function runCommandSpawn(entry: string, script: string | null, args: string[]): Promise<void> {
+  const child = spawn(entry, script ? [script, ...args] : args, {
     stdio: "inherit",
     cwd: process.cwd(),
     env: { ...process.env, AEGIS_SPAWNED: "1" },

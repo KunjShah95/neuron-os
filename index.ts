@@ -17,41 +17,69 @@ function loadDotEnv(): void {
     resolve(process.cwd(), ".env"),
   ].filter(Boolean) as string[]
   const envPath = candidates.find((p) => existsSync(p))
+  if (envPath) {
+    try {
+      const content = readFileSync(envPath, "utf-8")
+      for (const line of content.split("\n")) {
+        const trimmed = line.trim()
+        if (!trimmed || trimmed.startsWith("#")) continue
+        // Strip optional 'export ' prefix
+        const cleaned = trimmed.startsWith("export ") ? trimmed.slice(7) : trimmed
+        const eqIdx = cleaned.indexOf("=")
+        if (eqIdx <= 0) continue
+        const key = cleaned.slice(0, eqIdx).trim()
+        let value = cleaned.slice(eqIdx + 1).trim()
+        // Strip surrounding quotes if present
+        if ((value.startsWith('"') && value.endsWith('"')) ||
+            (value.startsWith("'") && value.endsWith("'"))) {
+          value = value.slice(1, -1)
+        }
+        if (key && !process.env[key]) {
+          process.env[key] = value
+        }
+      }
+    } catch {
+      // .env loading is best-effort
+    }
+  }
+
+  // ── Load vault agent.env (keys from `aegis setup-keys`) ──────────
+  const homeDir = process.env.HOME || process.env.USERPROFILE
+  if (homeDir) {
+    const vaultEnvPath = resolve(homeDir, ".aegis", "agent.env")
+    if (existsSync(vaultEnvPath)) {
+      try {
+        const content = readFileSync(vaultEnvPath, "utf-8")
+        for (const line of content.split("\n")) {
+          const trimmed = line.trim()
+          if (!trimmed || trimmed.startsWith("#")) continue
+          const eqIdx = trimmed.indexOf("=")
+          if (eqIdx > 0) {
+            const key = trimmed.slice(0, eqIdx).trim()
+            let value = trimmed.slice(eqIdx + 1).trim()
+            if (key && !process.env[key]) {
+              process.env[key] = value
+            }
+          }
+        }
+      } catch {
+        // agent.env loading is best-effort
+      }
+    }
+  }
+
+  // ── Warn if no keys are set at all ───────────────────────────────
   if (!envPath) {
-    // No .env file found — not an error, but hint the user on first run
     const hasAnyKey = [
       "AEGIS_AI_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY",
-      "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY",
-      "GROQ_API_KEY", "MISTRAL_API_KEY", "AZURE_OPENAI_API_KEY",
-      "TOGETHERAI_API_KEY", "XAI_API_KEY", "COHERE_API_KEY", "PERPLEXITY_API_KEY",
+      "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "GEMINI_API_KEY",
+      "GOOGLE_GENERATIVE_AI_API_KEY", "GROQ_API_KEY", "MISTRAL_API_KEY",
+      "AZURE_OPENAI_API_KEY", "TOGETHERAI_API_KEY", "XAI_API_KEY",
+      "COHERE_API_KEY", "PERPLEXITY_API_KEY", "NVIDIA_API_KEY", "CUSTOM_API_KEY",
     ].some((k) => process.env[k])
     if (!hasAnyKey) {
       console.warn("  ⚡ No API keys set. Create a .env file from .env.example or run: aegis setup-keys")
     }
-    return
-  }
-  try {
-    const content = readFileSync(envPath, "utf-8")
-    for (const line of content.split("\n")) {
-      const trimmed = line.trim()
-      if (!trimmed || trimmed.startsWith("#")) continue
-      // Strip optional 'export ' prefix
-      const cleaned = trimmed.startsWith("export ") ? trimmed.slice(7) : trimmed
-      const eqIdx = cleaned.indexOf("=")
-      if (eqIdx <= 0) continue
-      const key = cleaned.slice(0, eqIdx).trim()
-      let value = cleaned.slice(eqIdx + 1).trim()
-      // Strip surrounding quotes if present
-      if ((value.startsWith('"') && value.endsWith('"')) ||
-          (value.startsWith("'") && value.endsWith("'"))) {
-        value = value.slice(1, -1)
-      }
-      if (key && !process.env[key]) {
-        process.env[key] = value
-      }
-    }
-  } catch {
-    // .env loading is best-effort
   }
 }
 loadDotEnv()
