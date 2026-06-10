@@ -16,7 +16,7 @@ export interface RouterResult {
   provider: string
   model: string
   estimatedCost: number
-  tier: "cheap" | "balanced" | "premium"
+  tier: "free" | "cheap" | "balanced" | "premium"
   apiKey: string | undefined
   reasoning: string
 }
@@ -102,6 +102,7 @@ export class ModelRouter {
     }
 
     const costMap: Record<string, number> = {
+      free: result.free ?? 0,
       cheap: result.cheap,
       balanced: result.balanced,
       premium: result.premium,

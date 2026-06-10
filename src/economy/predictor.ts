@@ -41,7 +41,9 @@ export function predictCost(task: TaskProfile): CostEstimate {
     if (tp?.api_usd) toolCost += tp.api_usd * task.toolCalls * multiplier
   }
 
+  const free = 0
   const result: CostEstimate = {
+    free,
     cheap: cheap + toolCost,
     balanced: balanced + toolCost,
     premium: premium + toolCost,
@@ -49,6 +51,7 @@ export function predictCost(task: TaskProfile): CostEstimate {
     selected_model: "",
     reasoning:
       `Estimated cost for ${task.complexity} task: ` +
+      `free $${free.toFixed(4)}, ` +
       `cheap $${(cheap + toolCost).toFixed(4)}, ` +
       `balanced $${(balanced + toolCost).toFixed(4)}, ` +
       `premium $${(premium + toolCost).toFixed(4)}`,

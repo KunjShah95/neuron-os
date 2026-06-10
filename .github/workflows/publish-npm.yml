@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*.*.*'
+      - 'v[0-9]*-*'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -20,6 +22,26 @@ jobs:
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
+
+      - name: Sync version from tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          # Strip leading 'v' and any suffix after a hyphen for semver (e.g. v20240610-42 -> 0.0.20240610)
+          # Prefer semver tags (v1.2.3); for date tags produce a valid semver
+          if [[ "$TAG" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            VERSION="${BASH_REMATCH[1]}"
+          else
+            # Date-based tag e.g. v20240610-42 → use package.json version as-is, just strip v
+            VERSION="$(node -e "console.log(require('./package.json').version)")"
+          fi
+          echo "Publishing version: $VERSION"
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
+            pkg.version = '$VERSION';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+        working-directory: packages/aegis
 
       - name: Publish
         run: |

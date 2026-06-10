@@ -1325,14 +1325,14 @@ export class AgentManager {
         if (p3?.costUsd !== undefined) {
           const guard = this.budgetGuards.get(id)
           if (guard) {
-            guard.recordSpend(p3.costUsd, p3.description)
+            guard.recordSpend(p3.costUsd)
             const status = guard.status()
-            instance.metadata.budget_spent = String(guard.spentUsd)
+            instance.metadata.budget_spent = String(guard.spent)
             // Log warning if approaching budget limit
             if (status.recommendation === "skip_optional") {
-              log.warn(`Agent "${id}" nearing budget: $${guard.spentUsd.toFixed(4)} of $${guard.budgetUsd.toFixed(4)}`)
+              log.warn(`Agent "${id}" nearing budget: $${guard.spent.toFixed(4)} of $${guard.budget.toFixed(4)}`)
             } else if (status.recommendation === "abort") {
-              log.warn(`Agent "${id}" over budget: $${guard.spentUsd.toFixed(4)} of $${guard.budgetUsd.toFixed(4)}`)
+              log.warn(`Agent "${id}" over budget: $${guard.spent.toFixed(4)} of $${guard.budget.toFixed(4)}`)
             }
           }
           // Also record to global billing tracker

@@ -39,6 +39,8 @@ function providerLabel(p: AIProviderType): string {
       return "Cohere"
     case "perplexity":
       return "Perplexity"
+    case "nvidia":
+      return "NVIDIA"
     case "custom":
       return "Custom endpoint"
   }

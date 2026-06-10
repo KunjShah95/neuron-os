@@ -1,6 +1,6 @@
 {
   "name": "neuron-aegis",
-  "version": "0.2.3",
+  "version": "1.1.0",
   "description": "Aegis — AI operating system for the terminal",
   "type": "module",
   "bin": {

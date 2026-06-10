@@ -19,6 +19,10 @@ export class BudgetGuard {
     return this.spentUsd
   }
 
+  get budget(): number {
+    return this.budgetUsd
+  }
+
   recordSpend(amount: number): void {
     this.spentUsd += amount
   }

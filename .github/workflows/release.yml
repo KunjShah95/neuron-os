@@ -288,3 +288,42 @@ jobs:
             git tag "${{ steps.tag.outputs.tag }}"
             git push origin "${{ steps.tag.outputs.tag }}" || echo "Tag push failed (non-fatal)"
           fi
+
+  # ─────────────────────────────────────────────────────────────────
+  # npm publish — update packages/aegis and publish to registry
+  # ─────────────────────────────────────────────────────────────────
+  publish-npm:
+    name: Publish to npm
+    needs: [release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Sync version into packages/aegis
+        run: |
+          VERSION=$(node -e "console.log(require('./package.json').version)")
+          echo "Syncing version $VERSION into packages/aegis"
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('packages/aegis/package.json','utf8'));
+            pkg.version = '$VERSION';
+            fs.writeFileSync('packages/aegis/package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+      - name: Publish
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "⚠️  NPM_TOKEN secret not set — skipping publish"
+            echo "   Set it at: https://github.com/KunjShah95/neuron-os/settings/secrets/actions"
+            exit 0
+          fi
+          npm publish
+        working-directory: packages/aegis
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { createWriteStream, existsSync, mkdirSync, chmodSync } from "node:fs"
-import { get } from "node:https"
 import { resolve, dirname } from "node:path"
 import { homedir } from "node:os"
 import { spawn } from "node:child_process"
@@ -42,8 +41,17 @@ async function main() {
   const os = osMap[process.platform]
   const arch = archMap[process.arch]
   const ext = os === "windows" ? ".exe" : ""
-  if (!os) throw new Error(`Unsupported OS: ${process.platform}`)
-  if (!arch) throw new Error(`Unsupported arch: ${process.arch}`)
+
+  if (!os) {
+    console.error(`\n  Unsupported OS: ${process.platform}`)
+    console.error("  Visit: https://github.com/KunjShah95/neuron-os#install")
+    process.exit(1)
+  }
+  if (!arch) {
+    console.error(`\n  Unsupported architecture: ${process.arch}`)
+    console.error("  Visit: https://github.com/KunjShah95/neuron-os#install")
+    process.exit(1)
+  }
 
   const binPath = resolve(CACHE, `aegis-${os}-${arch}${ext}`)
   if (!existsSync(binPath)) {
@@ -56,28 +64,30 @@ async function main() {
 
     console.error(`\n  Downloading aegis for ${os}/${arch}...`)
     try {
-      await new Promise((resolvePromise, reject) => {
-        mkdirSync(CACHE, { recursive: true })
+      mkdirSync(CACHE, { recursive: true })
+      const res = await fetch(url, { redirect: "follow" })
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} — ${res.statusText}`)
+      }
+      const buf = Buffer.from(await res.arrayBuffer())
+      await new Promise((resolve, reject) => {
         const file = createWriteStream(binPath)
-        get(url, (res) => {
-          if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-            file.close()
-            reject(new Error(`Redirect (use the final URL): ${res.headers.location}`))
-            return
-          }
-          if (res.statusCode !== 200) {
-            file.close()
-            reject(new Error(`HTTP ${res.statusCode}`))
-            return
-          }
-          res.pipe(file)
-          file.on("finish", () => { file.close(); chmodSync(binPath, 0o755); resolvePromise() })
-        }).on("error", reject)
+        file.on("error", reject)
+        file.on("finish", () => {
+          file.close(() => {
+            chmodSync(binPath, 0o755)
+            resolve()
+          })
+        })
+        file.end(buf)
       })
       console.error(`  Cached to ${binPath}\n`)
     } catch (err) {
-      console.error(`  Download failed: ${err.message}`)
-      console.error(`    ${url}`)
+      console.error(`\n  Download failed: ${err.message}`)
+      console.error(`  URL: ${url}`)
+      console.error("\n  Manual install options:")
+      console.error("    curl: https://raw.githubusercontent.com/KunjShah95/neuron-os/main/install.sh | bash")
+      console.error("    docs: https://github.com/KunjShah95/neuron-os#install\n")
       process.exit(1)
     }
   }
