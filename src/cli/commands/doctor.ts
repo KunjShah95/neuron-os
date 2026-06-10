@@ -129,12 +129,19 @@ function checkAiProvider(): CheckResult {
     { env: "ANTHROPIC_API_KEY", label: "Anthropic" },
     { env: "OPENAI_API_KEY", label: "OpenAI" },
     { env: "DEEPSEEK_API_KEY", label: "DeepSeek" },
-    { env: "OPENROUTER_API_KEY", label: "OpenRouter" },
-    { env: "GROQ_API_KEY", label: "Groq" },
     { env: "GEMINI_API_KEY", label: "Gemini" },
-    { env: "MISTRAL_API_KEY", label: "Mistral" },
-    { env: "AEGIS_AI_API_KEY", label: "Aegis AI" },
     { env: "GOOGLE_GENERATIVE_AI_API_KEY", label: "Google AI" },
+    { env: "GROQ_API_KEY", label: "Groq" },
+    { env: "OPENROUTER_API_KEY", label: "OpenRouter" },
+    { env: "MISTRAL_API_KEY", label: "Mistral" },
+    { env: "AZURE_OPENAI_API_KEY", label: "Azure OpenAI" },
+    { env: "TOGETHERAI_API_KEY", label: "Together AI" },
+    { env: "XAI_API_KEY", label: "xAI (Grok)" },
+    { env: "COHERE_API_KEY", label: "Cohere" },
+    { env: "PERPLEXITY_API_KEY", label: "Perplexity" },
+    { env: "NVIDIA_API_KEY", label: "NVIDIA" },
+    { env: "CUSTOM_API_KEY", label: "Custom" },
+    { env: "AEGIS_AI_API_KEY", label: "Aegis AI" },
   ]
 
   const configured = keys.filter((k) => process.env[k.env])
