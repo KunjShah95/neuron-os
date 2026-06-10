@@ -483,7 +483,7 @@ async function setupTelegramBot(): Promise<void> {
 
 // ── Wizard ────────────────────────────────────────────────────────────
 
-async function runSetupKeysWizard(): Promise<void> {
+export async function runSetupKeysWizard(): Promise<void> {
   try {
     p.intro("🔑 API Key Setup")
 

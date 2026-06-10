@@ -16,6 +16,25 @@
 
 ## Quick Start
 
+**🚀 New to Aegis? Start here:**
+
+```bash
+# Install globally
+npm install -g neuron-aegis
+
+# Quick interactive setup (recommended for first-time users)
+aegis init
+
+# Or configure API keys directly
+aegis setup-keys
+
+# Check your setup
+aegis doctor
+
+# Launch Aegis
+aegis wakeup
+```
+
 **Zero install — three ways to start:**
 
 **1. CURL** (Linux/macOS — downloads prebuilt binary)

@@ -4,7 +4,8 @@
   "description": "Aegis — AI operating system for the terminal",
   "type": "module",
   "bin": {
-    "neuron-aegis": "./bin/aegis.js"
+    "neuron-aegis": "./bin/aegis.js",
+    "aegis": "./bin/aegis.js"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -30,6 +31,7 @@
   ],
   "files": [
     "bin/",
+    "scripts/",
     "README.md",
     "LICENSE"
   ],
@@ -77,6 +79,7 @@
     "zod": "^4.4.3"
   },
   "scripts": {
+    "postinstall": "node scripts/postinstall.js",
     "docs:generate": "bun run scripts/extract-commands.ts",
     "docs:check": "bun run scripts/extract-commands.ts --check",
     "pretest": "bun run docs:check",
