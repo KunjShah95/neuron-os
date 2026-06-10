@@ -7,6 +7,8 @@ describe("getDefaultConfiguredProvider", () => {
     "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY",
     "GEMINI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY", "GROQ_API_KEY",
     "MISTRAL_API_KEY", "DEEPSEEK_API_KEY", "AEGIS_AI_API_KEY",
+    "XAI_API_KEY", "COHERE_API_KEY", "TOGETHERAI_API_KEY",
+    "NVIDIA_API_KEY", "AZURE_OPENAI_API_KEY", "PERPLEXITY_API_KEY",
   ]
 
   beforeEach(() => {
@@ -40,5 +42,11 @@ describe("getDefaultConfiguredProvider", () => {
   it("falls back to openai when anthropic missing", () => {
     process.env.OPENAI_API_KEY = "sk-test"
     expect(getDefaultConfiguredProvider()?.provider).toBe("openai")
+  })
+
+  it("returns groq when only GROQ_API_KEY set", () => {
+    process.env.GROQ_API_KEY = "test-key"
+    const result = getDefaultConfiguredProvider()
+    expect(result?.provider).toBe("groq")
   })
 })
