@@ -4,14 +4,20 @@
  */
 
 import { Output, extractJsonMiddleware, generateText, jsonSchema, wrapLanguageModel, stepCountIs } from "ai"
+import type { LanguageModel, Tool } from "ai"
 import { z } from "zod"
 import chalk from "chalk"
 import { AIProviderManager, resolveApiKey } from "../../ai"
-import type { AIConfig } from "../../ai"
+import type { AIConfig, AIProvider } from "../../ai"
 import { ActionTracker } from "../../agent/action-tracker"
 import { AgentToolExecutor } from "../../agent/agent-tools"
 import { createWebTools } from "./web-tools"
 import type { Plan, PlanStep } from "./types"
+
+interface PlanTool extends Tool {
+  parameters?: Tool["inputSchema"]
+  execute?: (args: Record<string, unknown>) => Promise<string>
+}
 
 const planSchema = z.object({
   researchSummary: z.string().optional(),
@@ -29,7 +35,7 @@ const planSchema = z.object({
 })
 
 function buildAIConfig(): AIConfig {
-  const provider = (process.env.AEGIS_AI_PROVIDER ?? "openai") as any
+  const provider = (process.env.AEGIS_AI_PROVIDER ?? "openai") as AIProvider
   return {
     provider,
     model: process.env.AEGIS_AI_MODEL ?? "gpt-4o",
@@ -63,11 +69,11 @@ export async function generatePlan(goal: string): Promise<Plan> {
 
   const ai = new AIProviderManager(buildAIConfig())
   const model = wrapLanguageModel({
-    model: ai.getModel() as any,
+    model: ai.getModel() as LanguageModel,
     middleware: extractJsonMiddleware(),
   })
 
-  const tools: Record<string, any> = {
+  const tools: Record<string, PlanTool> = {
     read_file: {
       description: "Read a text file from the workspace. Use a path relative to the project root.",
       parameters: jsonSchema({
@@ -75,7 +81,7 @@ export async function generatePlan(goal: string): Promise<Plan> {
         properties: { path: { type: "string", description: "Relative file path" } },
         required: ["path"],
       }),
-      execute: async (args: any) => executor.readFile(args.path),
+      execute: async (args: { path: string }) => executor.readFile(args.path),
     },
     list_files: {
       description: "List files and directories under a path.",
@@ -84,7 +90,7 @@ export async function generatePlan(goal: string): Promise<Plan> {
         properties: { path: { type: "string" }, recursive: { type: "boolean" } },
         required: ["path"],
       }),
-      execute: async (args: any) => executor.listFiles(args.path, args.recursive),
+      execute: async (args: { path: string; recursive?: boolean }) => executor.listFiles(args.path, args.recursive ?? false),
     },
     search_files: {
       description: 'Find files matching a glob pattern (e.g. "*.ts", "**/*.md"). Optional content substring filter.',
@@ -97,12 +103,12 @@ export async function generatePlan(goal: string): Promise<Plan> {
         },
         required: ["root", "pattern"],
       }),
-      execute: async (args: any) => executor.searchFiles(args.root, args.pattern, args.content_contains),
+      execute: async (args: { root: string; pattern: string; content_contains?: string }) => executor.searchFiles(args.root, args.pattern, args.content_contains),
     },
     analyze_codebase: {
       description: "Summarize structure: file counts, size, extensions. Read-only.",
       parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: [] }),
-      execute: async (args: any) => executor.analyzeCodebase(args.path || "."),
+      execute: async (args: { path?: string }) => executor.analyzeCodebase(args.path || "."),
     },
     list_skills: {
       description: "List absolute paths to SKILL.md files under configured skill directories.",
@@ -112,7 +118,7 @@ export async function generatePlan(goal: string): Promise<Plan> {
     read_skill: {
       description: "Read a SKILL.md file. Path must be absolute and under skill roots.",
       parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: ["path"] }),
-      execute: async (args: any) => executor.readSkill(args.path),
+      execute: async (args: { path: string }) => executor.readSkill(args.path),
     },
     ...(hasWeb ? createWebTools(tracker) : {}),
   }
@@ -120,7 +126,7 @@ export async function generatePlan(goal: string): Promise<Plan> {
   console.log(chalk.cyan("\n🔍 Researching & drafting a plan…\n"))
 
   const result = await generateText({
-    model: model as any,
+    model: model as LanguageModel,
     tools,
     stopWhen: stepCountIs(20),
     system: PLAN_INSTRUCTIONS(process.cwd(), hasWeb),

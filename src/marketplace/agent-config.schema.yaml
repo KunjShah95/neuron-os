@@ -1,0 +1,39 @@
+# Agent Marketplace — agent.yaml Schema
+#
+# This file defines the required and optional fields for an agent.yaml
+# configuration file used in the Aegis Agent Marketplace.
+
+name: string          # Required. Lowercase alphanumeric with dots/hyphens/underscores. Max 64 chars.
+type: string          # Optional. One of: coder, reviewer, planner, researcher, analyst, creator, custom. Default: custom.
+description: string   # Required. 10-512 characters. Human-readable description of what the agent does.
+tools: array          # Optional. List of tool specifications this agent can use.
+  - name: string      #   Required. Tool name identifier.
+    description: string  # Optional. What this tool does.
+    parameters: object   # Optional. JSON Schema for tool parameters.
+prompt_template: string  # Required. The system prompt for the agent. Supports {{variable}} interpolation. Max 32KB.
+budget_usd: number    # Optional. Maximum cost per invocation in USD. 0-1000. Default: 0.1.
+sandbox: string       # Optional. Execution sandbox: none, docker, local, remote. Default: none.
+provider: string      # Optional. LLM provider identifier. Default: local.
+tags: array           # Optional. Searchable tags. Max 20 items, each ≤32 chars.
+
+# Example agent.yaml:
+#
+# name: code-reviewer
+# type: reviewer
+# description: Automated code review agent that analyzes pull requests for bugs, security issues, and style violations
+# tools:
+#   - name: file_read
+#     description: Read file contents from the repository
+#   - name: git_diff
+#     description: Get the diff between two commits
+# prompt_template: |
+#   You are an expert code reviewer. Analyze the provided code changes and provide
+#   actionable feedback on bugs, security issues, performance, and style.
+#   Be specific and cite line numbers when possible.
+# budget_usd: 0.05
+# sandbox: docker
+# provider: anthropic
+# tags:
+#   - code-review
+#   - security
+#   - quality

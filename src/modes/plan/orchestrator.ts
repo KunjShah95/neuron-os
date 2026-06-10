@@ -6,8 +6,9 @@
 import chalk from "chalk"
 import { confirm, isCancel, text } from "@clack/prompts"
 import { ToolLoopAgent, stepCountIs, jsonSchema } from "ai"
+import type { Tool } from "ai"
 import { AIProviderManager, resolveApiKey } from "../../ai"
-import type { AIConfig } from "../../ai"
+import type { AIConfig, AIProvider } from "../../ai"
 import { ActionTracker } from "../../agent/action-tracker"
 import { AgentToolExecutor } from "../../agent/agent-tools"
 import { runApprovalFlow, applyAndReport } from "../../agent/approval"
@@ -17,8 +18,13 @@ import { createWebTools } from "./web-tools"
 import type { PlanStep } from "./types"
 import { renderTerminalMarkdown } from "../../tui/terminal-md"
 
+interface PlanTool extends Tool {
+  parameters?: Tool["inputSchema"]
+  execute?: (args: Record<string, unknown>) => Promise<string>
+}
+
 function buildAIConfig(): AIConfig {
-  const provider = (process.env.AEGIS_AI_PROVIDER ?? "openai") as any
+  const provider = (process.env.AEGIS_AI_PROVIDER ?? "openai") as AIProvider
   return {
     provider,
     model: process.env.AEGIS_AI_MODEL ?? "gpt-4o",
@@ -53,11 +59,11 @@ export async function runPlanModeInteractive(): Promise<void> {
 
   const tracker = new ActionTracker()
   const executor = new AgentToolExecutor(tracker)
-  const tools: Record<string, any> = {
+  const tools: Record<string, PlanTool> = {
     read_file: {
       description: "Read a workspace file (relative path).",
       parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: ["path"] }),
-      execute: async (args: any) => executor.readFile(args.path),
+      execute: async (args: { path: string }) => executor.readFile(args.path),
     },
     create_file: {
       description: "Stage creation of a new file (not written until approval).",
@@ -66,7 +72,7 @@ export async function runPlanModeInteractive(): Promise<void> {
         properties: { path: { type: "string" }, content: { type: "string" } },
         required: ["path", "content"],
       }),
-      execute: async (args: any) => executor.createFile(args.path, args.content),
+      execute: async (args: { path: string; content: string }) => executor.createFile(args.path, args.content),
     },
     modify_file: {
       description: "Stage a full-file replacement (pending approval).",
@@ -78,12 +84,12 @@ export async function runPlanModeInteractive(): Promise<void> {
         },
         required: ["path", "content"],
       }),
-      execute: async (args: any) => executor.modifyFile(args.path, args.content),
+      execute: async (args: { path: string; content: string }) => executor.modifyFile(args.path, args.content),
     },
     delete_file: {
       description: "Stage deletion of a file (pending approval).",
       parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: ["path"] }),
-      execute: async (args: any) => executor.deleteFile(args.path),
+      execute: async (args: { path: string }) => executor.deleteFile(args.path),
     },
     list_files: {
       description: "List files/dirs at a path.",
@@ -92,7 +98,7 @@ export async function runPlanModeInteractive(): Promise<void> {
         properties: { path: { type: "string" }, recursive: { type: "boolean" } },
         required: ["path"],
       }),
-      execute: async (args: any) => executor.listFiles(args.path, args.recursive),
+      execute: async (args: { path: string; recursive?: boolean }) => executor.listFiles(args.path, args.recursive ?? false),
     },
     search_files: {
       description: "Find files matching a glob pattern.",
@@ -101,12 +107,12 @@ export async function runPlanModeInteractive(): Promise<void> {
         properties: { root: { type: "string" }, pattern: { type: "string" }, content_contains: { type: "string" } },
         required: ["root", "pattern"],
       }),
-      execute: async (args: any) => executor.searchFiles(args.root, args.pattern, args.content_contains),
+      execute: async (args: { root: string; pattern: string; content_contains?: string }) => executor.searchFiles(args.root, args.pattern, args.content_contains),
     },
     analyze_codebase: {
       description: "Summarize the codebase structure.",
       parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: [] }),
-      execute: async (args: any) => executor.analyzeCodebase(args.path || "."),
+      execute: async (args: { path?: string }) => executor.analyzeCodebase(args.path || "."),
     },
     ...(process.env.FIRECRAWL_API_KEY ? createWebTools(tracker) : {}),
   }
@@ -119,7 +125,7 @@ export async function runPlanModeInteractive(): Promise<void> {
       model: ai.getModel(),
       stopWhen: stepCountIs(10),
       tools,
-    } as any)
+    } as ConstructorParameters<typeof ToolLoopAgent>[0])
 
     const r = await agent.generate({ prompt: stepPrompt(plan.goal, step) })
     if (r.text?.trim()) {

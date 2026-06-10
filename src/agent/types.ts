@@ -30,6 +30,14 @@ export interface AgentDef {
   isolationLevel?: IsolationLevel
   /** Agent goal / task description */
   goal?: string
+  /**
+   * Budget cap in USD for this agent's entire lifecycle.
+   * When set, the agent self-throttles: if cumulative spend exceeds
+   * the budget, optional tool calls are skipped and the agent may
+   * abort expensive operations.
+   * @default undefined (unlimited)
+   */
+  budgetUsd?: number
 }
 
 // ── Auto-recovery ─────────────────────────────────────────────────────
