@@ -4,7 +4,6 @@
  */
 
 import { ToolLoopAgent, stepCountIs, jsonSchema } from "ai"
-import type { Tool } from "ai"
 import { AIProviderManager, resolveApiKey } from "../../ai"
 import type { AIConfig, AIProvider } from "../../ai"
 import { ActionTracker } from "../../agent/action-tracker"
