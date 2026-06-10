@@ -13,8 +13,8 @@ export default function Failures() {
   })
 
   const clusters = data?.clusters || []
-  const totalFailures = clusters.reduce((sum, c) => sum + c.count, 0)
-  const criticalCount = clusters.filter((c) => c.severity >= 8).length
+  const totalFailures = clusters.reduce((sum: number, c: FailureCluster) => sum + c.count, 0)
+  const criticalCount = clusters.filter((c: FailureCluster) => c.severity >= 8).length
 
   return (
     <AnimatedPage className="p-8">

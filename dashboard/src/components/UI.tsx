@@ -50,7 +50,7 @@ export function MetricCard({
 }: {
   label: string
   value: string | number
-  sub?: string
+  sub?: ReactNode
   icon: string
 }) {
   return (

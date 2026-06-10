@@ -48,9 +48,9 @@ export default function SLOs() {
           {data?.p95LatencyByEndpoint && data.p95LatencyByEndpoint.length > 0 ? (
             <div className="space-y-3">
               {data.p95LatencyByEndpoint
-                .sort((a, b) => b.p95Ms - a.p95Ms)
-                .map((ep) => {
-                  const maxLatency = Math.max(...data.p95LatencyByEndpoint.map((e) => e.p95Ms))
+                .sort((a: { p95Ms: number }, b: { p95Ms: number }) => b.p95Ms - a.p95Ms)
+                .map((ep: { endpoint: string; p95Ms: number; count: number }) => {
+                  const maxLatency = Math.max(...data.p95LatencyByEndpoint.map((e: { p95Ms: number }) => e.p95Ms))
                   return (
                     <div key={ep.endpoint} className="flex items-center justify-between">
                       <div className="flex-1 min-w-0 mr-4">
