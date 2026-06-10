@@ -25,7 +25,7 @@ export const ToolPricing = z.object({
       prompt_usd_per_1k: z.number().nonnegative(),
       completion_usd_per_1k: z.number().nonnegative(),
       context_window: z.number().int().positive(),
-      quality_tier: z.enum(["cheap", "balanced", "premium"]),
+      quality_tier: z.enum(["free", "cheap", "balanced", "premium"]),
       benchmark_score: z.number().min(0).max(1).optional(),
     }),
   ),
@@ -34,10 +34,11 @@ export const ToolPricing = z.object({
 export type ToolPricing = z.infer<typeof ToolPricing>
 
 export const CostEstimate = z.object({
+  free: z.number(),
   cheap: z.number(),
   balanced: z.number(),
   premium: z.number(),
-  selected: z.enum(["cheap", "balanced", "premium"]),
+  selected: z.enum(["free", "cheap", "balanced", "premium"]),
   selected_model: z.string(),
   reasoning: z.string(),
 })
