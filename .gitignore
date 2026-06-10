@@ -89,6 +89,7 @@ docs/
 *.md
 !/README.md
 !/ROADMAP.md
+!/COMMANDS.md
 !/security-whitepaper.md
 !.planning/specs/*.md
 !.planning/plans/*.md
