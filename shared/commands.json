@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-10T02:47:29.853Z",
+  "generatedAt": "2026-06-11T22:37:48.762Z",
   "commands": [
     {
       "name": "adversarial",
@@ -1087,6 +1087,11 @@
           "flag": "--verbose",
           "description": "Show detailed information for each check",
           "required": false
+        },
+        {
+          "flag": "--fix",
+          "description": "Auto-fix issues where possible",
+          "required": false
         }
       ],
       "sourceFile": "src/cli/commands/doctor.ts",
@@ -2115,6 +2120,13 @@
       "options": [],
       "sourceFile": "src/cli/commands/production.ts",
       "description": "Initialize the vault with a master password"
+    },
+    {
+      "name": "init",
+      "options": [],
+      "sourceFile": "src/cli/commands/setup.ts",
+      "description": "Quick start guide - configure API keys and launch Aegis",
+      "alias": "start"
     },
     {
       "name": "insights",
@@ -3459,6 +3471,24 @@
       ],
       "sourceFile": "src/cli/commands/production.ts",
       "description": "Register a route permission requirement"
+    },
+    {
+      "name": "providers",
+      "options": [
+        {
+          "flag": "--json",
+          "description": "Output as JSON",
+          "required": false
+        },
+        {
+          "flag": "-c, --configured",
+          "description": "Show only configured providers",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/providers.ts",
+      "description": "List AI providers — configured status, default model, and base URL",
+      "alias": "prov"
     },
     {
       "name": "publish <id>",
@@ -4959,6 +4989,12 @@
       "sourceFile": "src/cli/commands/improve-validate.ts",
       "description": "Show validation statistics",
       "parent": "validate"
+    },
+    {
+      "name": "version",
+      "options": [],
+      "sourceFile": "src/cli/commands/setup.ts",
+      "description": "Show Aegis version"
     },
     {
       "name": "voice",

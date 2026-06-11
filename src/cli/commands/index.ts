@@ -78,6 +78,7 @@ import { registerPredict } from "./predict"
 import { registerWorkflow } from "./workflow"
 import { registerTls } from "./tls"
 import { registerMarketplace } from "./marketplace"
+import { registerProviders } from "./providers"
 
 export function registerAllCommands(program: Command) {
   registerDoctor(program)
@@ -159,4 +160,5 @@ export function registerAllCommands(program: Command) {
   registerWorkflow(program)
   registerTls(program)
   registerMarketplace(program)
+  registerProviders(program)
 }
