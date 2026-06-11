@@ -26,6 +26,7 @@ import { MemorySystem } from "../memory/system"
 import {
   createMockModel,
   createTestEngine as createTestEngineFromUtils,
+  closeTestStores,
   AIProviderManager,
   type AIConfig,
 } from "../test-utils/mock-ai"
@@ -36,6 +37,7 @@ describe("Chat Integration Tests", () => {
   const TMP_ROOT = resolve(process.cwd(), "tmp-test-chat-int-" + Date.now())
 
   afterAll(() => {
+    closeTestStores()
     try {
       rmSync(TMP_ROOT, { recursive: true, force: true })
     } catch {

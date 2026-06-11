@@ -12,19 +12,17 @@ import { describe, it, expect, afterAll } from "bun:test"
 import { mkdirSync, rmSync } from "node:fs"
 import { resolve } from "node:path"
 import { SessionStore } from "./session-persistence"
-import { createTestEngine } from "../test-utils/mock-ai"
+import { createTestEngine, closeTestStores } from "../test-utils/mock-ai"
 
 describe("Session Persistence Tests", () => {
   const TMP_ROOT = resolve(process.cwd(), "tmp-test-sess-persist-" + Date.now())
 
   afterAll(() => {
-    // Best-effort: engines opened via createTestEngine hold SQLite handles
-    // until process exit, so on Windows this dir may linger until the run
-    // ends. It is gitignored (tmp-*) and never committed.
+    closeTestStores()
     try {
       rmSync(TMP_ROOT, { recursive: true, force: true })
     } catch {
-      // ignore
+      // best-effort cleanup
     }
   })
 

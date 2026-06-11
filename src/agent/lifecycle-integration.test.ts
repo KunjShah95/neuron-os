@@ -19,7 +19,7 @@ import { describe, it, expect, afterAll } from "bun:test"
 import { MemorySystem } from "../memory/system"
 import { AgentRuntime, createAgentRuntime } from "./runtime"
 import { AgentEngine, type AgentEngineConfig } from "./engine"
-import { createTestEngine as createTestEngineFromUtils } from "../test-utils/mock-ai"
+import { createTestEngine as createTestEngineFromUtils, closeTestStores } from "../test-utils/mock-ai"
 import { mkdirSync, rmSync } from "node:fs"
 import { resolve } from "node:path"
 
@@ -27,6 +27,7 @@ describe("Lifecycle Integration Tests", () => {
   const TMP_ROOT = resolve(process.cwd(), "tmp-test-lifecycle-" + Date.now())
 
   afterAll(() => {
+    closeTestStores()
     try {
       rmSync(TMP_ROOT, { recursive: true, force: true })
     } catch {
