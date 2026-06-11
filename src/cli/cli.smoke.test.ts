@@ -140,6 +140,7 @@ describe("CLI smoke tests", () => {
       "workflow",
       "tls",
       "marketplace",
+      "providers",
       "init",
     ]
 

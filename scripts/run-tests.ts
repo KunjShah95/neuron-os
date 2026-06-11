@@ -191,6 +191,9 @@ async function main() {
   // ── 6.22 CLI Smoke Tests (all commands --help + zero-key guards) ──
   await run("CLI Smoke Tests", ["bun", "test", "src/cli/cli.smoke.test.ts"])
 
+  // ── 6.23 Providers Command Tests ──────────────────────────────────
+  await run("Providers Command Tests", ["bun", "test", "src/cli/commands/providers.test.ts"])
+
   // ── 7. TypeScript Typecheck ───────────────────────────────────────
   await run("TypeScript Typecheck", ["bun", "run", "--bun", "tsc", "--noEmit"])
 
