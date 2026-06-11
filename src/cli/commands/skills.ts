@@ -24,6 +24,24 @@ export function registerSkills(program: Command): void {
   const skillsCmd = program
     .command("skills")
     .description("Manage skills and browse the marketplace (also: evolution, publish, hub)")
+    .action(async () => {
+      await skillRegistry.loadAll()
+      const skills = skillRegistry.list()
+      console.log(`\n  ${theme.heading("Installed Skills")}`)
+      console.log(`  ${theme.muted(`(${skills.length} total)`)}\n`)
+      if (skills.length === 0) {
+        console.log(`  ${theme.muted("No skills installed.")}`)
+        console.log(`  ${theme.muted("Browse the marketplace: aegis skills browse")}\n`)
+        return
+      }
+      for (const skill of skills) {
+        const tags = skill.metadata.tags
+        const tagStr = tags && tags.length > 0 ? ` ${theme.muted(tags.map((t) => `#${t}`).join(" "))}` : ""
+        console.log(`  ${theme.textBright(skill.metadata.name)}${tagStr}`)
+        if (skill.metadata.description) console.log(`    ${theme.muted(skill.metadata.description)}`)
+        console.log()
+      }
+    })
 
   // ── skills search <query> ──────────────────────────────────────────
 

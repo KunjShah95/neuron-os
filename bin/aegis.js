@@ -1,85 +1,58 @@
 #!/usr/bin/env node
-import { createWriteStream, existsSync, mkdirSync, chmodSync } from "node:fs"
+import { existsSync } from "node:fs"
 import { resolve, dirname } from "node:path"
-import { homedir } from "node:os"
-import { spawn } from "node:child_process"
+import { spawnSync, spawn } from "node:child_process"
 import { fileURLToPath } from "node:url"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(__dirname, "..")
-const CACHE = resolve(homedir(), ".aegis", "bin")
 
-function findProjectRoot(start) {
-  if (process.env.AEGIS_PROJECT) return process.env.AEGIS_PROJECT
-  let dir = start
-  for (let i = 0; i < 8; i++) {
-    if (existsSync(resolve(dir, "index.ts")) && existsSync(resolve(dir, "package.json"))) return dir
-    const parent = dirname(dir)
-    if (parent === dir) break
-    dir = parent
-  }
-  return null
-}
-
+// Running inside Bun already — launch index.ts directly
 const isBun = process.argv0 === "bun" || !!process.versions?.bun
 if (isBun) {
-  const project = findProjectRoot(ROOT)
-  if (project) {
-    const entry = resolve(project, "index.ts")
-    const child = spawn(entry, process.argv.slice(2), { stdio: "inherit", env: process.env })
-    child.on("exit", (c) => process.exit(c ?? 0))
-  } else {
-    main().catch((err) => { console.error(err.message); process.exit(1) })
-  }
+  const entry = resolve(ROOT, "index.ts")
+  const child = spawn(entry, process.argv.slice(2), { stdio: "inherit", env: process.env })
+  child.on("exit", (c) => process.exit(c ?? 0))
 } else {
-  main().catch((err) => { console.error(err.message); process.exit(1) })
-}
-
-async function main() {
-  const osMap = { win32: "windows", linux: "linux", darwin: "darwin" }
-  const archMap = { x64: "x64", arm64: "arm64" }
-  const os = osMap[process.platform]
-  const arch = archMap[process.arch]
-  const ext = os === "windows" ? ".exe" : ""
-  if (!os) throw new Error(`Unsupported OS: ${process.platform}`)
-  if (!arch) throw new Error(`Unsupported arch: ${process.arch}`)
-
-  const binPath = resolve(CACHE, `aegis-${os}-${arch}${ext}`)
-  if (!existsSync(binPath)) {
-    const asset = `aegis-${os}-${arch}${ext}`
-    const v = process.env.AEGIS_VERSION || "latest"
-    const REPO = "KunjShah95/neuron-os"
-    const url = v === "latest"
-      ? `https://github.com/${REPO}/releases/latest/download/${asset}`
-      : `https://github.com/${REPO}/releases/download/${v}/${asset}`
-
-    console.error(`\n  Downloading aegis for ${os}/${arch}...`)
-    try {
-      mkdirSync(CACHE, { recursive: true })
-      const res = await fetch(url, { redirect: "follow" })
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status} ${res.statusText}`)
-      }
-      const buf = Buffer.from(await res.arrayBuffer())
-      await new Promise((resolveWrite, rejectWrite) => {
-        const file = createWriteStream(binPath)
-        file.on("error", rejectWrite)
-        file.on("finish", () => {
-          file.close(() => {
-            chmodSync(binPath, 0o755)
-            resolveWrite()
-          })
-        })
-        file.end(buf)
-      })
-      console.error(`  Cached to ${binPath}\n`)
-    } catch (err) {
-      console.error(`  Download failed: ${err.message}`)
-      console.error(`    ${url}`)
+  // Running under Node.js — delegate to Bun if available
+  const bunBin = findBun()
+  if (bunBin) {
+    const entry = resolve(ROOT, "index.ts")
+    if (!existsSync(entry)) {
+      console.error("\n  Error: index.ts not found at " + entry)
+      console.error("  The package may be corrupted. Re-install: npm install -g neuron-aegis\n")
       process.exit(1)
     }
-  }
+    const child = spawn(bunBin, [entry, ...process.argv.slice(2)], { stdio: "inherit", env: process.env })
+    child.on("exit", (c) => process.exit(c ?? 0))
+  } else {
+    console.error(`
+  Aegis requires the Bun runtime.
 
-  const child = spawn(binPath, process.argv.slice(2), { stdio: "inherit", env: process.env })
-  child.on("exit", (c) => process.exit(c ?? 0))
+  Install Bun (fast, one command):
+    curl -fsSL https://bun.sh/install | bash    # macOS / Linux
+    powershell -c "irm bun.sh/install.ps1|iex"  # Windows
+
+  Then re-run: aegis ${process.argv.slice(2).join(" ")}
+`)
+    process.exit(1)
+  }
+}
+
+function findBun() {
+  // Check if bun is in PATH
+  const result = spawnSync("bun", ["--version"], { encoding: "utf8", stdio: "pipe" })
+  if (result.status === 0) return "bun"
+  // Windows: check common install paths
+  const winPaths = [
+    resolve(process.env.USERPROFILE ?? "", ".bun", "bin", "bun.exe"),
+    resolve(process.env.LOCALAPPDATA ?? "", "bun", "bun.exe"),
+  ]
+  for (const p of winPaths) {
+    if (existsSync(p)) return p
+  }
+  // Unix: check ~/.bun/bin/bun
+  const unixPath = resolve(process.env.HOME ?? "", ".bun", "bin", "bun")
+  if (existsSync(unixPath)) return unixPath
+  return null
 }
