@@ -57,6 +57,32 @@ jobs:
       - name: Typecheck (tsc --noEmit)
         run: bun run --bun tsc --noEmit
 
+  pack-safety:
+    name: Package Safety
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.x'
+
+      - name: Assert published tarball ships no runtime data, secrets, or tests
+        run: |
+          contents=$(npm pack --dry-run 2>&1)
+          fail=0
+          for pat in 'data/' '\.db' '\.env$' 'agent\.env' '\.test\.ts' '\.spec\.ts' 'test-utils/'; do
+            if echo "$contents" | grep -qE "$pat"; then
+              echo "::error::Tarball contains forbidden entries matching: $pat"
+              echo "$contents" | grep -E "$pat" | head
+              fail=1
+            fi
+          done
+          if [ "$fail" = "1" ]; then exit 1; fi
+          echo "Package safety check passed — no data/secrets/tests in tarball."
+
   test:
     name: Backend Tests
     runs-on: ubuntu-latest

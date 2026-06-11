@@ -664,6 +664,11 @@ export class SessionStore {
   // ── Cleanup ────────────────────────────────────────────────────────
 
   close(): void {
+    try {
+      this.db.exec("PRAGMA wal_checkpoint(TRUNCATE)")
+    } catch {
+      // checkpoint is best-effort; proceed to close regardless
+    }
     this.db.close()
     log.info("Session store closed")
   }
