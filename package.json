@@ -8,7 +8,8 @@
     "aegis": "./bin/aegis.js"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.0.0",
+    "bun": ">=1.0.0"
   },
   "repository": {
     "type": "git",
@@ -31,13 +32,46 @@
   ],
   "files": [
     "bin/",
+    "src/",
     "scripts/",
-    "README.md",
-    "LICENSE"
+    "data/",
+    "index.ts",
+    ".env.example",
+    "README.md"
   ],
   "publishConfig": {
     "access": "public",
     "tag": "latest"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.81",
+    "@ai-sdk/azure": "^3.0.70",
+    "@ai-sdk/mistral": "^3.0.37",
+    "@ai-sdk/openai": "^3.0.67",
+    "@clack/core": "^1.4.1",
+    "@clack/prompts": "^1.5.1",
+    "@mendable/firecrawl-js": "^4.25.2",
+    "@slack/socket-mode": "^2.0.7",
+    "@slack/web-api": "^7.16.0",
+    "ai": "^6.0.196",
+    "ansi-escapes": "^7.3.0",
+    "better-sqlite3": "^11.0.0",
+    "chalk": "5",
+    "cli-truncate": "^6.0.0",
+    "commander": "^15.0.0",
+    "diff": "^9.0.0",
+    "discord.js": "^14.26.4",
+    "glob": "^13.0.6",
+    "irc-framework": "^4.14.0",
+    "marked": "^18.0.4",
+    "marked-terminal": "^7.3.0",
+    "matrix-js-sdk": "^41.7.0-rc.3",
+    "nodemailer": "^8.0.10",
+    "picocolors": "^1.1.1",
+    "telegraf": "^4.16.3",
+    "twilio": "^6.0.2",
+    "yaml": "^2.9.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@ai-sdk/anthropic": "^3.0.81",
@@ -79,7 +113,9 @@
     "zod": "^4.4.3"
   },
   "scripts": {
-    "postinstall": "node scripts/postinstall.js",
+    "postinstall": "node scripts/postinstall.js || true",
+    "build": "bun build index.ts --outfile=dist/index.js --target=bun --minify",
+    "prepublishOnly": "bun run build",
     "docs:generate": "bun run scripts/extract-commands.ts",
     "docs:check": "bun run scripts/extract-commands.ts --check",
     "pretest": "bun run docs:check",

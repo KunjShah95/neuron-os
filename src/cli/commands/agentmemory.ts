@@ -69,7 +69,6 @@ export function registerAgentMemory(program: Command) {
         console.log(theme.error("  ✗ Could not connect"))
         console.log(theme.dim("  Ensure agentmemory is running:"))
         console.log(theme.dim("    npx @agentmemory/agentmemory"))
-        process.exitCode = 1
         return
       }
 

@@ -11,7 +11,6 @@ export function registerSetup(program: Command) {
       await runSetupFlow(prompter)
     })
 
-  // Quick-start alias for new users
   program
     .command("init")
     .alias("quick-start")
@@ -43,7 +42,6 @@ export function registerSetup(program: Command) {
       console.log("\n✨ Ready! Run: aegis chat\n")
     })
 
-  // version command alias (complement to --version flag)
   program
     .command("version")
     .description("Show Aegis version")
