@@ -12,6 +12,10 @@ import { setPendingCommand, flushHistorySync } from "./src/cli/history"
 // Supports both KEY=value and export KEY=value formats.
 // Does NOT override already-set environment variables.
 function loadDotEnv(): void {
+  // Hermetic mode: skip loading any .env / vault files. Used by CI and the
+  // CLI smoke tests so zero-key guards can be exercised deterministically.
+  if (process.env["AEGIS_NO_DOTENV"] === "1") return
+
   const candidates = [
     import.meta.dir ? resolve(import.meta.dir, ".env") : null,
     resolve(process.cwd(), ".env"),

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect, afterAll } from "bun:test"
 /**
  * Chat system integration tests with a mock AI provider.
  *
@@ -29,11 +29,19 @@ import {
   AIProviderManager,
   type AIConfig,
 } from "../test-utils/mock-ai"
-import { mkdirSync } from "node:fs"
+import { mkdirSync, rmSync } from "node:fs"
 import { resolve } from "node:path"
 
 describe("Chat Integration Tests", () => {
   const TMP_ROOT = resolve(process.cwd(), "tmp-test-chat-int-" + Date.now())
+
+  afterAll(() => {
+    try {
+      rmSync(TMP_ROOT, { recursive: true, force: true })
+    } catch {
+      // best-effort cleanup
+    }
+  })
 
   // ── Mock AI helpers (imported from shared test utilities) ────────
 
