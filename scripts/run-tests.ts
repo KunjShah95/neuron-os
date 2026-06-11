@@ -188,6 +188,9 @@ async function main() {
   await run("Session Store Tests", ["bun", "test", "src/session/store.test.ts"])
   await run("Session Manager Tests", ["bun", "test", "src/session/manager.test.ts"])
 
+  // ── 6.22 CLI Smoke Tests (all commands --help + zero-key guards) ──
+  await run("CLI Smoke Tests", ["bun", "test", "src/cli/cli.smoke.test.ts"])
+
   // ── 7. TypeScript Typecheck ───────────────────────────────────────
   await run("TypeScript Typecheck", ["bun", "run", "--bun", "tsc", "--noEmit"])
 

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect, afterAll } from "bun:test"
 /**
  * Unit tests for MemorySystem — file-based long-term memory, facts, daily logs,
  * auto memories, search, and context building.
@@ -8,11 +8,19 @@ import { describe, it, expect } from "bun:test"
  */
 
 import { MemorySystem } from "./system"
-import { existsSync, mkdirSync, readFileSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs"
 import { resolve } from "node:path"
 
 describe("Memory System Tests", () => {
   const TMP_ROOT = resolve(process.cwd(), "tmp-test-memsys-" + Date.now())
+
+  afterAll(() => {
+    try {
+      rmSync(TMP_ROOT, { recursive: true, force: true })
+    } catch {
+      // best-effort cleanup
+    }
+  })
 
   function freshSystem(subdir: string): MemorySystem {
     const dir = resolve(TMP_ROOT, subdir)

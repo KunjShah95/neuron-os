@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect, afterAll } from "bun:test"
 /**
  * Unit tests for session store — file-based chat session persistence.
  *
@@ -103,6 +103,14 @@ import { saveSession, loadSession, listSessions, deleteSession, renameSession, e
 import type { SessionRecord } from "./sessionStore"
 
 describe("Session Store Tests", () => {
+  afterAll(() => {
+    try {
+      rmSync(TMP_ROOT, { recursive: true, force: true })
+    } catch {
+      // best-effort cleanup
+    }
+  })
+
   function makeTestRecord(id: string): SessionRecord {
     return {
       id,

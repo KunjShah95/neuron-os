@@ -1,0 +1,28 @@
+# Tests — not needed at runtime
+*.test.ts
+*.spec.ts
+**/__tests__/**
+src/test-utils/
+
+# Local runtime state (never ship user/dev data)
+data/
+coverage/
+dist/
+out/
+tmp/
+tmp-*/
+
+# Dev configs / artifacts
+*.log
+.env
+.aegis/
+.superpowers/
+.qodo/
+.planning/
+.husky/
+.github/
+dashboard/
+website/
+demo/
+demo-video/
+evals/

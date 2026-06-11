@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect, afterAll } from "bun:test"
 /**
  * Integration tests for the full agent lifecycle:
  *
@@ -20,11 +20,19 @@ import { MemorySystem } from "../memory/system"
 import { AgentRuntime, createAgentRuntime } from "./runtime"
 import { AgentEngine, type AgentEngineConfig } from "./engine"
 import { createTestEngine as createTestEngineFromUtils } from "../test-utils/mock-ai"
-import { mkdirSync } from "node:fs"
+import { mkdirSync, rmSync } from "node:fs"
 import { resolve } from "node:path"
 
 describe("Lifecycle Integration Tests", () => {
   const TMP_ROOT = resolve(process.cwd(), "tmp-test-lifecycle-" + Date.now())
+
+  afterAll(() => {
+    try {
+      rmSync(TMP_ROOT, { recursive: true, force: true })
+    } catch {
+      // best-effort cleanup
+    }
+  })
 
   function freshMemorySystem(subdir: string): MemorySystem {
     const dir = resolve(TMP_ROOT, subdir)
