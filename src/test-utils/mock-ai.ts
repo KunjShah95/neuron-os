@@ -13,6 +13,7 @@ import type { AIConfig } from "../ai"
 import { AgentRuntime } from "../agent/runtime"
 import { AgentEngine, type AgentEngineConfig } from "../agent/engine"
 import { MemorySystem } from "../memory/system"
+import { SessionStore } from "../memory/session-persistence"
 import type { LanguageModel } from "ai"
 import { mkdirSync } from "node:fs"
 import { resolve } from "node:path"
@@ -91,6 +92,22 @@ export function createMockAI(responseText: string): AIProviderManager {
 // Re-export types for use in test files
 export { AIProviderManager, type AIConfig }
 
+// Tracks SessionStores opened by createTestEngine so test files can close
+// them (releasing SQLite handles) in afterAll before deleting temp dirs.
+const openedTestStores: SessionStore[] = []
+
+/** Close and forget all SessionStores opened by createTestEngine. */
+export function closeTestStores(): void {
+  for (const store of openedTestStores) {
+    try {
+      store.close()
+    } catch {
+      // already closed / best-effort
+    }
+  }
+  openedTestStores.length = 0
+}
+
 /**
  * Create a ready-to-use AgentEngine with a mock AI and a MemorySystem
  * pointed at a temp directory.
@@ -105,7 +122,13 @@ export async function createTestEngine(
   subdir: string,
   aiResponse: string,
   engineConfig?: AgentEngineConfig,
-): Promise<{ engine: AgentEngine; runtime: AgentRuntime; memory: MemorySystem; dir: string }> {
+): Promise<{
+  engine: AgentEngine
+  runtime: AgentRuntime
+  memory: MemorySystem
+  sessionStore: SessionStore
+  dir: string
+}> {
   const dir = resolve(tmpRoot, subdir)
   mkdirSync(dir, { recursive: true })
 
@@ -114,8 +137,17 @@ export async function createTestEngine(
 
   const runtime = new AgentRuntime({ agentId: "engine-test", agentType: "build", cwd: dir }, memory)
 
-  const ai = createMockAI(aiResponse)
-  const engine = new AgentEngine(runtime, ai, engineConfig)
+  // Use a per-test SessionStore in the temp dir so engine session writes don't
+  // pollute the real `data/sessions.db` singleton. Owned stores are tracked so
+  // closeTestStores() can release the handles in afterAll.
+  let sessionStore = engineConfig?.sessionStore
+  if (!sessionStore) {
+    sessionStore = new SessionStore(resolve(dir, "sessions.db"))
+    openedTestStores.push(sessionStore)
+  }
 
-  return { engine, runtime, memory, dir }
+  const ai = createMockAI(aiResponse)
+  const engine = new AgentEngine(runtime, ai, { ...engineConfig, sessionStore })
+
+  return { engine, runtime, memory, sessionStore, dir }
 }
