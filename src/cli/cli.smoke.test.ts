@@ -145,8 +145,9 @@ describe("CLI smoke tests", () => {
     ]
 
     for (const cmd of commands) {
-      // Each invocation cold-starts `bun run index.ts` (~5s); allow generous
-      // headroom so the test isn't killed (exit 143) under parallel load.
+      // Each invocation cold-starts `bun run index.ts` (~5s, but can exceed
+      // 30s when the machine is saturated); allow generous headroom so the
+      // test isn't killed (exit 143) under parallel load.
       test(
         `${cmd} --help exits 0`,
         () => {
@@ -155,7 +156,7 @@ describe("CLI smoke tests", () => {
           const combined = stdout + stderr
           expect(combined.length).toBeGreaterThan(0)
         },
-        30000,
+        60000,
       )
     }
   })
