@@ -618,7 +618,7 @@ export async function runSetupKeysWizard(): Promise<void> {
       const setDefault = guardCancel(
         await p.confirm({
           message: "Set a default AI provider?",
-          initialValue: configuredProviders.length > 1,
+          initialValue: true,
         }),
       )
 

@@ -74,7 +74,7 @@ export function registerServe(program: Command) {
         }
 
         if (opts.webhookSecret) {
-          console.log(theme.info(`  🌐 Webhook routes enabled (secret: ${opts.webhookSecret.slice(0, 4)}…)`))
+console.log(theme.info(` 🌐 Webhook routes enabled (secret: ****)`))
         }
 
         if (opts.sessionDb) {

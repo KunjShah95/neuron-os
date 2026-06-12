@@ -32,10 +32,12 @@ async function handleVoiceLocal(opts: { project?: string }) {
   console.log(`  TTS (Text-to-Speech):   ${ttsLabel}\n`)
 
   if (!status.sttOk) {
-    console.log(chalk.yellow("  ⚠  Local STT unavailable — using text input fallback.\n"))
+    console.log(chalk.yellow("  ⚠  Local STT unavailable — using text input fallback."))
+    console.log(chalk.dim("     Install: npm install --save-dev @xenova/transformers\n"))
   }
   if (!status.ttsOk) {
-    console.log(chalk.yellow("  ⚠  Local TTS unavailable — responses will be text-only.\n"))
+    console.log(chalk.yellow("  ⚠  Local TTS unavailable — responses will be text-only."))
+    console.log(chalk.dim("     Install: npm install --save-dev espeak-ng\n"))
   }
 
   const prov = orchestrator.getStatus()

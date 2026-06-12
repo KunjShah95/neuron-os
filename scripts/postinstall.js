@@ -113,7 +113,7 @@ function main() {
           "PERPLEXITY_API_KEY",
           "NVIDIA_API_KEY",
           "CUSTOM_API_KEY",
-        ].some((k) => content.includes(`${k}=`))
+        ].some((k) => content.split("\n").some((line) => !line.trimStart().startsWith("#") && line.includes(`${k}=`)))
         
         if (hasAnyKey) {
           hasApiKey = true

@@ -73,7 +73,8 @@ function loadDotEnv(): void {
   }
 
   // ── Warn if no keys are set at all ───────────────────────────────
-  if (!envPath) {
+  // Skip warning for setup-keys and doctor commands since users expect to configure keys there
+  if (!envPath && !_rawArgs.includes("setup-keys") && !_rawArgs.includes("doctor")) {
     const hasAnyKey = [
       "AEGIS_AI_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY",
       "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "GEMINI_API_KEY",
@@ -82,7 +83,7 @@ function loadDotEnv(): void {
       "COHERE_API_KEY", "PERPLEXITY_API_KEY", "NVIDIA_API_KEY", "CUSTOM_API_KEY",
     ].some((k) => process.env[k])
     if (!hasAnyKey) {
-      console.warn("  ⚡ No API keys set. Create a .env file from .env.example or run: aegis setup-keys")
+      // Warning will be shown after banner by provider-guard if needed
     }
   }
 }

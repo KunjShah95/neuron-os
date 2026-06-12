@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neuron OS — Demo</title>
+<style>
+  :root{
+    --bg:#05060a; --ink:#e8ecf4; --mut:#8b95a8;
+    --acc:#7c5cff; --acc2:#19d3c5; --acc3:#ff5c8a;
+    --line:rgba(255,255,255,.08); --glow:rgba(124,92,255,.45);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;background:var(--bg);overflow:hidden;color:var(--ink);
+    font-family:"SF Pro Display",Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;}
+  /* 4K stage. Record this element fullscreen at 3840x2160. */
+  #stage{position:fixed;inset:0;overflow:hidden;}
+  #frame{position:fixed;top:50%;left:50%;width:3840px;height:2160px;transform-origin:center center;
+    transform:translate(-50%,-50%) scale(.2);
+    background:
+      radial-gradient(1200px 800px at 20% 10%,rgba(124,92,255,.18),transparent 60%),
+      radial-gradient(1100px 900px at 85% 90%,rgba(25,211,197,.14),transparent 60%),
+      radial-gradient(900px 700px at 50% 50%,rgba(255,92,138,.06),transparent 70%),
+      #05060a;
+    overflow:hidden;}
+  .grid{position:absolute;inset:0;opacity:.5;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),
+      linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:120px 120px;mask:radial-gradient(circle at 50% 50%,#000 30%,transparent 85%);}
+  .scene{position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;opacity:0;pointer-events:none;
+    padding:0 320px;text-align:center;transition:opacity .8s ease;}
+  .scene.on{opacity:1;}
+  .kick{font-size:38px;letter-spacing:14px;text-transform:uppercase;color:var(--acc2);
+    font-weight:700;margin-bottom:40px;opacity:0;transform:translateY(30px);}
+  h1{font-size:200px;line-height:.96;font-weight:800;letter-spacing:-4px;
+    background:linear-gradient(120deg,#fff 10%,var(--acc) 55%,var(--acc2) 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    opacity:0;transform:translateY(50px);}
+  h2{font-size:130px;line-height:1.02;font-weight:800;letter-spacing:-2px;
+    opacity:0;transform:translateY(40px);}
+  .sub{font-size:58px;color:var(--mut);font-weight:500;margin-top:50px;max-width:2600px;
+    opacity:0;transform:translateY(40px);line-height:1.35;}
+  .grad{background:linear-gradient(120deg,var(--acc),var(--acc2));-webkit-background-clip:text;
+    background-clip:text;color:transparent;}
+  /* reveal animation states (driven by .on + child index delays via CSS) */
+  .scene.on .kick,.scene.on h1,.scene.on h2,.scene.on .sub,
+  .scene.on .stat,.scene.on .term,.scene.on .pill,.scene.on .feat,.scene.on .cta{
+    animation:rise .9s cubic-bezier(.2,.7,.2,1) forwards;}
+  .scene.on .kick{animation-delay:.1s}
+  .scene.on h1,.scene.on h2{animation-delay:.25s}
+  .scene.on .sub{animation-delay:.55s}
+  @keyframes rise{to{opacity:1;transform:translateY(0)}}
+  /* stats */
+  .stats{display:flex;gap:90px;margin-top:90px;}
+  .stat{opacity:0;transform:translateY(40px);}
+  .stat .n{font-size:170px;font-weight:800;line-height:1;
+    background:linear-gradient(120deg,#fff,var(--acc2));-webkit-background-clip:text;
+    background-clip:text;color:transparent;}
+  .stat .l{font-size:42px;color:var(--mut);margin-top:18px;letter-spacing:2px;text-transform:uppercase;}
+  .scene.on .stat:nth-child(1){animation-delay:.5s}
+  .scene.on .stat:nth-child(2){animation-delay:.65s}
+  .scene.on .stat:nth-child(3){animation-delay:.8s}
+  .scene.on .stat:nth-child(4){animation-delay:.95s}
+  /* terminal */
+  .term{width:2700px;margin-top:30px;background:rgba(10,12,20,.92);
+    border:1px solid var(--line);border-radius:36px;overflow:hidden;
+    box-shadow:0 60px 160px rgba(0,0,0,.6),0 0 120px var(--glow);
+    opacity:0;transform:translateY(40px);animation-delay:.5s;}
+  .term .bar{display:flex;align-items:center;gap:24px;padding:38px 46px;
+    background:rgba(255,255,255,.03);border-bottom:1px solid var(--line);}
+  .dot{width:34px;height:34px;border-radius:50%}
+  .dot.r{background:#ff5f57}.dot.y{background:#febc2e}.dot.g{background:#28c840}
+  .term .tt{margin-left:24px;color:var(--mut);font-size:36px;font-family:"SF Mono",ui-monospace,Menlo,monospace}
+  .term .body{padding:60px 70px;font-family:"SF Mono",ui-monospace,Menlo,monospace;
+    font-size:48px;line-height:1.7;text-align:left;min-height:760px;}
+  .term .body .c1{color:var(--acc2)}.term .body .c2{color:var(--acc)}
+  .term .body .c3{color:#7ee787}.term .body .cm{color:var(--mut)}
+  .cursor{display:inline-block;width:26px;height:58px;background:var(--acc2);
+    vertical-align:-10px;margin-left:6px;animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  /* feature grid */
+  .feats{display:grid;grid-template-columns:repeat(3,1fr);gap:50px;margin-top:80px;width:3100px;}
+  .feat{background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:32px;
+    padding:64px 56px;text-align:left;opacity:0;transform:translateY(40px);
+    box-shadow:0 30px 80px rgba(0,0,0,.4);}
+  .feat .ic{font-size:90px;margin-bottom:30px}
+  .feat .ft{font-size:60px;font-weight:700;margin-bottom:22px}
+  .feat .fd{font-size:40px;color:var(--mut);line-height:1.4}
+  .scene.on .feat:nth-child(1){animation-delay:.5s}
+  .scene.on .feat:nth-child(2){animation-delay:.62s}
+  .scene.on .feat:nth-child(3){animation-delay:.74s}
+  .scene.on .feat:nth-child(4){animation-delay:.86s}
+  .scene.on .feat:nth-child(5){animation-delay:.98s}
+  .scene.on .feat:nth-child(6){animation-delay:1.1s}
+  /* pills */
+  .pills{display:flex;flex-wrap:wrap;gap:32px;justify-content:center;margin-top:80px;max-width:3000px}
+  .pill{padding:34px 60px;border-radius:100px;border:1px solid var(--line);
+    background:rgba(255,255,255,.03);font-size:48px;font-weight:600;
+    opacity:0;transform:translateY(30px);}
+  .pill.hot{border-color:var(--acc);box-shadow:0 0 60px var(--glow);color:#fff}
+  .scene.on .pill{animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards}
+  .scene.on .pill:nth-child(n){animation-delay:calc(.4s + .05s * var(--i,0))}
+  /* compare */
+  .cmp{display:flex;gap:60px;margin-top:70px}
+  .col{width:1500px;background:rgba(255,255,255,.025);border:1px solid var(--line);
+    border-radius:36px;padding:70px;text-align:left}
+  .col.win{border-color:var(--acc2);box-shadow:0 0 100px rgba(25,211,197,.25)}
+  .col h3{font-size:72px;margin-bottom:48px}
+  .col .row{font-size:48px;color:var(--mut);padding:28px 0;border-bottom:1px solid var(--line);
+    display:flex;gap:28px;align-items:center}
+  .col.win .row{color:var(--ink)}
+  .chk{color:var(--acc2);font-weight:800}.x{color:#ff5f57;font-weight:800}
+  /* cta */
+  .cta{margin-top:80px;opacity:0;transform:translateY(40px);animation-delay:.7s}
+  .install{font-family:"SF Mono",ui-monospace,monospace;font-size:78px;font-weight:700;
+    padding:60px 110px;border-radius:40px;border:1px solid var(--acc);
+    background:linear-gradient(120deg,rgba(124,92,255,.18),rgba(25,211,197,.12));
+    box-shadow:0 0 140px var(--glow);display:inline-block}
+  .install .p{color:var(--acc2)}
+  .url{font-size:54px;color:var(--mut);margin-top:60px;letter-spacing:3px}
+  /* progress + brand */
+  .brandmark{position:absolute;top:80px;left:120px;display:flex;align-items:center;gap:30px;
+    font-size:54px;font-weight:800;letter-spacing:1px;z-index:5}
+  .logo{width:80px;height:80px;border-radius:22px;
+    background:linear-gradient(135deg,var(--acc),var(--acc2));
+    box-shadow:0 0 60px var(--glow);position:relative}
+  .logo::after{content:"";position:absolute;inset:24px;border-radius:8px;
+    border:5px solid rgba(255,255,255,.85)}
+  .prog{position:absolute;bottom:0;left:0;height:10px;width:0;
+    background:linear-gradient(90deg,var(--acc),var(--acc2));box-shadow:0 0 30px var(--glow);z-index:6}
+  .caption{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);
+    font-size:46px;color:var(--mut);letter-spacing:2px;text-align:center;max-width:3000px;
+    opacity:0;transition:opacity .6s}
+  .caption.on{opacity:1}
+  /* floating orbs */
+  .orb{position:absolute;border-radius:50%;filter:blur(60px);opacity:.5;z-index:0}
+  .orb.a{width:700px;height:700px;background:var(--acc);top:-200px;right:-150px;animation:float 14s ease-in-out infinite}
+  .orb.b{width:600px;height:600px;background:var(--acc2);bottom:-180px;left:-120px;animation:float 18s ease-in-out infinite reverse}
+  @keyframes float{50%{transform:translate(80px,60px) scale(1.1)}}
+  #hint{position:fixed;bottom:18px;right:24px;color:#6b7280;font-size:15px;z-index:99;
+    background:rgba(0,0,0,.6);padding:8px 14px;border-radius:10px;font-family:monospace}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="frame">
+    <div class="orb a"></div><div class="orb b"></div>
+    <div class="grid"></div>
+    <div class="brandmark"><div class="logo"></div>NEURON&nbsp;OS</div>
+
+    <!-- S1 HOOK -->
+    <section class="scene" data-cap="Your terminal just woke up.">
+      <div class="kick">The Operating System for Autonomous AI Agents</div>
+      <h1>NEURON&nbsp;OS</h1>
+      <div class="sub">Spawn typed AI agents. Watch them think, dream, and evolve — <span class="grad">all from your terminal.</span></div>
+    </section>
+
+    <!-- S2 PROBLEM -->
+    <section class="scene" data-cap="AI agents today are black boxes.">
+      <div class="kick">The Problem</div>
+      <h2>You can't <span class="grad">trust</span><br>what you can't <span class="grad">see.</span></h2>
+      <div class="sub">Today's agent frameworks hide cost, ignore failures, and forget everything. No audit. No memory. No control.</div>
+    </section>
+
+    <!-- S3 TERMINAL DEMO -->
+    <section class="scene" data-cap="One command. Full agent runtime.">
+      <div class="kick">See It Run</div>
+      <div class="term">
+        <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          <span class="tt">aegis — wakeup</span></div>
+        <div class="body" id="termbody"></div>
+      </div>
+    </section>
+
+    <!-- S4 STATS -->
+    <section class="scene" data-cap="A complete platform — not a library.">
+      <div class="kick">What's In The Box</div>
+      <h2>Everything. <span class="grad">Built in.</span></h2>
+      <div class="stats">
+        <div class="stat"><div class="n" data-to="36">0</div><div class="l">TUI Modes</div></div>
+        <div class="stat"><div class="n" data-to="13">0</div><div class="l">AI Providers</div></div>
+        <div class="stat"><div class="n" data-to="14">0</div><div class="l">Agent Types</div></div>
+        <div class="stat"><div class="n" data-to="11">0</div><div class="l">Chat Platforms</div></div>
+      </div>
+    </section>
+
+    <!-- S5 FEATURES -->
+    <section class="scene" data-cap="The features that make it feel alive.">
+      <div class="kick">Core Capabilities</div>
+      <div class="feats">
+        <div class="feat"><div class="ic">🧠</div><div class="ft">Dream Engine</div><div class="fd">6-phase idle cycle: replay, pattern discovery, knowledge compression — agents learn while they sleep.</div></div>
+        <div class="feat"><div class="ic">🧬</div><div class="ft">Evolution Engine</div><div class="fd">Auto-code mutation from dreams + failures. Test-verified, auto-applied, rollback-safe.</div></div>
+        <div class="feat"><div class="ic">💠</div><div class="ft">Soul System</div><div class="fd">8 archetypes, 6 moods. Every agent has personality that shapes how it works.</div></div>
+        <div class="feat"><div class="ic">🔐</div><div class="ft">Trust Layer</div><div class="fd">Audit logs, per-agent tool policies, AES-256 vault, RBAC, signed plugins.</div></div>
+        <div class="feat"><div class="ic">💸</div><div class="ft">Cost Router</div><div class="fd">Auto-picks the cheapest viable provider per task. Pre-flight budget guard.</div></div>
+        <div class="feat"><div class="ic">🕸️</div><div class="ft">Agent Mesh</div><div class="fd">5 orchestration topologies. Swarms that debate, vote, and converge.</div></div>
+      </div>
+    </section>
+
+    <!-- S6 PROVIDERS -->
+    <section class="scene" data-cap="Every model. One interface.">
+      <div class="kick">13 Providers · 11 Platforms</div>
+      <h2>Plug in <span class="grad">anything.</span></h2>
+      <div class="pills">
+        <span class="pill hot" style="--i:0">Anthropic</span><span class="pill" style="--i:1">OpenAI</span>
+        <span class="pill" style="--i:2">Gemini</span><span class="pill" style="--i:3">DeepSeek</span>
+        <span class="pill" style="--i:4">Groq</span><span class="pill" style="--i:5">Mistral</span>
+        <span class="pill" style="--i:6">xAI</span><span class="pill" style="--i:7">Ollama&nbsp;(local)</span>
+        <span class="pill" style="--i:8">Discord</span><span class="pill" style="--i:9">Slack</span>
+        <span class="pill" style="--i:10">Telegram</span><span class="pill" style="--i:11">WhatsApp</span>
+        <span class="pill" style="--i:12">Matrix</span><span class="pill" style="--i:13">Signal</span>
+      </div>
+    </section>
+
+    <!-- S7 COMPARE -->
+    <section class="scene" data-cap="Why teams switch.">
+      <div class="kick">Neuron OS vs The Rest</div>
+      <div class="cmp">
+        <div class="col"><h3 style="color:var(--mut)">LangChain · AutoGPT · CrewAI</h3>
+          <div class="row"><span class="x">✕</span> No built-in cost attribution</div>
+          <div class="row"><span class="x">✕</span> No persistent memory or graph</div>
+          <div class="row"><span class="x">✕</span> No audit / trust layer</div>
+          <div class="row"><span class="x">✕</span> Library, not a runtime</div>
+          <div class="row"><span class="x">✕</span> Agents that never improve</div>
+        </div>
+        <div class="col win"><h3 class="grad">Neuron OS</h3>
+          <div class="row"><span class="chk">✓</span> Per-task USD cost tracking</div>
+          <div class="row"><span class="chk">✓</span> Knowledge graph + vector memory</div>
+          <div class="row"><span class="chk">✓</span> Audit, RBAC, encrypted vault</div>
+          <div class="row"><span class="chk">✓</span> Full local-first OS</div>
+          <div class="row"><span class="chk">✓</span> Self-improving: dream → evolve</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- S8 CTA -->
+    <section class="scene" data-cap="Install in one line. Free & open-source.">
+      <div class="kick">Get Started</div>
+      <h2>Wake up your <span class="grad">terminal.</span></h2>
+      <div class="cta">
+        <div class="install"><span class="p">$</span> npm install -g neuron-aegis</div>
+        <div class="url">github.com/KunjShah95/neuron-os&nbsp;&nbsp;·&nbsp;&nbsp;MIT&nbsp;Licensed</div>
+      </div>
+    </section>
+
+    <div class="caption" id="cap"></div>
+    <div class="prog" id="prog"></div>
+  </div>
+</div>
+<div id="hint">SPACE pause · ← → step · F fit · R restart</div>
+
+<script>
+// ---- fit 4K frame into viewport (preview only; record at native 3840x2160) ----
+function fit(){
+  const f=document.getElementById('frame');
+  const s=Math.min(innerWidth/3840,innerHeight/2160);
+  f.style.transform=`translate(-50%,-50%) scale(${s})`;
+}
+addEventListener('resize',fit);fit();
+
+// ---- scene timing (ms) ----
+const scenes=[...document.querySelectorAll('.scene')];
+const DUR=[6000,6000,9000,7000,9000,7500,8000,8000];
+const cap=document.getElementById('cap'), prog=document.getElementById('prog');
+let i=0,t=null,paused=false,start=0,raf=null;
+
+function countUp(sc){
+  sc.querySelectorAll('.n[data-to]').forEach(el=>{
+    const to=+el.dataset.to;let n=0;const step=Math.max(1,Math.round(to/40));
+    clearInterval(el._iv);
+    el._iv=setInterval(()=>{n+=step;if(n>=to){n=to;clearInterval(el._iv)}el.textContent=n;},28);
+  });
+}
+const TERM=[
+  {t:'<span class="cm"># spawn an autonomous agent</span>',d:500},
+  {t:'<span class="c1">$</span> aegis agent spawn build "ship the auth feature"',d:700},
+  {t:'<span class="c3">✓</span> soul assigned <span class="c2">[ Architect · confident ]</span>',d:600},
+  {t:'<span class="c3">✓</span> router → <span class="c2">deepseek</span> <span class="cm">($0.0003/task, cheapest viable)</span>',d:600},
+  {t:'<span class="c1">⠿</span> agent working… <span class="cm">memory + graph attached</span>',d:700},
+  {t:'<span class="c3">✓</span> tests pass · audit logged · <span class="c2">cost $0.012</span>',d:600},
+  {t:'<span class="cm"># overnight, it dreams…</span>',d:700},
+  {t:'<span class="c1">🧠</span> dream cycle → <span class="c2">3 insights</span> → evolution applied',d:600},
+];
+function typeTerm(){
+  const b=document.getElementById('termbody');b.innerHTML='';
+  let k=0;
+  (function next(){
+    if(k>=TERM.length)return;
+    const line=document.createElement('div');b.appendChild(line);
+    const full=TERM[k].t;line.innerHTML=full+'<span class="cursor"></span>';
+    setTimeout(()=>{line.innerHTML=full;k++;next();},TERM[k].d+300);
+  })();
+}
+function show(n){
+  scenes.forEach(s=>s.classList.remove('on'));
+  i=(n+scenes.length)%scenes.length;
+  const sc=scenes[i];sc.classList.add('on');
+  cap.textContent=sc.dataset.cap||'';cap.classList.add('on');
+  if(sc.querySelector('.stats'))setTimeout(()=>countUp(sc),500);
+  if(sc.querySelector('.term'))setTimeout(typeTerm,500);
+  start=performance.now();
+  clearTimeout(t);
+  if(!paused)t=setTimeout(()=>show(i+1),DUR[i]);
+}
+function loop(now){
+  const p=Math.min(1,(now-start)/DUR[i]);
+  prog.style.width=(p*100)+'%';
+  raf=requestAnimationFrame(loop);
+}
+addEventListener('keydown',e=>{
+  if(e.code==='Space'){paused=!paused;if(paused){clearTimeout(t);}else{show(i);}e.preventDefault();}
+  if(e.code==='ArrowRight'){clearTimeout(t);show(i+1);}
+  if(e.code==='ArrowLeft'){clearTimeout(t);show(i-1);}
+  if(e.key==='r'||e.key==='R'){clearTimeout(t);show(0);}
+  if(e.key==='f'||e.key==='F'){fit();}
+});
+show(0);raf=requestAnimationFrame(loop);
+</script>
+</body>
+</html>

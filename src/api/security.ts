@@ -67,7 +67,9 @@ export function getAllowedOrigins(config: ApiServerConfig): string[] {
       .map((o) => o.trim())
       .filter(Boolean)
   }
-  return ["http://localhost:5173"]
+  // Default to same-origin only. For production, set AEGIS_CORS_ORIGINS env var.
+  // Examples: "https://yourdomain.com,https://app.yourdomain.com"
+  return []
 }
 
 export function buildCorsHeaders(origin: string | null, allowedOrigins: string[]): Record<string, string> {

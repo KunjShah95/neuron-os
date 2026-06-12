@@ -29,15 +29,8 @@ export function registerSetup(program: Command) {
       }
 
       console.log("\n  Verifying setup...\n")
-      const { spawn } = await import("node:child_process")
-      await new Promise<void>((resolve) => {
-        const scriptArg = process.argv[1] ?? ""
-        const child = spawn(process.execPath, [scriptArg, "doctor"], {
-          stdio: "inherit" as const,
-          env: process.env,
-        })
-        child.on("exit", () => resolve())
-      })
+      const { handleDoctor } = await import("./doctor")
+      await handleDoctor()
 
       console.log("\n✨ Ready! Run: aegis chat\n")
     })

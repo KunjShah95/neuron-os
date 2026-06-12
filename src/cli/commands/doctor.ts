@@ -29,7 +29,7 @@ export function registerDoctor(program: Command) {
     .action(handleDoctor)
 }
 
-async function handleDoctor(opts: { json?: boolean; verbose?: boolean; fix?: boolean }) {
+export async function handleDoctor(opts: { json?: boolean; verbose?: boolean; fix?: boolean } = {}) {
   const results: Record<string, CheckResult> = {}
 
   // ── 1. Runtime check ──────────────────────────────────────────────
