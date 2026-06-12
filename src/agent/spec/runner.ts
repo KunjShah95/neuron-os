@@ -46,7 +46,7 @@ export async function runSpec(spec: AgentSpec, input: RunInput): Promise<RunResu
     model: spec.spec.model.name,
     apiKey: resolveApiKey(spec.spec.model.provider),
     temperature: spec.spec.model.temperature,
-    maxTokens: spec.spec.model.max_tokens,
+    maxOutputTokens: spec.spec.model.max_tokens,
   })
   const engine = new AgentEngine(runtime, ai, {
     sessionId,

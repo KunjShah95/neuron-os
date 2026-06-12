@@ -53,7 +53,7 @@ function buildAIConfig(): AIConfig {
     apiKey: process.env.AEGIS_AI_API_KEY || resolveApiKey(provider),
     baseUrl: process.env.AEGIS_AI_BASE_URL,
     temperature: process.env.AEGIS_TEMPERATURE ? parseFloat(process.env.AEGIS_TEMPERATURE) : undefined,
-    maxTokens: process.env.AEGIS_MAX_TOKENS ? parseInt(process.env.AEGIS_MAX_TOKENS, 10) : undefined,
+    maxOutputTokens: process.env.AEGIS_MAX_TOKENS ? parseInt(process.env.AEGIS_MAX_TOKENS, 10) : undefined,
   }
 }
 
