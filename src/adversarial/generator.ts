@@ -54,7 +54,8 @@ export function generateAdversarialEvals(taskFilePath: string, count: number, mu
   const generated: string[] = []
 
   for (let i = 0; i < Math.min(count, activeMutations.length); i++) {
-    const mutation = activeMutations[i]!
+    const mutation = activeMutations[i]
+    if (!mutation) continue
     const mutated = applyMutation(taskContent, mutation)
     const outPath = join(ADVERSARIAL_DIR, `${taskName}-${mutation}.yaml`)
     writeFileSync(outPath, mutated, "utf-8")

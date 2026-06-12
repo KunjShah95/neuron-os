@@ -122,7 +122,7 @@ export class ActionTracker {
     for (const a of pending) {
       const key = a.type
       if (!grouped[key]) grouped[key] = []
-      grouped[key]!.push(a)
+      grouped[key]?.push(a)
     }
 
     const lines: string[] = ["Pending changes:"]

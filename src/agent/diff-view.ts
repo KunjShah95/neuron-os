@@ -27,8 +27,8 @@ export function composeBeforeAfter(sorted: ActionLog[]): {
   after: string
 } {
   const sortedCopy = [...sorted].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-  const first = sortedCopy[0]!
-  const last = sortedCopy[sortedCopy.length - 1]!
+  const first = sortedCopy[0] ?? sortedCopy[0]
+  const last = sortedCopy[sortedCopy.length - 1] ?? sortedCopy[0]
 
   if (last.type === "file_delete") {
     return { before: last.details.before ?? "", after: "" }
