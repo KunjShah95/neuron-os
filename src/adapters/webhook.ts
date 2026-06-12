@@ -42,9 +42,9 @@ export interface WebhookAdapterConfig {
 }
 
 export function createWebhookAdapter(config: WebhookAdapterConfig): PlatformAdapter {
-  let server: Bun.Server<any> | null = null
-  let twilioSmsClient: any = null
-  let twilioWhatsAppClient: any = null
+  let server: ReturnType<typeof import("bun").serve> | null = null
+  let twilioSmsClient: { messages: { create(opts: object): Promise<unknown> } } | null = null
+  let twilioWhatsAppClient: { messages: { create(opts: object): Promise<unknown> } } | null = null
 
   function listEnabledEndpoints(): string[] {
     const endpoints: string[] = ["/health"]
@@ -96,7 +96,7 @@ export function createWebhookAdapter(config: WebhookAdapterConfig): PlatformAdap
 
             async function sendSmsReply(to: string, text: string) {
               await client.messages.create({
-                from: config.twilioSms!.fromNumber,
+                from: config.twilioSms?.fromNumber ?? "",
                 to,
                 body: clipTwilio(text, 1600),
               })
@@ -119,7 +119,7 @@ export function createWebhookAdapter(config: WebhookAdapterConfig): PlatformAdap
 
             async function sendWhatsAppReply(to: string, text: string) {
               await client.messages.create({
-                from: config.twilioWhatsApp!.fromNumber,
+                from: config.twilioWhatsApp?.fromNumber ?? "",
                 to,
                 body: clipTwilio(text, 1600),
               })

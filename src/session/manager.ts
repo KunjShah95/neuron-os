@@ -30,7 +30,7 @@ export class SessionManager {
       id: session.id,
       users: JSON.stringify([creatorUserId]),
     })
-    const updated = this.store.get(session.id)!
+    const updated = this.store.get(session.id) as SharedSession
     this.emit("user_joined", session.id, creatorUserId)
     this.emitStateChange(session.id, { users: [creatorUserId] })
     return updated
@@ -112,7 +112,7 @@ export class SessionManager {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set())
     }
-    this.listeners.get(event)!.add(listener)
+    this.listeners.get(event)?.add(listener)
     return () => this.listeners.get(event)?.delete(listener)
   }
 

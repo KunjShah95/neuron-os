@@ -69,7 +69,7 @@ export class SessionStore {
     const id = `sess-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
     const now = Math.floor(Date.now() / 1000)
     this.prepared.insert.run(id, name, "[]", "[]", now, now, "active")
-    return this.get(id)!
+    return this.get(id) as SharedSession
   }
 
   get(id: string): SharedSession | undefined {

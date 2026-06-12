@@ -77,22 +77,24 @@ class PriorityQueue {
 
   enqueue(task: PoolTask): void {
     const level = PRIORITY_ORDER[task.priority] ?? 2
-    this.queues[level]!.push(task)
+    this.queues[level].push(task)
   }
 
   dequeue(): PoolTask | undefined {
     for (let i = 0; i <= 3; i++) {
-      const q = this.queues[i]!
-      if (q.length > 0) return q.shift()
+      const q = this.queues[i]
+      if (q && q.length > 0) return q.shift()
     }
     return undefined
   }
 
   remove(taskId: string): boolean {
     for (let i = 0; i <= 3; i++) {
-      const idx = this.queues[i]!.findIndex((t) => t.id === taskId)
+      const q = this.queues[i]
+      if (!q) continue
+      const idx = q.findIndex((t) => t.id === taskId)
       if (idx >= 0) {
-        this.queues[i]!.splice(idx, 1)
+        q.splice(idx, 1)
         return true
       }
     }
@@ -179,8 +181,8 @@ export class AgentPool {
   cancel(taskId: string): boolean {
     if (this.running.has(taskId)) {
       // Kill the running agent
-      const entry = this.running.get(taskId)!
-      agentManager.kill(entry.agentId).catch(() => {})
+      const entry = this.running.get(taskId)
+      if (entry) agentManager.kill(entry.agentId).catch(() => {})
       this.running.delete(taskId)
       return true
     }
@@ -278,7 +280,7 @@ export class AgentPool {
 
       // Wait for completion
       await new Promise<void>((resolve) => {
-        const handler = (event: any) => {
+        const handler = (event: { type: string; agentId?: string }) => {
           if (event.type === "agent:exit" && event.agentId === id) {
             agentManager.offEvent(handler)
             clearTimeout(timeoutHandle)

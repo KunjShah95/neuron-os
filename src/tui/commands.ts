@@ -17,7 +17,7 @@ export async function executeCommand(state: AppState, input: string): Promise<vo
   const parts = trimmed.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) ?? []
   if (parts.length === 0) return
 
-  const cmd = parts[0]!.toLowerCase()
+  const cmd = (parts[0] ?? "").toLowerCase()
   const args = parts.slice(1).map((a) => a.replace(/^["']|["']$/g, ""))
 
   switch (cmd) {
@@ -148,7 +148,7 @@ async function spawnAgent(state: AppState, args: string[]): Promise<void> {
     return
   }
 
-  const name = args[0]!
+  const name = args[0] ?? ""
   let agentType: AgentTypeName | undefined
   let script = "src/agent/agent-worker.ts"
   const tags: string[] = []
@@ -212,7 +212,7 @@ async function killAgent(state: AppState, args: string[]): Promise<void> {
     return
   }
 
-  const target = args[0]!
+  const target = args[0] ?? ""
 
   if (target === "all") {
     const running = agentManager.list().filter((a) => a.status !== "stopped" && a.status !== "error")

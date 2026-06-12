@@ -143,13 +143,13 @@ export function decrypt(encoded: string, key: Buffer): string {
   }
 
   const [ivHex, tagHex, ciphertext] = parts
-  const iv = Buffer.from(ivHex!, "hex")
-  const tag = Buffer.from(tagHex!, "hex")
+  const iv = Buffer.from(ivHex ?? "", "hex")
+  const tag = Buffer.from(tagHex ?? "", "hex")
 
   const decipher = createDecipheriv(ALGORITHM, key, iv)
   decipher.setAuthTag(tag)
 
-  let decrypted = decipher.update(ciphertext!, "hex", "utf8")
+  let decrypted = decipher.update(ciphertext ?? "", "hex", "utf8")
   decrypted += decipher.final("utf8")
   return decrypted
 }

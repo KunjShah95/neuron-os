@@ -289,7 +289,7 @@ function sparkline(values: number[], width = 20): string {
   const sampled: string[] = []
   for (let i = 0; i < width; i++) {
     const idx = Math.floor(((i + 0.5) / width) * chars.length)
-    sampled.push(chars[idx]!)
+    sampled.push(chars[idx] ?? "")
   }
   return sampled.join("")
 }
@@ -335,7 +335,7 @@ async function handleDashboard(opts: { days?: string }) {
 
     console.log(`  ${theme.bold("Daily Cost Trend")}  (last ${days}d, ${history.length} days with data)`)
     console.log(
-      `  ${theme.dim(history[0]!.date + " ")}${theme.accent(sparkline(costs, 40))}${theme.dim(" " + history[history.length - 1]!.date)}`,
+      `  ${theme.dim((history[0]?.date ?? "") + " ")}${theme.accent(sparkline(costs, 40))}${theme.dim(" " + (history.at(-1)?.date ?? ""))}`,
     )
     console.log(
       `  Low: ${theme.text(`$${Math.min(...costs).toFixed(4)}`)}  ` +

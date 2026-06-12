@@ -47,7 +47,7 @@ async function searchWeb(query: string, maxResults: number): Promise<string> {
   let linkMatch: RegExpExecArray | null
   while ((linkMatch = linkRegex.exec(html)) !== null && results.length < maxResults) {
     results.push({
-      title: linkMatch[1]!.replace(/<[^>]*>/g, "").trim(),
+      title: (linkMatch[1] ?? "").replace(/<[^>]*>/g, "").trim(),
       snippet: "",
       url: "",
     })
@@ -56,15 +56,15 @@ async function searchWeb(query: string, maxResults: number): Promise<string> {
   let si = 0
   let snippetMatch: RegExpExecArray | null
   while ((snippetMatch = snippetRegex.exec(html)) !== null && si < results.length) {
-    results[si]!.snippet = snippetMatch[1]!.replace(/<[^>]*>/g, "").trim()
+    results[si].snippet = (snippetMatch[1] ?? "").replace(/<[^>]*>/g, "").trim()
     si++
   }
 
   let ui = 0
   let urlMatch: RegExpExecArray | null
   while ((urlMatch = urlRegex.exec(html)) !== null && ui < results.length) {
-    const href = urlMatch[1]!.replace(/&amp;/g, "&")
-    results[ui]!.url = href.startsWith("http") ? href : `https://${href}`
+    const href = (urlMatch[1] ?? "").replace(/&amp;/g, "&")
+    results[ui].url = href.startsWith("http") ? href : `https://${href}`
     ui++
   }
 

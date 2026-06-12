@@ -32,7 +32,7 @@ function clipWhatsApp(text: string): string {
 
 export function createWhatsAppAdapter(config: WhatsAppConfig): PlatformAdapter {
   const twilioClient = twilio(config.accountSid, config.authToken)
-  let server: Bun.Server<any> | null = null
+  let server: ReturnType<typeof import("bun").serve> | null = null
 
   async function sendReply(to: string, text: string) {
     await twilioClient.messages.create({

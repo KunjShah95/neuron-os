@@ -52,8 +52,8 @@ function cosineSimilarity(a: number[], b: number[]): number {
     normA = 0,
     normB = 0
   for (let i = 0; i < a.length; i++) {
-    const av = a[i]!
-    const bv = b[i]!
+    const av = a[i] ?? 0
+    const bv = b[i] ?? 0
     dot += av * bv
     normA += av * av
     normB += bv * bv
@@ -135,7 +135,7 @@ async function synthesizeSkill(cluster: EpisodeRecord[]): Promise<{ name: string
 
   const contexts = episodes.map((ep, i) => `${i + 1}. "${ep.context_summary}"`).join("\n")
 
-  const name = `auto-${episodes[0]!.tool_sequence[0] || "skill"}-${Date.now().toString(36)}`
+  const name = `auto-${episodes[0]?.tool_sequence[0] || "skill"}-${Date.now().toString(36)}`
 
   // Build SKILL.md content programmatically
   const content = [
@@ -161,8 +161,8 @@ async function synthesizeSkill(cluster: EpisodeRecord[]): Promise<{ name: string
     "",
     "## Steps",
     "",
-    ...episodes[0]!.tool_sequence.map(
-      (step, i) => `${i + 1}. Use the \`${step}\` tool${i < episodes[0]!.tool_sequence.length - 1 ? ", then" : ""}`,
+    ...(episodes[0]?.tool_sequence ?? []).map(
+      (step, i) => `${i + 1}. Use the \`${step}\` tool${i < (episodes[0]?.tool_sequence.length ?? 0) - 1 ? ", then" : ""}`,
     ),
     "",
     "## Notes",

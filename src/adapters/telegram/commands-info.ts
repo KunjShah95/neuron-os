@@ -11,11 +11,11 @@ export function registerInfoCommands(bot: Telegraf): void {
     const lines: string[] = ["*🤖 Available AI Providers*", ""]
 
     for (const provider of registered) {
-      const refs = (MODEL_REFERENCES as Record<string, any>)[provider]
+      const refs = (MODEL_REFERENCES as Record<string, { id: string; label: string }[]>)[provider]
       const models = refs?.length
         ? refs
             .slice(0, 4)
-            .map((m: any) => `  • \`${m.id}\` — ${m.label}`)
+            .map((m) => `  • \`${m.id}\` — ${m.label}`)
             .join("\n")
         : "  • (custom models)"
       lines.push(`*${provider.charAt(0).toUpperCase() + provider.slice(1)}*`)

@@ -23,7 +23,7 @@ interface SlackConfig {
 
 export function createSlackAdapter(config: SlackConfig): PlatformAdapter {
   const client = new WebClient(config.botToken)
-  let socketModeClient: any = null
+  let socketModeClient: { on(event: string, handler: (event: Record<string, unknown>) => void): void; start(): Promise<void>; disconnect(): Promise<void> } | null = null
 
   return {
     name: "slack",
@@ -45,12 +45,13 @@ export function createSlackAdapter(config: SlackConfig): PlatformAdapter {
           appToken: config.appToken,
         })
 
-        socketModeClient.on("message", async (event: any) => {
+        socketModeClient.on("message", async (event: Record<string, unknown>) => {
+          const ev = event.event as Record<string, unknown> | undefined
           // Handle app_mention events
-          if (event.event?.type === "app_mention") {
-            const text = event.event.text || ""
-            const channel = event.event.channel
-            const user = event.event.user
+          if (ev?.type === "app_mention") {
+            const text = (ev.text as string) || ""
+            const channel = ev.channel as string | undefined
+            const user = ev.user as string | undefined
 
             if (!checkAuth(user, config.allowedUserIds)) return
 

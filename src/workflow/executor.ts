@@ -75,7 +75,7 @@ export function buildExecutionOrder(config: WorkflowConfig): WorkflowNode[] {
   const nodeMap = new Map(config.nodes.map((n) => [n.id, n]))
 
   while (queue.length > 0) {
-    const id = queue.shift()!
+    const id = queue.shift() ?? ""
     const node = nodeMap.get(id)
     if (node) order.push(node)
 
@@ -136,7 +136,7 @@ function buildMeshConfig(config: WorkflowConfig, orderedNodes: WorkflowNode[]): 
     case "fan-out":
       return {
         topology: "fan-out",
-        coordinator: agents[0]!,
+        coordinator: agents[0] as MeshAgent,
         workers: agents.slice(1),
         strategy: "all",
       }
@@ -161,7 +161,7 @@ function buildMeshConfig(config: WorkflowConfig, orderedNodes: WorkflowNode[]): 
     case "supervisor":
       return {
         topology: "supervisor",
-        supervisor: agents[0]!,
+        supervisor: agents[0] as MeshAgent,
         subAgents: agents.slice(1),
         reviewRequired: true,
       }

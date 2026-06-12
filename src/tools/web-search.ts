@@ -12,7 +12,7 @@ function detectBackend(): SearchBackend {
 // ── Tavily Search ────────────────────────────────────────────────────
 
 async function searchTavily(query: string, count: number): Promise<ToolResult> {
-  const apiKey = process.env.TAVILY_API_KEY!
+  const apiKey = process.env.TAVILY_API_KEY ?? ""
   const res = await fetch("https://api.tavily.com/search", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
@@ -45,7 +45,7 @@ async function searchTavily(query: string, count: number): Promise<ToolResult> {
 // ── SerpAPI Search ────────────────────────────────────────────────────
 
 async function searchSerpApi(query: string, count: number): Promise<ToolResult> {
-  const apiKey = process.env.SERPAPI_API_KEY!
+  const apiKey = process.env.SERPAPI_API_KEY ?? ""
   const params = new URLSearchParams({ q: query, api_key: apiKey, engine: "google", num: String(count) })
   const res = await fetch(`https://serpapi.com/search?${params}`, {
     signal: AbortSignal.timeout(10_000),
@@ -95,20 +95,20 @@ async function searchDuckDuckGo(query: string, count: number): Promise<ToolResul
 
   let match: RegExpExecArray | null
   while ((match = linkRegex.exec(html)) !== null && results.length < count) {
-    const title = match[1]!.replace(/<[^>]*>/g, "").trim()
+    const title = (match[1] ?? "").replace(/<[^>]*>/g, "").trim()
     results.push({ title, snippet: "", url: "" })
   }
 
   let si = 0
   while ((match = snippetRegex.exec(html)) !== null && si < results.length) {
-    results[si]!.snippet = match[1]!.replace(/<[^>]*>/g, "").trim()
+    results[si].snippet = (match[1] ?? "").replace(/<[^>]*>/g, "").trim()
     si++
   }
 
   let ui = 0
   while ((match = urlRegex.exec(html)) !== null && ui < results.length) {
-    const href = match[1]!.replace(/&amp;/g, "&")
-    results[ui]!.url = href.startsWith("http") ? href : `https://${href}`
+    const href = (match[1] ?? "").replace(/&amp;/g, "&")
+    results[ui].url = href.startsWith("http") ? href : `https://${href}`
     ui++
   }
 

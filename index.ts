@@ -4,6 +4,8 @@ import { readFileSync, existsSync } from "node:fs"
 import { resolve } from "node:path"
 import { setPendingCommand, flushHistorySync } from "./src/cli/history"
 
+const _rawArgs = process.argv.slice(2)
+
 // ── Auto-load .env file ─────────────────────────────────────────────
 // Loads .env from project root if it exists (before any other imports).
 // Checks multiple paths for compatibility across run modes:
@@ -93,7 +95,6 @@ loadDotEnv()
 // Static imports are hoisted in ES modules, so we must detect --version
 // before any heavy imports are even loaded. We keep only lightweight
 // imports (fs, path, history) at the top and defer everything else.
-const _rawArgs = process.argv.slice(2)
 if (_rawArgs.includes("--version") || _rawArgs.includes("-V")) {
   let version = "0.0.0"
   try {

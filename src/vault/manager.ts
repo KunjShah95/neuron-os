@@ -98,8 +98,8 @@ export class CredentialVault {
     const now = new Date().toISOString()
 
     if (existing >= 0) {
-      this.entries[existing]!.value = value
-      this.entries[existing]!.updatedAt = now
+      const entry = this.entries[existing]
+      if (entry) { entry.value = value; entry.updatedAt = now }
     } else {
       this.entries.push({ key, value, scope, createdAt: now, updatedAt: now })
     }

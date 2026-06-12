@@ -87,7 +87,7 @@ export function createVoiceAdapter(config: VoiceConfig): PlatformAdapter {
       twiml.say(
         {
           voice: config.voice ?? "alice",
-          language: (config.language ?? "en-US") as any,
+          language: (config.language ?? "en-US") as string,
         },
         speechText,
       )
