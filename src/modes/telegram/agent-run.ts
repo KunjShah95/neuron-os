@@ -32,12 +32,12 @@ function agentOptions(maxSteps: number, instructions: string) {
   }
 }
 
-function readOnlyTools(executor: AgentToolExecutor): Record<string, any> {
+function readOnlyTools(executor: AgentToolExecutor) {
   return {
     read_file: {
       description: "Read a workspace file (relative path).",
       parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: ["path"] }),
-      execute: async (args: any) => executor.readFile(args.path),
+      execute: async (args: Record<string, unknown>) => executor.readFile(args.path as string),
     },
     list_files: {
       description: "List files/dirs at a path.",
@@ -46,7 +46,7 @@ function readOnlyTools(executor: AgentToolExecutor): Record<string, any> {
         properties: { path: { type: "string" }, recursive: { type: "boolean" } },
         required: ["path"],
       }),
-      execute: async (args: any) => executor.listFiles(args.path, args.recursive),
+      execute: async (args: Record<string, unknown>) => executor.listFiles(args.path as string, args.recursive as boolean),
     },
     search_files: {
       description: "Find files matching a glob pattern; optional content filter.",
@@ -55,22 +55,22 @@ function readOnlyTools(executor: AgentToolExecutor): Record<string, any> {
         properties: { root: { type: "string" }, pattern: { type: "string" }, content_contains: { type: "string" } },
         required: ["root", "pattern"],
       }),
-      execute: async (args: any) => executor.searchFiles(args.root, args.pattern, args.content_contains),
+      execute: async (args: Record<string, unknown>) => executor.searchFiles(args.root as string, args.pattern as string, args.content_contains as string),
     },
     analyze_codebase: {
       description: "Summarize the codebase structure.",
       parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: [] }),
-      execute: async (args: any) => executor.analyzeCodebase(args.path || "."),
+      execute: async (args: Record<string, unknown>) => executor.analyzeCodebase((args.path as string) || "."),
     },
   }
 }
 
-function fileTools(executor: AgentToolExecutor): Record<string, any> {
+function fileTools(executor: AgentToolExecutor) {
   return {
     read_file: {
       description: "Read a workspace file (relative path).",
       parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: ["path"] }),
-      execute: async (args: any) => executor.readFile(args.path),
+      execute: async (args: Record<string, unknown>) => executor.readFile(args.path as string),
     },
     create_file: {
       description: "Stage creation of a new file (not written until approval).",
@@ -79,7 +79,7 @@ function fileTools(executor: AgentToolExecutor): Record<string, any> {
         properties: { path: { type: "string" }, content: { type: "string" } },
         required: ["path", "content"],
       }),
-      execute: async (args: any) => executor.createFile(args.path, args.content),
+      execute: async (args: Record<string, unknown>) => executor.createFile(args.path as string, args.content as string),
     },
     modify_file: {
       description: "Stage a full-file replacement for an existing file (pending approval).",
@@ -91,12 +91,12 @@ function fileTools(executor: AgentToolExecutor): Record<string, any> {
         },
         required: ["path", "content"],
       }),
-      execute: async (args: any) => executor.modifyFile(args.path, args.content),
+      execute: async (args: Record<string, unknown>) => executor.modifyFile(args.path as string, args.content as string),
     },
     delete_file: {
       description: "Stage deletion of a file (pending approval).",
       parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: ["path"] }),
-      execute: async (args: any) => executor.deleteFile(args.path),
+      execute: async (args: Record<string, unknown>) => executor.deleteFile(args.path as string),
     },
     list_files: {
       description: "List files/dirs at a path.",
@@ -105,7 +105,7 @@ function fileTools(executor: AgentToolExecutor): Record<string, any> {
         properties: { path: { type: "string" }, recursive: { type: "boolean" } },
         required: ["path"],
       }),
-      execute: async (args: any) => executor.listFiles(args.path, args.recursive),
+      execute: async (args: Record<string, unknown>) => executor.listFiles(args.path as string, args.recursive as boolean),
     },
     search_files: {
       description: "Find files matching a glob pattern; optional content filter.",
@@ -114,17 +114,17 @@ function fileTools(executor: AgentToolExecutor): Record<string, any> {
         properties: { root: { type: "string" }, pattern: { type: "string" }, content_contains: { type: "string" } },
         required: ["root", "pattern"],
       }),
-      execute: async (args: any) => executor.searchFiles(args.root, args.pattern, args.content_contains),
+      execute: async (args: Record<string, unknown>) => executor.searchFiles(args.root as string, args.pattern as string, args.content_contains as string),
     },
     analyze_codebase: {
       description: "Summarize the codebase structure.",
       parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: [] }),
-      execute: async (args: any) => executor.analyzeCodebase(args.path || "."),
+      execute: async (args: Record<string, unknown>) => executor.analyzeCodebase((args.path as string) || "."),
     },
   }
 }
 
-function extraWebTools(tracker: ActionTracker): Record<string, any> {
+function extraWebTools(tracker: ActionTracker) {
   return process.env.FIRECRAWL_API_KEY ? createWebTools(tracker) : {}
 }
 
@@ -136,11 +136,11 @@ export async function runAsk(ctx: { reply: (t: string, o?: object) => Promise<un
     allowFolderCreation: false,
     allowShellExecution: false,
   })
-  const tools: Record<string, any> = { ...readOnlyTools(executor), ...extraWebTools(tracker) }
+  const tools = { ...readOnlyTools(executor), ...extraWebTools(tracker) }
   const agent = new ToolLoopAgent({
     ...agentOptions(20, `Workspace root: ${process.cwd()}. Read-only research mode.`),
     tools,
-  } as any)
+  } as Parameters<typeof ToolLoopAgent>[0])
   const { text } = await agent.generate({ prompt: question })
   await replyMd(ctx, text || "(no answer)")
 }
@@ -152,11 +152,11 @@ export async function runAgent(
 ) {
   const tracker = new ActionTracker()
   const executor = new AgentToolExecutor(tracker)
-  const tools: Record<string, any> = fileTools(executor)
+  const tools = fileTools(executor)
   const agent = new ToolLoopAgent({
     ...agentOptions(40, `Workspace root: ${process.cwd()}. All mutations are staged until approval.`),
     tools,
-  } as any)
+  } as Parameters<typeof ToolLoopAgent>[0])
   const { text } = await agent.generate({ prompt: goal })
   if (text?.trim()) await replyMd(ctx, text.trim())
   await finishOrApprove(ctx, chatId, tracker, executor, "✅ Done. No file changes were needed.")
@@ -170,7 +170,7 @@ export async function runPlanSteps(
 ) {
   const tracker = new ActionTracker()
   const executor = new AgentToolExecutor(tracker)
-  const tools: Record<string, any> = { ...fileTools(executor), ...extraWebTools(tracker) }
+  const tools = { ...fileTools(executor), ...extraWebTools(tracker) }
   const ai = new AIProviderManager(buildAIConfig())
 
   for (const step of steps) {
@@ -180,7 +180,7 @@ export async function runPlanSteps(
       model: ai.getModel(),
       stopWhen: stepCountIs(30),
       tools,
-    } as any)
+    } as Parameters<typeof ToolLoopAgent>[0])
     const { text } = await agent.generate({ prompt })
     if (text?.trim()) await replyMd(ctx, text.trim())
   }

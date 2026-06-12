@@ -236,12 +236,12 @@ export class TriggerEngine {
 
   list(opts?: { type?: TriggerType; tag?: string; enabled?: boolean }): TriggerDef[] {
     let result = Array.from(this.triggers.values())
-    if (opts?.type) result = result.filter((t) => t.type === opts!.type)
+    if (opts?.type) result = result.filter((t) => t.type === opts?.type)
     if (opts?.tag) {
       const tag = opts.tag
       result = result.filter((t) => t.tags?.includes(tag))
     }
-    if (opts?.enabled !== undefined) result = result.filter((t) => t.enabled === opts!.enabled)
+    if (opts?.enabled !== undefined) result = result.filter((t) => t.enabled === opts?.enabled)
     return result
   }
 
@@ -281,7 +281,7 @@ export class TriggerEngine {
           const { agentManager } = await import("../agent/manager")
           const agentId = await agentManager.spawn({
             name: "trigger-" + trigger.name + "-" + Date.now().toString(36),
-            agentType: (trigger.action.agentType ?? "build") as any,
+            agentType: trigger.action.agentType ?? "build",
             script: "src/agent/agent-worker.ts",
             tags: ["trigger", trigger.name, trigger.type],
             recovery: { maxRetries: 2 },
@@ -340,7 +340,7 @@ export class TriggerEngine {
           })
         }
         default:
-          return { success: false, error: "Unknown action mode: " + (trigger.action as any).mode }
+          return { success: false, error: "Unknown action mode: " + (trigger.action as { mode: string }).mode }
       }
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err)
@@ -422,7 +422,7 @@ export class TriggerEngine {
     const match = schedule.match(/^(\d+)\s*(s|m|h|d)$/)
     if (match) {
       const units: Record<string, number> = { s: 1000, m: 60000, h: 3600000, d: 86400000 }
-      return parseInt(match[1]!) * (units[match[2]!] || 1000)
+      return parseInt(match[1] ?? "0") * (units[match[2] ?? ""] ?? 1000)
     }
     return null
   }
@@ -565,7 +565,7 @@ export class TriggerEngine {
         try {
           const result = execSync("df . 2>&1", { encoding: "utf8", timeout: 3000 })
           const match = result.match(/(\d+)%\s+/)
-          return match ? parseInt(match[1]!, 10) : 50
+          return match ? parseInt(match[1] ?? "50", 10) : 50
         } catch {
           return 50
         }

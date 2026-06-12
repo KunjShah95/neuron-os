@@ -138,7 +138,7 @@ export class EvolutionStore {
 
   updateMutation(id: string, updates: Partial<CodeMutation>): void {
     const fields: string[] = []
-    const vals: unknown[] = []
+    const vals: (string | number | null)[] = []
 
     if (updates.status !== undefined) { fields.push("status = ?"); vals.push(updates.status) }
     if (updates.diff !== undefined) { fields.push("diff = ?"); vals.push(updates.diff) }
@@ -151,7 +151,7 @@ export class EvolutionStore {
 
     if (fields.length > 0) {
       vals.push(id)
-      this.db.prepare(`UPDATE mutations SET ${fields.join(", ")} WHERE id = ?`).run(...(vals as any[]))
+      this.db.prepare(`UPDATE mutations SET ${fields.join(", ")} WHERE id = ?`).run(...vals)
     }
   }
 
@@ -162,14 +162,14 @@ export class EvolutionStore {
 
   listMutations(limit = 20, status?: MutationStatus): CodeMutation[] {
     let sql = "SELECT * FROM mutations"
-    const params: unknown[] = []
+    const params: (string | number | null)[] = []
     if (status) {
       sql += " WHERE status = ?"
       params.push(status)
     }
     sql += " ORDER BY created_at DESC LIMIT ?"
     params.push(limit)
-    const rows =     this.db.prepare(sql).all(...(params as any[])) as Record<string, unknown>[]
+    const rows = this.db.prepare(sql).all(...params) as Record<string, unknown>[]
     return rows.map((r) => this.rowToMutation(r))
   }
 
@@ -184,23 +184,23 @@ export class EvolutionStore {
     topFiles: Array<{ path: string; count: number }>
     lastCycleAt: string
   } {
-    const totalMutations = (this.db.prepare("SELECT COUNT(*) as c FROM mutations").get() as any).c
-    const appliedMutations = (this.db.prepare("SELECT COUNT(*) as c FROM mutations WHERE status = 'applied'").get() as any).c
-    const failedMutations = (this.db.prepare("SELECT COUNT(*) as c FROM mutations WHERE status = 'failed'").get() as any).c
-    const rolledBackMutations = (this.db.prepare("SELECT COUNT(*) as c FROM mutations WHERE status = 'rolled-back'").get() as any).c
-    const avgRow = this.db.prepare("SELECT AVG(confidence) as avg FROM mutations").get() as any
+    const totalMutations = (this.db.prepare("SELECT COUNT(*) as c FROM mutations").get() as { c: number }).c
+    const appliedMutations = (this.db.prepare("SELECT COUNT(*) as c FROM mutations WHERE status = 'applied'").get() as { c: number }).c
+    const failedMutations = (this.db.prepare("SELECT COUNT(*) as c FROM mutations WHERE status = 'failed'").get() as { c: number }).c
+    const rolledBackMutations = (this.db.prepare("SELECT COUNT(*) as c FROM mutations WHERE status = 'rolled-back'").get() as { c: number }).c
+    const avgRow = this.db.prepare("SELECT AVG(confidence) as avg FROM mutations").get() as { avg: number | null }
     const averageConfidence = avgRow.avg || 0
-    const tested = (this.db.prepare("SELECT COUNT(*) as c FROM mutations WHERE test_passed IS NOT NULL AND status != 'proposed'").get() as any).c
-    const passed = (this.db.prepare("SELECT COUNT(*) as c FROM mutations WHERE test_passed = 1").get() as any).c
+    const tested = (this.db.prepare("SELECT COUNT(*) as c FROM mutations WHERE test_passed IS NOT NULL AND status != 'proposed'").get() as { c: number }).c
+    const passed = (this.db.prepare("SELECT COUNT(*) as c FROM mutations WHERE test_passed = 1").get() as { c: number }).c
     const passRate = tested > 0 ? passed / tested : 0
-    const lastCycle = this.db.prepare("SELECT created_at as c FROM mutations ORDER BY created_at DESC LIMIT 1").get() as any
+    const lastCycle = this.db.prepare("SELECT created_at as c FROM mutations ORDER BY created_at DESC LIMIT 1").get() as { c: string } | null
 
-    const strategyRows = this.db.prepare("SELECT strategy, COUNT(*) as c FROM mutations GROUP BY strategy ORDER BY c DESC").all() as any[]
+    const strategyRows = this.db.prepare("SELECT strategy, COUNT(*) as c FROM mutations GROUP BY strategy ORDER BY c DESC").all() as { strategy: string; c: number }[]
     const mutationsByStrategy: Record<string, number> = {}
     for (const r of strategyRows) mutationsByStrategy[r.strategy] = r.c
 
-    const fileRows = this.db.prepare("SELECT file_path, COUNT(*) as c FROM mutations GROUP BY file_path ORDER BY c DESC LIMIT 5").all() as any[]
-    const topFiles = fileRows.map((r: any) => ({ path: r.file_path, count: r.c }))
+    const fileRows = this.db.prepare("SELECT file_path, COUNT(*) as c FROM mutations GROUP BY file_path ORDER BY c DESC LIMIT 5").all() as { file_path: string; c: number }[]
+    const topFiles = fileRows.map((r) => ({ path: r.file_path, count: r.c }))
 
     return { totalMutations, appliedMutations, failedMutations, rolledBackMutations, averageConfidence, passRate, mutationsByStrategy, topFiles, lastCycleAt: lastCycle?.c || "" }
   }

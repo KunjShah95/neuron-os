@@ -149,21 +149,23 @@ export class TrajectoryExporter {
    * Convert internal trajectory events to an Atropos record.
    */
   private toAtroposRecord(sessionId: string, events: TrajectoryEvent[]): AtroposRecord | null {
-    const startEvent = events.find((e) => e.type === "session_start") as any
-    const endEvent = events.find((e) => e.type === "session_end") as any
+    type Ev = Record<string, unknown>
+    const evs = events as unknown as Ev[]
+    const startEvent = evs.find((e) => e.type === "session_start")
+    const endEvent = evs.find((e) => e.type === "session_end")
 
     if (!startEvent || !endEvent) return null
 
-    const userTurns = events.filter((e) => e.type === "user_turn") as any[]
-    const assistantTurns = events.filter((e) => e.type === "assistant_turn") as any[]
-    const toolCalls = events.filter((e) => e.type === "tool_call") as any[]
-    const costRecords = events.filter((e) => e.type === "cost_record") as any[]
+    const userTurns = evs.filter((e) => e.type === "user_turn")
+    const assistantTurns = evs.filter((e) => e.type === "assistant_turn")
+    const toolCalls = evs.filter((e) => e.type === "tool_call")
+    const costRecords = evs.filter((e) => e.type === "cost_record")
 
     const totalCost = costRecords.reduce<{ prompt_tokens: number; completion_tokens: number; cost_usd: number }>(
-      (sum, c: any) => ({
-        prompt_tokens: (sum.prompt_tokens ?? 0) + (c.prompt_tokens ?? 0),
-        completion_tokens: (sum.completion_tokens ?? 0) + (c.completion_tokens ?? 0),
-        cost_usd: (sum.cost_usd ?? 0) + (c.cost_usd ?? 0),
+      (sum, c) => ({
+        prompt_tokens: (sum.prompt_tokens ?? 0) + ((c.prompt_tokens as number) ?? 0),
+        completion_tokens: (sum.completion_tokens ?? 0) + ((c.completion_tokens as number) ?? 0),
+        cost_usd: (sum.cost_usd ?? 0) + ((c.cost_usd as number) ?? 0),
       }),
       { prompt_tokens: 0, completion_tokens: 0, cost_usd: 0 },
     )
@@ -174,24 +176,24 @@ export class TrajectoryExporter {
     return {
       env: "aegis-agent-os",
       session_id: sessionId,
-      model: costRecords[0]?.model ?? "unknown",
-      prompt: userTurns.map((t: any) => ({ role: "user", content: t.content ?? "" })),
-      completion: assistantTurns.map((t: any) => ({
+      model: (costRecords[0]?.model as string) ?? "unknown",
+      prompt: userTurns.map((t) => ({ role: "user", content: (t.content as string) ?? "" })),
+      completion: assistantTurns.map((t) => ({
         role: "assistant",
-        content: t.content ?? "",
+        content: (t.content as string) ?? "",
         tool_calls: t.reasoning ? [{ type: "reasoning", reasoning: t.reasoning }] : undefined,
       })),
       reward: endEvent.outcome === "success" ? 1.0 : 0.0,
       info: {
-        tool_calls: toolCalls.map((t: any) => ({
-          name: t.tool ?? "",
+        tool_calls: toolCalls.map((t) => ({
+          name: (t.tool as string) ?? "",
           args: t.args ?? {},
           result_summary: "",
         })),
         costs: totalCost,
         latency_ms: lastTs - firstTs,
         session_id: sessionId,
-        agent_type: startEvent.agent_type ?? "build",
+        agent_type: (startEvent.agent_type as string) ?? "build",
       },
     }
   }

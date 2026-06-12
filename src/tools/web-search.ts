@@ -22,8 +22,8 @@ async function searchTavily(query: string, count: number): Promise<ToolResult> {
   if (!res.ok) {
     return { success: false, output: "", error: `Tavily search failed with HTTP ${res.status}` }
   }
-  const body: any = await res.json()
-  const results: Array<{ title: string; snippet: string; url: string }> = (body.results || []).map((r: any) => ({
+  const body = await res.json() as { results?: { title?: string; content?: string; url?: string }[] }
+  const results: Array<{ title: string; snippet: string; url: string }> = (body.results || []).map((r) => ({
     title: r.title ?? "",
     snippet: r.content ?? "",
     url: r.url ?? "",
@@ -53,9 +53,9 @@ async function searchSerpApi(query: string, count: number): Promise<ToolResult> 
   if (!res.ok) {
     return { success: false, output: "", error: `SerpAPI search failed with HTTP ${res.status}` }
   }
-  const body: any = await res.json()
+  const body = await res.json() as { organic_results?: { title?: string; snippet?: string; link?: string }[] }
   const organic = body.organic_results || []
-  const results: Array<{ title: string; snippet: string; url: string }> = organic.map((r: any) => ({
+  const results: Array<{ title: string; snippet: string; url: string }> = organic.map((r) => ({
     title: r.title ?? "",
     snippet: r.snippet ?? "",
     url: r.link ?? "",

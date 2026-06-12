@@ -114,36 +114,36 @@ export class PersonaStore {
 
   getEvents(agentType?: string, agentId?: string, limit = 50): PersonaEvent[] {
     let sql = "SELECT * FROM persona_events"
-    const params: unknown[] = []
+    const params: (string | number | null)[] = []
     const conditions: string[] = []
     if (agentType) { conditions.push("agent_type = ?"); params.push(agentType) }
     if (agentId) { conditions.push("agent_id = ?"); params.push(agentId) }
     if (conditions.length > 0) sql += " WHERE " + conditions.join(" AND ")
     sql += " ORDER BY created_at DESC LIMIT ?"
     params.push(limit)
-    const rows = this.db.prepare(sql).all(...(params as any[])) as Record<string, unknown>[]
+    const rows = this.db.prepare(sql).all(...params) as Record<string, unknown>[]
     return rows.map((r) => this.rowToEvent(r))
   }
 
   getStats(): PersonaStats {
-    const totalEvents = (this.db.prepare("SELECT COUNT(*) as c FROM persona_events").get() as any).c
-    const totalEvolutions = (this.db.prepare("SELECT COUNT(*) as c FROM persona_events WHERE trigger != 'manual'").get() as any).c
-    const activeProfiles = (this.db.prepare("SELECT COUNT(*) as c FROM persona_profiles").get() as any).c
-    const avgStability = (this.db.prepare("SELECT AVG(stability_score) as avg FROM persona_profiles").get() as any).avg || 0
+    const totalEvents = (this.db.prepare("SELECT COUNT(*) as c FROM persona_events").get() as { c: number }).c
+    const totalEvolutions = (this.db.prepare("SELECT COUNT(*) as c FROM persona_events WHERE trigger != 'manual'").get() as { c: number }).c
+    const activeProfiles = (this.db.prepare("SELECT COUNT(*) as c FROM persona_profiles").get() as { c: number }).c
+    const avgStability = (this.db.prepare("SELECT AVG(stability_score) as avg FROM persona_profiles").get() as { avg: number | null }).avg || 0
 
     const traitRows = this.db.prepare(`
       SELECT trait_name, SUM(ABS(new_value - old_value)) as total
       FROM persona_events GROUP BY trait_name ORDER BY total DESC LIMIT 5
-    `).all() as any[]
-    const topTraits = traitRows.map((r: any) => ({ name: r.trait_name, totalDelta: r.total }))
+    `).all() as { trait_name: string; total: number }[]
+    const topTraits = traitRows.map((r) => ({ name: r.trait_name, totalDelta: r.total }))
 
     const triggerRows = this.db.prepare(`
       SELECT trigger, COUNT(*) as c FROM persona_events
       GROUP BY trigger ORDER BY c DESC LIMIT 5
-    `).all() as any[]
-    const topTriggers = triggerRows.map((r: any) => ({ trigger: r.trigger, count: r.c }))
+    `).all() as { trigger: string; c: number }[]
+    const topTriggers = triggerRows.map((r) => ({ trigger: r.trigger, count: r.c }))
 
-    const lastEvt = this.db.prepare("SELECT created_at FROM persona_events ORDER BY created_at DESC LIMIT 1").get() as any
+    const lastEvt = this.db.prepare("SELECT created_at FROM persona_events ORDER BY created_at DESC LIMIT 1").get() as { created_at: string } | null
 
     return {
       totalEvents, totalEvolutions, activeProfiles,

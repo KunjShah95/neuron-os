@@ -139,7 +139,7 @@ export class SocialStore {
 
     if (existing) {
       const updates: string[] = ["last_seen_at = ?", "status = ?"]
-      const params: unknown[] = [now, record.status || "online"]
+      const params: (string | number | null)[] = [now, record.status || "online"]
 
       if (record.reputation !== undefined) { updates.push("reputation = ?"); params.push(record.reputation) }
       if (record.trustLevel !== undefined) { updates.push("trust_level = ?"); params.push(record.trustLevel) }
@@ -150,7 +150,7 @@ export class SocialStore {
       if (record.capabilities) { updates.push("capabilities = ?"); params.push(JSON.stringify(record.capabilities)) }
 
       params.push(record.id)
-      this.db.prepare(`UPDATE peers SET ${updates.join(", ")} WHERE id = ?`).run(...(params as any[]))
+      this.db.prepare(`UPDATE peers SET ${updates.join(", ")} WHERE id = ?`).run(...params)
     } else {
       this.db
         .prepare(
@@ -175,13 +175,13 @@ export class SocialStore {
 
   listPeers(status?: PeerStatus): PeerRecord[] {
     let sql = "SELECT * FROM peers"
-    const params: unknown[] = []
+    const params: (string | number | null)[] = []
     if (status) {
       sql += " WHERE status = ?"
       params.push(status)
     }
     sql += " ORDER BY reputation DESC"
-    const rows = this.db.prepare(sql).all(...(params as any[])) as Record<string, unknown>[]
+    const rows = this.db.prepare(sql).all(...params) as Record<string, unknown>[]
     return rows.map((r) => this.rowToPeer(r))
   }
 
@@ -207,10 +207,10 @@ export class SocialStore {
   updateMessageStatus(id: string, status: MessageStatus): void {
     const now = new Date().toISOString()
     const extra = status === "delivered" ? ", delivered_at = ?" : status === "read" ? ", read_at = ?" : ""
-    const params: unknown[] = [status]
+    const params: (string | number | null)[] = [status]
     if (status === "delivered" || status === "read") params.push(now)
     params.push(id)
-    this.db.prepare(`UPDATE messages SET status = ?${extra} WHERE id = ?`).run(...(params as any[]))
+    this.db.prepare(`UPDATE messages SET status = ?${extra} WHERE id = ?`).run(...params)
   }
 
   getMessagesForPeer(peerId: string, limit = 50): SocialMessage[] {
@@ -261,20 +261,20 @@ export class SocialStore {
     lastDiscoveryAt: string
     lastGossipAt: string
   } {
-    const totalPeers = (this.db.prepare("SELECT COUNT(*) as c FROM peers").get() as any).c
-    const onlinePeers = (this.db.prepare("SELECT COUNT(*) as c FROM peers WHERE status = 'online'").get() as any).c
-    const totalMessages = (this.db.prepare("SELECT COUNT(*) as c FROM messages").get() as any).c
-    const deliveredMessages = (this.db.prepare("SELECT COUNT(*) as c FROM messages WHERE status IN ('delivered','read')").get() as any).c
-    const failedMessages = (this.db.prepare("SELECT COUNT(*) as c FROM messages WHERE status = 'failed'").get() as any).c
-    const totalGossipEvents = (this.db.prepare("SELECT COUNT(*) as c FROM gossip_events").get() as any).c
-    const avgRow = this.db.prepare("SELECT AVG(reputation) as avg FROM peers").get() as any
+    const totalPeers = (this.db.prepare("SELECT COUNT(*) as c FROM peers").get() as { c: number }).c
+    const onlinePeers = (this.db.prepare("SELECT COUNT(*) as c FROM peers WHERE status = 'online'").get() as { c: number }).c
+    const totalMessages = (this.db.prepare("SELECT COUNT(*) as c FROM messages").get() as { c: number }).c
+    const deliveredMessages = (this.db.prepare("SELECT COUNT(*) as c FROM messages WHERE status IN ('delivered','read')").get() as { c: number }).c
+    const failedMessages = (this.db.prepare("SELECT COUNT(*) as c FROM messages WHERE status = 'failed'").get() as { c: number }).c
+    const totalGossipEvents = (this.db.prepare("SELECT COUNT(*) as c FROM gossip_events").get() as { c: number }).c
+    const avgRow = this.db.prepare("SELECT AVG(reputation) as avg FROM peers").get() as { avg: number | null }
     const averageReputation = avgRow.avg || 0
 
-    const top = this.db.prepare("SELECT name, reputation FROM peers ORDER BY reputation DESC LIMIT 5").all() as any[]
-    const topPeers = top.map((r: any) => ({ name: r.name, reputation: r.reputation }))
+    const top = this.db.prepare("SELECT name, reputation FROM peers ORDER BY reputation DESC LIMIT 5").all() as { name: string; reputation: number }[]
+    const topPeers = top.map((r) => ({ name: r.name, reputation: r.reputation }))
 
-    const lastGossip = this.db.prepare("SELECT timestamp FROM gossip_events ORDER BY timestamp DESC LIMIT 1").get() as any
-    const lastPeer = this.db.prepare("SELECT last_seen_at FROM peers ORDER BY last_seen_at DESC LIMIT 1").get() as any
+    const lastGossip = this.db.prepare("SELECT timestamp FROM gossip_events ORDER BY timestamp DESC LIMIT 1").get() as { timestamp: string } | null
+    const lastPeer = this.db.prepare("SELECT last_seen_at FROM peers ORDER BY last_seen_at DESC LIMIT 1").get() as { last_seen_at: string } | null
 
     return {
       totalPeers, onlinePeers, totalMessages, deliveredMessages, failedMessages,

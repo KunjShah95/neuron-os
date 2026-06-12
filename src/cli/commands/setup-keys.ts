@@ -4,6 +4,12 @@ import { credentialVault } from "../../vault"
 import { saveConfig, loadConfig } from "../../config"
 import { guardCancel, WizardCancelledError } from "../guard"
 
+type ApiBody = { error?: { message?: string }; type?: string }
+function apiErr(body: unknown, status: number): string {
+  const b = body as ApiBody
+  return b.error?.message || b.type || `HTTP ${status}`
+}
+
 // ── Provider Definitions ──────────────────────────────────────────────
 
 interface ProviderConfig {
@@ -43,7 +49,7 @@ const PROVIDERS: ProviderConfig[] = [
         })
         if (res.ok) return { ok: true }
         const body = await res.json().catch(() => ({}))
-        const err = (body as any).error?.message || (body as any).type || `HTTP ${res.status}`
+        const err = apiErr(body, res.status)
         return { ok: false, error: err }
       } finally {
         clearTimeout(timeout)
@@ -67,7 +73,7 @@ const PROVIDERS: ProviderConfig[] = [
         })
         if (res.ok) return { ok: true }
         const body = await res.json().catch(() => ({}))
-        const err = (body as any).error?.message || `HTTP ${res.status}`
+        const err = apiErr(body, res.status)
         return { ok: false, error: err }
       } finally {
         clearTimeout(timeout)
@@ -91,7 +97,7 @@ const PROVIDERS: ProviderConfig[] = [
         })
         if (res.ok) return { ok: true }
         const body = await res.json().catch(() => ({}))
-        const err = (body as any).error?.message || `HTTP ${res.status}`
+        const err = apiErr(body, res.status)
         return { ok: false, error: err }
       } finally {
         clearTimeout(timeout)
@@ -101,7 +107,7 @@ const PROVIDERS: ProviderConfig[] = [
   {
     key: "gemini",
     label: "Gemini (Google)",
-    envVar: "GEMINI_API_KEY",
+    envVar: "GOOGLE_GENERATIVE_AI_API_KEY",
     defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
     needsBaseUrl: false,
     testKey: async (apiKey) => {
@@ -139,7 +145,7 @@ const PROVIDERS: ProviderConfig[] = [
         })
         if (res.ok) return { ok: true }
         const body = await res.json().catch(() => ({}))
-        const err = (body as any).error?.message || `HTTP ${res.status}`
+        const err = apiErr(body, res.status)
         return { ok: false, error: err }
       } finally {
         clearTimeout(timeout)
@@ -167,7 +173,7 @@ const PROVIDERS: ProviderConfig[] = [
         })
         if (res.ok) return { ok: true }
         const body = await res.json().catch(() => ({}))
-        const err = (body as any).error?.message || `HTTP ${res.status}`
+        const err = apiErr(body, res.status)
         return { ok: false, error: err }
       } finally {
         clearTimeout(timeout)
@@ -212,7 +218,7 @@ const PROVIDERS: ProviderConfig[] = [
         })
         if (res.ok) return { ok: true }
         const body = await res.json().catch(() => ({}))
-        const err = (body as any).error?.message || `HTTP ${res.status}`
+        const err = apiErr(body, res.status)
         return { ok: false, error: err }
       } finally {
         clearTimeout(timeout)
@@ -238,7 +244,7 @@ const PROVIDERS: ProviderConfig[] = [
         })
         if (res.ok) return { ok: true }
         const body = await res.json().catch(() => ({}))
-        const err = (body as any).error?.message || `HTTP ${res.status}`
+        const err = apiErr(body, res.status)
         return { ok: false, error: err }
       } finally {
         clearTimeout(timeout)
@@ -262,7 +268,7 @@ const PROVIDERS: ProviderConfig[] = [
         })
         if (res.ok) return { ok: true }
         const body = await res.json().catch(() => ({}))
-        const err = (body as any).error?.message || `HTTP ${res.status}`
+        const err = apiErr(body, res.status)
         return { ok: false, error: err }
       } finally {
         clearTimeout(timeout)
@@ -285,7 +291,7 @@ const PROVIDERS: ProviderConfig[] = [
         })
         if (res.ok) return { ok: true }
         const body = await res.json().catch(() => ({}))
-        const err = (body as any).error?.message || `HTTP ${res.status}`
+        const err = apiErr(body, res.status)
         return { ok: false, error: err }
       } finally {
         clearTimeout(timeout)
@@ -308,7 +314,7 @@ const PROVIDERS: ProviderConfig[] = [
         })
         if (res.ok) return { ok: true }
         const body = await res.json().catch(() => ({}))
-        const err = (body as any).error?.message || `HTTP ${res.status}`
+        const err = apiErr(body, res.status)
         return { ok: false, error: err }
       } finally {
         clearTimeout(timeout)
@@ -331,7 +337,7 @@ const PROVIDERS: ProviderConfig[] = [
         })
         if (res.ok) return { ok: true }
         const body = await res.json().catch(() => ({}))
-        const err = (body as any).error?.message || `HTTP ${res.status}`
+        const err = apiErr(body, res.status)
         return { ok: false, error: err }
       } finally {
         clearTimeout(timeout)
@@ -354,7 +360,7 @@ const PROVIDERS: ProviderConfig[] = [
         })
         if (res.ok) return { ok: true }
         const body = await res.json().catch(() => ({}))
-        const err = (body as any).error?.message || `HTTP ${res.status}`
+        const err = apiErr(body, res.status)
         return { ok: false, error: err }
       } finally {
         clearTimeout(timeout)
@@ -378,7 +384,7 @@ const PROVIDERS: ProviderConfig[] = [
         const res = await fetch(url, { headers, signal: controller.signal })
         if (res.ok) return { ok: true }
         const body = await res.json().catch(() => ({}))
-        const err = (body as any).error?.message || `HTTP ${res.status}`
+        const err = apiErr(body, res.status)
         return { ok: false, error: err }
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : String(err) }

@@ -196,7 +196,7 @@ export class SessionStore {
 
   updateSession(id: string, updates: Partial<Omit<SessionRecord, "id" | "createdAt">>): void {
     const fields: string[] = []
-    const values: unknown[] = []
+    const values: (string | number | null)[] = []
 
     if (updates.name !== undefined) {
       fields.push("name = ?")
@@ -225,7 +225,6 @@ export class SessionStore {
     values.push(Date.now())
     values.push(id)
 
-    // @ts-expect-error - bun:sqlite variadic param type limitation
     this.db.prepare(`UPDATE sessions SET ${fields.join(", ")} WHERE id = ?`).run(...values)
   }
 
@@ -250,7 +249,7 @@ export class SessionStore {
 
   deleteSession(id: string): void {
     // CASCADE will delete messages and state
-    this.db.prepare("DELETE FROM sessions WHERE id = ?").run(id as any)
+    this.db.prepare("DELETE FROM sessions WHERE id = ?").run(id)
   }
 
   // ── Messages ───────────────────────────────────────────────────────
@@ -261,10 +260,10 @@ export class SessionStore {
       INSERT INTO session_messages (session_id, role, content, timestamp, tool_calls)
       VALUES (?, ?, ?, ?, ?)
     `)
-    stmt.run(sessionId as any, msg.role as any, msg.content as any, now as any, (msg.toolCalls ?? null) as any)
+    stmt.run(sessionId, msg.role, msg.content, now, msg.toolCalls ?? null)
 
     // Update session timestamp
-    this.db.prepare("UPDATE sessions SET updated_at = ? WHERE id = ?").run(now as any, sessionId as any)
+    this.db.prepare("UPDATE sessions SET updated_at = ? WHERE id = ?").run(now, sessionId)
 
     // Return the last_insert_rowid
     const result = this.db.prepare("SELECT last_insert_rowid() as id").get() as { id: number }
@@ -641,7 +640,7 @@ export class SessionStore {
    */
   pruneSessions(olderThanMs: number): number {
     const cutoff = Date.now() - olderThanMs
-    const result = this.db.prepare("DELETE FROM sessions WHERE updated_at < ?").run(cutoff as any)
+    const result = this.db.prepare("DELETE FROM sessions WHERE updated_at < ?").run(cutoff)
     return result.changes
   }
 

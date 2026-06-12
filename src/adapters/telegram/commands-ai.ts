@@ -1,5 +1,6 @@
 import { Markup, type Telegraf } from "telegraf"
 import type { SearchScope } from "../../modes/search"
+import type { AIProvider } from "../../ai"
 import { clip } from "../bot-commands"
 import { commandArg, type ApprovalCallbacks, type TelegramConfig } from "./messages"
 
@@ -19,12 +20,12 @@ export function registerAiCommands(bot: Telegraf, config: TelegramConfig, approv
       const { runAskOrchestrator } = await import("../../modes/ask")
       const answer = await runAskOrchestrator(question, undefined, config.project)
 
-      await ctx.telegram.editMessageText(ctx.chat!.id, statusMsg.message_id, undefined, clip(answer, 4000), {
+      await ctx.telegram.editMessageText(ctx.chat?.id ?? 0, statusMsg.message_id, undefined, clip(answer, 4000), {
         parse_mode: "Markdown",
       })
     } catch (err: unknown) {
       await ctx.telegram.editMessageText(
-        ctx.chat!.id,
+        ctx.chat?.id ?? 0,
         statusMsg.message_id,
         undefined,
         `❌ Error: ${err instanceof Error ? err.message : String(err)}`,
@@ -57,7 +58,7 @@ export function registerAiCommands(bot: Telegraf, config: TelegramConfig, approv
               .join("\n")
 
             await ctx.telegram.editMessageText(
-              ctx.chat!.id,
+              ctx.chat?.id ?? 0,
               statusMsg.message_id,
               undefined,
               `📋 *${pending.length} Change(s) Staged*\n\n${clip(summary, 2000)}\n\nReview and approve:`,
@@ -85,7 +86,7 @@ export function registerAiCommands(bot: Telegraf, config: TelegramConfig, approv
       )
 
       await ctx.telegram.editMessageText(
-        ctx.chat!.id,
+        ctx.chat?.id ?? 0,
         statusMsg.message_id,
         undefined,
         `✅ *Done*\n\n${clip(result, 3500)}`,
@@ -93,7 +94,7 @@ export function registerAiCommands(bot: Telegraf, config: TelegramConfig, approv
       )
     } catch (err: unknown) {
       await ctx.telegram.editMessageText(
-        ctx.chat!.id,
+        ctx.chat?.id ?? 0,
         statusMsg.message_id,
         undefined,
         `❌ Error: ${err instanceof Error ? err.message : String(err)}`,
@@ -118,12 +119,12 @@ export function registerAiCommands(bot: Telegraf, config: TelegramConfig, approv
       const { runSearch } = await import("../../modes/search")
       const result = await runSearch({ scope: "memory", query, maxResults: 5 })
 
-      await ctx.telegram.editMessageText(ctx.chat!.id, statusMsg.message_id, undefined, clip(result, 4000), {
+      await ctx.telegram.editMessageText(ctx.chat?.id ?? 0, statusMsg.message_id, undefined, clip(result, 4000), {
         parse_mode: "Markdown",
       })
     } catch (err: unknown) {
       await ctx.telegram.editMessageText(
-        ctx.chat!.id,
+        ctx.chat?.id ?? 0,
         statusMsg.message_id,
         undefined,
         `❌ Memory search error: ${err instanceof Error ? err.message : String(err)}`,
@@ -160,12 +161,12 @@ export function registerAiCommands(bot: Telegraf, config: TelegramConfig, approv
       const { runSearch } = await import("../../modes/search")
       const result = await runSearch({ scope, query, maxResults: 8 })
 
-      await ctx.telegram.editMessageText(ctx.chat!.id, statusMsg.message_id, undefined, clip(result, 4000), {
+      await ctx.telegram.editMessageText(ctx.chat?.id ?? 0, statusMsg.message_id, undefined, clip(result, 4000), {
         parse_mode: "Markdown",
       })
     } catch (err: unknown) {
       await ctx.telegram.editMessageText(
-        ctx.chat!.id,
+        ctx.chat?.id ?? 0,
         statusMsg.message_id,
         undefined,
         `❌ Search error: ${err instanceof Error ? err.message : String(err)}`,
@@ -193,18 +194,18 @@ export function registerAiCommands(bot: Telegraf, config: TelegramConfig, approv
 
       const session = {
         plan,
-        selected: new Set(plan.steps.map((s: any) => s.id)),
+        selected: new Set(plan.steps.map((s) => s.id)),
       }
 
-      await ctx.telegram.editMessageText(ctx.chat!.id, statusMsg.message_id, undefined, planMessage(session), {
+      await ctx.telegram.editMessageText(ctx.chat?.id ?? 0, statusMsg.message_id, undefined, planMessage(session), {
         parse_mode: "Markdown",
         ...planKeyboard(session),
       })
 
-      planSessions.set(ctx.chat!.id, session)
+      planSessions.set(ctx.chat?.id ?? 0, session)
     } catch (err: unknown) {
       await ctx.telegram.editMessageText(
-        ctx.chat!.id,
+        ctx.chat?.id ?? 0,
         statusMsg.message_id,
         undefined,
         `❌ Error: ${err instanceof Error ? err.message : String(err)}`,
@@ -227,7 +228,7 @@ export function registerAiCommands(bot: Telegraf, config: TelegramConfig, approv
     try {
       const { AIProviderManager } = await import("../../ai")
       const ai = new AIProviderManager({
-        provider: (process.env.AEGIS_AI_PROVIDER ?? "openai") as any,
+        provider: (process.env.AEGIS_AI_PROVIDER ?? "openai") as AIProvider,
         model: process.env.AEGIS_AI_MODEL ?? "gpt-4o",
         apiKey: process.env.AEGIS_AI_API_KEY,
         baseUrl: process.env.AEGIS_AI_BASE_URL,
@@ -242,12 +243,12 @@ export function registerAiCommands(bot: Telegraf, config: TelegramConfig, approv
           "You are a helpful AI assistant integrated into a development tool called Neuron OS. Answer concisely and accurately.",
       })
 
-      await ctx.telegram.editMessageText(ctx.chat!.id, statusMsg.message_id, undefined, clip(result.text, 4000), {
+      await ctx.telegram.editMessageText(ctx.chat?.id ?? 0, statusMsg.message_id, undefined, clip(result.text, 4000), {
         parse_mode: "Markdown",
       })
     } catch (err: unknown) {
       await ctx.telegram.editMessageText(
-        ctx.chat!.id,
+        ctx.chat?.id ?? 0,
         statusMsg.message_id,
         undefined,
         `❌ Chat error: ${err instanceof Error ? err.message : String(err)}`,
@@ -293,7 +294,7 @@ export function registerAiCommands(bot: Telegraf, config: TelegramConfig, approv
           const elapsed = Math.floor((Date.now() - startTime) / 1000)
           const progressMsg = `🧪 Research in progress...\n\n${progress.slice(0, 200)}\n\n⏱ ${elapsed}s elapsed`
           ctx.telegram
-            .editMessageText(ctx.chat!.id, statusMsg.message_id, undefined, clip(progressMsg, 4000), {
+            .editMessageText(ctx.chat?.id ?? 0, statusMsg.message_id, undefined, clip(progressMsg, 4000), {
               parse_mode: "Markdown",
             })
             .catch(() => {})
@@ -316,12 +317,12 @@ export function registerAiCommands(bot: Telegraf, config: TelegramConfig, approv
         ),
       ].join("\n")
 
-      await ctx.telegram.editMessageText(ctx.chat!.id, statusMsg.message_id, undefined, clip(summary, 4000), {
+      await ctx.telegram.editMessageText(ctx.chat?.id ?? 0, statusMsg.message_id, undefined, clip(summary, 4000), {
         parse_mode: "Markdown",
       })
     } catch (err: unknown) {
       await ctx.telegram.editMessageText(
-        ctx.chat!.id,
+        ctx.chat?.id ?? 0,
         statusMsg.message_id,
         undefined,
         `❌ Research error: ${err instanceof Error ? err.message : String(err)}`,

@@ -10,6 +10,15 @@ import type FirecrawlApp from "@mendable/firecrawl-js"
 
 const log = createLogger("docs-crawl")
 
+type FirecrawlItem = {
+  url?: string
+  markdown?: string
+  html?: string
+  rawHtml?: string
+  title?: string
+  metadata?: { url?: string; title?: string; depth?: number }
+}
+
 let firecrawlClient: FirecrawlApp | null = null
 
 async function getFirecrawl(): Promise<FirecrawlApp> {
@@ -35,7 +44,7 @@ export class CrawlEngine {
     const processed = processPages(succeeded, config.mode)
 
     const result: CrawlResult = {
-      siteName: config.name!,
+      siteName: config.name ?? "",
       sourceUrl: config.url || config.path || "",
       crawledAt,
       pages: succeeded,
@@ -66,7 +75,7 @@ export class CrawlEngine {
   private async crawlWeb(config: CrawlConfig): Promise<CrawledPage[]> {
     try {
       const client = await getFirecrawl()
-      const result = await client.crawlUrl(config.url!, {
+      const result = await client.crawlUrl(config.url ?? "", {
         limit: config.limit,
         scrapeOptions: {
           formats: config.mode === "qa" ? ["markdown"] : ["markdown", "html"],
@@ -78,7 +87,7 @@ export class CrawlEngine {
         return []
       }
 
-      return result.data.map((item: any, i: number) => pageFromFirecrawl(item, i, config))
+      return result.data.map((item, i: number) => pageFromFirecrawl(item as FirecrawlItem, i, config))
     } catch (err) {
       log.error("Web crawl failed", { error: String(err) })
       throw err
@@ -144,9 +153,9 @@ export class CrawlEngine {
   }
 }
 
-function pageFromFirecrawl(item: any, _index: number, config: CrawlConfig): CrawledPage {
+function pageFromFirecrawl(item: FirecrawlItem, _index: number, config: CrawlConfig): CrawledPage {
   const url = item.url || item.metadata?.url || ""
-  const id = extractPageId(url, config.url!)
+  const id = extractPageId(url, config.url ?? "")
   const markdown = item.markdown || ""
   const html = config.mode !== "qa" ? item.html || item.rawHtml : undefined
   const headings = extractHeadings(markdown)
@@ -181,7 +190,7 @@ function extractPageId(url: string, baseUrl: string): string {
 
 function extractTitle(content: string): string {
   const match = content.match(/^#\s+(.+)$/m)
-  return match ? match[1]!.trim() : ""
+  return match ? (match[1] ?? "").trim() : ""
 }
 
 function extractHeadings(content: string): Heading[] {
@@ -189,12 +198,12 @@ function extractHeadings(content: string): Heading[] {
   const pattern = /^(#{1,6})\s+(.+)$/gm
   let match: RegExpExecArray | null
   while ((match = pattern.exec(content)) !== null) {
-    const text = match[2]!.trim()
+    const text = (match[2] ?? "").trim()
     const slug = text
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "")
-    headings.push({ level: match[1]!.length, text, slug })
+    headings.push({ level: (match[1] ?? "").length, text, slug })
   }
   return headings
 }
@@ -204,9 +213,9 @@ function extractLinks(content: string, _pageId: string): { text: string; href: s
   const linkPattern = /\[([^\]]*)\]\(([^)]+)\)/g
   let match: RegExpExecArray | null
   while ((match = linkPattern.exec(content)) !== null) {
-    const href = match[2]!.trim()
+    const href = (match[2] ?? "").trim()
     if (href.startsWith("http") || href.startsWith("/") || href.startsWith("#")) {
-      links.push({ text: match[1]!.trim(), href })
+      links.push({ text: (match[1] ?? "").trim(), href })
     }
   }
   return links

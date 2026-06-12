@@ -47,22 +47,22 @@ export function createMatrixAdapter(config: MatrixConfig): PlatformAdapter {
       })
 
       // ── Lifecycle handlers ──────────────────────────────────────────
-      const c = client as any
+      const c = client as MatrixClient & Record<string, (...args: unknown[]) => unknown>
 
-      c.once("sync", (_state: string) => {
+      c.once("sync", (_state: unknown) => {
         log.info(`Matrix sync complete: ${_state}`)
       })
 
-      c.on("RoomMember.membership", (_event: any, member: any) => {
+      c.on("RoomMember.membership", (_event: unknown, member: { membership: string; userId: string; roomId: string }) => {
         if (member.membership === "invite" && member.userId === config.userId) {
-          c.joinRoom(member.roomId).catch((err: any) => {
+          (c.joinRoom(member.roomId) as Promise<unknown>).catch((err: Error) => {
             log.warn(`Failed to auto-join room ${member.roomId}: ${err.message}`)
           })
         }
       })
 
       // ── Message handler ─────────────────────────────────────────────
-      c.on("Room.timeline", (event: any, room: any) => {
+      c.on("Room.timeline", (event: { getType(): string; getSender(): string | null; getContent(): { body?: string } | null }, room: { roomId: string }) => {
         // Only handle messages
         if (event.getType() !== "m.room.message") return
         // Ignore own messages
@@ -85,7 +85,7 @@ export function createMatrixAdapter(config: MatrixConfig): PlatformAdapter {
       })
 
       // ── Start client ────────────────────────────────────────────────
-      await (client as any).startClient({ initialSyncLimit: 0 })
+      await (client as MatrixClient).startClient({ initialSyncLimit: 0 })
       log.info(`Matrix adapter started as ${config.userId}`)
     },
 
@@ -108,7 +108,7 @@ export function createMatrixAdapter(config: MatrixConfig): PlatformAdapter {
     const c = client
     if (!c) throw new Error("Matrix client not started")
 
-    await (c as any).sendEvent(roomId, "m.room.message", {
+    await (c as MatrixClient).sendEvent(roomId, "m.room.message", {
       msgtype: "m.text",
       body: clip(text, MATRIX_MAX, TRUNCATION_SUFFIX),
       format: "org.matrix.custom.html",

@@ -4,10 +4,10 @@ import type { ApprovalCallbacks } from "./messages"
 export function registerCallbacks(bot: Telegraf, approvalCallbacks: ApprovalCallbacks): void {
   bot.action(/^plan_toggle:(.+)$/, async (ctx) => {
     const { planSessions, refreshPlanUi } = await import("../../modes/telegram/plan-session")
-    const s = planSessions.get(ctx.chat!.id)
+    const s = planSessions.get(ctx.chat?.id ?? 0)
     if (!s) return ctx.answerCbQuery("No active plan session")
 
-    const id = ctx.match[1]!
+    const id = ctx.match[1] ?? ""
     if (s.selected.has(id)) s.selected.delete(id)
     else s.selected.add(id)
 
@@ -17,7 +17,7 @@ export function registerCallbacks(bot: Telegraf, approvalCallbacks: ApprovalCall
 
   bot.action("plan_all", async (ctx) => {
     const { planSessions, refreshPlanUi } = await import("../../modes/telegram/plan-session")
-    const s = planSessions.get(ctx.chat!.id)
+    const s = planSessions.get(ctx.chat?.id ?? 0)
     if (!s) return ctx.answerCbQuery("No active plan session")
 
     for (const step of s.plan.steps) s.selected.add(step.id)
@@ -27,7 +27,7 @@ export function registerCallbacks(bot: Telegraf, approvalCallbacks: ApprovalCall
 
   bot.action("plan_none", async (ctx) => {
     const { planSessions, refreshPlanUi } = await import("../../modes/telegram/plan-session")
-    const s = planSessions.get(ctx.chat!.id)
+    const s = planSessions.get(ctx.chat?.id ?? 0)
     if (!s) return ctx.answerCbQuery("No active plan session")
 
     s.selected.clear()
@@ -38,20 +38,21 @@ export function registerCallbacks(bot: Telegraf, approvalCallbacks: ApprovalCall
   bot.action("plan_proceed", async (ctx) => {
     const { planSessions } = await import("../../modes/telegram/plan-session")
     const { runPlanSteps } = await import("../../modes/telegram/agent-run")
-    const s = planSessions.get(ctx.chat!.id)
+    const s = planSessions.get(ctx.chat?.id ?? 0)
     if (!s) return ctx.answerCbQuery("No active plan session")
 
-    const steps = s.plan.steps.filter((step: any) => s.selected.has(step.id))
+    const steps = s.plan.steps.filter((step) => s.selected.has(step.id))
     if (steps.length === 0) return ctx.answerCbQuery("No steps selected")
 
     const { plan } = s
-    planSessions.delete(ctx.chat!.id)
+    const chatId = ctx.chat?.id ?? 0
+    planSessions.delete(chatId)
 
-    const list = steps.map((step: any, i: number) => `${i + 1}. ${step.title}`).join("\n")
+    const list = steps.map((step, i) => `${i + 1}. ${step.title}`).join("\n")
     await ctx.editMessageText(`🚀 Executing ${steps.length} step(s)…\n\n${list}`)
     await ctx.answerCbQuery()
 
-    void runPlanSteps(ctx, ctx.chat!.id, plan, steps).catch((err: any) => {
+    void runPlanSteps(ctx, chatId, plan, steps).catch((err: unknown) => {
       ctx.reply(`❌ Execution error: ${err instanceof Error ? err.message : String(err)}`)
     })
   })
@@ -62,7 +63,7 @@ export function registerCallbacks(bot: Telegraf, approvalCallbacks: ApprovalCall
   })
 
   bot.action(/agent_accept:(\d+)/, async (ctx) => {
-    const msgId = parseInt(ctx.match[1]!, 10)
+    const msgId = parseInt(ctx.match[1] ?? "", 10)
     const entry = approvalCallbacks.get(msgId)
     if (entry) {
       entry.resolve(true)
@@ -75,7 +76,7 @@ export function registerCallbacks(bot: Telegraf, approvalCallbacks: ApprovalCall
   })
 
   bot.action(/agent_reject:(\d+)/, async (ctx) => {
-    const msgId = parseInt(ctx.match[1]!, 10)
+    const msgId = parseInt(ctx.match[1] ?? "", 10)
     const entry = approvalCallbacks.get(msgId)
     if (entry) {
       entry.resolve(false)
@@ -89,7 +90,7 @@ export function registerCallbacks(bot: Telegraf, approvalCallbacks: ApprovalCall
 
   bot.action("approval_diff", async (ctx) => {
     const { approvalSessions, approvalDiff } = await import("../../modes/telegram/approval-session")
-    const s = approvalSessions.get(ctx.chat!.id)
+    const s = approvalSessions.get(ctx.chat?.id ?? 0)
     if (!s) return ctx.answerCbQuery("No active approval session")
 
     await ctx.answerCbQuery()
@@ -99,10 +100,10 @@ export function registerCallbacks(bot: Telegraf, approvalCallbacks: ApprovalCall
 
   bot.action("approval_accept", async (ctx) => {
     const { approvalSessions } = await import("../../modes/telegram/approval-session")
-    const s = approvalSessions.get(ctx.chat!.id)
+    const s = approvalSessions.get(ctx.chat?.id ?? 0)
     if (!s) return ctx.answerCbQuery("No active approval session")
 
-    approvalSessions.delete(ctx.chat!.id)
+    approvalSessions.delete(ctx.chat?.id ?? 0)
     for (const a of s.pending) s.tracker.approve(a.id)
     s.executor.applyApproved()
     s.executor.clearStaging()
@@ -113,10 +114,10 @@ export function registerCallbacks(bot: Telegraf, approvalCallbacks: ApprovalCall
 
   bot.action("approval_reject", async (ctx) => {
     const { approvalSessions } = await import("../../modes/telegram/approval-session")
-    const s = approvalSessions.get(ctx.chat!.id)
+    const s = approvalSessions.get(ctx.chat?.id ?? 0)
     if (!s) return ctx.answerCbQuery("No active approval session")
 
-    approvalSessions.delete(ctx.chat!.id)
+    approvalSessions.delete(ctx.chat?.id ?? 0)
     for (const a of s.pending) s.tracker.reject(a.id)
     s.executor.clearStaging()
 

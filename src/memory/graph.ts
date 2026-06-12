@@ -142,13 +142,13 @@ export class KnowledgeGraph {
     if (terms.length === 0) return []
 
     const likeClauses = terms.map(() => "LOWER(e.name) LIKE ? OR LOWER(e.context) LIKE ?").join(" OR ")
-    const params: any[] = []
+    const params: (string | number | null)[] = []
     for (const term of terms) {
       params.push(`%${term}%`, `%${term}%`)
     }
 
     let sql = `SELECT * FROM entities e WHERE (${likeClauses})`
-    const queryParams: any[] = [...params]
+    const queryParams: (string | number | null)[] = [...params]
 
     if (query.type) {
       sql += " AND e.type = ?"
@@ -188,7 +188,7 @@ export class KnowledgeGraph {
         JOIN entities e ON e.id = CASE WHEN r.source_id = ? THEN r.target_id ELSE r.source_id END
         WHERE (r.source_id = ? OR r.target_id = ?)
       `
-      const params: any[] = [id, id, id]
+      const params: (string | number | null)[] = [id, id, id]
 
       if (relationType) {
         sql += " AND r.type = ?"
