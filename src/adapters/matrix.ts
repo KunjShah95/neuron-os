@@ -12,7 +12,7 @@
 import { createClient, type MatrixClient } from "matrix-js-sdk"
 import type { PlatformAdapter, PlatformSendOptions } from "./types"
 import { createLogger } from "../cli/logger"
-import { WELCOME_MSG, HELP_MSG, getCommandHandler, clip } from "./bot-commands"
+import { clip, checkAuth, parseCommand, routeCommand } from "./bot-commands"
 
 const log = createLogger("adapter:matrix")
 
@@ -73,47 +73,15 @@ export function createMatrixAdapter(config: MatrixConfig): PlatformAdapter {
         const sender = event.getSender() ?? ""
         const roomId = room.roomId
 
-        // Auth check against allowed user IDs
         const canonicalSender = stripMatrixId(sender)
-        if (
-          config.allowedUserIds &&
-          config.allowedUserIds.length > 0 &&
-          !config.allowedUserIds.includes(sender) &&
-          !config.allowedUserIds.includes(canonicalSender)
-        ) {
-          return
-        }
+        if (!checkAuth(sender, config.allowedUserIds) && !checkAuth(canonicalSender, config.allowedUserIds)) return
 
-        // Only respond to commands starting with /
-        if (!body.startsWith("/")) return
+        const parsed = parseCommand(body)
+        if (!parsed) return
 
-        const spaceIdx = body.indexOf(" ")
-        const command = spaceIdx === -1 ? body.slice(1).toLowerCase() : body.slice(1, spaceIdx).toLowerCase()
-        const args = spaceIdx === -1 ? "" : body.slice(spaceIdx + 1).trim()
-
-        // Handle built-in commands asynchronously
-        const reply = async () => {
-          if (command === "help") {
-            await sendMatrixMessage(roomId, HELP_MSG)
-            return
-          }
-          if (command === "start") {
-            await sendMatrixMessage(roomId, WELCOME_MSG)
-            return
-          }
-
-          const handler = getCommandHandler(command)
-          if (handler) {
-            try {
-              const result = await handler(args, config.project)
-              await sendMatrixMessage(roomId, result.text)
-            } catch (err: unknown) {
-              await sendMatrixMessage(roomId, `❌ Error: ${err instanceof Error ? err.message : String(err)}`)
-            }
-          }
-        }
-
-        reply().catch((err) => log.warn(`Matrix reply error: ${err.message}`))
+        routeCommand(parsed.command, parsed.args, async (responseText) => {
+          await sendMatrixMessage(roomId, responseText)
+        }, config.project).catch((err) => log.warn(`Matrix reply error: ${err.message}`))
       })
 
       // ── Start client ────────────────────────────────────────────────

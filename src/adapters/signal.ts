@@ -12,7 +12,7 @@
 
 import type { PlatformAdapter, PlatformSendOptions } from "./types"
 import { createLogger } from "../cli/logger"
-import { WELCOME_MSG, HELP_MSG, getCommandHandler, clip } from "./bot-commands"
+import { clip, checkAuth, parseCommand, routeCommand } from "./bot-commands"
 
 const log = createLogger("adapter:signal")
 
@@ -76,36 +76,14 @@ export function createSignalAdapter(config: SignalConfig): PlatformAdapter {
         const source = msg.envelope.source
         lastReceiveTimestamp = Math.max(lastReceiveTimestamp, msg.envelope.timestamp)
 
-        // Auth check
-        if (config.allowedUserIds && config.allowedUserIds.length > 0 && !config.allowedUserIds.includes(source)) {
-          continue
-        }
+        if (!checkAuth(source, config.allowedUserIds)) continue
 
-        // Only respond to commands starting with /
-        if (!text.startsWith("/")) continue
+        const parsed = parseCommand(text)
+        if (!parsed) continue
 
-        const spaceIdx = text.indexOf(" ")
-        const command = spaceIdx === -1 ? text.slice(1).toLowerCase() : text.slice(1, spaceIdx).toLowerCase()
-        const args = spaceIdx === -1 ? "" : text.slice(spaceIdx + 1).trim()
-
-        if (command === "help") {
-          await sendMessage(source, HELP_MSG)
-          continue
-        }
-        if (command === "start") {
-          await sendMessage(source, WELCOME_MSG)
-          continue
-        }
-
-        const handler = getCommandHandler(command)
-        if (handler) {
-          try {
-            const result = await handler(args, config.project)
-            await sendMessage(source, result.text)
-          } catch (err: unknown) {
-            await sendMessage(source, `❌ Error: ${err instanceof Error ? err.message : String(err)}`)
-          }
-        }
+        await routeCommand(parsed.command, parsed.args, async (responseText) => {
+          await sendMessage(source, responseText)
+        }, config.project)
       }
     } catch (err: unknown) {
       // Timeouts and transient errors are expected during polling

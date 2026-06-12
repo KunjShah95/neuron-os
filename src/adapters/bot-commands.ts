@@ -722,6 +722,51 @@ export function getCommandList(): string[] {
   return Object.keys(commandHandlers)
 }
 
+// ── Shared Dispatch Helpers ──────────────────────────────────────────────
+
+/** Parse a slash command from raw message text. Returns null if not a command. */
+export function parseCommand(text: string): { command: string; args: string } | null {
+  if (!text.startsWith("/")) return null
+  const spaceIdx = text.indexOf(" ")
+  const command = spaceIdx === -1 ? text.slice(1).toLowerCase() : text.slice(1, spaceIdx).toLowerCase()
+  const args = spaceIdx === -1 ? "" : text.slice(spaceIdx + 1).trim()
+  return { command, args }
+}
+
+/** Returns true if userId is authorized (no allow-list = open access). */
+export function checkAuth(userId: string, allowedUserIds?: string[]): boolean {
+  if (!allowedUserIds || allowedUserIds.length === 0) return true
+  return allowedUserIds.includes(userId)
+}
+
+/**
+ * Route a parsed command to the appropriate handler.
+ * Calls sendReply with response text — caller is responsible for clipping.
+ */
+export async function routeCommand(
+  command: string,
+  args: string,
+  sendReply: (text: string) => Promise<void>,
+  project?: string,
+): Promise<void> {
+  if (command === "help") {
+    await sendReply(HELP_MSG)
+    return
+  }
+  if (command === "start") {
+    await sendReply(WELCOME_MSG)
+    return
+  }
+  const handler = getCommandHandler(command)
+  if (!handler) return
+  try {
+    const result = await handler(args, project)
+    await sendReply(result.text)
+  } catch (err: unknown) {
+    await sendReply(`❌ Error: ${err instanceof Error ? err.message : String(err)}`)
+  }
+}
+
 // ── Twilio Webhook Handler ───────────────────────────────────────────────
 
 /**

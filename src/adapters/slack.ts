@@ -9,7 +9,7 @@
 import { WebClient } from "@slack/web-api"
 import type { PlatformAdapter, PlatformSendOptions } from "./types"
 import { createLogger } from "../cli/logger"
-import { WELCOME_MSG, HELP_MSG, getCommandHandler } from "./bot-commands"
+import { checkAuth, parseCommand, routeCommand } from "./bot-commands"
 
 const log = createLogger("adapter:slack")
 
@@ -52,38 +52,19 @@ export function createSlackAdapter(config: SlackConfig): PlatformAdapter {
             const channel = event.event.channel
             const user = event.event.user
 
-            // Check auth
-            if (config.allowedUserIds && config.allowedUserIds.length > 0 && !config.allowedUserIds.includes(user)) {
-              return
-            }
+            if (!checkAuth(user, config.allowedUserIds)) return
 
             // Extract command from mention: "<@BOTID> /command args"
             const match = text.match(/\/\w+/)
             if (!match) return
 
             const fullCmd = text.slice(text.indexOf(match[0])).trim()
-            const spaceIdx = fullCmd.indexOf(" ")
-            const command = spaceIdx === -1 ? fullCmd.slice(1).toLowerCase() : fullCmd.slice(1, spaceIdx).toLowerCase()
-            const args = spaceIdx === -1 ? "" : fullCmd.slice(spaceIdx + 1).trim()
+            const parsed = parseCommand(fullCmd)
+            if (!parsed) return
 
-            if (command === "help") {
-              await client.chat.postMessage({ channel, text: HELP_MSG, mrkdwn: true })
-              return
-            }
-            if (command === "start") {
-              await client.chat.postMessage({ channel, text: WELCOME_MSG, mrkdwn: true })
-              return
-            }
-
-            const handler = getCommandHandler(command)
-            if (handler) {
-              try {
-                const result = await handler(args, config.project)
-                await client.chat.postMessage({ channel, text: result.text, mrkdwn: true })
-              } catch (err: unknown) {
-                await client.chat.postMessage({ channel, text: `❌ Error: ${err instanceof Error ? err.message : String(err) ?? String(err)}` })
-              }
-            }
+            await routeCommand(parsed.command, parsed.args, async (responseText) => {
+              await client.chat.postMessage({ channel, text: responseText, mrkdwn: true })
+            }, config.project)
           }
         })
 

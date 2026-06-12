@@ -12,7 +12,7 @@
 import { Client } from "irc-framework"
 import type { PlatformAdapter, PlatformSendOptions } from "./types"
 import { createLogger } from "../cli/logger"
-import { WELCOME_MSG, HELP_MSG, getCommandHandler, clip } from "./bot-commands"
+import { clip, checkAuth, parseCommand, routeCommand } from "./bot-commands"
 
 const log = createLogger("adapter:irc")
 
@@ -83,49 +83,15 @@ export function createIRCAdapter(config: IRCConfig): PlatformAdapter {
         // Skip own messages
         if (sender.toLowerCase() === config.nickname.toLowerCase()) return
 
-        // Auth check against allowed user IDs
-        if (
-          config.allowedUserIds &&
-          config.allowedUserIds.length > 0 &&
-          !config.allowedUserIds.includes(sender) &&
-          !config.allowedUserIds.includes(sender.toLowerCase())
-        ) {
-          return
-        }
+        if (!checkAuth(sender, config.allowedUserIds) && !checkAuth(sender.toLowerCase(), config.allowedUserIds)) return
 
-        // Only respond to commands starting with /
-        if (!text.startsWith("/")) return
+        const parsed = parseCommand(text)
+        if (!parsed) return
 
-        const spaceIdx = text.indexOf(" ")
-        const command = spaceIdx === -1 ? text.slice(1).toLowerCase() : text.slice(1, spaceIdx).toLowerCase()
-        const args = spaceIdx === -1 ? "" : text.slice(spaceIdx + 1).trim()
-
-        const reply = async () => {
-          // Determine reply target: respond in channel for channel messages,
-          // or directly to user for private messages
-          const replyTarget = target.startsWith("#") ? target : sender
-
-          if (command === "help") {
-            sendIRCMessage(replyTarget, HELP_MSG)
-            return
-          }
-          if (command === "start") {
-            sendIRCMessage(replyTarget, WELCOME_MSG)
-            return
-          }
-
-          const handler = getCommandHandler(command)
-          if (handler) {
-            try {
-              const result = await handler(args, config.project)
-              sendIRCMessage(replyTarget, result.text)
-            } catch (err: unknown) {
-              sendIRCMessage(replyTarget, `❌ Error: ${err instanceof Error ? err.message : String(err)}`)
-            }
-          }
-        }
-
-        reply().catch((err) => log.warn(`IRC reply error: ${err instanceof Error ? err.message : String(err)}`))
+        const replyTarget = target.startsWith("#") ? target : sender
+        routeCommand(parsed.command, parsed.args, async (responseText) => {
+          sendIRCMessage(replyTarget, responseText)
+        }, config.project).catch((err) => log.warn(`IRC reply error: ${err instanceof Error ? err.message : String(err)}`))
       })
 
       // ── Connection error handler ────────────────────────────────────
