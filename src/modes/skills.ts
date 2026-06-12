@@ -31,7 +31,7 @@ async function listLocalSkills(): Promise<LocalSkill[]> {
     const raw = match[1]
     if (!raw) continue
 
-    const meta: Record<string, any> = { tags: [] }
+    const meta: Record<string, unknown> = { tags: [] as string[] }
     for (const line of raw.split("\n")) {
       const idx = line.indexOf(":")
       if (idx === -1) continue

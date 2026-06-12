@@ -34,7 +34,7 @@ async function llmJudge(
     const model = process.env.AEGIS_EVOLUTION_JUDGE_MODEL || process.env.AEGIS_AI_MODEL || "gpt-4o"
 
     const ai = createAIProvider({
-      provider: provider as any,
+      provider: provider as string,
       model,
       apiKey: process.env.AEGIS_AI_API_KEY,
     })
@@ -99,7 +99,7 @@ async function runRegression(
   let passed = 0
 
   for (let i = 0; i < total; i++) {
-    const ep = candidate.evidence[i]!
+    const ep = candidate.evidence[i] as (typeof candidate.evidence)[0]
     const content = candidate.content.toLowerCase()
 
     // Check that the skill mentions each tool in the sequence

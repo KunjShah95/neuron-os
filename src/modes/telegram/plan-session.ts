@@ -45,7 +45,7 @@ export function planMessage(session: PlanSession): string {
  * Build the inline keyboard for plan step selection.
  */
 export function planKeyboard(session: PlanSession) {
-  const rows: any[] = []
+  const rows: Array<{ text: string; callback_data: string }[]> = []
 
   for (const [i, step] of session.plan.steps.entries()) {
     const checked = session.selected.has(step.id) ? CHECKED : UNCHECKED

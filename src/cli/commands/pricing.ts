@@ -60,11 +60,11 @@ export function registerPricing(program: Command): void {
       const [name, field] = parts as [string, string]
 
       // Try tools first, then models
-      if (data.tools[name] && field in data.tools[name]!) {
+      if (data.tools[name] && field in (data.tools[name] as object)) {
         ;(data.tools[name] as Record<string, unknown>)[field] = numValue
         savePricing(data)
         console.log(`Set tools.${name}.${field} = ${numValue}`)
-      } else if (data.models[name] && field in data.models[name]!) {
+      } else if (data.models[name] && field in (data.models[name] as object)) {
         ;(data.models[name] as Record<string, unknown>)[field] = numValue
         savePricing(data)
         console.log(`Set models.${name}.${field} = ${numValue}`)

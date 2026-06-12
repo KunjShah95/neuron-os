@@ -35,7 +35,7 @@ function renderMenu(state: MenuState): string {
   output += `\n${theme.accent("\u25C6")} ${theme.bold(state.current.title)}\n\n`
 
   for (let i = 0; i < state.current.items.length; i++) {
-    const item = state.current.items[i]!
+    const item = state.current.items[i] as (typeof state.current.items)[0]
     const isSelected = i === state.current.selected
     const bullet = isSelected ? theme.accent("\u25CF ") : theme.muted("\u25CB ")
     const label = isSelected ? theme.bold(item.label) : item.label
@@ -113,7 +113,7 @@ export async function runMenu(items: MenuItem[], title?: string): Promise<MenuRe
         break
 
       case "enter": {
-        const selected = state.current.items[state.current.selected]!
+        const selected = state.current.items[state.current.selected] as (typeof state.current.items)[0]
 
         if (selected.value === "__back__") {
           const parent = state.path.pop()

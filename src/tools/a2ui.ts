@@ -490,7 +490,7 @@ export function renderA2uiWidget(widget: A2uiWidget, useColors = true): string[]
     case "grid":
       return widget.children.flatMap((c) => renderA2uiWidget(c, useColors))
     default:
-      return [`[Unknown widget: ${(widget as any).type}]`]
+      return [`[Unknown widget: ${(widget as Record<string, unknown>).type}]`]
   }
 }
 

@@ -102,8 +102,8 @@ export class SkillMonitor {
 
     if (skillRecords.length === 0) return null
 
-    const first = skillRecords[0]!
-    const last = skillRecords[skillRecords.length - 1]!
+    const first = skillRecords[0] as (typeof skillRecords)[0]
+    const last = skillRecords[skillRecords.length - 1] as (typeof skillRecords)[0]
     const totalInvocations = skillRecords.reduce((s, r) => s + r.invocationCount, 0)
     const totalSuccesses = skillRecords.reduce((s, r) => s + r.successCount, 0)
     const overallSuccessRate = totalInvocations > 0 ? totalSuccesses / totalInvocations : 0
@@ -113,10 +113,10 @@ export class SkillMonitor {
     windowStart.setDate(windowStart.getDate() - this.config.trendWindowDays)
     const recentRecords = skillRecords.filter((r) => new Date(r.timestamp) >= windowStart)
 
+    const lastRecord = recentRecords[recentRecords.length - 1]
     const currentSuccessRate =
-      recentRecords.length >= 2
-        ? recentRecords[recentRecords.length - 1]!.successCount /
-          Math.max(1, recentRecords[recentRecords.length - 1]!.invocationCount)
+      recentRecords.length >= 2 && lastRecord
+        ? lastRecord.successCount / Math.max(1, lastRecord.invocationCount)
         : overallSuccessRate
 
     // Linear regression on success rate over time

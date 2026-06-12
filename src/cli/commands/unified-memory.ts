@@ -19,7 +19,7 @@ export function registerUnifiedMemory(program: Command): void {
 
       const results = await UnifiedMemoryQuery.search({
         query: question,
-        stores: stores as any,
+        stores: stores as string[],
         limit: opts.limit,
       })
 

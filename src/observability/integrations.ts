@@ -124,7 +124,7 @@ export class TraceCollector {
     const limit = options.limit ?? 100
     const sql = "SELECT * FROM traces " + where + " ORDER BY start_time DESC LIMIT " + limit
 
-    const rows = this.db.prepare(sql).all(...(params as any[])) as Record<string, unknown>[]
+    const rows = this.db.prepare(sql).all(...(params as (string | number | null)[])) as Record<string, unknown>[]
     return rows.reverse().map((r) => this.rowToSpan(r))
   }
 

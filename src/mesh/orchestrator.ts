@@ -60,7 +60,7 @@ export class MeshOrchestrator {
           )
           break
         default:
-          throw new Error(`Unknown topology: ${(config as any).topology}`)
+          throw new Error(`Unknown topology: ${(config as Record<string, unknown>).topology}`)
       }
 
       const completedAt = new Date().toISOString()

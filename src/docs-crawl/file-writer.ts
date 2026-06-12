@@ -101,7 +101,7 @@ export class FileWriter {
       siteName: result.siteName,
       sourceUrl: result.sourceUrl,
       crawledAt: result.crawledAt,
-      mode: result.processed.length > 0 ? (result.processed[0]!.entities.length > 0 ? "kg" : "qa") : "qa",
+      mode: result.processed.length > 0 ? ((result.processed[0] as (typeof result.processed)[0]).entities.length > 0 ? "kg" : "qa") : "qa",
     }
     writeFileSync(join(dir, "config-snapshot.json"), JSON.stringify(snapshot, null, 2), "utf-8")
   }

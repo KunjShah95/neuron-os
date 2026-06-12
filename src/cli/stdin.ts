@@ -20,11 +20,11 @@ export function resetStdin(): void {
 
     for (const sym of Object.getOwnPropertySymbols(process.stdin)) {
       if (READLINE_SYMBOLS.includes(sym.toString())) {
-        ;(process.stdin as any)[sym] = undefined
+        ;(process.stdin as unknown as Record<string | symbol, unknown>)[sym] = undefined
       }
     }
 
-    delete (process.stdin as any)._keypressEventsEmitted
+    delete (process.stdin as unknown as Record<string, unknown>)._keypressEventsEmitted
 
     if (process.stdin.isRaw) {
       process.stdin.setRawMode(false)

@@ -102,7 +102,7 @@ function getVersion(): string {
   if (_version) return _version
   try {
     const pkg = JSON.parse(readFileSync(join(import.meta.dir, "..", "..", "package.json"), "utf-8"))
-    _version = String((pkg as any).version || "0.0.0")
+    _version = String((pkg as Record<string, unknown>).version || "0.0.0")
   } catch {
     _version = "0.0.0"
   }

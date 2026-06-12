@@ -24,7 +24,7 @@ export function registerTrigger(program: Command): void {
     .action(async (opts) => {
       const { triggerEngine } = await import("../../triggers/registry")
       const list = triggerEngine.list({
-        type: opts.type as any,
+        type: opts.type as string,
         tag: opts.tag,
         enabled: opts.enabled ? true : opts.disabled ? false : undefined,
       })
@@ -83,8 +83,7 @@ export function registerTrigger(program: Command): void {
         priority: opts.priority as "low" | "normal" | "high" | "critical",
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let config: any
+      let config: Record<string, unknown>
       switch (type) {
         case "cron":
           if (!opts.schedule) throw new Error("--schedule is required for cron triggers")
@@ -125,7 +124,7 @@ export function registerTrigger(program: Command): void {
 
       const trigger = triggerEngine.register({
         name,
-        type: type as any,
+        type: type as string,
         config,
         action,
         tags: opts.tags ? opts.tags.split(",").map((s: string) => s.trim()) : undefined,

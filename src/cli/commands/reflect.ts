@@ -25,7 +25,7 @@ export function registerReflect(program: Command) {
       showBanner()
 
       const provider = opts.provider || process.env.AEGIS_AI_PROVIDER || "openai"
-      const model = opts.model || process.env.AEGIS_AI_MODEL || getDefaultModel(provider as any)
+      const model = opts.model || process.env.AEGIS_AI_MODEL || getDefaultModel(provider as string)
       const goal = opts.goal || "(no goal specified)"
 
       console.log(`  ${theme.heading("🔍 Reflection")}`)
@@ -35,7 +35,7 @@ export function registerReflect(program: Command) {
 
       try {
         const ai = new AIProviderManager({
-          provider: provider as any,
+          provider: provider as string,
           model,
           apiKey: resolveApiKey(provider) || process.env.AEGIS_AI_API_KEY,
           baseUrl: process.env.AEGIS_AI_BASE_URL,

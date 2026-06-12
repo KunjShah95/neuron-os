@@ -140,9 +140,8 @@ export class GoldenTaskValidator {
         if (!byModel[mr.model]) {
           byModel[mr.model] = { total: 0, passed: 0, avgScore: 0 }
         }
-        byModel[mr.model]!.total++
-        if (mr.passed) byModel[mr.model]!.passed++
-        byModel[mr.model]!.avgScore += mr.score
+        const modelEntry = byModel[mr.model]
+        if (modelEntry) { modelEntry.total++; if (mr.passed) modelEntry.passed++; modelEntry.avgScore += mr.score }
       }
     }
     for (const [, stats] of Object.entries(byModel)) {

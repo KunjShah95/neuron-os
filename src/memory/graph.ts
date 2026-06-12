@@ -245,17 +245,17 @@ export class KnowledgeGraph {
     const backtickPattern = /`([^`]+)`/g
     let match: RegExpExecArray | null
     while ((match = backtickPattern.exec(text)) !== null) {
-      const term = match[1]!.trim()
+      const term = (match[1] ?? "").trim()
       if (term.length >= 2) {
-        if (/[A-Z]/.test(term[0]!) || /[a-z]/.test(term[0]!)) {
-          tryAdd(term, /[A-Z]/.test(term[0]!) ? "concept" : "tool")
+        if (/[A-Z]/.test(term[0] ?? "") || /[a-z]/.test(term[0] ?? "")) {
+          tryAdd(term, /[A-Z]/.test(term[0] ?? "") ? "concept" : "tool")
         }
       }
     }
 
     const capitalizedPattern = /\b([A-Z][a-zA-Z]+)\b/g
     while ((match = capitalizedPattern.exec(text)) !== null) {
-      const word = match[1]!
+      const word = match[1] ?? ""
       if (
         word.length >= 3 &&
         ![
@@ -283,7 +283,7 @@ export class KnowledgeGraph {
 
     const funcPattern = /(\w+)\(\)/g
     while ((match = funcPattern.exec(text)) !== null) {
-      tryAdd(match[1]!, "function")
+      tryAdd(match[1] ?? "", "function")
     }
 
     return entities
@@ -297,8 +297,8 @@ export class KnowledgeGraph {
 
     for (let i = 0; i < entities.length; i++) {
       for (let j = i + 1; j < entities.length; j++) {
-        const a = entities[i]!
-        const b = entities[j]!
+        const a = entities[i] as (typeof entities)[0]
+        const b = entities[j] as (typeof entities)[0]
         const posA = textLower.indexOf(a.name.toLowerCase())
         const posB = textLower.indexOf(b.name.toLowerCase())
         if (posA === -1 || posB === -1) continue

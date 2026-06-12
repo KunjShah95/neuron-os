@@ -175,13 +175,13 @@ export class CIGate {
    */
   private aggregateRuns(reports: EvalReport[]): EvalReport {
     if (reports.length === 0) throw new Error("No reports to aggregate")
-    if (reports.length === 1) return reports[0]!
+    if (reports.length === 1) return reports[0] as (typeof reports)[0]
 
     // Keep only post-warmup reports
     const validReports = reports.slice(this.config.warmupCount)
-    if (validReports.length === 0) return reports[reports.length - 1]!
+    if (validReports.length === 0) return reports[reports.length - 1] as (typeof reports)[0]
 
-    const base = { ...validReports[0]! }
+    const base = { ...(validReports[0] as (typeof validReports)[0]) }
     const resultMap = new Map<string, (typeof base.results)[0]>()
 
     for (const report of validReports) {

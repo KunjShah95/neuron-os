@@ -28,7 +28,7 @@ export function computeEmbedding(text: string): number[] {
 
   const norm = Math.sqrt(vec.reduce((s, v) => s + v * v, 0))
   if (norm > 0) {
-    for (let i = 0; i < DIM; i++) vec[i] = vec[i]! / norm
+    for (let i = 0; i < DIM; i++) vec[i] = (vec[i] ?? 0) / norm
   }
   return vec
 }

@@ -204,7 +204,7 @@ function parseCronSchedule(schedule: string): number | null {
 
   const match = schedule.match(/^(\d+)\s*(s|m|h|d)$/)
   if (match && match[1] && match[2]) {
-    return parseInt(match[1]!) * (units[match[2]!] || 1000)
+    return parseInt(match[1] ?? "0") * (units[match[2] ?? ""] ?? 1000)
   }
 
   if (schedule === "30m") return 30 * 60 * 1000

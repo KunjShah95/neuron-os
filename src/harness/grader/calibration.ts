@@ -112,7 +112,7 @@ export class JudgeCalibration {
     }
 
     // Accuracy: % of scores within ±0.1 of human score
-    const accurate = judgeScores.filter((s, i) => Math.abs(s - humanScores[i]!) <= 0.1).length
+    const accurate = judgeScores.filter((s, i) => Math.abs(s - (humanScores[i] ?? 0)) <= 0.1).length
     const accuracy = accurate / judgeScores.length
 
     // Mean error (bias): positive = over-scoring, negative = under-scoring

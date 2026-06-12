@@ -91,7 +91,7 @@ export class TracingStore {
   public getSessionTraces(sessionId: string): TraceSpan[] {
     const rows = this.db
       .prepare("SELECT * FROM spans WHERE session_id = ? ORDER BY start_time ASC")
-      .all(sessionId) as any[]
+      .all(sessionId) as Record<string, unknown>[]
     return rows.map((r) => ({
       spanId: r.span_id,
       parentSpanId: r.parent_span_id,

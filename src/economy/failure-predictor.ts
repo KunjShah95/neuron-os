@@ -104,7 +104,8 @@ export class FailurePredictor {
           })
         }
 
-        const entry = byType.get(exp.agentType)!
+        const entry = byType.get(exp.agentType)
+        if (!entry) continue
         const startedAt = new Date(exp.startedAt)
         const hour = startedAt.getHours()
 
@@ -201,7 +202,7 @@ export class FailurePredictor {
       // Compare this hour's spawn count to the average
       const avgPerHour =
         pattern.totalSpawns / pattern.hourWeights.filter((w) => w > 0).length
-      const thisHourCount = pattern.hourWeights[hour]! * pattern.totalSpawns
+      const thisHourCount = (pattern.hourWeights[hour] ?? 0) * pattern.totalSpawns
       // If this hour has significantly fewer spawns, it might be riskier
       // (agents avoid it, or it's a low-activity period)
       if (avgPerHour > 0 && thisHourCount < avgPerHour * 0.5) {

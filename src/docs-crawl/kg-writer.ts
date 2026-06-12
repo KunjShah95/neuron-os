@@ -33,7 +33,7 @@ export class KnowledgeGraphWriter {
     }
 
     for (let i = 0; i < pp.sections.length; i++) {
-      const section = pp.sections[i]!
+      const section = pp.sections[i] as (typeof pp.sections)[0]
       const sectionName = section.id
 
       knowledgeGraph.addEntity(sectionName, "doc_section", section.content.slice(0, 500), page.url)
@@ -44,7 +44,7 @@ export class KnowledgeGraphWriter {
       }
 
       if (i > 0 && secId) {
-        const prevSecId = this.getEntityId(pp.sections[i - 1]!.id)
+        const prevSecId = this.getEntityId((pp.sections[i - 1] as (typeof pp.sections)[0]).id)
         if (prevSecId) {
           knowledgeGraph.addRelationship(prevSecId, secId, "next_section", 0.5)
         }

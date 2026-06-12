@@ -28,7 +28,7 @@ export async function loadAgentYaml(
     throw new Error("Invalid agent.yaml:\n" + errs)
   }
 
-  return { config: result.config!, raw }
+  return { config: result.config as NonNullable<typeof result.config>, raw }
 }
 
 /**

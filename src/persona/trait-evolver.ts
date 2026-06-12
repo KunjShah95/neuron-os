@@ -127,7 +127,7 @@ export class TraitEvolver {
       if (traitEvents.length === 0) {
         currentTraits[t.name] = 50
       } else {
-        currentTraits[t.name] = traitEvents[traitEvents.length - 1]!.newValue
+        currentTraits[t.name] = (traitEvents[traitEvents.length - 1] as (typeof traitEvents)[0]).newValue
       }
     }
 
@@ -150,7 +150,7 @@ export class TraitEvolver {
       quirkCount: 0,
       adaptationCount: 0,
       evolutionCount: events.length,
-      lastEvolvedAt: events.length > 0 ? events[0]!.createdAt : "",
+      lastEvolvedAt: events.length > 0 ? (events[0] as (typeof events)[0]).createdAt : "",
       stabilityScore,
     }
 

@@ -71,7 +71,7 @@ export async function runResearchLoop(
   const defaultProvider = getDefaultConfiguredProvider()
   const resolvedProvider = process.env.AEGIS_AI_PROVIDER ?? defaultProvider?.provider ?? "anthropic"
   const ai = new AIProviderManager({
-    provider: resolvedProvider as any,
+    provider: resolvedProvider as string,
     model: process.env.AEGIS_AI_MODEL ?? defaultProvider?.model ?? "claude-sonnet-4-20250514",
     apiKey: resolveApiKey(resolvedProvider),
     baseUrl: process.env.AEGIS_AI_BASE_URL,

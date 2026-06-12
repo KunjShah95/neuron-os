@@ -75,8 +75,8 @@ export class FTS5Indexer {
   getStats(): { totalTurns: number; totalSessions: number } {
     if (!this.db) return { totalTurns: 0, totalSessions: 0 }
 
-    const turnCount = (this.db.prepare("SELECT COUNT(*) as cnt FROM recall_index").get() as any)?.cnt ?? 0
-    const sessionCount = (this.db.prepare("SELECT COUNT(*) as cnt FROM recall_meta").get() as any)?.cnt ?? 0
+    const turnCount = (this.db.prepare("SELECT COUNT(*) as cnt FROM recall_index").get() as { cnt: number } | null)?.cnt ?? 0
+    const sessionCount = (this.db.prepare("SELECT COUNT(*) as cnt FROM recall_meta").get() as { cnt: number } | null)?.cnt ?? 0
 
     return { totalTurns: turnCount, totalSessions: sessionCount }
   }

@@ -391,7 +391,7 @@ export class GraphStorage {
 
     // Filter by min relevance
     if (query.minRelevance) {
-      const filtered = entities.filter((e) => (scores.get(e.id) || 0) >= query.minRelevance!)
+      const filtered = entities.filter((e) => (scores.get(e.id) || 0) >= (query.minRelevance ?? 0))
       const filteredIds = new Set(filtered.map((e) => e.id))
       return {
         entities: filtered,

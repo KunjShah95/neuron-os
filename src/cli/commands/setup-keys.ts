@@ -617,7 +617,7 @@ export async function runSetupKeysWizard(): Promise<void> {
     const configuredProviders = results.filter((r) => r.status === "configured")
     if (configuredProviders.length === 1) {
       const providerMap = new Map(PROVIDERS.map((p) => [p.label, p.key]))
-      const r = configuredProviders[0]!
+      const r = configuredProviders[0] as (typeof configuredProviders)[0]
       const key = providerMap.get(r.provider) || r.provider.toLowerCase()
       const config = loadConfig()
       let model: string | undefined = undefined

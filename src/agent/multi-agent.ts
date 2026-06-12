@@ -164,7 +164,7 @@ function parsePlan(goal: string, text: string): OrchestrationPlan {
       for (const rawId of ids) {
         const idx = parseInt(rawId.replace("sub-", ""), 10) - 1
         if (idx >= 0 && idx < subTasks.length) {
-          currentGroup.push(subTasks[idx]!)
+          currentGroup.push(subTasks[idx] as (typeof subTasks)[0])
         }
       }
     }

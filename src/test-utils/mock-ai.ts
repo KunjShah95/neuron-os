@@ -45,7 +45,7 @@ export function createMockModel(responseText: string): LanguageModel {
 
     async doStream(_options: Record<string, unknown>) {
       const stream = new ReadableStream({
-        async start(controller: any) {
+        async start(controller: ReadableStreamDefaultController<unknown>) {
           for (const chunk of chunks) {
             controller.enqueue({ type: "text-delta" as const, delta: chunk })
           }

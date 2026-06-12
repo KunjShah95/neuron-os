@@ -171,7 +171,7 @@ export class SkillExtractor {
   rejectCandidate(candidateId: string): boolean {
     const idx = this.candidates.findIndex((c) => c.id === candidateId)
     if (idx < 0) return false
-    this.candidates[idx] = { ...this.candidates[idx]!, status: "rejected" }
+    this.candidates[idx] = { ...(this.candidates[idx] as (typeof this.candidates)[0]), status: "rejected" }
     this.saveCandidates()
     return true
   }

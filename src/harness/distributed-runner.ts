@@ -173,7 +173,7 @@ export class DistributedEvalRunner {
     const tasks: Promise<void>[] = []
 
     for (let i = 0; i < shards.length; i++) {
-      const shard = shards[i]!
+      const shard = shards[i] as (typeof shards)[0]
       const worker = workers.length > 0 ? workers[i % workers.length] : null
 
       if (!worker) {
@@ -338,8 +338,8 @@ export class DistributedEvalRunner {
       if (!byCategory[cat]) {
         byCategory[cat] = { total: 0, passed: 0, avgScore: 0 }
       }
-      byCategory[cat]!.total++
-      if (r.passed) byCategory[cat]!.passed++
+      const catEntry = byCategory[cat]
+      if (catEntry) { catEntry.total++; if (r.passed) catEntry.passed++ }
     }
     for (const [cat, info] of Object.entries(byCategory)) {
       info.avgScore =

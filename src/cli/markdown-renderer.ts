@@ -93,11 +93,11 @@ const terminalRenderer = new TerminalRenderer({
 
   // Line breaks
   br: (): string => "\n",
-} as any) // Use as any to bypass strict type checking for the renderer
+} as object)
 
 // Configure marked to use terminal renderer
 marked.setOptions({
-  renderer: terminalRenderer as any,
+  renderer: terminalRenderer as object,
 })
 
 /**

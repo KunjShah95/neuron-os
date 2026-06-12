@@ -39,7 +39,7 @@ export async function extractSkillsFromSession(sessionId: string, skillName: str
   log.info(`Found ${shellCommands.length} commands. Generating SKILL.md with AI...`)
 
   const ai = createAIProvider({
-    provider: (process.env.AEGIS_AI_PROVIDER || "openai") as any,
+    provider: (process.env.AEGIS_AI_PROVIDER || "openai") as string,
     model: process.env.AEGIS_AI_MODEL || "gpt-4o",
     apiKey: process.env.AEGIS_AI_API_KEY,
   })

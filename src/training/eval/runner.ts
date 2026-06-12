@@ -129,14 +129,13 @@ export class EvalRunner {
       if (!byCategory[cat]) {
         byCategory[cat] = { total: 0, passed: 0, passRate: 0 }
       }
-      const entry = byCategory[cat]!
-      entry.total++
-      if (result.passed) entry.passed++
+      const entry = byCategory[cat]
+      if (entry) { entry.total++; if (result.passed) entry.passed++ }
     }
 
     for (const cat of Object.keys(byCategory)) {
-      const entry = byCategory[cat]!
-      entry.passRate = entry.total > 0 ? entry.passed / entry.total : 0
+      const entry = byCategory[cat]
+      if (entry) entry.passRate = entry.total > 0 ? entry.passed / entry.total : 0
     }
 
     const total = results.length

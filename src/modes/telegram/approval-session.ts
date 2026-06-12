@@ -26,7 +26,7 @@ function groupPending(pending: ActionLog[]) {
     if (a.type === "tool_execute") shells.push(a)
     else {
       if (!files.has(a.path)) files.set(a.path, [])
-      files.get(a.path)!.push(a)
+      files.get(a.path)?.push(a)
     }
   }
   return { files, shells }

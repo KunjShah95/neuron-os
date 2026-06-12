@@ -200,7 +200,7 @@ toolRegistry.register({
 
     // Emit via A2UI manager
     a2uiManager.emit({
-      widget: widget as any,
+      widget: widget as unknown as Parameters<typeof a2uiManager.emit>[0]["widget"],
       scope,
       replace: true,
     })

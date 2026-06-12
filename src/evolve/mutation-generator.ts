@@ -310,7 +310,7 @@ export class MutationGenerator {
     return results
   }
 
-  private mutationsFromFailure(cluster: any): CodeMutation[] {
+  private mutationsFromFailure(cluster: Record<string, unknown>): CodeMutation[] {
     const mutations: CodeMutation[] = []
     const pattern = (cluster.commonPattern || cluster.description || "").toLowerCase()
     const srcDir = join(process.cwd(), "src")

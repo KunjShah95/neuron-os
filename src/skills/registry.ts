@@ -132,7 +132,7 @@ export class SkillRegistry {
           const cleaned = value.replace(/^\[|\]$/g, "")
           metadata[key] = cleaned.split(",").map((s) => s.trim())
         } else {
-          ;(metadata as any)[key] = value.trim()
+          ;(metadata as Record<string, unknown>)[key] = value.trim()
         }
       }
     }

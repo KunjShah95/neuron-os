@@ -170,7 +170,7 @@ export class WorkerPool extends EventEmitter {
   }
 
   private startHeartbeatLoop(_socket: Socket): void {
-    const interval = this.config.heartbeatIntervalMs!
+    const interval = this.config.heartbeatIntervalMs ?? 5000
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer)
     this.heartbeatTimer = setInterval(() => {
       if (this.leaderSocket && this._localInfo) {
@@ -185,7 +185,7 @@ export class WorkerPool extends EventEmitter {
   }
 
   private startHeartbeatChecker(): void {
-    const timeout = this.config.heartbeatTimeoutMs!
+    const timeout = this.config.heartbeatTimeoutMs ?? 15000
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer)
     this.heartbeatTimer = setInterval(() => {
       const now = Date.now()
@@ -413,7 +413,7 @@ export class WorkerPool extends EventEmitter {
     this.connections.clear()
 
     if (this.server) {
-      await new Promise<void>((resolve) => this.server!.close(() => resolve()))
+      await new Promise<void>((resolve) => this.server.close(() => resolve()))
       this.server = null
     }
 
@@ -471,7 +471,7 @@ export class WorkerPool extends EventEmitter {
         }, 60_000)
 
         this.pendingTasks.set(task.id, { resolve, reject, timer })
-        this.sendMessage(this.leaderSocket!, "forward-task", {
+        this.sendMessage(this.leaderSocket as NonNullable<typeof this.leaderSocket>, "forward-task", {
           targetWorkerId: workerId,
           taskId: task.id,
           taskType: task.type,

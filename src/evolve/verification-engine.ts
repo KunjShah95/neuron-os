@@ -86,7 +86,7 @@ export class VerificationEngine {
       }
     } catch (err) {
       const stderr = err instanceof Error ? err.message : String(err)
-      const output = (err as any)?.stdout?.toString() || ""
+      const output = (err as Error & { stdout?: Buffer })?.stdout?.toString() || ""
       return {
         passed: false,
         output: output + "\n" + stderr,
@@ -115,7 +115,7 @@ export class VerificationEngine {
       }
     } catch (err) {
       const stderr = err instanceof Error ? err.message : String(err)
-      const output = (err as any)?.stdout?.toString() || ""
+      const output = (err as Error & { stdout?: Buffer })?.stdout?.toString() || ""
       return {
         passed: false,
         output: output + "\n" + stderr,

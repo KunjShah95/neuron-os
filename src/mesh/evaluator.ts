@@ -122,8 +122,8 @@ export class Evaluator {
 
       const passMatch = output.match(/(\d+)\s+pass/)
       const failMatch = output.match(/(\d+)\s+fail/)
-      const passCount = passMatch ? parseInt(passMatch[1]!, 10) : 0
-      const failCount = failMatch ? parseInt(failMatch[1]!, 10) : 0
+      const passCount = passMatch ? parseInt(passMatch[1] ?? "0", 10) : 0
+      const failCount = failMatch ? parseInt(failMatch[1] ?? "0", 10) : 0
       const total = passCount + failCount
       const score = total > 0 ? passCount / total : passed ? 1 : 0
 

@@ -109,7 +109,7 @@ export function registerProject(program: Command) {
       // Close data stores before removing to avoid EBUSY on Windows
       try {
         const { sessionStore, removeProjectStore } = await import("../../memory/session-persistence")
-        if ((sessionStore as any)?.close) (sessionStore as any).close()
+        const store = sessionStore as { close?: () => void }; if (store.close) store.close()
         // Close and evict the cached project-scoped store for this project
         removeProjectStore(name)
       } catch {}

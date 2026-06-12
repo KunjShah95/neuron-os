@@ -23,7 +23,7 @@ export const DEFAULT_RECALL_CONFIG = {
   summarizerTimeoutMs: 5000,
 }
 
-export function ensureFTS5Schema(db: any): void {
+export function ensureFTS5Schema(db: { exec: (sql: string) => void }): void {
   db.exec(`
     CREATE VIRTUAL TABLE IF NOT EXISTS recall_index USING fts5(
       session_id UNINDEXED,

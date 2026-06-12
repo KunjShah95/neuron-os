@@ -105,7 +105,7 @@ export async function testGrader(config: CodeGraderConfig["tests"], context?: Gr
     // Try to extract pass count from output
     if (config.expectedPassCount !== undefined) {
       const passMatch = stdout.match(/(\d+)\s+pass(?:ed|ing)?/i)
-      const actualPassed = passMatch ? parseInt(passMatch[1]!, 10) : 0
+      const actualPassed = passMatch ? parseInt(passMatch[1] ?? "0", 10) : 0
       const score = actualPassed >= config.expectedPassCount ? 1.0 : actualPassed / config.expectedPassCount
       return {
         name,
@@ -123,7 +123,7 @@ export async function testGrader(config: CodeGraderConfig["tests"], context?: Gr
     if (hasFailures || hasErrors) {
       // Extract failure count
       const failMatch = stdout.match(/(\d+)\s+fail(?:ed|ing|ure)?/i)
-      const failCount = failMatch ? parseInt(failMatch[1]!, 10) : 0
+      const failCount = failMatch ? parseInt(failMatch[1] ?? "0", 10) : 0
       const score = failCount === 0 ? 1.0 : Math.max(0, 1.0 - failCount * 0.2)
       return { name, grader: "code", score, weight: 0.3, details: `Tests completed with ${failCount} failure(s)` }
     }
@@ -161,8 +161,8 @@ export async function lintGrader(config: CodeGraderConfig["lints"], context?: Gr
     // Extract warning and error counts
     const warnMatch = stdout.match(/(\d+)\s+warning/i)
     const errMatch = stdout.match(/(\d+)\s+error/i)
-    const warnings = warnMatch ? parseInt(warnMatch[1]!, 10) : 0
-    const errors = errMatch ? parseInt(errMatch[1]!, 10) : 0
+    const warnings = warnMatch ? parseInt(warnMatch[1] ?? "0", 10) : 0
+    const errors = errMatch ? parseInt(errMatch[1] ?? "0", 10) : 0
 
     const maxWarnings = config.maxWarnings ?? Infinity
     const maxErrors = config.maxErrors ?? 0

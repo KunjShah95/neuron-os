@@ -58,7 +58,7 @@ export class DistributedAPI {
 
   async stop(): Promise<void> {
     if (this.server) {
-      await new Promise<void>((resolve) => this.server!.close(() => resolve()))
+      await new Promise<void>((resolve) => this.server.close(() => resolve()))
       this.server = null
     }
   }
@@ -95,7 +95,7 @@ export class DistributedAPI {
         if (match) {
           const params: Record<string, string> = {}
           for (let i = 0; i < route.paramNames.length; i++) {
-            params[route.paramNames[i]!] = decodeURIComponent(match[i + 1]!)
+            params[route.paramNames[i] ?? ""] = decodeURIComponent(match[i + 1] ?? "")
           }
           try {
             await route.handler(req, res, body, params)

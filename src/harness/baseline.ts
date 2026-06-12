@@ -132,7 +132,7 @@ export class BaselineManager {
     const filtered = suite ? baselines.filter((b) => b.suite === suite) : baselines
     if (filtered.length === 0) return null
     // Return the most recent (sorted by filename timestamp)
-    return filtered[filtered.length - 1]!
+    return filtered[filtered.length - 1] as (typeof filtered)[0]
   }
 
   /**
@@ -141,7 +141,7 @@ export class BaselineManager {
   list(model?: string): Baseline[] {
     const cacheKey = model ?? "__all__"
     if (this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey)!
+      return this.cache.get(cacheKey) as Baseline[]
     }
 
     const baselines: Baseline[] = []
@@ -267,8 +267,8 @@ export class BaselineManager {
     const baselines = this.list(model).filter((b) => b.suite === suite)
     if (baselines.length < 2) return null
 
-    const latest = baselines[baselines.length - 1]!
-    const first = baselines[0]!
+    const latest = baselines[baselines.length - 1] as (typeof baselines)[0]
+    const first = baselines[0] as (typeof baselines)[0]
 
     const totalDrop = first.summary.avgScore - latest.summary.avgScore
     const daysElapsed = (new Date(latest.timestamp).getTime() - new Date(first.timestamp).getTime()) / 86400000

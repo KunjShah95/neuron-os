@@ -187,8 +187,8 @@ export class DockerSandbox implements Sandbox {
       })
       return { output: result.trim(), exitCode: 0 }
     } catch (err: unknown) {
-      const output = (err instanceof Error && 'stdout' in err ? (err as any).stdout?.toString()?.trim() : "") || (err instanceof Error ? err.message : String(err))
-      const exitCode = (err instanceof Error && 'status' in err ? (err as any).status : undefined) ?? 1
+      const output = (err instanceof Error && 'stdout' in err ? (err as Error & { stdout?: Buffer }).stdout?.toString()?.trim() : "") || (err instanceof Error ? err.message : String(err))
+      const exitCode = (err instanceof Error && 'status' in err ? (err as Error & { status?: number }).status : undefined) ?? 1
       return { output, exitCode }
     }
   }

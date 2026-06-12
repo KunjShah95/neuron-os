@@ -29,7 +29,7 @@ export class CapacityPlacer {
     if (scored.length === 0) return null
 
     scored.sort((a, b) => b.score - a.score)
-    const best = scored[0]!
+    const best = scored[0] as (typeof scored)[0]
 
     return {
       workerId: best.worker.id,

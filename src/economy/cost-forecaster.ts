@@ -203,7 +203,7 @@ export class CostForecaster {
     }
 
     if (byAgentType.length > 0) {
-      const topCost = byAgentType[0]!
+      const topCost = byAgentType[0] as (typeof byAgentType)[0]
       if (topCost.percentage > 50) {
         insights.push(
           `🎯 Agent type "${topCost.agentType}" accounts for ${topCost.percentage}% of total cost.`,

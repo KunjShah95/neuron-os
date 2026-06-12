@@ -207,7 +207,7 @@ function detectCycles(config: WorkflowConfig): WorkflowValidationError | null {
         const cycle: string[] = [v, u]
         let cur = u
         while (cur !== v) {
-          cur = parent.get(cur)!
+          cur = parent.get(cur) ?? ""
           if (cur === undefined) break
           cycle.push(cur)
         }

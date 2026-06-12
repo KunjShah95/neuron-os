@@ -347,7 +347,7 @@ async function tryJudgeCall(
 ): Promise<JudgeResponse> {
   const { createAIProvider } = await import("../../ai/provider")
   const ai = createAIProvider({
-    provider: provider as any,
+    provider: provider as string,
     model,
     apiKey: (apiKey ?? process.env.AEGIS_JUDGE_API_KEY) || undefined,
     temperature: 0.2,
@@ -382,7 +382,7 @@ async function tryJudgeCall(
   // Try numeric parse (for simple score-only output)
   const numMatch = text.match(/^[\s\n]*(\d+\.?\d*)[\s\n]*$/)
   if (numMatch) {
-    const score = parseFloat(numMatch[1]!)
+    const score = parseFloat(numMatch[1] ?? "0")
     if (isFinite(score) && score >= 0 && score <= 1) {
       return { score, confidence: 0.5, reasoning: "" }
     }

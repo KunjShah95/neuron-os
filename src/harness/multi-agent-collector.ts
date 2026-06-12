@@ -100,7 +100,7 @@ export class MultiAgentMetricCollector {
 
     // Detect handoffs by looking for message-passing or context-sharing patterns
     for (let i = 0; i < agentTraces.length; i++) {
-      const curr = agentTraces[i]!
+      const curr = agentTraces[i] as (typeof agentTraces)[0]
       const next = agentTraces[i + 1]
 
       if (!next) {
@@ -239,7 +239,7 @@ export class MultiAgentMetricCollector {
 
     let giniSum = 0
     for (let i = 0; i < n; i++) {
-      giniSum += (2 * (i + 1) - n - 1) * contributions[i]!
+      giniSum += (2 * (i + 1) - n - 1) * (contributions[i] ?? 0)
     }
 
     return Math.min(1, Math.max(0, giniSum / (n * sumContrib)))

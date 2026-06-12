@@ -13,7 +13,7 @@ export function registerCrawlJobs(): void {
 
   for (const site of config.sites) {
     if (!site.schedule) continue
-    registerSiteJob(site as any)
+    registerSiteJob(site as { name: string; schedule: string; url?: string; path?: string; depth?: number; limit?: number; mode?: string })
   }
 }
 
@@ -32,7 +32,7 @@ function registerSiteJob(site: {
     log.info(`Running scheduled crawl: ${site.name}`)
     try {
       const engine = new CrawlEngine()
-      const crawlConfig = siteToConfig(site as any)
+      const crawlConfig = siteToConfig(site as Parameters<typeof siteToConfig>[0])
       const result = await engine.run(crawlConfig)
       log.info(`Scheduled crawl complete: ${site.name} (${result.stats.succeeded} pages)`)
     } catch (err) {
@@ -49,7 +49,7 @@ function parseCronInterval(schedule: string): number {
   const parts = schedule.trim().split(/\s+/)
   if (parts.length < 5) return 3600000
 
-  const p = (i: number) => parseInt(parts[i]!, 10)
+  const p = (i: number) => parseInt(parts[i] ?? "0", 10)
 
   if (!isNaN(p(0)) && !isNaN(p(1)) && !isNaN(p(2))) {
     if (p(0) === 0 && p(1) === 6) return 604800000

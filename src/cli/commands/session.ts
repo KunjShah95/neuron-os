@@ -21,7 +21,7 @@ export function registerSession(program: Command) {
       const { sessionStore } = await import("../../memory/session-persistence")
 
       const count = parseInt(opts.count ?? "10", 10)
-      const status = opts.status as any
+      const status = opts.status as "active" | "completed" | "failed" | "paused" | undefined
       const sessions = status ? sessionStore.listSessions(status) : sessionStore.restoreRecentSessions(count)
 
       if (sessions.length === 0) {
@@ -75,7 +75,7 @@ export function registerSession(program: Command) {
       const { sessionStore } = await import("../../memory/session-persistence")
 
       const limit = parseInt(opts.limit ?? "20", 10)
-      const role = opts.role as any
+      const role = opts.role as "user" | "assistant" | "system" | "tool" | undefined
       const results = sessionStore.searchMessages(query, limit, role)
 
       if (results.length === 0) {
@@ -428,15 +428,15 @@ export function registerSession(program: Command) {
         process.exit(1)
       }
 
-      const value = parseInt(match[1]!, 10)
-      const unit = match[2]!
+      const value = parseInt(match[1] ?? "0", 10)
+      const unit = match[2] ?? "d"
       const multipliers: Record<string, number> = {
         d: 86_400_000,
         h: 3_600_000,
         m: 60_000,
         s: 1_000,
       }
-      const olderThanMs = value * multipliers[unit]!
+      const olderThanMs = value * (multipliers[unit] ?? 86_400_000)
 
       const { sessionStore } = await import("../../memory/session-persistence")
 

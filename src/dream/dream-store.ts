@@ -146,7 +146,7 @@ export class DreamStore {
 
     if (fields.length > 0) {
       vals.push(id)
-      this.db.prepare(`UPDATE dreams SET ${fields.join(", ")} WHERE id = ?`).run(...(vals as any[]))
+      this.db.prepare(`UPDATE dreams SET ${fields.join(", ")} WHERE id = ?`).run(...(vals as (string | number | null)[]))
     }
   }
 

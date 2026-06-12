@@ -247,7 +247,7 @@ export function registerKnowledge(program: Command) {
       const { KnowledgeSynthesizer } = await import("../../memory/synthesize")
       const result = await KnowledgeSynthesizer.synthesize({
         topic,
-        sources: opts.sources ? (opts.sources.split(",").map((s) => s.trim()) as any[]) : undefined,
+        sources: opts.sources ? opts.sources.split(",").map((s) => s.trim()) : undefined,
         maxSources: opts.maxSources,
       })
 

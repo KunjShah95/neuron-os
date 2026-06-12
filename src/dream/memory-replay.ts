@@ -64,8 +64,8 @@ export class MemoryReplay {
     const rewards = experiences.map((e) => e.reward)
     if (rewards.length > 5) {
       const sorted = [...rewards].sort((a, b) => a - b)
-      const q1 = sorted[Math.floor(sorted.length * 0.25)]!
-      const q3 = sorted[Math.floor(sorted.length * 0.75)]!
+      const q1 = sorted[Math.floor(sorted.length * 0.25)] as number
+      const q3 = sorted[Math.floor(sorted.length * 0.75)] as number
       const iqr = q3 - q1
       const lowerBound = q1 - 1.5 * iqr
 
@@ -103,8 +103,8 @@ export class MemoryReplay {
     const types = [...outcomeByType.entries()] as Array<[string, { success: number; failure: number; total: number }]>
     for (let i = 0; i < types.length; i++) {
       for (let j = i + 1; j < types.length; j++) {
-        const [a, aStats] = types[i]!
-        const [b, bStats] = types[j]!
+        const [a, aStats] = types[i] as (typeof types)[0]
+        const [b, bStats] = types[j] as (typeof types)[0]
 
         const aSuccessRate = aStats.total > 0 ? aStats.success / aStats.total : 0
         const bSuccessRate = bStats.total > 0 ? bStats.success / bStats.total : 0

@@ -8,7 +8,7 @@
 import type { Tool, ToolResult } from "./registry"
 
 // Use dynamic import to avoid type issues
-async function getFirecrawlClient(): Promise<any | null> {
+async function getFirecrawlClient(): Promise<Record<string, unknown> | null> {
   const apiKey = process.env.FIRECRAWL_API_KEY
   if (!apiKey) {
     return null
@@ -53,7 +53,7 @@ async function searchFirecrawl(query: string, count: number): Promise<ToolResult
 
     const output = results
       .slice(0, count)
-      .map((r: any, i: number) => {
+      .map((r: Record<string, unknown>, i: number) => {
         const title = r.title || "Untitled"
         const url = r.url || ""
         const markdown = r.markdown || r.content || r.snippet || ""
@@ -122,7 +122,7 @@ async function crawlFirecrawl(
     const pages = Array.isArray(data) ? data : []
 
     const output = pages
-      .map((page: any, i: number) => {
+      .map((page: Record<string, unknown>, i: number) => {
         const metadata = page.metadata || {}
         const title = metadata.title || "Untitled"
         const pageUrl = metadata.sourceURL || page.url || ""

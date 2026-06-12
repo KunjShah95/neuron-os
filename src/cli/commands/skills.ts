@@ -88,7 +88,7 @@ export function registerSkills(program: Command): void {
       }
 
       for (let i = 0; i < results.length; i++) {
-        const skill = results[i]!
+        const skill = results[i] as (typeof results)[0]
         const tagStr = skill.tags?.length > 0 ? ` ${theme.muted(skill.tags.map((t: string) => `#${t}`).join(" "))}` : ""
         const installs = skill.installs ? ` ${theme.muted(`${skill.installs.toLocaleString()} installs`)}` : ""
         console.log(`  ${(i + 1).toString().padStart(2, " ")}. ${theme.textBright(skill.name)}${installs}${tagStr}`)

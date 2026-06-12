@@ -114,7 +114,7 @@ export class MemoryNamespaceManager {
 
     const placeholders = namespaceIds.map(() => "?").join(",")
     const likeClauses = terms.map(() => "LOWER(e.content) LIKE ?").join(" AND ")
-    const params: any[] = [...namespaceIds]
+    const params: (string | number | null)[] = [...namespaceIds]
     for (const term of terms) {
       params.push(`%${term}%`)
     }

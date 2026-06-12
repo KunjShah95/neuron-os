@@ -514,7 +514,7 @@ export class SessionStore {
     // Log the fork
     log.info(`Session "${parentId}" forked as "${forkId}" with ${messagesToCopy.length} messages`)
 
-    return this.getSession(forkId)!
+    return this.getSession(forkId) as SessionRecord
   }
 
   /**
@@ -629,7 +629,7 @@ export class SessionStore {
 
     log.info(`Merged ${sourceMessages.length} messages from "${sourceId}" into "${targetId}"`)
 
-    return this.getSession(targetId)!
+    return this.getSession(targetId) as SessionRecord
   }
 
   // ── Prune ──────────────────────────────────────────────────────────

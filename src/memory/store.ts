@@ -32,7 +32,7 @@ export class EpisodicMemory {
           modelMessages.push({
             role: msg.role,
             content: [{ type: "tool-result", toolName: "unknown", toolCallId: "unknown", result: msg.content }],
-          } as any as ModelMessage)
+          } as unknown as ModelMessage)
         }
       } else if (msg.role === "assistant" && msg.toolCalls) {
         try {

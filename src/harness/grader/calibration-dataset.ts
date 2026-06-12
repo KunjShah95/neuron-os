@@ -658,7 +658,7 @@ export function getDatasetStats(): DatasetStats {
     if (!byCategory[cat]) {
       byCategory[cat] = { count: 0, avgScore: 0, minScore: 1, maxScore: 0 }
     }
-    const s = byCategory[cat]!
+    const s = byCategory[cat] as NonNullable<typeof byCategory[string]>
     s.count++
     s.avgScore += ex.expectedScore
     s.minScore = Math.min(s.minScore, ex.expectedScore)

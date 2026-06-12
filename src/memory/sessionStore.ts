@@ -17,7 +17,7 @@ export interface SessionRecord {
     apiKeyHint?: string
   }
   environment?: Record<string, string | undefined>
-  agentTraces?: Array<{ agentId?: string; event: string; data?: any; timestamp: string }>
+  agentTraces?: Array<{ agentId?: string; event: string; data?: unknown; timestamp: string }>
 }
 
 function ensureDir() {

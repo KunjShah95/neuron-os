@@ -301,7 +301,7 @@ const markdownLoader: TestLoader = {
       .replace(/##\s+.*\n/g, "")
       .trim()
 
-    const tags = tagsMatch ? tagsMatch[1]!.split(",").map((t) => t.trim()) : []
+    const tags = tagsMatch ? (tagsMatch[1] ?? "").split(",").map((t) => t.trim()) : []
 
     return {
       id: `md-${basename(filePath, ".md")}`,
@@ -309,7 +309,7 @@ const markdownLoader: TestLoader = {
       prompt,
       tags,
       category: categoryMatch?.[1]?.trim() as TestCase["category"] | undefined,
-      timeout: timeoutMatch ? parseInt(timeoutMatch[1]!, 10) : 120000,
+      timeout: timeoutMatch ? parseInt(timeoutMatch[1] ?? "120000", 10) : 120000,
     }
   },
 }
@@ -495,7 +495,7 @@ export class TestDiscoverer {
       if (t.dependsOn) {
         for (const depId of t.dependsOn) {
           if (graph.has(depId)) {
-            adjList.get(depId)!.push(t.id)
+            adjList.get(depId)?.push(t.id)
             inDegree.set(t.id, (inDegree.get(t.id) ?? 0) + 1)
           }
         }
@@ -510,7 +510,7 @@ export class TestDiscoverer {
 
     const sorted: TestCase[] = []
     while (queue.length > 0) {
-      const id = queue.shift()!
+      const id = queue.shift() ?? ""
       const test = graph.get(id)
       if (test) sorted.push(test)
 

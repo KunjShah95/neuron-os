@@ -11,7 +11,7 @@ let ready = false
 function ensureMarked(): void {
   if (ready) return
   const w = Math.max(40, Math.min(process.stdout.columns || 80, 120))
-  void marked.use((markedTerminal as any)({ width: w, reflowText: true }))
+  void marked.use((markedTerminal as (opts: Record<string, unknown>) => Parameters<typeof marked.use>[0])({ width: w, reflowText: true }))
   ready = true
 }
 
