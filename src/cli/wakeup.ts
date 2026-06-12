@@ -109,7 +109,7 @@ function trackChild(child: ChildProcess): void {
 async function promptForArg(entry: CommandEntry): Promise<string | null> {
   if (!entry.needsArg) return ""
   const input = await text({
-    message: entry.argPrompt!,
+    message: entry.argPrompt ?? "Input",
     placeholder: entry.argPlaceholder,
   })
   if (isCancel(input)) return null
@@ -150,17 +150,16 @@ async function runCommandInteractive(_program: Command, args: string[]): Promise
       return runCommandSpawn(entry, fallbackScript, args)
     }
     // Last resort: run in-process (may have stdin issues on Windows)
+    const patchedProc = process as typeof process & { exit: (code?: number) => void }
     const origExit = process.exit.bind(process)
-    ;(process as any).exit = ((code?: number) => {
-      throw new InteractiveExit(code ?? 0)
-    }) as any
+    patchedProc.exit = (code?: number) => { throw new InteractiveExit(code ?? 0) }
     try {
       await _program.parseAsync(["node", "aegis", ...args])
     } catch (e) {
       if (e instanceof InteractiveExit) return
       throw e
     } finally {
-      ;(process as any).exit = origExit
+      patchedProc.exit = origExit
     }
     return
   }
@@ -205,7 +204,7 @@ export async function runWakeup(program?: Command): Promise<void> {
     return
   }
 
-  ;(program as any)._interactive = true
+  ;(program as typeof program & { _interactive?: boolean })._interactive = true
 
   while (true) {
     const allCommands = getCommands()
@@ -249,7 +248,7 @@ export async function runWakeup(program?: Command): Promise<void> {
     resetStdin()
 
     try {
-      await runCommandInteractive(program!, cmdArgs)
+      await runCommandInteractive(program as NonNullable<typeof program>, cmdArgs)
     } catch (e) {
       console.log(theme.error(`  Command error: ${e instanceof Error ? e.message : String(e)}`))
     }
@@ -258,7 +257,7 @@ export async function runWakeup(program?: Command): Promise<void> {
     console.log(theme.muted(`  Command finished. Returning to menu.`))
   }
 
-  ;(program as any)._interactive = false
+  ;(program as typeof program & { _interactive?: boolean })._interactive = false
 }
 
 function buildHelpText(): string {

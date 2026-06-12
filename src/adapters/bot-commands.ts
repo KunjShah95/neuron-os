@@ -214,11 +214,11 @@ export async function handleModels(): Promise<CommandResult> {
   const lines: string[] = ["*🤖 Available AI Providers*", ""]
 
   for (const provider of registered) {
-    const refs = (MODEL_REFERENCES as Record<string, any>)[provider]
+    const refs = (MODEL_REFERENCES as Record<string, { id: string; label: string }[]>)[provider]
     const models = refs?.length
       ? refs
           .slice(0, 4)
-          .map((m: any) => `  • \`${m.id}\` — ${m.label}`)
+          .map((m) => `  • \`${m.id}\` — ${m.label}`)
           .join("\n")
       : "  • (custom models)"
     lines.push(`*${provider.charAt(0).toUpperCase() + provider.slice(1)}*`)
@@ -292,7 +292,7 @@ export async function handlePlan(goal: string): Promise<CommandResult> {
     const { generatePlanForGoal } = await import("../modes/plan/orchestrator")
     const { plan } = await generatePlanForGoal(goal)
 
-    const steps = plan.steps.map((s: any, i: number) => `${i + 1}. *${s.description || "(step)"}*`).join("\n\n")
+    const steps = plan.steps.map((s: { description?: string }, i: number) => `${i + 1}. *${s.description || "(step)"}*`).join("\n\n")
 
     return {
       text: `*📋 Plan: ${plan.goal}*\n\n${steps}\n\n_${plan.steps.length} steps generated_`,
@@ -313,7 +313,7 @@ export async function handleChat(msg: string): Promise<CommandResult> {
   try {
     const { AIProviderManager } = await import("../ai")
     const ai = new AIProviderManager({
-      provider: (process.env.AEGIS_AI_PROVIDER ?? "openai") as any,
+      provider: (process.env.AEGIS_AI_PROVIDER ?? "openai") as string,
       model: process.env.AEGIS_AI_MODEL ?? "gpt-4o",
       apiKey: process.env.AEGIS_AI_API_KEY,
       baseUrl: process.env.AEGIS_AI_BASE_URL,
@@ -440,7 +440,7 @@ export async function handleResearch(raw: string): Promise<CommandResult> {
       ``,
       `### Iterations`,
       ...result.iterations.map(
-        (it: any) =>
+        (it: { outcome: string; iteration: number; summary: string }) =>
           `- ${it.outcome === "improved" ? "✅" : it.outcome === "degraded" ? "↩️" : "➖"} Iter ${it.iteration}: ${it.summary.slice(0, 150)}`,
       ),
     ].join("\n")
@@ -539,7 +539,7 @@ export async function handleConfig(): Promise<CommandResult> {
       `  • ${tools.length} tools registered`,
       tools
         .slice(0, 10)
-        .map((t: any) => `  • \`${t.name}\` — ${t.description}`)
+        .map((t: { name: string; description: string }) => `  • \`${t.name}\` — ${t.description}`)
         .join("\n"),
       "",
       "_Configure: `aegis setup-keys`_",

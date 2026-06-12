@@ -19,7 +19,9 @@ function clip(s: string, n = 8000): string {
   return s.length > n ? s.slice(0, n) + "\n…[truncated]" : s
 }
 
-export function createWebTools(tracker: ActionTracker): Record<string, any> {
+type FirecrawlWithScrape = Firecrawl & { scrape(url: string, opts: object): Promise<{ markdown?: string }> }
+
+export function createWebTools(tracker: ActionTracker) {
   return {
     web_search: {
       description: "Search the web. Returns title/url/snippet list.",
@@ -31,12 +33,12 @@ export function createWebTools(tracker: ActionTracker): Record<string, any> {
         },
         required: ["query"],
       }),
-      execute: async (args: any) => {
-        const res = await getClient().search(args.query, { limit: args.limit ?? 5, sources: ["web"] })
-        const items = (res.web ?? []).slice(0, args.limit ?? 5)
+      execute: async (args: Record<string, unknown>) => {
+        const res = await getClient().search(args.query as string, { limit: (args.limit as number) ?? 5, sources: ["web"] })
+        const items = (res.web ?? []).slice(0, (args.limit as number) ?? 5)
         const out =
           items
-            .map((d: any, i: number) => {
+            .map((d, i: number) => {
               const title = ("title" in d && d.title) || "(untitled)"
               const url = ("url" in d && d.url) || ""
               const snip = ("snippet" in d && d.snippet) || ""
@@ -45,7 +47,7 @@ export function createWebTools(tracker: ActionTracker): Record<string, any> {
             .join("\n\n") || "(no result)"
         tracker.log({
           type: "code_analysis",
-          path: `web_search:${args.query}`,
+          path: `web_search:${args.query as string}`,
           details: { after: out, toolName: "web_search" },
         })
         return clip(out)
@@ -58,12 +60,12 @@ export function createWebTools(tracker: ActionTracker): Record<string, any> {
         properties: { url: { type: "string", description: "URL to scrape" } },
         required: ["url"],
       }),
-      execute: async (args: any) => {
-        const doc = await (getClient() as any).scrape(args.url, { formats: ["markdown"] })
-        const md = (doc as { markdown?: string }).markdown ?? ""
+      execute: async (args: Record<string, unknown>) => {
+        const doc = await (getClient() as FirecrawlWithScrape).scrape(args.url as string, { formats: ["markdown"] })
+        const md = doc.markdown ?? ""
         tracker.log({
           type: "code_analysis",
-          path: `web_crawl:${args.url}`,
+          path: `web_crawl:${args.url as string}`,
           details: { after: clip(md), toolName: "web_crawl" },
         })
         return clip(md) || "(empty)"
@@ -76,13 +78,13 @@ export function createWebTools(tracker: ActionTracker): Record<string, any> {
         properties: { url: { type: "string", description: "URL to fetch" } },
         required: ["url"],
       }),
-      execute: async (args: any) => {
-        const r = await fetch(args.url, { redirect: "follow" })
+      execute: async (args: Record<string, unknown>) => {
+        const r = await fetch(args.url as string, { redirect: "follow" })
         const body = await r.text()
         const out = clip(body, 16_000)
         tracker.log({
           type: "code_analysis",
-          path: `fetch:${args.url}`,
+          path: `fetch:${args.url as string}`,
           details: { after: `HTTP ${r.status}\n\n${out}`, toolName: "fetch_url" },
         })
         return `HTTP ${r.status}\n\n${out}`

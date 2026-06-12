@@ -26,7 +26,7 @@ export async function fetchTopSkills(limit = 10): Promise<RemoteSkill[]> {
       return []
     }
     const body = (await res.json()) as SkillsResponse
-    return (body.skills || (body as any) || []).slice(0, limit)
+    return (body.skills || []).slice(0, limit)
   } catch {
     // Network errors or other issues - return empty array
     return []
@@ -41,7 +41,7 @@ export async function searchSkills(query: string, limit = 10): Promise<RemoteSki
       return []
     }
     const body = (await res.json()) as SkillsResponse
-    return (body.skills || (body as any) || []).slice(0, limit)
+    return (body.skills || []).slice(0, limit)
   } catch {
     // Network errors or other issues - return empty array
     return []
@@ -53,7 +53,7 @@ export async function fetchSkillDetail(id: string): Promise<RemoteSkill | null> 
     const res = await fetch(`${SKILLS_SH_API}/skills/${encodeURIComponent(id)}`)
     if (!res.ok) return null
     const body = (await res.json()) as RemoteSkill
-    return (body as any) || null
+    return body || null
   } catch {
     return null
   }
@@ -63,10 +63,10 @@ export async function fetchRegistryStats(): Promise<{ totalSkills: number; total
   try {
     const res = await fetch(`${SKILLS_SH_API}/skills/stats`)
     if (!res.ok) return null
-    const body = await res.json()
+    const body = await res.json() as { totalSkills?: number; total?: number; totalSources?: number; sources?: number }
     return {
-      totalSkills: (body as any).totalSkills ?? (body as any).total ?? 0,
-      totalSources: (body as any).totalSources ?? (body as any).sources ?? 0,
+      totalSkills: body.totalSkills ?? body.total ?? 0,
+      totalSources: body.totalSources ?? body.sources ?? 0,
     }
   } catch {
     return null
