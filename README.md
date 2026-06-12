@@ -2,7 +2,7 @@
 
 *The Operating System for Autonomous AI Agents*
 
-[![Version](https://img.shields.io/badge/version-1.1.7-blue)]()
+[![Version](https://img.shields.io/badge/version-1.1.9-blue)]()
 [![Roadmap](https://img.shields.io/badge/roadmap-1--year%20plan-purple)]()
 [![Status](https://img.shields.io/badge/status-active%20development-orange)]()
 [![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.3.14-black)]()
