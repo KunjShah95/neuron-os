@@ -126,7 +126,7 @@ async function handleProviders(
   const bm = new ProviderBenchmark()
 
   const modelPerProvider: Record<string, string> | undefined = opts.model
-    ? Object.fromEntries(listProviders().map((p) => [p, opts.model!]))
+    ? Object.fromEntries(listProviders().map((p) => [p, opts.model ?? ""]))
     : undefined
 
   const providers = opts.provider.length > 0 ? opts.provider : undefined

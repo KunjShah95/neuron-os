@@ -46,7 +46,7 @@ export function registerMemoryPolicy(mem: Command): void {
         console.log(`Grant issued: ${grant.id}`)
         console.log(`  ${principal} → ${namespace}${opts.path ? "/" + opts.path : ""}`)
         if (opts.tools) console.log(`  Tools: ${opts.tools}`)
-        if (opts.expires) console.log(`  Expires: ${new Date(expires!).toISOString()}`)
+        if (opts.expires) console.log(`  Expires: ${new Date(expires ?? "").toISOString()}`)
       } catch (err: unknown) {
         console.log(`Error: ${err instanceof Error ? err.message : String(err)}`)
       }

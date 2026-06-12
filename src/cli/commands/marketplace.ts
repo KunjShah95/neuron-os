@@ -48,10 +48,10 @@ export function registerMarketplace(program: Command): void {
           try {
             const search = new MarketplaceSearch(registry)
             const result = search.search(query, {
-              type: opts.type as any,
+              type: opts.type as string,
               provider: opts.provider,
               minRating: opts.minRating ? parseFloat(opts.minRating) : undefined,
-              sort: opts.sort as any,
+              sort: opts.sort as string,
               page: parseInt(opts.page ?? "0", 10),
             })
 

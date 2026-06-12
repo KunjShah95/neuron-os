@@ -48,7 +48,7 @@ export interface OrchestrationResult {
 }
 
 function buildAIConfig(): AIConfig {
-  const provider = (process.env.AEGIS_AI_PROVIDER ?? "openai") as any
+  const provider = (process.env.AEGIS_AI_PROVIDER ?? "openai") as string
   return {
     provider,
     model: process.env.AEGIS_AI_MODEL ?? "gpt-4o",
@@ -130,7 +130,7 @@ function parsePlan(goal: string, text: string): OrchestrationPlan {
         complexity: "medium",
       })
     } else if (parsingTasks && subTasks.length > 0) {
-      const last = subTasks[subTasks.length - 1]!
+      const last = subTasks[subTasks.length - 1] as (typeof subTasks)[0]
       if (trimmed.startsWith("Description:")) {
         last.description = trimmed.replace("Description:", "").trim()
       } else if (trimmed.startsWith("Dependencies:")) {

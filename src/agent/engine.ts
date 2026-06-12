@@ -487,10 +487,10 @@ export class AgentEngine {
 
       const toolName = t.name
 
-      ;(tools as any)[toolName] = {
+      ;(tools as Record<string, unknown>)[toolName] = {
         description: t.description,
         parameters: jsonSchema(schema),
-        execute: async (args: any) => {
+        execute: async (args: Record<string, unknown>) => {
           const toolCtx: ToolContext = {
             agentId: this.runtime.context.agentId,
             agentType: this.runtime.context.agentType,

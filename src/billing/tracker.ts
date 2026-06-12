@@ -136,13 +136,13 @@ export class BillingTracker {
   }
 
   public getTotalSpend(): number {
-    const row = this.db.prepare("SELECT SUM(cost_usd) as total FROM usage").get() as any
-    return row.total || 0
+    const row = this.db.prepare("SELECT SUM(cost_usd) as total FROM usage").get() as { total: number | null }
+    return row?.total || 0
   }
 
   public getBudgetLimit(): number {
-    const row = this.db.prepare("SELECT limit_usd FROM budget WHERE id = 'global'").get() as any
-    return row.limit_usd || 0
+    const row = this.db.prepare("SELECT limit_usd FROM budget WHERE id = 'global'").get() as { limit_usd: number | null }
+    return row?.limit_usd || 0
   }
 
   public setBudgetLimit(limitUSD: number): void {

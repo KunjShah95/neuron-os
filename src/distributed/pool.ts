@@ -96,7 +96,7 @@ export class WorkerPool extends EventEmitter {
       })
 
       this.server.listen(this.config.listenPort, () => {
-        this.server!.address() as AddressInfo
+        this.server.address() as AddressInfo
         const local = this.getLocalInfo()
         local.status = "ready"
         this._localInfo = local

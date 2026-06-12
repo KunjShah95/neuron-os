@@ -239,6 +239,55 @@ Every milestone in this roadmap is checked against these five principles. When t
 
 ---
 
+### 🔮 v1.1.7 — Operational Hardening
+
+**What it unlocks:** Multi-agent runs are debuggable, secrets stay secret, runtime permissions actually enforce.
+
+| Deliverable | Description |
+|-------------|-------------|
+| **IPC Backpressure** | Worker stdout stream buffering with high-watermark pause/resume — prevents OOM under log flood |
+| **Crash-safe Session Flush** | WAL-mode checkpoint + write-ahead journal flush on every heartbeat, not just clean shutdown — agents resume from last heartbeat, not from zero |
+| **Busy-aware Heartbeat** | Distinguish `busy` (active tool call) from `hung` (unresponsive); only kill on `hung` — prevents killing agents mid-slow-build |
+| **Runtime Sandbox Enforcement** | Wire `policyEngine` to OS-level process limits (Bun permission flags `--allow-read`/`--allow-write` per agent type) — compile-time type checks currently do not stop a subprocess from calling `bash` directly |
+| **Secrets Scrubbing in Audit Log** | Strip `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, and other `*_KEY`/`*_SECRET` patterns from IPC messages before JSONL write |
+| **Shared-File Locking** | SQLite advisory locks or a serialized write-agent queue to prevent concurrent agents corrupting the same file |
+| **Skill Review Gate** | Auto-extracted skills (`src/skills/auto-*.ts`) land in a staging namespace; require `aegis skills approve <id>` before they're injected into future prompts — blocks bad-output skill propagation |
+
+**Key files:** `src/agent/manager.ts`, `src/agent/agent-worker.ts`, `src/sandbox/policy.ts`, `src/audit/store.ts`, `src/improve/`
+
+---
+
+### 🔮 v1.1.8 — MCP Ecosystem
+
+**What it unlocks:** Aegis both consumes and exposes MCP — any MCP client can spawn/monitor agents, any MCP server becomes a tool.
+
+| Deliverable | Description |
+|-------------|-------------|
+| **MCP Client Mode** | Agents can consume external MCP servers as tools; config via `agent.yaml` `mcp_servers:` block |
+| **MCP Server Mode** | `aegis mcp serve` exposes `spawn_agent`, `list_agents`, `send_message`, `get_output` as MCP tools — Claude Desktop and other MCP clients can orchestrate Aegis agents directly |
+| **OAuth 2.1 PKCE for MCP** | Secure token flow for outbound MCP server connections that require auth |
+| **Tool Gateway** | Built-in tools: web search (SerpAPI/Exa), browser automation (Playwright), and image generation (DALL-E/SD) available to any agent via permission flag `web_search`/`browser`/`image_gen` — no per-agent service config required |
+
+**Key files:** `src/mcp/`, `src/tools/gateway.ts`
+
+---
+
+### 🔮 v1.1.9 — Agent Profile Builder
+
+**What it unlocks:** Each agent type gets a persistent, editable identity — the "who am I" config that persists across restarts and drives behavior.
+
+| Deliverable | Description |
+|-------------|-------------|
+| **Profile Schema** | Per-agent-type `AgentProfile`: identity (name, archetype, system prompt), model (provider, model id, temperature), skills (active skill list), MCP servers (bound external servers), budget defaults |
+| **Profile Storage** | Profiles live in `~/.aegis/profiles/<type>.json`, editable via CLI or dashboard |
+| **`aegis profile` CLI** | `profile create|edit|list|set-default` commands |
+| **Profile Picker in TUI** | On `aegis agent spawn`, show profile picker if multiple profiles exist for the type |
+| **Profile Hot-Reload** | Running agents pick up profile edits on next turn without restart |
+
+**Key files:** `src/profile/`, `src/cli/commands/profile.ts`
+
+---
+
 ### 🔮 v0.15.0 — Tool-Level Economy
 
 **What it unlocks:** Every action has a price. Every dollar has a benchmark. Agents self-throttle.

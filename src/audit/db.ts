@@ -5,7 +5,7 @@ export class AuditQueryEngine {
    * Search the audit log using a simple keyword search across summary and detail.
    * In a real Software 3.0 world, this could use embeddings/vector search.
    */
-  public search(query: string, limit = 50): any[] {
+  public search(query: string, limit = 50): Record<string, unknown>[] {
     // This is a naive substring search. For true natural language, you'd integrate an LLM
     // to map the query "Why did the agent delete my file?" -> SQL or Vector Query.
     const lowerQuery = query.toLowerCase()

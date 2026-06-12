@@ -574,7 +574,7 @@ export class CapabilityRegistry {
     const matches = this.findBestMatch(taskDescription, 1)
     if (matches.length === 0) return null
 
-    const best = matches[0]!
+    const best = matches[0] as (typeof matches)[0]
 
     // Check if the capability has sub-capabilities (complex task)
     const subRoutes: TaskRoute["subRoutes"] = []

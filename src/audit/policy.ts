@@ -234,7 +234,7 @@ export const DEFAULT_POLICIES: Policy[] = [
         "id_ed25519",
         "config/secrets",
       ]
-      if (action.path && sensitive.some((s) => action.path!.split("/").some((seg) => seg === s || seg.includes(s)))) {
+      if (action.path && sensitive.some((s) => action.path?.split("/").some((seg) => seg === s || seg.includes(s)))) {
         return {
           verdict: "reject",
           policyName: "no-sensitive-files",

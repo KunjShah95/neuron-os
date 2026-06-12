@@ -38,7 +38,7 @@ let engine: AgentEngine | null = null
 
 function buildAIConfig(): AIConfig {
   // Read provider + model from env, with a reasonable default
-  const provider = (process.env.AEGIS_AI_PROVIDER || process.env.AEGIS_DEFAULT_PROVIDER || "openai") as any
+  const provider = (process.env.AEGIS_AI_PROVIDER || process.env.AEGIS_DEFAULT_PROVIDER || "openai") as string
   const defaultModel = process.env.AEGIS_AI_MODEL || process.env.AEGIS_DEFAULT_MODEL || getDefaultModel(provider)
   // Budget-aware model degradation: use cheaper model when budget is tight
   const budgetStatus = process.env.AEGIS_BUDGET_STATUS

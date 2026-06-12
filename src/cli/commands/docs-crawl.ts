@@ -17,7 +17,7 @@ export function registerDocsCrawl(program: Command) {
     .option("--no-files", "Skip writing files to disk")
     .option("--no-kg", "Skip knowledge graph ingestion")
     .option("--local", "Crawl local markdown files instead of URL")
-    .action(async (url: string | undefined, opts: Record<string, any>) => {
+    .action(async (url: string | undefined, opts: Record<string, unknown>) => {
       if (!url && !opts.local) {
         console.log(theme.error("  URL or --local path required"))
         return

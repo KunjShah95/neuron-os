@@ -162,8 +162,9 @@ Output ONLY valid JSON:
 
   try {
     const result = await callJudge(systemPrompt, userPrompt, config)
-    const scoreA = typeof (result as any).score_a === "number" ? (result as any).score_a : result.score
-    const scoreB = typeof (result as any).score_b === "number" ? (result as any).score_b : result.score
+    const r = result as Record<string, unknown>
+    const scoreA = typeof r.score_a === "number" ? r.score_a : result.score
+    const scoreB = typeof r.score_b === "number" ? r.score_b : result.score
 
     return {
       name,

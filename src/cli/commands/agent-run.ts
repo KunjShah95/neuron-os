@@ -44,7 +44,7 @@ async function handleAgentRun(
         .split(",")
         .map((m) => m.trim())
         .filter(Boolean)
-        .map((metric) => ({ metric: metric as any }))
+        .map((metric) => ({ metric: metric as string }))
     : undefined
 
   try {

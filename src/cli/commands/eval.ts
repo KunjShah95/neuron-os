@@ -326,7 +326,7 @@ async function handleRun(opts: {
     totalCost: results.reduce((s, r) => s + (r.totalCost ?? 0), 0),
     totalDurationMs: Date.now() - start,
     results,
-    byCategory: {} as any,
+    byCategory: {} as Record<string, unknown>,
     regressions: [],
     metadata: {},
   }
@@ -426,7 +426,7 @@ async function handleCi(opts: {
     totalCost: results.reduce((s, r) => s + (r.totalCost ?? 0), 0),
     totalDurationMs: 0,
     results,
-    byCategory: {} as any,
+    byCategory: {} as Record<string, unknown>,
     regressions: [],
     metadata: {},
   }

@@ -396,7 +396,7 @@ export async function startChat(agentType?: AgentTypeName): Promise<void> {
 
         // Build engine using latest runtime config stored in state
         try {
-          const override: any = {}
+          const override: Record<string, unknown> = {}
           if (state.config.provider) override.provider = state.config.provider
           if (state.config.model) override.model = state.config.model
           if (state.config.maxTokens) override.maxTokens = state.config.maxTokens

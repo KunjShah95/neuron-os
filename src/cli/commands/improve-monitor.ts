@@ -187,7 +187,7 @@ async function handleMonitorTop(opts: { limit?: string }) {
   console.log(theme.heading(`\n  🏆 Top ${top.length} Performing Skills\n`))
 
   for (let i = 0; i < top.length; i++) {
-    const s = top[i]!
+    const s = top[i] as (typeof top)[0]
     const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : "  "
     console.log(`  ${medal} ${theme.bold(s.skillName)}`)
     console.log(

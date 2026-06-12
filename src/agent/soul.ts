@@ -744,7 +744,7 @@ export class SoulManager {
       const def = ARCHETYPE_DEFINITIONS[soul.archetype]
       const topTrait =
         soul.traits.length > 0
-          ? soul.traits.reduce((best, t) => (t.score > best.score ? t : best), soul.traits[0]!)
+          ? soul.traits.reduce((best, t) => (t.score > best.score ? t : best), soul.traits[0] as (typeof soul.traits)[0])
           : null
       return {
         agentId,

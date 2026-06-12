@@ -62,16 +62,16 @@ export function route(options: {
   // Cheapest first
   affordable.sort((a, b) => a.cost - b.cost)
 
-  const cheapest = affordable[0]!
+  const cheapest = affordable[0] as (typeof affordable)[0]
   const freeModels = estimates.filter((e) => e.tier === "free").sort((a, b) => a.cost - b.cost)
   const cheapModels = estimates.filter((e) => e.tier === "cheap").sort((a, b) => a.cost - b.cost)
   const balancedModels = estimates.filter((e) => e.tier === "balanced").sort((a, b) => a.cost - b.cost)
   const premiumModels = estimates.filter((e) => e.tier === "premium").sort((a, b) => a.cost - b.cost)
 
-  const free = freeModels.length > 0 ? freeModels[0]!.cost : Infinity
-  const cheap = cheapModels.length > 0 ? cheapModels[0]!.cost : Infinity
-  const balanced = balancedModels.length > 0 ? balancedModels[0]!.cost : Infinity
-  const premium = premiumModels.length > 0 ? premiumModels[0]!.cost : Infinity
+  const free = freeModels.length > 0 ? (freeModels[0] as (typeof freeModels)[0]).cost : Infinity
+  const cheap = cheapModels.length > 0 ? (cheapModels[0] as (typeof cheapModels)[0]).cost : Infinity
+  const balanced = balancedModels.length > 0 ? (balancedModels[0] as (typeof balancedModels)[0]).cost : Infinity
+  const premium = premiumModels.length > 0 ? (premiumModels[0] as (typeof premiumModels)[0]).cost : Infinity
 
   return {
     free,

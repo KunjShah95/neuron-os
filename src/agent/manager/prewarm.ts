@@ -51,7 +51,7 @@ export async function runPrewarmTick(ctx: ManagerContext): Promise<void> {
         log.debug(`Skipping pre-warm for unknown agent type: ${agentType}`)
         continue
       }
-      const agentTypeDef = getAgentType(agentType as AgentTypeName)!
+      const agentTypeDef = getAgentType(agentType as AgentTypeName)
 
       log.info(`Predictive pre-warm: spawning ${agentType} (used ${count}x in this time window)`)
 
@@ -59,7 +59,7 @@ export async function runPrewarmTick(ctx: ManagerContext): Promise<void> {
         const warmId = await ctx.spawn({
           name: `warm-${agentType}`,
           script: ctx.PREWARM_SCRIPT,
-          agentType: agentTypeDef!.name,
+          agentType: agentTypeDef?.name,
           tags: ["prewarmed"],
           goal: `Pre-warmed agent for ${agentType} tasks. Standing by.`,
           stopTimeout: 300_000,

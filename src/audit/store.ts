@@ -178,7 +178,7 @@ export class AuditStore {
     const offset = filter.offset ?? 0
 
     const sql = `SELECT * FROM audit_log ${where} ORDER BY id DESC LIMIT ${limit} OFFSET ${offset}`
-    const rows = this.db.prepare(sql).all(...(queryParams as any[])) as Record<string, unknown>[]
+    const rows = this.db.prepare(sql).all(...(queryParams as (string | number | null)[])) as Record<string, unknown>[]
 
     return rows.reverse().map((r) => this.rowToEntry(r))
   }

@@ -29,7 +29,7 @@ export async function createPr(params: {
     // Parse PR URL from output
     const url = output
     const numberMatch = url.match(/\/(\d+)$/)
-    const number = numberMatch ? parseInt(numberMatch[1]!, 10) : 0
+    const number = numberMatch ? parseInt(numberMatch[1] ?? "0", 10) : 0
 
     log.info(`PR created: ${url}`)
     return { url, number, success: true }
@@ -56,7 +56,7 @@ export async function createDraftPr(params: {
 
     const url = output
     const numberMatch = url.match(/\/(\d+)$/)
-    const number = numberMatch ? parseInt(numberMatch[1]!, 10) : 0
+    const number = numberMatch ? parseInt(numberMatch[1] ?? "0", 10) : 0
 
     log.info(`Draft PR created: ${url}`)
     return { url, number, success: true }

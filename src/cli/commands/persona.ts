@@ -32,7 +32,7 @@ export function registerPersona(program: Command) {
         console.log(`     ${theme.muted(evt.reason)}`)
       }
       console.log()
-      console.log(`  ${theme.muted("Trigger: " + events[0]!.trigger)}`)
+      console.log(`  ${theme.muted("Trigger: " + (events[0]?.trigger ?? ""))}`)
       console.log()
     })
 

@@ -160,7 +160,7 @@ export function registerKnowledge(program: Command) {
     .action(async (nsId: string, content: string, opts: { type: string; source: string }) => {
       const { memoryNamespaceManager } = await import("../../memory/namespace")
       try {
-        const entry = memoryNamespaceManager.addEntry(nsId, content, opts.type as any, opts.source)
+        const entry = memoryNamespaceManager.addEntry(nsId, content, opts.type as string, opts.source)
         console.log(theme.success(`  ✓ Entry added: ${entry.id}`))
       } catch (err) {
         console.log(theme.error(`  ${(err as Error).message}`))

@@ -175,10 +175,10 @@ export function saveChatSession(state: ChatState): void {
           }
         : undefined,
       environment: envSnapshot,
-      agentTraces: [] as { agentId?: string; event: string; data?: any; timestamp: string }[],
+      agentTraces: [] as { agentId?: string; event: string; data?: unknown; timestamp: string }[],
     }
     try {
-      const traces: Array<{ agentId?: string; event: string; data?: any; timestamp: string }> = []
+      const traces: Array<{ agentId?: string; event: string; data?: unknown; timestamp: string }> = []
       for (const [id, inst] of agentManager.agents) {
         const recent = (inst.log || []).slice(-10)
         for (const l of recent) {

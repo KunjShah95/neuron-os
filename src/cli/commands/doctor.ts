@@ -133,7 +133,7 @@ function checkRuntime(): CheckResult {
   const bun = process.versions.bun
   if (bun) {
     const parts = bun.split(".").map(Number)
-    if (parts[0]! >= 1 && (parts[1] ?? 0) >= 3) {
+    if ((parts[0] ?? 0) >= 1 && (parts[1] ?? 0) >= 3) {
       return { status: "pass", message: `Bun ${bun}`, detail: `Node.js compat: ${process.version}` }
     }
     return { status: "warn", message: `Bun ${bun} (older than 1.3.x)`, detail: "Consider upgrading Bun" }

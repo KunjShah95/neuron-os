@@ -30,7 +30,7 @@ export function registerPool(program: Command) {
 
       const taskId = agentPool.submit(goal, {
         name: opts.name,
-        priority: priority as any,
+        priority: priority as "low" | "normal" | "high" | "critical",
         timeoutMs: parseInt(opts.timeout ?? "300000", 10),
         tags: opts.tag,
       })

@@ -49,7 +49,7 @@ async function handleMeshRun(
     // Build agents based on topology
     const agents = Array.from({ length: count }, (_, i) => ({
       id: `agent-${i + 1}-${randomUUID().slice(0, 8)}`,
-      role: (topology === "supervisor" && i === 0 ? "coordinator" : "implementer") as any,
+      role: (topology === "supervisor" && i === 0 ? "coordinator" : "implementer") as string,
       goal,
       dependsOn: [] as string[],
       model: opts.model,
@@ -58,11 +58,11 @@ async function handleMeshRun(
     // Set up dependencies for sequential
     if (topology === "sequential") {
       for (let i = 1; i < agents.length; i++) {
-        agents[i]!.dependsOn = [agents[i - 1]!.id]
+        const cur = agents[i]; const prev = agents[i - 1]; if (cur && prev) cur.dependsOn = [prev.id]
       }
     }
 
-    let config: any
+    let config: Record<string, unknown>
 
     switch (topology) {
       case "sequential":
@@ -71,7 +71,7 @@ async function handleMeshRun(
       case "fan-out":
         config = {
           topology: "fan-out",
-          coordinator: agents[0]!,
+          coordinator: agents[0] as (typeof agents)[0],
           workers: agents.slice(1),
           strategy: "all",
         }
@@ -99,7 +99,7 @@ async function handleMeshRun(
       case "supervisor":
         config = {
           topology: "supervisor",
-          supervisor: agents[0]!,
+          supervisor: agents[0] as (typeof agents)[0],
           subAgents: agents.slice(1),
           reviewRequired: true,
         }

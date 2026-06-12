@@ -18,7 +18,7 @@ class AgentArbitrator implements Arbitrator {
 
     // Simulate: pick the position with higher confidence as a default heuristic
     const sorted = [...disagreement.positions].sort((a, b) => b.confidence - a.confidence)
-    const winner = sorted[0]!
+    const winner = sorted[0] as (typeof sorted)[0]
 
     const verdict: Verdict = {
       winning_claim_id: winner.claim_id,
@@ -61,7 +61,7 @@ class HumanArbitrator implements Arbitrator {
     // 2. Wait for the user to respond with a winner
     // For now, use confidence-based default
     const sorted = [...disagreement.positions].sort((a, b) => b.confidence - a.confidence)
-    const winner = sorted[0]!
+    const winner = sorted[0] as (typeof sorted)[0]
 
     const verdict: Verdict = {
       winning_claim_id: winner.claim_id,
@@ -116,19 +116,19 @@ class MajorityArbitrator implements Arbitrator {
     if (tiedClaims.length > 1) {
       const tied = positions.filter((p) => tiedClaims.includes(p.claim_id))
       tied.sort((a, b) => b.confidence - a.confidence)
-      winner = tied[0]!
+      winner = tied[0] as (typeof tied)[0]
 
       // If still tied, pick first
-      const tiedConfidence = tied.filter((p) => p.confidence === winner!.confidence)
+      const tiedConfidence = tied.filter((p) => p.confidence === winner?.confidence)
       if (tiedConfidence.length > 1) {
         log.warn("Majority vote tied after confidence tiebreak, using first position")
-        winner = tied[0]!
+        winner = tied[0] as (typeof tied)[0]
       }
     }
 
     if (!winner) {
       // fallback
-      winner = positions[0]!
+      winner = positions[0] as (typeof positions)[0]
     }
 
     const verdict: Verdict = {

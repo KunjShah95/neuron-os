@@ -56,7 +56,7 @@ function toCanonical(spec: AgentSpec): CanonicalSpec {
         ...(spec.spec.memory?.ttl_days ? { tt: spec.spec.memory.ttl_days } : {}),
         rk: spec.spec.memory?.recall_top_k ?? 3,
       },
-      h: (spec.spec.hooks ?? []).map((h: any) => ({ e: h.event, p: h.phase, c: h.command })),
+      h: (spec.spec.hooks ?? []).map((h: { event: string; phase?: string; command?: string }) => ({ e: h.event, p: h.phase, c: h.command })),
       e: Object.fromEntries([...Object.entries(spec.spec.env ?? {})].sort()) as Record<string, string>,
       ...(spec.spec.budget
         ? {
@@ -66,7 +66,7 @@ function toCanonical(spec: AgentSpec): CanonicalSpec {
             },
           }
         : {}),
-      tr: (spec.spec.triggers ?? []).map((t: any) => Object.fromEntries(Object.entries(t).sort())),
+      tr: (spec.spec.triggers ?? []).map((t: Record<string, unknown>) => Object.fromEntries(Object.entries(t).sort())),
     },
   }
 }
