@@ -9,7 +9,7 @@
 import { Client, GatewayIntentBits, Events } from "discord.js"
 import type { PlatformAdapter, PlatformSendOptions } from "./types"
 import { createLogger } from "../cli/logger"
-import { WELCOME_MSG, HELP_MSG, getCommandHandler, clip } from "./bot-commands"
+import { clip, checkAuth, parseCommand, routeCommand } from "./bot-commands"
 
 const log = createLogger("adapter:discord")
 
@@ -33,51 +33,15 @@ export function createDiscordAdapter(config: DiscordConfig): PlatformAdapter {
   })
 
   client.on(Events.MessageCreate, async (message) => {
-    // Ignore bot messages
     if (message.author.bot) return
+    if (!checkAuth(message.author.id, config.allowedUserIds)) return
 
-    // Check auth
-    if (
-      config.allowedUserIds &&
-      config.allowedUserIds.length > 0 &&
-      !config.allowedUserIds.includes(message.author.id)
-    ) {
-      return
-    }
+    const parsed = parseCommand(message.content.trim())
+    if (!parsed) return
 
-    const text = message.content.trim()
-
-    // Only respond to messages starting with /
-    if (!text.startsWith("/")) return
-
-    // Extract command and args
-    const spaceIdx = text.indexOf(" ")
-    const command = spaceIdx === -1 ? text.slice(1).toLowerCase() : text.slice(1, spaceIdx).toLowerCase()
-    const args = spaceIdx === -1 ? "" : text.slice(spaceIdx + 1).trim()
-
-    // Handle help specially
-    if (command === "help") {
-      await message.channel.send(clip(HELP_MSG, DISCORD_MAX - 100, TRUNCATION_SUFFIX))
-      return
-    }
-    if (command === "start") {
-      await message.channel.send(clip(WELCOME_MSG, DISCORD_MAX - 100, TRUNCATION_SUFFIX))
-      return
-    }
-
-    // Route to handler
-    const handler = getCommandHandler(command)
-    if (!handler) {
-      // Unknown command — ignore silently
-      return
-    }
-
-    try {
-      const result = await handler(args, config.project)
-      await message.channel.send(clip(result.text, DISCORD_MAX - 100, TRUNCATION_SUFFIX))
-    } catch (err: unknown) {
-      await message.channel.send(`❌ Error: ${err instanceof Error ? err.message : String(err)}`)
-    }
+    await routeCommand(parsed.command, parsed.args, async (text) => {
+      await message.channel.send(clip(text, DISCORD_MAX - 100, TRUNCATION_SUFFIX))
+    }, config.project)
   })
 
   return {
