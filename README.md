@@ -213,8 +213,8 @@ aegis <command> --help   # detailed usage for any command
 | Command | Description |
 |---------|-------------|
 | `aegis serve` | Start HTTP REST API + WebSocket server |
-| `aegis mcp start` | Start MCP server |
-| `aegis mcp connect <url>` | Connect to MCP server |
+| `aegis mcp serve` | Start MCP server (exposes `spawn_agent`, `list_agents`, `send_message`, `get_agent_output`) |
+| `aegis mcp connect` | Connect to external MCP servers configured in `aegis.config.json` |
 | `aegis cron list` | List scheduled jobs |
 | `aegis cron add <schedule> <cmd>` | Add a cron job |
 | `aegis cron remove <id>` | Remove a cron job |
@@ -238,6 +238,13 @@ aegis <command> --help   # detailed usage for any command
 | `aegis config list` | List all config |
 | `aegis skills list` | Browse available skills |
 | `aegis skills install <name>` | Install a skill |
+| `aegis skills list-staged` | List extracted skill candidates awaiting approval |
+| `aegis skills approve <id>` | Approve a staged skill and write it to `src/skills/` |
+| `aegis profile list` | List all agent identity profiles |
+| `aegis profile create` | Create a new agent profile (flags: `--type`, `--name`, `--model`) |
+| `aegis profile get <id>` | Print a profile as JSON |
+| `aegis profile delete <id>` | Delete a profile |
+| `aegis profile set-default <id>` | Set the default profile for an agent type |
 | `aegis toolset list` | List tool bundles |
 | `aegis toolset new <name>` | Create a custom toolset |
 | `aegis plugin install <name>` | Install a signed plugin |
@@ -354,9 +361,12 @@ Compose tool bundles from 10 built-in toolsets (web, search, vision, code-execut
 - **AgentMemory Sidecar** — Optional hybrid BM25+Vector+Graph engine (95.2% R@5 on LongMemEval-S)
 - **Cross-Session Synthesis** — `aegis memory synthesize <topic>` merges knowledge across all memory stores
 - **Per-Agent Namespaces** — TTL-managed memory scoped by agent type with auto-archival
-- **MCP Integration** — Client and server for Model Context Protocol tool interoperability
+- **MCP Integration** — Client (consume external MCP servers as tools) and server (`aegis mcp serve` exposes `spawn_agent`, `list_agents`, `send_message`, `get_agent_output` to any MCP client)
+- **Tool Gateway** — Built-in `brave_search` (Brave Search API) and `gateway_fetch` (HTML-stripped web fetch) available to any agent via `web_search` permission flag; no per-agent config required
+- **Agent Profile Builder** — Per-agent-type identity profiles (`~/.aegis/profiles/<type>.json`): system prompt override, model, skills, budget, MCP servers. Managed via `aegis profile` CLI
 - **Tool-based Security** — Per-agent-type tool permissions with pattern-restricted bash
-- **Skill System** — Extensible skills with local registry and marketplace API
+- **Skill Staging Gate** — Auto-extracted skills land in `.aegis/skill-staging.json`; require `aegis skills approve <id>` before injection into future prompts — prevents bad-output skill propagation
+- **Skill System** — Extensible skills with local registry, staging namespace, and marketplace API
 - **Cron Engine** — Scheduled jobs with heartbeat monitoring
 - **Trigger Engine** — Cron, file_watch, webhook, condition, and gateway_command triggers
 - **Background Agents** — File-watching and scheduled background agent execution
@@ -516,13 +526,14 @@ graph LR
 | Modes | `src/modes/` | Mode framework + 36 TUI mode screens |
 | Agent | `src/agent/` | Agent lifecycle, process management, IPC, hooks, soul |
 | Soul | `src/agent/soul.ts` | 8 archetypes, 6 moods, behavioral heuristics |
+| Profile | `src/profile/` | Agent identity profiles — model, skills, system prompt, budget per type |
 | Dashboard TUI | `src/tui/` | Dashboard rendering, state management, commands |
 | Chat TUI | `src/chat/` | Chat UI, streaming, provider integration, sessions |
 | Web Dashboard | `dashboard/` | Vite + React 19 frontend with 12 route pages |
 | Wizard | `src/wizard/` | Interactive setup flows |
-| Tools | `src/tools/` | Tool registry and 8 built-in tool implementations |
+| Tools | `src/tools/` | Tool registry, 8 built-in tools, and Tool Gateway (`brave_search`, `gateway_fetch`) |
 | Toolsets | `src/toolsets/` | Composable tool bundles with dependency resolution |
-| Skills | `src/skills/` | Skill loading, registry, and remote API client |
+| Skills | `src/skills/` | Skill loading, registry, staging store, and remote API client |
 | Memory | `src/memory/` | Session persistence, knowledge graph, vector, namespaces, synthesis |
 | Experience | `src/experience/` | Experience replay buffer, retrieval, skill curation |
 | Dream | `src/dream/` | 6-phase idle-time dream cycle with insight generation |
@@ -553,11 +564,11 @@ graph LR
 
 ## Security Model
 
-- **Per-agent tool permissions** — read, write, edit, bash, grep, glob, web_fetch, web_search, read_skill
+- **Per-agent tool permissions** — read, write, edit, bash, grep, glob, web_fetch, web_search, read_skill, brave_search, gateway_fetch
 - **Pattern-restricted bash** — test, validate, deploy agents can only run approved command patterns
 - **HMAC-signed API** — all REST endpoints require signed requests with replay protection
 - **RBAC** — Admin/operator/developer/viewer roles with SHA-256 hashed API keys; permission checks on every route
-- **Auditable** — all agent actions logged with timestamps to append-only audit log
+- **Auditable** — all agent actions logged with timestamps to append-only audit log; API keys and tokens auto-scrubbed from all log fields before write
 - **Encrypted credential vault** — AES-256-GCM with scrypt-derived master key, per-entry random IVs, key rotation
 - **Signed plugins** — Ed25519 signature verification at install time with SHA-256 checksums
 - **Distributed transport encryption** — AES-256-GCM between workers with SHA-256 derived shared key
@@ -596,6 +607,7 @@ graph LR
 | `AGENTMEMORY_URL` | Optional | agentmemory sidecar URL (default: http://localhost:3111) |
 | `AGENTMEMORY_SECRET` | Optional | Bearer token for agentmemory auth |
 | `AGENTMEMORY_ENABLED` | Optional | Set to `false` to disable |
+| `BRAVE_SEARCH_API_KEY` | Optional | Enables `brave_search` tool via Brave Search API |
 
 ### Interactive Setup
 
@@ -775,7 +787,7 @@ All secrets are passed via environment variables from `.env`. Keep this file sec
 
 ## Roadmap (2026-2027)
 
-Neuron OS has shipped 8 major milestones since v0.2.0. The roadmap below shows what's built and what's next.
+Neuron OS has shipped 11 major milestones since v0.2.0. The roadmap below shows what's built and what's next.
 
 ### ✅ v0.7.0 — Cost Attribution & Benchmarking — **SHIPPED**
 
@@ -891,6 +903,36 @@ Neuron OS has shipped 8 major milestones since v0.2.0. The roadmap below shows w
 | **Shared keepAlive() utility** | Centralized shutdown handling in `src/cli/keepAlive.ts` with `registerShutdownHandlers()` |
 | **Command history on Ctrl+C** | `process.on("exit")` handler ensures history is written even on early exits |
 | **MCP server cleanup** | Captures `stop()` handle and stops MCP HTTP server cleanly on shutdown |
+
+---
+
+### ✅ v1.1.7 — Operational Hardening — **SHIPPED**
+
+| Deliverable | Description |
+|-------------|-------------|
+| **Secrets Scrubbing** | API keys, tokens, and `sk-*` patterns auto-redacted from all 4 audit log fields before SQLite write |
+| **Busy-aware Heartbeat** | Agent status: `idle` → `busy` (tool call in flight) → `hung` (unresponsive). Only `hung` agents are killed — no more false-positive kills during slow builds |
+| **Skill Staging Gate** | Extracted skills land in `.aegis/skill-staging.json`; `aegis skills approve <id>` required before injection |
+| **`"hung"` AgentStatus** | New status value between heartbeat miss and kill — one grace interval before escalation |
+
+---
+
+### ✅ v1.1.8 — MCP Ecosystem — **SHIPPED**
+
+| Deliverable | Description |
+|-------------|-------------|
+| **MCP Server — Agent Tools** | `aegis mcp serve` exposes `spawn_agent`, `list_agents`, `send_message`, `get_agent_output` — Claude Desktop and other MCP clients can orchestrate Aegis agents directly |
+| **Tool Gateway** | `brave_search` (Brave Search REST API) and `gateway_fetch` (HTML-stripped web fetch) registered as built-in tools; available to any agent via `web_search` permission flag |
+
+---
+
+### ✅ v1.1.9 — Agent Profile Builder — **SHIPPED**
+
+| Deliverable | Description |
+|-------------|-------------|
+| **`AgentProfile` Schema** | Per-type identity: name, system prompt override, model, temperature, skills list, MCP servers, budget default |
+| **Profile Store** | Backed by `~/.aegis/profiles/<id>.json`; persists across restarts |
+| **`aegis profile` CLI** | `list`, `create`, `get`, `delete`, `set-default` subcommands |
 
 ---
 
