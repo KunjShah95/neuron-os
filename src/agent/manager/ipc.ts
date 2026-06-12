@@ -168,6 +168,16 @@ export async function handleIpcMessage(ctx: ManagerContext, id: string, msg: Age
 
   instance.lastActivity = now()
 
+  const isBusyTrigger = msg.type.includes("tool") || msg.type.includes("dispatch")
+  const isIdleTrigger =
+    msg.type === "result" || msg.type === "heartbeat" || msg.type === "dispatch-result"
+
+  if (isBusyTrigger && instance.status !== "spawning" && instance.status !== "stopping" && instance.status !== "stopped" && instance.status !== "error") {
+    instance.status = "busy"
+  } else if (isIdleTrigger && instance.status === "busy") {
+    instance.status = "idle"
+  }
+
   switch (msg.type) {
     case "result": {
       const payload = msg.payload as { status?: string; output?: string } | undefined

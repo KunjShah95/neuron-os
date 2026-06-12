@@ -5,6 +5,7 @@ import { createLogger } from "../cli/logger"
 import { ExperienceStore, type ExperienceRecord } from "../experience/store"
 import { computeEmbedding, cosineSimilarity } from "../memory/embedding"
 import type { SkillCandidate } from "./types"
+import { skillReviewStore } from "./skill-review"
 
 const log = createLogger("improve:skill-extractor")
 
@@ -112,17 +113,29 @@ export class SkillExtractor {
     const candidate = this.candidates.find((c) => c.id === candidateId)
     if (!candidate) return { success: false, error: `Candidate ${candidateId} not found` }
 
+    const staged: SkillCandidate = { ...candidate, status: "candidate" }
+    skillReviewStore.stage(staged)
+
+    const idx = this.candidates.findIndex((c) => c.id === candidateId)
+    if (idx >= 0) {
+      this.candidates[idx] = staged
+      this.saveCandidates()
+    }
+
+    log.info(`Staged skill candidate for review: ${candidate.name} (${candidateId})`)
+    return { success: true, skillPath: undefined }
+  }
+
+  async approveFromStaging(candidateId: string): Promise<{ success: boolean; skillPath?: string; error?: string }> {
+    const candidate = skillReviewStore.getById(candidateId)
+    if (!candidate) return { success: false, error: `Staged candidate ${candidateId} not found` }
+
     const skillsDir = join(process.cwd(), "src", "skills")
     if (!existsSync(skillsDir)) mkdirSync(skillsDir, { recursive: true })
 
-    const filePath = join(skillsDir, `${candidate.name}.ts`)
+    const filePath = join(skillsDir, `auto-${candidate.name}.ts`)
 
     const content = [
-      `// Auto-generated skill: ${candidate.name}`,
-      `// Derived from experiences: ${candidate.derivedFrom.join(", ")}`,
-      `// Confidence: ${(candidate.confidence * 100).toFixed(0)}%`,
-      `// Success rate: ${(candidate.successRate * 100).toFixed(0)}%`,
-      "",
       `export const skillId = "${candidate.id}"`,
       `export const name = "${candidate.name}"`,
       `export const description = ${JSON.stringify(candidate.description)}`,
@@ -142,6 +155,8 @@ export class SkillExtractor {
       return { success: false, error: msg }
     }
 
+    skillReviewStore.remove(candidateId)
+
     const published: SkillCandidate = { ...candidate, status: "published" }
     const idx = this.candidates.findIndex((c) => c.id === candidateId)
     if (idx >= 0) {
@@ -149,7 +164,7 @@ export class SkillExtractor {
       this.saveCandidates()
     }
 
-    log.info(`Published skill → ${filePath}`)
+    log.info(`Approved and published skill → ${filePath}`)
     return { success: true, skillPath: filePath }
   }
 

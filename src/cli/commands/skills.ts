@@ -280,6 +280,47 @@ export function registerSkills(program: Command): void {
       }
     })
 
+  // ── skills list-staged ────────────────────────────────────────────
+
+  skillsCmd
+    .command("list-staged")
+    .description("List skill candidates awaiting approval")
+    .action(async () => {
+      const { skillReviewStore } = await import("../../improve/skill-review")
+      const staged = skillReviewStore.listStaged()
+      console.log(`\n  ${theme.heading("Staged Skill Candidates")}`)
+      console.log(`  ${theme.muted(`(${staged.length} pending review)`)}\n`)
+      if (staged.length === 0) {
+        console.log(`  ${theme.muted("No candidates staged for review.")}\n`)
+        return
+      }
+      for (const c of staged) {
+        console.log(`  ${theme.textBright(c.id)}  ${theme.accent(c.name)}`)
+        console.log(`    ${theme.muted(`confidence: ${(c.confidence * 100).toFixed(0)}%  success-rate: ${(c.successRate * 100).toFixed(0)}%  status: ${c.status}`)}`)
+        if (c.description) console.log(`    ${theme.muted(c.description)}`)
+        console.log()
+      }
+      console.log(`  ${theme.muted("Approve with: aegis skills approve <id>")}\n`)
+    })
+
+  // ── skills approve <id> ────────────────────────────────────────────
+
+  skillsCmd
+    .command("approve")
+    .description("Approve a staged skill candidate and write it to src/skills/")
+    .argument("<id>", "Candidate ID from list-staged")
+    .action(async (id: string) => {
+      const { skillExtractor } = await import("../../improve/skill-extractor")
+      console.log(`\n  ${theme.heading(`Approving skill candidate: ${id}`)}\n`)
+      const result = await skillExtractor.approveFromStaging(id)
+      if (result.success) {
+        console.log(`  ${theme.accent(`Skill written to: ${result.skillPath}`)}`)
+        console.log(`  ${theme.muted("Candidate removed from staging.")}\n`)
+      } else {
+        console.log(`  ${theme.dim(`Failed: ${result.error}`)}\n`)
+      }
+    })
+
   // ── skills retire ──────────────────────────────────────────────────
 
   skillsCmd

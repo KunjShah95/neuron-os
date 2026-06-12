@@ -105,6 +105,29 @@ const MCP_TOOLS = [
       required: ["agentId", "goal"],
     },
   },
+  {
+    name: "get_agent_output",
+    description: "Get the last 50 log lines from a running agent",
+    inputSchema: {
+      type: "object",
+      properties: {
+        agentId: { type: "string", description: "Agent ID" },
+      },
+      required: ["agentId"],
+    },
+  },
+  {
+    name: "send_message",
+    description: "Send a message to a running agent via IPC",
+    inputSchema: {
+      type: "object",
+      properties: {
+        agentId: { type: "string", description: "Agent ID" },
+        message: { type: "string", description: "Message text to send" },
+      },
+      required: ["agentId", "message"],
+    },
+  },
 ]
 
 // ── Handler ────────────────────────────────────────────────────────────
@@ -211,7 +234,28 @@ async function handleRequest(req: MCPRequest): Promise<MCPResponse> {
           payload: { goal: String(params.goal) },
           timestamp: Date.now(),
         })
-        return jsonRpc(id, { status: "accepted" })
+        return jsonRpc(id, { sent: true })
+      }
+
+      case "get_agent_output": {
+        if (!params?.agentId) return jsonRpc(id, undefined, { code: -32602, message: "Missing 'agentId' parameter" })
+        const instance = agentManager.get(String(params.agentId))
+        if (!instance) return jsonRpc(id, undefined, { code: -32000, message: `Agent '${params.agentId}' not found` })
+        const lines = instance.log.slice(-50).map((e) => `[${e.level}] ${e.text}`)
+        return jsonRpc(id, { lines })
+      }
+
+      case "send_message": {
+        if (!params?.agentId || !params?.message) {
+          return jsonRpc(id, undefined, { code: -32602, message: "Missing 'agentId' or 'message' parameter" })
+        }
+        await agentManager.sendIpc(String(params.agentId), {
+          type: "message",
+          id: `mcp-msg-${Date.now()}`,
+          payload: { text: String(params.message) },
+          timestamp: Date.now(),
+        })
+        return jsonRpc(id, { sent: true })
       }
 
       default:

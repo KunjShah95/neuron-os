@@ -128,6 +128,19 @@ export class AuditStore {
 
   // ── Record (append-only) ────────────────────────────────────────────
 
+  private scrubSecrets(text: string): string {
+    let result = text
+    const knownKeys = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GROQ_API_KEY", "HUGGINGFACE_API_KEY"]
+    for (const key of knownKeys) {
+      const val = process.env[key]
+      if (val && val.length >= 8) {
+        result = result.split(val).join("[REDACTED]")
+      }
+    }
+    result = result.replace(/(?:[A-Za-z0-9_]+=|Bearer |sk-)[A-Za-z0-9_\-]{20,}/g, "[REDACTED]")
+    return result
+  }
+
   record(entry: Omit<AuditEntry, "id">): number {
     const stmt = this.db.prepare(`
       INSERT INTO audit_log (session_id, project, step_index, event_type, summary, detail, context, agent_thought, duration_ms, timestamp)
@@ -138,10 +151,10 @@ export class AuditStore {
       entry.project,
       entry.stepIndex,
       entry.eventType,
-      entry.summary,
-      entry.detail,
-      entry.context,
-      entry.agentThought,
+      this.scrubSecrets(entry.summary),
+      this.scrubSecrets(entry.detail),
+      this.scrubSecrets(entry.context),
+      this.scrubSecrets(entry.agentThought),
       entry.durationMs,
       entry.timestamp,
     )
@@ -178,7 +191,7 @@ export class AuditStore {
     const offset = filter.offset ?? 0
 
     const sql = `SELECT * FROM audit_log ${where} ORDER BY id DESC LIMIT ${limit} OFFSET ${offset}`
-    const rows = this.db.prepare(sql).all(...(queryParams as (string | number | null)[])) as Record<string, unknown>[]
+    const rows = this.db.prepare(sql).all(...(queryParams as any[])) as Record<string, unknown>[]
 
     return rows.reverse().map((r) => this.rowToEntry(r))
   }

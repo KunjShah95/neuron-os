@@ -326,12 +326,20 @@ export class AgentManager {
   private checkHeartbeats(): void {
     const nowTime = now()
     for (const [id, inst] of this.agents) {
-      const terminalStates = new Set(["stopped", "error"])
+      const terminalStates = new Set(["stopped", "stopping", "error"])
       if (terminalStates.has(inst.status)) continue
       if (nowTime - inst.lastActivity > 30_000) {
-        inst.status = "error"
-        inst.log.push(this.makeLog("error", "Agent heartbeat timeout"))
-        this.emit("agent:error", id, { message: "Heartbeat timeout" })
+        if (inst.status === "busy") {
+          inst.status = "hung"
+          inst.log.push(this.makeLog("warn", "Agent unresponsive while busy — marked hung"))
+        } else if (inst.status === "hung") {
+          inst.status = "error"
+          inst.log.push(this.makeLog("error", "Agent heartbeat timeout"))
+          this.emit("agent:error", id, { message: "Heartbeat timeout" })
+        } else {
+          inst.status = "hung"
+          inst.log.push(this.makeLog("warn", "Agent heartbeat missed — marked hung"))
+        }
       }
     }
   }

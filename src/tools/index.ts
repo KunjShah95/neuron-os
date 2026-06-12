@@ -37,6 +37,7 @@ import { treeSitterTool } from "./tree-sitter"
 
 // Auto-register A2UI tool (import side-effect registers it)
 import "./a2ui-tool"
+import { registerGatewayTools } from "./gateway"
 
 // Register all built-in tools
 export function registerBuiltinTools(): void {
@@ -61,6 +62,7 @@ export function registerBuiltinTools(): void {
   toolRegistry.register(docsCrawlTool)
   toolRegistry.register(planStateTool)
   toolRegistry.register(treeSitterTool)
+  registerGatewayTools()
 }
 
 // Auto-register on import

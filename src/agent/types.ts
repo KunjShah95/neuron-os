@@ -3,7 +3,7 @@ import type { AgentTypeName, ToolPermission } from "./agent-types"
 import type { IsolationLevel } from "../sandbox/types"
 
 // ── Lifecycle states ──────────────────────────────────────────────────
-export type AgentStatus = "spawning" | "running" | "idle" | "busy" | "stopping" | "stopped" | "error"
+export type AgentStatus = "spawning" | "running" | "idle" | "busy" | "hung" | "stopping" | "stopped" | "error"
 
 // ── Agent definition ──────────────────────────────────────────────────
 export interface AgentDef {
