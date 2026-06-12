@@ -684,7 +684,7 @@ export class AgentEngine {
         userMessages: activeMessages.filter((m) => m.role === "user").map((m) =>
           typeof m.content === "string" ? m.content : JSON.stringify(m.content)
         ),
-        maxTokens: aiConfig.maxTokens,
+        maxTokens: aiConfig.maxOutputTokens,
         temperature: aiConfig.temperature,
       })
     }
@@ -698,6 +698,7 @@ export class AgentEngine {
       stopWhen: stepCountIs(this.maxSteps),
       abortSignal: callbacks?.onSignal,
       temperature: aiConfig.temperature ?? 0.7,
+      maxOutputTokens: aiConfig.maxOutputTokens,
     })
 
     let fullText = ""
@@ -801,7 +802,7 @@ export class AgentEngine {
         userMessages: activeMessages.filter((m) => m.role === "user").map((m) =>
           typeof m.content === "string" ? m.content : JSON.stringify(m.content)
         ),
-        maxTokens: aiConfig.maxTokens,
+        maxTokens: aiConfig.maxOutputTokens,
         temperature: aiConfig.temperature,
       })
     }
@@ -814,6 +815,7 @@ export class AgentEngine {
       tools: toolKeys.length > 0 ? tools : undefined,
       stopWhen: stepCountIs(this.maxSteps),
       temperature: aiConfig.temperature ?? 0.7,
+      maxOutputTokens: aiConfig.maxOutputTokens,
     })
 
     const durationMs = Date.now() - startedAt

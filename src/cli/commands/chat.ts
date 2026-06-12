@@ -57,7 +57,7 @@ function loadAIConfig(overrideProvider?: string, overrideModel?: string): AIConf
       cfg.apiKey,
     baseUrl: process.env.AEGIS_AI_BASE_URL || process.env.AI_BASE_URL || cfg.baseUrl,
     temperature: cfg.temperature ?? 0.7,
-    maxTokens: cfg.maxTokens ?? 8192,
+    maxOutputTokens: cfg.maxTokens ?? 8192,
   }
 }
 

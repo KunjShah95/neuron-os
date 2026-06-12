@@ -44,7 +44,7 @@ function loadAIConfig(): AIConfig {
     apiKey,
     baseUrl: process.env.AI_BASE_URL || cfg.baseUrl,
     temperature: process.env.AI_TEMPERATURE ? Number(process.env.AI_TEMPERATURE) : (cfg.temperature ?? 0.7),
-    maxTokens: process.env.AI_MAX_TOKENS ? Number(process.env.AI_MAX_TOKENS) : (cfg.maxTokens ?? 8192),
+    maxOutputTokens: process.env.AI_MAX_TOKENS ? Number(process.env.AI_MAX_TOKENS) : (cfg.maxTokens ?? 8192),
     fallbacks: parseFallbacksFromEnv(),
   }
 }

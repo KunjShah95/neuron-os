@@ -21,7 +21,7 @@ export interface AIConfig {
   apiKey?: string
   baseUrl?: string
   temperature?: number
-  maxTokens?: number
+  maxOutputTokens?: number
   fallbacks?: Array<{
     provider: string
     model: string
@@ -124,6 +124,7 @@ export class AIProviderManager {
           model,
           messages,
           temperature: cfg.temperature ?? 0.7,
+          maxOutputTokens: cfg.maxOutputTokens,
         })
         return {
           text: result.text,
@@ -148,6 +149,7 @@ export class AIProviderManager {
           model,
           messages,
           temperature: cfg.temperature ?? 0.7,
+          maxOutputTokens: cfg.maxOutputTokens,
         })
         for await (const chunk of result.textStream) {
           yield chunk
