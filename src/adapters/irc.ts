@@ -61,24 +61,28 @@ export function createIRCAdapter(config: IRCConfig): PlatformAdapter {
         nick: config.nickname,
         password: config.password,
         tls: useTls,
-        version: null as any, // Skip CTCP version
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        version: null as any, // Skip CTCP version reply from irc-framework
       })
 
-      client.on("registered", () => {
+      const c = client
+
+      c.on("registered", () => {
         log.info(`IRC connected as ${config.nickname} on ${config.server}:${port}`)
 
         // Join configured channels
         for (const channel of config.channels) {
-          client!.join(channel)
+          c.join(channel)
           log.info(`IRC joined channel ${channel}`)
         }
       })
 
       // ── Message handler ─────────────────────────────────────────────
-      client.on("message", (event: any) => {
-        const text = event.message?.trim() ?? ""
-        const sender = event.nick ?? ""
-        const target = event.target ?? "" // channel or user
+      c.on("message", (event: unknown) => {
+        const ev = event as { message?: string; nick?: string; target?: string }
+        const text = ev.message?.trim() ?? ""
+        const sender = ev.nick ?? ""
+        const target = ev.target ?? "" // channel or user
 
         // Skip own messages
         if (sender.toLowerCase() === config.nickname.toLowerCase()) return
@@ -95,18 +99,18 @@ export function createIRCAdapter(config: IRCConfig): PlatformAdapter {
       })
 
       // ── Connection error handler ────────────────────────────────────
-      client.on("error", (err: any) => {
-        log.error(`IRC error: ${err.message ?? String(err)}`)
+      c.on("error", (err: unknown) => {
+        log.error(`IRC error: ${err instanceof Error ? err.message : String(err)}`)
       })
 
       // Wait for registration
       await new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error("IRC connection timeout")), 30_000)
-        client!.once("registered", () => {
+        c.once("registered", () => {
           clearTimeout(timeout)
           resolve()
         })
-        client!.once("close", () => {
+        c.once("close", () => {
           clearTimeout(timeout)
           reject(new Error("IRC connection closed"))
         })

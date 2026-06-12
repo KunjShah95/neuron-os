@@ -1,0 +1,81 @@
+[
+  {
+    "name": "agent",
+    "type": "gateway_command",
+    "config": {
+      "command": "agent"
+    },
+    "action": {
+      "mode": "queue-task",
+      "goal": "{{rest}}",
+      "priority": "normal"
+    },
+    "enabled": true,
+    "tags": [
+      "builtin"
+    ],
+    "id": "builtin-agent",
+    "createdAt": "2026-06-07T05:12:43.330Z",
+    "fireCount": 29,
+    "lastFiredAt": "2026-06-10T17:09:19.749Z"
+  },
+  {
+    "name": "ping",
+    "type": "gateway_command",
+    "config": {
+      "command": "ping"
+    },
+    "action": {
+      "mode": "run-command",
+      "goal": "echo pong"
+    },
+    "enabled": true,
+    "tags": [
+      "builtin"
+    ],
+    "id": "builtin-ping",
+    "createdAt": "2026-06-07T05:12:43.330Z",
+    "fireCount": 29,
+    "lastFiredAt": "2026-06-10T17:09:19.757Z"
+  },
+  {
+    "name": "auto-skill-extraction",
+    "type": "cron",
+    "config": {
+      "schedule": "6h"
+    },
+    "action": {
+      "mode": "run-command",
+      "goal": "aegis improve skill extract",
+      "priority": "low"
+    },
+    "enabled": true,
+    "tags": [
+      "builtin",
+      "self-improve"
+    ],
+    "id": "trigger-mq8asi2q-t7aw",
+    "createdAt": "2026-06-10T16:43:26.210Z",
+    "fireCount": 0
+  },
+  {
+    "name": "auto-failure-clustering",
+    "type": "cron",
+    "config": {
+      "schedule": "12h"
+    },
+    "action": {
+      "mode": "run-command",
+      "goal": "aegis improve failure cluster",
+      "priority": "low"
+    },
+    "enabled": true,
+    "tags": [
+      "builtin",
+      "self-improve"
+    ],
+    "id": "trigger-mq8asi2s-059i",
+    "createdAt": "2026-06-10T16:43:26.212Z",
+    "fireCount": 0
+  }
+]

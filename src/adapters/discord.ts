@@ -59,8 +59,8 @@ export function createDiscordAdapter(config: DiscordConfig): PlatformAdapter {
 
     async send(opts: PlatformSendOptions) {
       const channel = await client.channels.fetch(opts.channelId)
-      if (channel && "send" in channel && typeof (channel as any).send === "function") {
-        await (channel as any).send(clip(opts.text, DISCORD_MAX - 100, TRUNCATION_SUFFIX))
+      if (channel && "send" in channel && typeof (channel as { send?: unknown }).send === "function") {
+        await (channel as { send(text: string): Promise<unknown> }).send(clip(opts.text, DISCORD_MAX - 100, TRUNCATION_SUFFIX))
       }
     },
   }

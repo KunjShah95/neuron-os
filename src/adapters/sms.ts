@@ -32,7 +32,7 @@ function clipSMS(text: string): string {
 
 export function createSMSAdapter(config: SMSConfig): PlatformAdapter {
   const twilioClient = twilio(config.accountSid, config.authToken)
-  let server: Bun.Server<any> | null = null
+  let server: Bun.Server<undefined> | null = null
 
   async function sendReply(to: string, text: string) {
     await twilioClient.messages.create({

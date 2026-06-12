@@ -1,0 +1,12 @@
+[
+  {
+    "name": "session-cleanup",
+    "schedule": "1d",
+    "goal": "aegis session prune --older-than 7d"
+  },
+  {
+    "name": "evolution-distill",
+    "schedule": "1d",
+    "goal": "aegis skills evolution run"
+  }
+]

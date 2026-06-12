@@ -1,0 +1,24 @@
+{
+  "id": "session-1780189323963",
+  "createdAt": "2026-05-31T01:02:03.963Z",
+  "messages": [
+    {
+      "role": "assistant",
+      "content": "Hello! I'm Aegis AI. How can I help you today?\n\nTry asking me to write code, explain concepts, or help with your projects.",
+      "timestamp": "6:32:03 AM",
+      "status": "complete"
+    },
+    {
+      "role": "user",
+      "content": "Hello!",
+      "timestamp": "6:32:03 AM",
+      "status": "complete"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello there!",
+      "timestamp": "6:32:03 AM",
+      "status": "complete"
+    }
+  ]
+}

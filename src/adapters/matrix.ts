@@ -47,22 +47,24 @@ export function createMatrixAdapter(config: MatrixConfig): PlatformAdapter {
       })
 
       // ── Lifecycle handlers ──────────────────────────────────────────
+      // matrix-js-sdk uses a legacy untyped event emitter API; cast once here
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const c = client as any
 
       c.once("sync", (_state: string) => {
         log.info(`Matrix sync complete: ${_state}`)
       })
 
-      c.on("RoomMember.membership", (_event: any, member: any) => {
+      c.on("RoomMember.membership", (_event: unknown, member: { membership: string; userId: string; roomId: string }) => {
         if (member.membership === "invite" && member.userId === config.userId) {
-          c.joinRoom(member.roomId).catch((err: any) => {
-            log.warn(`Failed to auto-join room ${member.roomId}: ${err.message}`)
+          c.joinRoom(member.roomId).catch((err: unknown) => {
+            log.warn(`Failed to auto-join room ${member.roomId}: ${err instanceof Error ? err.message : String(err)}`)
           })
         }
       })
 
       // ── Message handler ─────────────────────────────────────────────
-      c.on("Room.timeline", (event: any, room: any) => {
+      c.on("Room.timeline", (event: { getType(): string; getSender(): string; getContent(): { body?: string } }, room: { roomId: string }) => {
         // Only handle messages
         if (event.getType() !== "m.room.message") return
         // Ignore own messages
@@ -81,11 +83,11 @@ export function createMatrixAdapter(config: MatrixConfig): PlatformAdapter {
 
         routeCommand(parsed.command, parsed.args, async (responseText) => {
           await sendMatrixMessage(roomId, responseText)
-        }, config.project).catch((err) => log.warn(`Matrix reply error: ${err.message}`))
+        }, config.project).catch((err) => log.warn(`Matrix reply error: ${err instanceof Error ? err.message : String(err)}`))
       })
 
       // ── Start client ────────────────────────────────────────────────
-      await (client as any).startClient({ initialSyncLimit: 0 })
+      await c.startClient({ initialSyncLimit: 0 })
       log.info(`Matrix adapter started as ${config.userId}`)
     },
 
@@ -108,7 +110,7 @@ export function createMatrixAdapter(config: MatrixConfig): PlatformAdapter {
     const c = client
     if (!c) throw new Error("Matrix client not started")
 
-    await (c as any).sendEvent(roomId, "m.room.message", {
+    await c.sendEvent(roomId, "m.room.message", {
       msgtype: "m.text",
       body: clip(text, MATRIX_MAX, TRUNCATION_SUFFIX),
       format: "org.matrix.custom.html",

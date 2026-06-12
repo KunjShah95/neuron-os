@@ -1,0 +1,84 @@
+{
+  "id": "session-1780189323972",
+  "createdAt": "2026-05-31T01:02:03.972Z",
+  "messages": [
+    {
+      "role": "assistant",
+      "content": "Hello! I'm Aegis AI. How can I help you today?\n\nTry asking me to write code, explain concepts, or help with your projects.",
+      "timestamp": "6:32:03 AM",
+      "status": "complete"
+    },
+    {
+      "role": "user",
+      "content": "msg 0",
+      "timestamp": "6:32:03 AM",
+      "status": "complete"
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "timestamp": "6:32:03 AM",
+      "status": "complete"
+    },
+    {
+      "role": "user",
+      "content": "msg 1",
+      "timestamp": "6:32:03 AM",
+      "status": "complete"
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "timestamp": "6:32:03 AM",
+      "status": "complete"
+    },
+    {
+      "role": "user",
+      "content": "msg 2",
+      "timestamp": "6:32:03 AM",
+      "status": "complete"
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "timestamp": "6:32:03 AM",
+      "status": "complete"
+    },
+    {
+      "role": "user",
+      "content": "msg 3",
+      "timestamp": "6:32:03 AM",
+      "status": "complete"
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "timestamp": "6:32:03 AM",
+      "status": "complete"
+    },
+    {
+      "role": "user",
+      "content": "msg 4",
+      "timestamp": "6:32:03 AM",
+      "status": "complete"
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "timestamp": "6:32:03 AM",
+      "status": "complete"
+    },
+    {
+      "role": "user",
+      "content": "msg 5",
+      "timestamp": "6:32:03 AM",
+      "status": "complete"
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "timestamp": "6:32:03 AM",
+      "status": "complete"
+    }
+  ]
+}

@@ -1,0 +1,114 @@
+{
+  "id": "session-1780190293694",
+  "createdAt": "2026-05-31T01:18:13.694Z",
+  "messages": [
+    {
+      "role": "assistant",
+      "content": "Hello! I'm Aegis AI. How can I help you today?\n\nTry asking me to write code, explain concepts, or help with your projects.",
+      "timestamp": "6:48:13 AM",
+      "status": "complete"
+    },
+    {
+      "role": "user",
+      "content": "msg 0",
+      "timestamp": "6:48:13 AM",
+      "status": "complete"
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "timestamp": "6:48:13 AM",
+      "status": "complete"
+    },
+    {
+      "role": "user",
+      "content": "msg 1",
+      "timestamp": "6:48:13 AM",
+      "status": "complete"
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "timestamp": "6:48:13 AM",
+      "status": "complete"
+    },
+    {
+      "role": "user",
+      "content": "msg 2",
+      "timestamp": "6:48:13 AM",
+      "status": "complete"
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "timestamp": "6:48:13 AM",
+      "status": "complete"
+    },
+    {
+      "role": "user",
+      "content": "msg 3",
+      "timestamp": "6:48:13 AM",
+      "status": "complete"
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "timestamp": "6:48:13 AM",
+      "status": "complete"
+    },
+    {
+      "role": "user",
+      "content": "msg 4",
+      "timestamp": "6:48:13 AM",
+      "status": "complete"
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "timestamp": "6:48:13 AM",
+      "status": "complete"
+    },
+    {
+      "role": "user",
+      "content": "msg 5",
+      "timestamp": "6:48:13 AM",
+      "status": "complete"
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "timestamp": "6:48:13 AM",
+      "status": "complete"
+    },
+    {
+      "role": "user",
+      "content": "msg 6",
+      "timestamp": "6:48:13 AM",
+      "status": "complete"
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "timestamp": "6:48:13 AM",
+      "status": "complete"
+    },
+    {
+      "role": "user",
+      "content": "msg 7",
+      "timestamp": "6:48:13 AM",
+      "status": "complete"
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "timestamp": "6:48:13 AM",
+      "status": "complete"
+    }
+  ],
+  "providerConfig": {
+    "model": "claude-sonnet-4-20250514",
+    "maxTokens": 8192
+  },
+  "environment": {},
+  "agentTraces": []
+}
