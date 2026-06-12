@@ -2,7 +2,7 @@
 
 *The Operating System for Autonomous AI Agents*
 
-[![Version](https://img.shields.io/badge/version-1.1.6-blue)]()
+[![Version](https://img.shields.io/badge/version-1.1.7-blue)]()
 [![Roadmap](https://img.shields.io/badge/roadmap-1--year%20plan-purple)]()
 [![Status](https://img.shields.io/badge/status-active%20development-orange)]()
 [![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.3.14-black)]()
@@ -83,46 +83,181 @@ bun run index.ts serve             # Start REST API server
 
 ## What's in the Box
 
-### TUI Modes (36)
+### CLI Commands Reference
 
-Run `aegis` (no args) for the interactive mode picker, or launch directly:
+Run `aegis` (no args) for the interactive mode picker, or use any command directly:
 
-| Mode | Command | Description |
-|------|---------|-------------|
-| Mode Launcher | `aegis` / `wakeup` | Interactive mode selector |
-| Dashboard | `dashboard` | Real-time agent monitoring TUI |
-| Chat | `chat` | Streaming AI chat with multi-provider support |
-| Status | `status` | System health overview |
-| Skills | `skills` | Browse and manage skills |
-| Config | `config` | Credential vault and settings |
-| Cron | `cron` | Scheduled job management |
-| Memory | `memory` | Long-term memory, vector search, knowledge graph |
-| AgentMemory | `agentmemory` | Hybrid BM25+Vector+Graph sidecar |
-| Agent Manager | `agent` | Spawn, kill, inspect agents |
-| Setup | `setup` | Interactive configuration wizard |
-| API Server | `serve` | HTTP REST API + WebSocket |
-| MCP | `mcp` | Model Context Protocol client/server |
-| Cost | `cost` | Per-task, per-agent cost attribution |
-| Router | `router` | Auto-select cheapest provider per task |
-| Estimate | `estimate` | Pre-flight cost check before spawning |
-| Insights | `insights` | Cross-DB analytics across all stores |
-| Benchmark | `benchmark` | Agent quality regression detection |
-| Bench | `bench` | Provider benchmark comparison |
-| Improve | `improve` | Self-learning: skill extraction, failure clustering |
-| Production | `production` | RBAC, vault, SLO, traces, background agents |
-| Distributed | `distributed` | Multi-host worker pool, leader election |
-| **Plugin** | `plugin` | **Install, publish, and manage signed plugins** |
-| **Dream** | `dream` | **6-phase dream cycle: replay, pattern, compress** |
-| **Evolve** | `evolve` | **Auto-code mutation with test verification** |
-| **Persona** | `persona` | **Agent trait evolution from experience** |
-| **Social** | `social` | **Multi-instance gossip & peer discovery** |
-| **Eval** | `eval` | **Harness: run, CI gate, calibrate, golden dataset** |
-| **Mesh** | `mesh` | **Multi-agent orchestration (5 topologies)** |
-| **Train** | `train` | **Trajectory recording & export** |
-| **Toolset** | `toolset` | **Manage and compose tool bundles** |
-| **Project** | `project` | **Isolated workspaces with per-project state** |
-| **Voice** | `voice` | **Voice system configuration and control** |
-| **Soul** | `soul` | **Agent soul cards & mood system** |
+```bash
+aegis <command> [subcommand] [options]
+aegis <command> --help   # detailed usage for any command
+```
+
+#### Getting Started
+
+| Command | Description |
+|---------|-------------|
+| `aegis` / `aegis wakeup` | Interactive mode selector (36 TUI modes) |
+| `aegis init` | First-run setup wizard |
+| `aegis setup` | Guided provider configuration |
+| `aegis setup-keys` | Configure AI provider API keys |
+| `aegis doctor` | Verify installation and provider connectivity |
+| `aegis status` | System health overview |
+| `aegis health` | Deep health check (DB, adapters, providers) |
+
+#### AI & Chat
+
+| Command | Description |
+|---------|-------------|
+| `aegis ask <prompt>` | One-shot AI query, exit when done |
+| `aegis chat` | Streaming AI chat TUI (multi-provider, sessions, history) |
+| `aegis plan <task>` | Generate a step-by-step plan for a task |
+| `aegis orchestrate <goal>` | Multi-agent orchestration toward a goal |
+| `aegis research <topic>` | Deep research mode with memory integration |
+
+#### Agent Management
+
+| Command | Description |
+|---------|-------------|
+| `aegis agent spawn <type>` | Spawn a typed agent |
+| `aegis agent kill <id>` | Kill an agent |
+| `aegis agent list` | List running agents |
+| `aegis agent inspect <id>` | Inspect agent state |
+| `aegis agent-run <type> <task>` | Run agent directly (non-interactive) |
+| `aegis supervise` | Agent supervisor — monitor and auto-restart |
+
+#### Memory & Knowledge
+
+| Command | Description |
+|---------|-------------|
+| `aegis memory stats` | Memory store statistics |
+| `aegis memory search <query>` | Semantic search across all stores |
+| `aegis memory synthesize <topic>` | Cross-store knowledge synthesis |
+| `aegis memory prune` | Remove stale memories |
+| `aegis memory export` | Export memory to JSON |
+| `aegis agentmemory` | Hybrid BM25+Vector+Graph sidecar (95.2% R@5) |
+| `aegis session list` | List saved sessions |
+| `aegis session resume <id>` | Resume a previous session |
+| `aegis session export <id>` | Export session transcript |
+| `aegis session prune` | Delete old sessions |
+| `aegis insights` | Cross-DB analytics joining audit, billing, experience, telemetry |
+
+#### Consciousness / Self-Improvement
+
+| Command | Description |
+|---------|-------------|
+| `aegis dream run` | Trigger 6-phase dream cycle (replay→pattern→compress→counterfactual→social→mood) |
+| `aegis dream insights` | Show generated insights |
+| `aegis evolve run` | Auto-code mutation from dream insights with test-backed apply |
+| `aegis evolve list` | List pending mutations |
+| `aegis persona show` | Show agent's 8-trait personality profile |
+| `aegis persona evolve` | Evolve traits from recent experience |
+| `aegis soul card` | Display archetype soul card with mood state |
+| `aegis soul mood` | Show current mood and behavioral heuristics |
+| `aegis social status` | Peer discovery and gossip network status |
+| `aegis social share` | Share insights/mutations with peers |
+| `aegis improve` | Self-improvement: skill extraction + failure clustering |
+| `aegis improve monitor` | Watch improvement progress |
+| `aegis experience list` | List recorded experiences |
+| `aegis reflect` | Generate a reflection from recent sessions |
+| `aegis predict` | Predict outcomes from historical patterns |
+| `aegis train record` | Record agent trajectory for fine-tuning export |
+| `aegis train export` | Export trajectories (atropos/jsonl format) |
+
+#### Evaluation & Quality
+
+| Command | Description |
+|---------|-------------|
+| `aegis eval run <suite>` | Run eval harness suite |
+| `aegis eval ci` | CI gate — exit 1 if below baseline |
+| `aegis eval baseline` | Set a new quality baseline |
+| `aegis harness run` | Run harness test suites |
+| `aegis harness report` | Generate harness report |
+| `aegis benchmark run` | Agent quality regression detection |
+| `aegis benchmark baseline` | Update quality baseline |
+| `aegis bench run <task>` | Benchmark all providers on a task |
+| `aegis bench list` | List benchmark history |
+| `aegis adversarial run` | Adversarial self-play red-team scenarios |
+| `aegis ci` | Full CI: tests + typecheck + lint + docs |
+
+#### Cost & Economy
+
+| Command | Description |
+|---------|-------------|
+| `aegis cost total` | Total spend to date |
+| `aegis cost models` | Spend by model |
+| `aegis cost sessions` | Spend by session |
+| `aegis cost budget` | Set or show budget |
+| `aegis cost report` | Full cost report |
+| `aegis router route <task>` | Auto-select cheapest viable provider |
+| `aegis router list` | List provider routing scores |
+| `aegis preflight <task>` | Pre-flight cost estimate before spawning |
+| `aegis pricing` | Show current provider pricing table |
+| `aegis metrics` | Runtime metrics dashboard |
+
+#### Platform Adapters
+
+| Command | Description |
+|---------|-------------|
+| `aegis discord` | Start Discord bot adapter |
+| `aegis slack` | Start Slack bot adapter |
+| `aegis telegram` | Start Telegram bot adapter |
+| `aegis email` | Start email (SMTP) adapter |
+| `aegis sms` | Start SMS adapter (Twilio) |
+| `aegis whatsapp` | Start WhatsApp adapter (Twilio) |
+| `aegis voice` | Voice call adapter (Twilio) |
+| `aegis voice-local` | Local voice adapter configuration |
+| `aegis webhook` | Start generic webhook adapter |
+
+#### Infrastructure & APIs
+
+| Command | Description |
+|---------|-------------|
+| `aegis serve` | Start HTTP REST API + WebSocket server |
+| `aegis mcp start` | Start MCP server |
+| `aegis mcp connect <url>` | Connect to MCP server |
+| `aegis cron list` | List scheduled jobs |
+| `aegis cron add <schedule> <cmd>` | Add a cron job |
+| `aegis cron remove <id>` | Remove a cron job |
+| `aegis trigger list` | List triggers (cron, file_watch, webhook, condition) |
+| `aegis trigger add` | Add a trigger |
+| `aegis distributed start` | Start distributed worker |
+| `aegis distributed status` | Worker pool status |
+| `aegis pool` | Worker pool management |
+| `aegis mesh run <spec>` | Run a multi-agent mesh (5 topologies) |
+| `aegis debate start` | Start a structured agent debate |
+| `aegis workflow run <file>` | Execute a workflow YAML |
+| `aegis tls setup` | Configure TLS for API server |
+| `aegis production dashboard` | Production SLO + cost + health dashboard |
+
+#### Developer Tools
+
+| Command | Description |
+|---------|-------------|
+| `aegis config set <key> <value>` | Set a configuration value |
+| `aegis config get <key>` | Get a configuration value |
+| `aegis config list` | List all config |
+| `aegis skills list` | Browse available skills |
+| `aegis skills install <name>` | Install a skill |
+| `aegis toolset list` | List tool bundles |
+| `aegis toolset new <name>` | Create a custom toolset |
+| `aegis plugin install <name>` | Install a signed plugin |
+| `aegis plugin publish` | Publish a plugin to marketplace |
+| `aegis plugin list` | List installed plugins |
+| `aegis plugin remove <name>` | Remove a plugin |
+| `aegis marketplace search <query>` | Search skill marketplace |
+| `aegis sandbox run <cmd>` | Run command in isolated sandbox |
+| `aegis computer` | Computer use tool interface |
+| `aegis openapi` | Generate OpenAPI spec from routes |
+| `aegis telemetry status` | Telemetry pipeline status |
+| `aegis audit log` | View append-only audit log |
+| `aegis providers list` | List all 13 AI providers and their status |
+| `aegis providers test <name>` | Test provider connectivity |
+| `aegis docscrawl` | Crawl and index documentation |
+| `aegis project list` | List project workspaces |
+| `aegis project switch <name>` | Switch active project |
+| `aegis project new <name>` | Create a new isolated workspace |
+| `aegis completion bash` | Generate bash shell completion |
+| `aegis completion zsh` | Generate zsh shell completion |
 
 ### Web Frontends
 
