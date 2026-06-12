@@ -26,4 +26,40 @@ describe("Runtime Tests", () => {
     expect(result.success).toBe(true)
     expect(result.output.includes("Code Review")).toBe(true)
   })
+
+  it("should filter tool execution based on allowedTools list", async () => {
+    const { agentManager } = await import("./manager")
+    const runtime = createAgentRuntime("runtime-test-restrict", "build", process.cwd())
+
+    // Mock an agent in agentManager
+    agentManager.agents.set("runtime-test-restrict", {
+      id: "runtime-test-restrict",
+      status: "running",
+      def: {
+        id: "runtime-test-restrict",
+        name: "Test Restrict",
+        agentType: "build",
+        tools: [{ name: "read_skill", allow: true }],
+      },
+    } as any)
+
+    try {
+      // 1. By default, tool is allowed (allowedTools is null)
+      const result1 = await runtime.executeTool("read_skill", { name: "code-review" })
+      expect(result1.success).toBe(true)
+
+      // 2. Set allowed tools list to not include read_skill
+      runtime.setAllowedTools(["other_tool"])
+      const result2 = await runtime.executeTool("read_skill", { name: "code-review" })
+      expect(result2.success).toBe(false)
+      expect(result2.error).toContain("is not in the allowed list")
+
+      // 3. Set allowed tools list to include read_skill
+      runtime.setAllowedTools(["read_skill"])
+      const result3 = await runtime.executeTool("read_skill", { name: "code-review" })
+      expect(result3.success).toBe(true)
+    } finally {
+      agentManager.agents.delete("runtime-test-restrict")
+    }
+  })
 })

@@ -1,6 +1,5 @@
-import { StorageAdapter, MemoryEntry } from "./adapter.js";
+import type { StorageAdapter, MemoryEntry } from "./adapter.js";
 import { InMemoryStorageAdapter } from "./memory.js";
-import { join } from "path";
 import { existsSync, mkdirSync } from "fs";
 
 export class SQLiteStorageAdapter implements StorageAdapter {

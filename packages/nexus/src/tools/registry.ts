@@ -1,4 +1,4 @@
-import { Tool } from "../core/types.js";
+import type { Tool } from "../core/types.js";
 
 export interface ToolProfile {
   name: string;
@@ -73,7 +73,7 @@ export class ToolRegistry {
       }
       // Secondary sort: Latency (lower is better)
       return pA.avgLatency - pB.avgLatency;
-    })[0];
+    })[0] ?? null;
   }
 
   /**

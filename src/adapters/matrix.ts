@@ -47,7 +47,8 @@ export function createMatrixAdapter(config: MatrixConfig): PlatformAdapter {
       })
 
       // ── Lifecycle handlers ──────────────────────────────────────────
-      const c = client as MatrixClient & Record<string, (...args: unknown[]) => unknown>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const c = client as any
 
       c.once("sync", (_state: unknown) => {
         log.info(`Matrix sync complete: ${_state}`)

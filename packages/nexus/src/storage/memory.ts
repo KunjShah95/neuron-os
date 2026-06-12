@@ -1,4 +1,4 @@
-import { StorageAdapter, MemoryEntry } from "./adapter.js";
+import type { StorageAdapter, MemoryEntry } from "./adapter.js";
 
 export class InMemoryStorageAdapter implements StorageAdapter {
   readonly name = "in-memory";

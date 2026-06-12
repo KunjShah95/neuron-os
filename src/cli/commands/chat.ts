@@ -6,6 +6,7 @@ import { registerShutdownHandlers } from "../keepAlive"
 import { isValidAgentType } from "../../agent"
 import { createAgentRuntime } from "../../agent/runtime"
 import { AIProviderManager, type AIConfig } from "../../ai"
+import { getDefaultConfiguredProvider } from "../../ai/provider-guard"
 import { AgentEngine } from "../../agent/engine"
 import { loadConfig, saveConfig } from "../../config"
 import type { ModelMessage } from "ai"
@@ -27,12 +28,14 @@ export function registerChat(program: Command) {
 
 function loadAIConfig(overrideProvider?: string, overrideModel?: string): AIConfig {
   const cfg = loadConfig()
+  const defaultProvider = getDefaultConfiguredProvider()
   const provider = (overrideProvider ||
     process.env.AEGIS_AI_PROVIDER ||
     process.env.AEGIS_DEFAULT_PROVIDER ||
     process.env.DEFAULT_AI_PROVIDER ||
     process.env.AI_PROVIDER ||
     cfg.provider ||
+    defaultProvider?.provider ||
     "anthropic") as AIProviderType
   const model =
     overrideModel ||
@@ -41,6 +44,7 @@ function loadAIConfig(overrideProvider?: string, overrideModel?: string): AIConf
     process.env.DEFAULT_AI_MODEL ||
     process.env.AI_MODEL ||
     cfg.model ||
+    defaultProvider?.model ||
     "claude-sonnet-4-20250514"
   return {
     provider,
@@ -83,6 +87,7 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
 
   const agentType = opts.type
   const cfg = loadConfig()
+  const defaultProvider = getDefaultConfiguredProvider()
   const chatConfig: ChatConfig = {
     provider:
       opts.provider ||
@@ -91,6 +96,7 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
       process.env.DEFAULT_AI_PROVIDER ||
       process.env.AI_PROVIDER ||
       cfg.provider ||
+      defaultProvider?.provider ||
       "anthropic",
     model:
       opts.model ||
@@ -99,6 +105,7 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
       process.env.DEFAULT_AI_MODEL ||
       process.env.AI_MODEL ||
       cfg.model ||
+      defaultProvider?.model ||
       "claude-sonnet-4-20250514",
   }
 

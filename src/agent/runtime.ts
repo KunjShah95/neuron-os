@@ -17,6 +17,7 @@ export interface AgentContext {
 export class AgentRuntime {
   readonly context: AgentContext
   private memory: MemorySystem
+  private allowedTools: string[] | null = null
 
   constructor(context: AgentContext, memorySystem?: MemorySystem) {
     this.context = context
@@ -24,6 +25,14 @@ export class AgentRuntime {
   }
 
   async executeTool(name: string, params: Record<string, unknown>): Promise<ToolResult> {
+    if (this.allowedTools && !this.allowedTools.includes(name)) {
+      return {
+        success: false,
+        output: "",
+        error: `Tool "${name}" is not in the allowed list for this agent`,
+      }
+    }
+
     const agent = this.getAgent()
     if (!agent) {
       return {
@@ -127,8 +136,8 @@ export class AgentRuntime {
   }
 
    
-  setAllowedTools(_tools: string[]): void {
-    // TODO: implement tool filtering based on allowed list
+  setAllowedTools(tools: string[]): void {
+    this.allowedTools = tools
   }
 
   private skillsLoaded = false

@@ -3,7 +3,7 @@ import { resolveApiKey } from "./provider"
 const PRIORITY_PROVIDERS: Array<{ provider: string; model: string }> = [
   { provider: "anthropic", model: "claude-sonnet-4-20250514" },
   { provider: "openai", model: "gpt-4o" },
-  { provider: "openrouter", model: "openai/gpt-4o" },
+  { provider: "openrouter", model: "openrouter/free" },
   { provider: "gemini", model: "gemini-2.0-flash" },
   { provider: "groq", model: "llama-3.3-70b-versatile" },
   { provider: "mistral", model: "mistral-large-latest" },

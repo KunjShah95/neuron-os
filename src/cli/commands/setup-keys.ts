@@ -2,6 +2,7 @@ import * as p from "@clack/prompts"
 import type { Command } from "commander"
 import { credentialVault } from "../../vault"
 import { saveConfig, loadConfig } from "../../config"
+import { MODEL_REFERENCES, type AIProviderType } from "../../ai/models"
 import { guardCancel, WizardCancelledError } from "../guard"
 
 type ApiBody = { error?: { message?: string }; type?: string }
@@ -614,7 +615,22 @@ export async function runSetupKeysWizard(): Promise<void> {
 
     // ── Default provider ───────────────────────────────────────────────
     const configuredProviders = results.filter((r) => r.status === "configured")
-    if (configuredProviders.length > 0) {
+    if (configuredProviders.length === 1) {
+      const providerMap = new Map(PROVIDERS.map((p) => [p.label, p.key]))
+      const r = configuredProviders[0]!
+      const key = providerMap.get(r.provider) || r.provider.toLowerCase()
+      const config = loadConfig()
+      let model: string | undefined = undefined
+      if (key === "openrouter") {
+        model = "openrouter/free"
+      } else if (key === "gemini") {
+        model = "gemini-2.0-flash"
+      } else {
+        model = MODEL_REFERENCES[key as AIProviderType]?.[0]?.id
+      }
+      saveConfig({ ...config, provider: key, model })
+      p.note(`Automatically set ${r.provider} (${model ?? ""}) as the default AI provider and model.`, "Default Provider")
+    } else if (configuredProviders.length > 1) {
       const setDefault = guardCancel(
         await p.confirm({
           message: "Set a default AI provider?",
@@ -635,7 +651,15 @@ export async function runSetupKeysWizard(): Promise<void> {
         )
 
         const config = loadConfig()
-        saveConfig({ ...config, provider: defaultProvider })
+        let model: string | undefined = undefined
+        if (defaultProvider === "openrouter") {
+          model = "openrouter/free"
+        } else if (defaultProvider === "gemini") {
+          model = "gemini-2.0-flash"
+        } else {
+          model = MODEL_REFERENCES[defaultProvider as AIProviderType]?.[0]?.id
+        }
+        saveConfig({ ...config, provider: defaultProvider, model })
       }
     }
 

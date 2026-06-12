@@ -7,6 +7,7 @@
  */
 
 import type { SearchScope } from "../modes/search"
+import type { AIProviderType } from "../ai/models"
 
 // ── Text Constants ───────────────────────────────────────────────────────
 
@@ -313,7 +314,7 @@ export async function handleChat(msg: string): Promise<CommandResult> {
   try {
     const { AIProviderManager } = await import("../ai")
     const ai = new AIProviderManager({
-      provider: (process.env.AEGIS_AI_PROVIDER ?? "openai") as string,
+      provider: (process.env.AEGIS_AI_PROVIDER ?? "openai") as AIProviderType,
       model: process.env.AEGIS_AI_MODEL ?? "gpt-4o",
       apiKey: process.env.AEGIS_AI_API_KEY,
       baseUrl: process.env.AEGIS_AI_BASE_URL,

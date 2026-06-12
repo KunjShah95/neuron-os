@@ -113,7 +113,15 @@ function main() {
           "PERPLEXITY_API_KEY",
           "NVIDIA_API_KEY",
           "CUSTOM_API_KEY",
-        ].some((k) => content.split("\n").some((line) => !line.trimStart().startsWith("#") && line.includes(`${k}=`)))
+        ].some((k) => content.split("\n").some((line) => {
+          if (line.trimStart().startsWith("#")) return false
+          const eqIdx = line.indexOf("=")
+          if (eqIdx <= 0) return false
+          const key = line.slice(0, eqIdx).trim()
+          if (key !== k) return false
+          const val = line.slice(eqIdx + 1).trim().split("#")[0].trim()
+          return val && !val.includes("...")
+        }))
         
         if (hasAnyKey) {
           hasApiKey = true

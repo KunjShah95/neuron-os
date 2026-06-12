@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite"
 import { randomBytes, scryptSync, createCipheriv, createDecipheriv } from "node:crypto"
-import { join } from "node:path"
+import { join, resolve } from "node:path"
 import { existsSync, mkdirSync } from "node:fs"
 import { createLogger } from "../cli/logger"
 
@@ -33,8 +33,10 @@ export class CredentialVault {
   private salt: Buffer | null = null
   private _isUnlocked = false
 
-  constructor() {
-    const dbPath = join(process.cwd(), "data", "vault", "vault.db")
+  constructor(dbPathOverride?: string) {
+    const homeDir = process.env.HOME || process.env.USERPROFILE || "~"
+    const defaultDbPath = join(resolve(homeDir, ".aegis"), "vault.db")
+    const dbPath = dbPathOverride || defaultDbPath
     const dir = join(dbPath, "..")
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
 

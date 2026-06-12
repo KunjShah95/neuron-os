@@ -140,7 +140,7 @@ export async function runAsk(ctx: { reply: (t: string, o?: object) => Promise<un
   const agent = new ToolLoopAgent({
     ...agentOptions(20, `Workspace root: ${process.cwd()}. Read-only research mode.`),
     tools,
-  } as Parameters<typeof ToolLoopAgent>[0])
+  } as ConstructorParameters<typeof ToolLoopAgent>[0])
   const { text } = await agent.generate({ prompt: question })
   await replyMd(ctx, text || "(no answer)")
 }
@@ -156,7 +156,7 @@ export async function runAgent(
   const agent = new ToolLoopAgent({
     ...agentOptions(40, `Workspace root: ${process.cwd()}. All mutations are staged until approval.`),
     tools,
-  } as Parameters<typeof ToolLoopAgent>[0])
+  } as ConstructorParameters<typeof ToolLoopAgent>[0])
   const { text } = await agent.generate({ prompt: goal })
   if (text?.trim()) await replyMd(ctx, text.trim())
   await finishOrApprove(ctx, chatId, tracker, executor, "✅ Done. No file changes were needed.")
@@ -180,7 +180,7 @@ export async function runPlanSteps(
       model: ai.getModel(),
       stopWhen: stepCountIs(30),
       tools,
-    } as Parameters<typeof ToolLoopAgent>[0])
+    } as ConstructorParameters<typeof ToolLoopAgent>[0])
     const { text } = await agent.generate({ prompt })
     if (text?.trim()) await replyMd(ctx, text.trim())
   }

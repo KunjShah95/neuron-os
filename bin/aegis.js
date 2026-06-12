@@ -11,7 +11,8 @@ const ROOT = resolve(__dirname, "..")
 const isBun = process.argv0 === "bun" || !!process.versions?.bun
 if (isBun) {
   const entry = resolve(ROOT, "index.ts")
-  const child = spawn(entry, process.argv.slice(2), { stdio: "inherit", env: process.env })
+  const bin = process.argv0 || "bun"
+  const child = spawn(bin, [entry, ...process.argv.slice(2)], { stdio: "inherit", env: process.env })
   child.on("exit", (c) => process.exit(c ?? 0))
 } else {
   // Running under Node.js — delegate to Bun if available

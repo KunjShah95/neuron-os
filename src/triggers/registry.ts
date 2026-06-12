@@ -10,6 +10,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, watch } from "node:
 import type { FSWatcher } from "node:fs"
 import { resolve } from "node:path"
 import { createLogger } from "../cli/logger"
+import type { AgentTypeName } from "../agent/agent-types"
 
 const log = createLogger("triggers")
 
@@ -281,7 +282,7 @@ export class TriggerEngine {
           const { agentManager } = await import("../agent/manager")
           const agentId = await agentManager.spawn({
             name: "trigger-" + trigger.name + "-" + Date.now().toString(36),
-            agentType: trigger.action.agentType ?? "build",
+            agentType: (trigger.action.agentType ?? "build") as AgentTypeName,
             script: "src/agent/agent-worker.ts",
             tags: ["trigger", trigger.name, trigger.type],
             recovery: { maxRetries: 2 },
