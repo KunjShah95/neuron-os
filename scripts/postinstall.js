@@ -157,7 +157,7 @@ function main() {
   logStep("Resources")
   log(`  Documentation: ${ANSI_COLORS.cyan}https://github.com/KunjShah95/neuron-os${ANSI_COLORS.reset}`)
   log(`  Report Issues: ${ANSI_COLORS.cyan}https://github.com/KunjShah95/neuron-os/issues${ANSI_COLORS.reset}`)
-  log(`  Community:     ${ANSI_COLORS.cyan}https://discord.gg/aegis${ANSI_COLORS.reset}`)
+log(` Documentation: ${ANSI_COLORS.cyan}https://github.com/KunjShah95/neuron-os/discussions${ANSI_COLORS.reset}`)
 
   log("\n" + "═".repeat(60))
   log(`${ANSI_COLORS.green}✓ Installation complete!${ANSI_COLORS.reset}`)
