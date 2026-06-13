@@ -1,3 +1,4 @@
+import { ERR, formatError } from "../errors"
 import { resolveApiKey } from "./provider"
 
 const PRIORITY_PROVIDERS: Array<{ provider: string; model: string }> = [
@@ -21,7 +22,7 @@ export function getDefaultConfiguredProvider(): { provider: string; model: strin
 
 export function requireAnyProvider(): void {
   if (getDefaultConfiguredProvider() !== null) return
-  console.error("\n  ✗ [AEGIS_E001] No AI provider configured.")
+  console.error(`\n  ✗ ${formatError(ERR.NO_PROVIDER, "No AI provider configured.")}`)
   console.error("  Run: aegis setup-keys")
   console.error("  Docs: https://github.com/KunjShah95/neuron-os#providers\n")
   process.exit(1)
