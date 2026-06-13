@@ -765,14 +765,15 @@ export class SoulManager {
 
 export const soulManager = new SoulManager()
 
-// ── Legacy compatibility ─────────────────────────────────────────────
+// ── Soul file loading ────────────────────────────────────────────────
+// Loads SOUL.md files from skill directories to inject into agent prompts.
 
-export interface SoulContext {
+export interface SoulFileContext {
   agentType?: string
   cwd: string
 }
 
-function buildSoulCandidates(ctx: SoulContext): string[] {
+function getSoulFileCandidates(ctx: SoulFileContext): string[] {
   if (!ctx.agentType) return []
 
   const home = process.env.HOME || process.env.USERPROFILE || ""
@@ -783,8 +784,8 @@ function buildSoulCandidates(ctx: SoulContext): string[] {
   ].filter(Boolean)
 }
 
-export async function loadSoul(ctx: SoulContext): Promise<string> {
-  for (const candidate of buildSoulCandidates(ctx)) {
+export async function loadSoul(ctx: SoulFileContext): Promise<string> {
+  for (const candidate of getSoulFileCandidates(ctx)) {
     if (!existsSync(candidate)) continue
     try {
       return await readFile(candidate, "utf-8")
