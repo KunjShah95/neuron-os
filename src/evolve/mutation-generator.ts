@@ -1,4 +1,4 @@
-import { readFileSync, existsSync, readdirSync, statSync } from "node:fs"
+import { readFileSync, existsSync, readdirSync, statSync, writeFileSync } from "node:fs"
 import { join, relative } from "node:path"
 import { createLogger } from "../cli/logger"
 import type { DreamInsight } from "../dream/types"
@@ -21,6 +21,13 @@ interface FileAnalysis {
   longFunctions: Array<{ name: string; startLine: number; lineCount: number }>
 }
 
+/** A single line-level change to apply to a file. */
+interface LineChange {
+  type: "replace" | "insert-before" | "insert-after" | "delete"
+  line: number
+  text: string
+}
+
 export class MutationGenerator {
   analyzeFile(filePath: string): FileAnalysis | null {
     if (!existsSync(filePath)) return null
@@ -37,14 +44,14 @@ export class MutationGenerator {
       hasConsoleLog: /console\.(log|warn|error)\(/.test(content),
       hasTodo: /\/\/\s*(TODO|FIX|HACK|XXX)/.test(content),
       hasFIXME: /\/\/\s*FIXME/.test(content),
-      hasUnusedImport: content.match(/^import\s+\{[^}]+}\s+from\s+['"][^'"]+['"]\s*$/m),
+      hasUnusedImport: content.match(/^import\s+\{[^}]+\}\s+from\s+['"][^'"]+['"]\s*$/m),
       longFunctions: this.findLongFunctions(content, lines),
     }
   }
 
   private findLongFunctions(content: string, _lines: string[]): Array<{ name: string; startLine: number; lineCount: number }> {
     const result: Array<{ name: string; startLine: number; lineCount: number }> = []
-    const funcRegex = /(?:async\s+)?(?:function\s+(\w+)|(\w+)\s*=\s*(?:async\s*)?\(|(\w+)\s*\([^)]*\)\s*{)/g
+    const funcRegex = /(?:async\s+)?(?:function\s+(\w+)|(\w+)\s*=\s*(?:async\s*)?\(|(\w+)\s*\([^)]*\)\s*\{)/g
     let match: RegExpExecArray | null
 
     while ((match = funcRegex.exec(content)) !== null) {
@@ -83,18 +90,18 @@ export class MutationGenerator {
       const strategy = this.strategyForInsight(insight, analysis)
       if (!strategy) continue
 
-      const diff = this.synthesizeDiff(analysis, strategy, insight)
-      if (!diff) continue
+      const changes = this.synthesizeChanges(analysis, strategy, insight)
+      if (!changes || changes.length === 0) continue
 
-      const newContent = this.applyDiff(analysis.content, diff)
-      if (!newContent) continue
+      const newContent = this.applyChanges(analysis.content, changes)
+      if (newContent === analysis.content) continue
 
       mutations.push(
         evolutionStore.createMutation({
           filePath: relative(process.cwd(), filePath),
           strategy,
           description: insight.title,
-          diff,
+          diff: JSON.stringify(changes),
           oldContent: analysis.content,
           newContent,
           confidence: insight.confidence,
@@ -194,107 +201,416 @@ export class MutationGenerator {
     if (desc.includes("security") || desc.includes("injection") || desc.includes("sanitize")) {
       return "security"
     }
+    if (desc.includes("readability") || desc.includes("clarity") || desc.includes("confusing")) {
+      return "readability"
+    }
+    if (desc.includes("bug") || desc.includes("fix") || desc.includes("incorrect") || desc.includes("wrong")) {
+      return "bugfix"
+    }
 
     return null
   }
 
-  private synthesizeDiff(analysis: FileAnalysis, strategy: MutationStrategy, insight: DreamInsight): string | null {
+  /**
+   * Analyze the file and produce a list of concrete line-level changes.
+   * All 8 mutation strategies are now implemented.
+   */
+  private synthesizeChanges(analysis: FileAnalysis, strategy: MutationStrategy, insight: DreamInsight): LineChange[] | null {
     switch (strategy) {
       case "type-improvement":
-        return this.buildTypeImprovement(analysis, insight)
+        return this.buildTypeImprovements(analysis)
       case "error-handling":
-        return this.buildErrorHandling(analysis, insight)
+        return this.buildErrorHandlingChanges(analysis)
       case "refactor":
-        return this.buildRefactoring(analysis, insight)
+        return this.buildRefactoringChanges(analysis)
+      case "optimize":
+        return this.buildOptimizeChanges(analysis)
+      case "bugfix":
+        return this.buildBugfixChanges(analysis, insight)
+      case "performance":
+        return this.buildPerformanceChanges(analysis)
+      case "security":
+        return this.buildSecurityChanges(analysis)
+      case "readability":
+        return this.buildReadabilityChanges(analysis)
       default:
         return null
     }
   }
 
-  private buildTypeImprovement(analysis: FileAnalysis, _insight: DreamInsight): string | null {
+  /** Type improvement: add explicit types to catch parameters, replace `any` with `unknown` */
+  private buildTypeImprovements(analysis: FileAnalysis): LineChange[] | null {
+    const changes: LineChange[] = []
     const lines = analysis.content.split("\n")
-    const changes: string[] = []
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
-      if (line !== undefined && /\bunknown\b/.test(line) && line.includes("catch")) {
-        if (line.includes("(err)")) {
-          lines[i] = line.replace(/catch\s*\(err\)/g, "catch (err: unknown)")
-          changes.push(`L${i + 1}: Added explicit 'unknown' type to catch parameter`)
+      if (!line) continue
+
+      // Add `unknown` type to catch(err) without type
+      if (line.includes("catch (err)") || line.includes("catch(e)")) {
+        const replacement = line.replace(/catch\s*\((err|e)\)/g, "catch ($1: unknown)")
+        if (replacement !== line) {
+          changes.push({ type: "replace", line: i + 1, text: replacement })
+        }
+      }
+
+      // Replace `: any` with `: unknown` in function parameters
+      const anyMatch = line.match(/:\s*any\b/)
+      if (anyMatch && !line.trim().startsWith("//") && !line.includes("as any")) {
+        const replacement = line.replace(/:\s*any\b/g, ": unknown")
+        if (replacement !== line) {
+          changes.push({ type: "replace", line: i + 1, text: replacement })
         }
       }
     }
 
-    if (changes.length === 0) return null
-    return changes.join("\n")
+    return changes.length > 0 ? changes : null
   }
 
-  private buildErrorHandling(analysis: FileAnalysis, _insight: DreamInsight): string | null {
+  /** Error handling: add try/catch wrappers to functions missing them, enhance bare catches */
+  private buildErrorHandlingChanges(analysis: FileAnalysis): LineChange[] | null {
+    const changes: LineChange[] = []
     const lines = analysis.content.split("\n")
-    const changes: string[] = []
-    let inFunction = false
-    let funcName = ""
-    let hasTopLevelTry = false
 
+    // Enhance bare catch blocks to log error messages
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
-      if (line === undefined) continue
+      if (!line) continue
 
-      if (/(?:async\s+)?function\s+\w+|const\s+\w+\s*=\s*(?:async\s*)?\(|const\s+\w+\s*=\s*(?:async\s*)?function/.test(line)) {
-        inFunction = true
-        hasTopLevelTry = false
-        funcName = line.match(/(?:function|const)\s+(\w+)/)?.[1] || ""
-      }
+      const m = line.match(/catch\s*\(\w+\s*:\s*\w+\)\s*\{/)
+      if (!m) continue
 
-      if (inFunction && /\btry\b/.test(line)) {
-        hasTopLevelTry = true
-      }
-
-      if (inFunction && /^\}\s*$/.test(line.trim())) {
-        if (!hasTopLevelTry && funcName && funcName !== "anonymous") {
-          changes.push(`${funcName} at L${i + 1}: Missing try/catch wrapper`)
+      // Find the catch body
+      const bodyStart = i + 1
+      let braceDepth = 1
+      let j = bodyStart
+      while (j < lines.length && braceDepth > 0) {
+        const currentLine = lines[j]
+        if (currentLine !== undefined) {
+          const bcOpen = (currentLine.match(/\{/g) || []).length
+          const bcClose = (currentLine.match(/\}/g) || []).length
+          braceDepth += bcOpen - bcClose
         }
-        inFunction = false
-        funcName = ""
+        j++
+      }
+
+      const bodyLines = lines.slice(bodyStart, j - 1)
+      const hasMessage = bodyLines.some((bl) => bl !== undefined && bl.includes(".message"))
+      const hasLog = bodyLines.some((bl) => bl !== undefined && bl.includes("console."))
+
+      if (!hasMessage && !hasLog && bodyLines.length <= 2) {
+        // Insert error logging before the closing brace
+        changes.push({
+          type: "insert-before",
+          line: j,
+          text: `  console.error("Operation failed:", err?.message ?? err);`,
+        })
       }
     }
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i]
-      if (line === undefined) continue
-      const m = line.match(/catch\s*\((\w+)\)\s*\{/)
-      if (m) {
-        const bodyStart = i + 1
-        let braceDepth = 1
-        let j = bodyStart
-        while (j < lines.length && braceDepth > 0) {
-          const currentLine = lines[j]
-          if (currentLine !== undefined) {
-            const bcOpen = (currentLine.match(/\{/g) || []).length
-            const bcClose = (currentLine.match(/\}/g) || []).length
-            braceDepth += bcOpen - bcClose
-          }
-          j++
-        }
-        const bodyLines = lines.slice(bodyStart, j - 1)
-        const hasMessage = bodyLines.some((bl) => bl !== undefined && bl.includes(".message"))
-        if (!hasMessage) {
-          changes.push(`L${i + 1}: Enhanced catch to log error message`)
-        }
-      }
-    }
-
-    if (changes.length === 0) return null
-    return changes.join("\n")
+    return changes.length > 0 ? changes : null
   }
 
-  private buildRefactoring(analysis: FileAnalysis, _insight: DreamInsight): string | null {
+  /** Refactoring: suggest splitting long functions, removing dead code */
+  private buildRefactoringChanges(analysis: FileAnalysis): LineChange[] | null {
     if (analysis.longFunctions.length === 0) return null
-    return `Break down long functions: ${analysis.longFunctions.map((f) => `${f.name} (${f.lineCount} lines at L${f.startLine})`).join(", ")}`
+
+    const lines = analysis.content.split("\n")
+    const changes: LineChange[] = []
+
+    for (const func of analysis.longFunctions) {
+      // Add a TODO comment before long functions suggesting refactoring
+      const todoLine = `// TODO: Refactor - ${func.name} is ${func.lineCount} lines (L${func.startLine}). Consider breaking into smaller functions.`
+      if (!lines[func.startLine - 2]?.includes("TODO")) {
+        changes.push({
+          type: "insert-before",
+          line: func.startLine,
+          text: todoLine,
+        })
+      }
+    }
+
+    return changes
   }
 
-  private applyDiff(original: string, _diff: string): string | null {
-    return original
+  /** Optimization: simplify redundant patterns, remove unnecessary code */
+  private buildOptimizeChanges(analysis: FileAnalysis): LineChange[] | null {
+    const changes: LineChange[] = []
+    const lines = analysis.content.split("\n")
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      if (!line) continue
+
+      // Remove redundant Boolean() wrapper
+      if (/Boolean\s*\(/.test(line) && !line.trim().startsWith("//")) {
+        const replacement = line.replace(/Boolean\s*\(([^)]+)\)/g, "!!($1)")
+        if (replacement !== line) {
+          changes.push({ type: "replace", line: i + 1, text: replacement })
+        }
+      }
+
+      // Simplify `a === true` to `a`
+      if (/===?\s*true\b/.test(line) && !line.trim().startsWith("//") && !line.includes("'") && !line.includes('"')) {
+        const replacement = line.replace(/\s*===?\s*true\b/g, "")
+        if (replacement !== line) {
+          changes.push({ type: "replace", line: i + 1, text: replacement })
+        }
+      }
+    }
+
+    return changes.length > 0 ? changes : null
+  }
+
+  /** Bugfix: identify and fix common bug patterns */
+  private buildBugfixChanges(analysis: FileAnalysis, _insight: DreamInsight): LineChange[] | null {
+    const changes: LineChange[] = []
+    const lines = analysis.content.split("\n")
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      if (!line || line.trim().startsWith("//")) continue
+
+      // Fix `.length` used in a truthy check (empty array is truthy)
+      if (/if\s*\(\s*\w+\.length\s*\)/.test(line) && !line.includes(">") && !line.includes("!==") && !line.includes("===")) {
+        // Already correct for arrays with elements, but could be buggy if checking for 0
+        // Add explicit > 0 for clarity
+        const replacement = line.replace(/(\w+)\.length\s*\)/, "$1.length > 0)")
+        if (replacement !== line) {
+          changes.push({ type: "replace", line: i + 1, text: replacement })
+        }
+      }
+
+      // Fix loose equality (==) where strict equality (===) is better
+      // Match == but not === (which has 3 equals signs)
+      if (/(?<!=)==(?!\s*=)/.test(line) && !line.includes("!=") && !line.trim().startsWith("//")) {
+        // Only suggest change if both sides are likely primitives
+        const hasNullCheck = line.includes("== null") || line.includes("== undefined")
+        if (!hasNullCheck) {
+          const replacement = line.replace(/(\w+)\s*==\s*(\w+)/g, "$1 === $2")
+          if (replacement !== line) {
+            changes.push({ type: "replace", line: i + 1, text: replacement })
+          }
+        }
+      }
+    }
+
+    return changes.length > 0 ? changes : null
+  }
+
+  /** Performance: optimize slow patterns like repeated property access */
+  private buildPerformanceChanges(analysis: FileAnalysis): LineChange[] | null {
+    const changes: LineChange[] = []
+    const lines = analysis.content.split("\n")
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      if (!line || line.trim().startsWith("//")) continue
+
+      // Flag `for...in` on arrays (prefer for...of or forEach)
+      if (/for\s*\(\s*(const|let|var)\s+\w+\s+in\s/.test(line)) {
+        changes.push({
+          type: "insert-after",
+          line: i + 1,
+          text: `// NOTE: Consider using for...of instead of for...in for arrays (performance)`,
+        })
+      }
+    }
+
+    return changes.length > 0 ? changes : null
+  }
+
+  /** Security: flag dangerous patterns like innerHTML, eval, execSync with user input */
+  private buildSecurityChanges(analysis: FileAnalysis): LineChange[] | null {
+    const changes: LineChange[] = []
+    const lines = analysis.content.split("\n")
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      if (!line || line.trim().startsWith("//")) continue
+
+      if (/\.innerHTML\s*=/.test(line)) {
+        changes.push({
+          type: "insert-after",
+          line: i + 1,
+          text: `// SECURITY: innerHTML can lead to XSS. Consider using textContent or DOMPurify.`,
+        })
+      }
+
+      if (/\beval\s*\(/.test(line)) {
+        changes.push({
+          type: "insert-after",
+          line: i + 1,
+          text: `// SECURITY: eval() can lead to code injection attacks. Consider safer alternatives.`,
+        })
+      }
+
+      if (/execSync\s*\(/.test(line) && !line.includes("'ls'") && !line.includes("'echo'")) {
+        changes.push({
+          type: "insert-after",
+          line: i + 1,
+          text: `// SECURITY: execSync with dynamic input can lead to command injection. Validate/sanitize input.`,
+        })
+      }
+    }
+
+    return changes.length > 0 ? changes : null
+  }
+
+  /** Readability: clarify complex expressions, add comments */
+  private buildReadabilityChanges(analysis: FileAnalysis): LineChange[] | null {
+    const changes: LineChange[] = []
+    const lines = analysis.content.split("\n")
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      if (!line || line.trim().startsWith("//")) continue
+
+      // Flag extremely long lines (>120 chars)
+      if (line.length > 120 && !line.includes("//") && !line.trim().startsWith("*")) {
+        changes.push({
+          type: "insert-after",
+          line: i + 1,
+          text: `// READABILITY: Line ${i + 1} is ${line.length} characters. Consider breaking it into multiple lines.`,
+        })
+      }
+
+      // Flag deeply nested ternaries
+      const ternaryCount = (line.match(/\?/g) || []).length
+      if (ternaryCount > 1) {
+        changes.push({
+          type: "insert-after",
+          line: i + 1,
+          text: `// READABILITY: Nested ternary on line ${i + 1}. Consider extracting to a helper function or if/else.`,
+        })
+      }
+    }
+
+    return changes.length > 0 ? changes : null
+  }
+
+  /**
+   * Apply a list of concrete line changes to the original content.
+   * This replaces the previous no-op `applyDiff` method.
+   */
+  applyChanges(original: string, changes: LineChange[]): string {
+    const lines = original.split("\n")
+    const sorted = [...changes].sort((a, b) => b.line - a.line)
+
+    for (const change of sorted) {
+      const idx = change.line - 1
+      if (idx < 0 || idx > lines.length) continue
+
+      switch (change.type) {
+        case "replace":
+          if (lines[idx] !== undefined) {
+            lines[idx] = change.text
+          }
+          break
+        case "insert-before":
+          lines.splice(idx, 0, change.text)
+          break
+        case "insert-after":
+          lines.splice(idx + 1, 0, change.text)
+          break
+        case "delete":
+          lines.splice(idx, 1)
+          break
+      }
+    }
+
+    return lines.join("\n")
+  }
+
+  /**
+   * Generate a CodeMutation from a file path, strategy, and optional changes.
+   * Used by the evolve engine to propose specific mutations.
+   */
+  generateMutation(params: {
+    filePath: string
+    strategy: MutationStrategy
+    description: string
+    changes?: LineChange[]
+  }): CodeMutation | null {
+    const fullPath = join(process.cwd(), params.filePath)
+    if (!existsSync(fullPath)) return null
+
+    const content = readFileSync(fullPath, "utf-8")
+
+    if (params.changes && params.changes.length > 0) {
+      const newContent = this.applyChanges(content, params.changes)
+      return evolutionStore.createMutation({
+        filePath: params.filePath,
+        strategy: params.strategy,
+        description: params.description,
+        diff: JSON.stringify(params.changes),
+        oldContent: content,
+        newContent,
+        confidence: 0.6,
+        sourceInsight: params.description,
+        sourceDreamId: "",
+        sourceFailureIds: [],
+      })
+    }
+
+    const analysis = this.analyzeFile(fullPath)
+    if (!analysis) return null
+
+    const changes = this.synthesizeChanges(analysis, params.strategy, {
+      id: "",
+      dreamId: "",
+      type: "pattern",
+      title: params.description,
+      description: params.description,
+      confidence: 0.6,
+      sourceCount: 1,
+      actionable: true,
+      applied: false,
+    })
+    if (!changes) return null
+
+    const newContent = this.applyChanges(content, changes)
+    if (newContent === content) return null
+
+    return evolutionStore.createMutation({
+      filePath: params.filePath,
+      strategy: params.strategy,
+      description: params.description,
+      diff: JSON.stringify(changes),
+      oldContent: content,
+      newContent,
+      confidence: 0.6,
+      sourceInsight: params.description,
+      sourceDreamId: "",
+      sourceFailureIds: [],
+    })
+  }
+
+  /**
+   * Apply a diff (JSON-encoded LineChange[]) to a file on disk.
+   * Returns true if the file was modified.
+   */
+  applyDiffToFile(filePath: string, diffJson: string): boolean {
+    try {
+      const changes: LineChange[] = JSON.parse(diffJson)
+      if (!Array.isArray(changes) || changes.length === 0) return false
+
+      const fullPath = join(process.cwd(), filePath)
+      if (!existsSync(fullPath)) return false
+
+      const content = readFileSync(fullPath, "utf-8")
+      const newContent = this.applyChanges(content, changes)
+
+      if (newContent === content) return false
+
+      writeFileSync(fullPath, newContent, "utf-8")
+      log.info(`Applied diff to ${filePath}: ${changes.length} changes`)
+      return true
+    } catch (err) {
+      log.error(`Failed to apply diff to ${filePath}: ${err instanceof Error ? err.message : String(err)}`)
+      return false
+    }
   }
 
   private findJsonFiles(dir: string): string[] {
@@ -336,14 +652,30 @@ export class MutationGenerator {
       const content = readFileSync(filePath, "utf-8")
       const strategy: MutationStrategy = pattern.includes("type") || pattern.includes("error") ? "bugfix" : "refactor"
 
+      const analysis = this.analyzeFile(filePath)
+      let changes: LineChange[] | null = null
+      if (analysis) {
+        changes = this.synthesizeChanges(analysis, strategy, {
+          id: "",
+          dreamId: "",
+          type: "pattern",
+          title: `Fix: ${cluster.name || cluster.id || "failure pattern"}`,
+          description: pattern,
+          confidence: 0.4,
+          sourceCount: 1,
+          actionable: true,
+          applied: false,
+        })
+      }
+
       mutations.push(
         evolutionStore.createMutation({
           filePath: relative(process.cwd(), filePath),
           strategy,
           description: `Fix: ${cluster.name || cluster.id || "failure pattern"}`,
-          diff: `Auto-fix for: ${cluster.suggestedFix || cluster.commonPattern || ""}`,
+          diff: changes ? JSON.stringify(changes) : `Auto-fix for: ${cluster.suggestedFix || cluster.commonPattern || ""}`,
           oldContent: content,
-          newContent: content,
+          newContent: changes ? this.applyChanges(content, changes) : content,
           confidence: 0.4,
           sourceInsight: pattern,
           sourceDreamId: "",

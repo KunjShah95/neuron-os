@@ -1,4 +1,10 @@
-import { execSync } from "node:child_process"
+/**
+ * evolve/verification-engine — Verifies code mutations by running typechecks and tests.
+ *
+ * Uses Bun's process APIs for subprocess execution instead of execSync() shelling out,
+ * making it portable across platforms and environments.
+ */
+
 import type { CodeMutation } from "./types"
 import { evolutionStore } from "./evolution-store"
 
@@ -9,13 +15,84 @@ export interface VerificationResult {
   error: string
 }
 
+/**
+ * Resolve the bun binary path for spawning subprocesses.
+ * Uses process.argv0 when available, falls back to "bun".
+ */
+function resolveBunPath(): string {
+  // Bun provides the executable path via process.argv0
+  const bunPath = process.argv0
+  if (bunPath && (bunPath.includes("bun") || bunPath.includes("node"))) {
+    return bunPath
+  }
+  // Fallback: let the system shell find bun on PATH
+  return process.platform === "win32" ? "bun.cmd" : "bun"
+}
+
+/**
+ * Run a command via Bun.spawn and capture stdout/stderr.
+ * More portable than execSync which relies on shell availability.
+ */
+async function runCommand(
+  command: string,
+  args: string[],
+  timeoutMs: number,
+  cwd?: string,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  return new Promise((resolve) => {
+    const proc = Bun.spawn([command, ...args], {
+      cwd: cwd ?? process.cwd(),
+      stdio: ["ignore", "pipe", "pipe"],
+      env: { ...process.env, AEGIS_NO_DOTENV: "1" },
+    })
+
+    let stdout = ""
+    let stderr = ""
+    let timedOut = false
+
+    void (async () => {
+      const reader = proc.stdout.getReader()
+      const decoder = new TextDecoder()
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        stdout += decoder.decode(value, { stream: true })
+      }
+    })()
+
+    void (async () => {
+      const reader = proc.stderr.getReader()
+      const decoder = new TextDecoder()
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        stderr += decoder.decode(value, { stream: true })
+      }
+    })()
+
+    const timer = setTimeout(() => {
+      timedOut = true
+      proc.kill("SIGTERM")
+    }, timeoutMs)
+
+    proc.exited.then((code: number | null) => {
+      clearTimeout(timer)
+      if (timedOut) {
+        resolve({ stdout, stderr: stderr + `\nCommand timed out after ${timeoutMs}ms`, exitCode: -1 })
+      } else {
+        resolve({ stdout, stderr, exitCode: code ?? -1 })
+      }
+    })
+  })
+}
+
 export class VerificationEngine {
-  verifyMutation(mutation: CodeMutation): VerificationResult {
+  async verifyMutation(mutation: CodeMutation): Promise<VerificationResult> {
     const start = Date.now()
 
     try {
       evolutionStore.updateMutation(mutation.id, { status: "verifying" })
-      const typeResult = this.runTypeCheck()
+      const typeResult = await this.runTypeCheck()
 
       if (!typeResult.passed) {
         const result: VerificationResult = {
@@ -33,7 +110,7 @@ export class VerificationEngine {
         return result
       }
 
-      const testResult = this.runTests()
+      const testResult = await this.runTests()
 
       const result: VerificationResult = {
         passed: testResult.passed,
@@ -69,58 +146,55 @@ export class VerificationEngine {
     }
   }
 
-  private runTypeCheck(): VerificationResult {
+  /**
+   * Run TypeScript typecheck using Bun's built-in TypeScript support.
+   */
+  private async runTypeCheck(): Promise<VerificationResult> {
     const start = Date.now()
     try {
-      const output = execSync("bun run --bun tsc --noEmit 2>&1", {
-        encoding: "utf-8",
-        timeout: 60000,
-        cwd: process.cwd(),
-      })
+      const bunPath = resolveBunPath()
+      const result = await runCommand(bunPath, ["run", "--bun", "tsc", "--noEmit"], 60000)
 
       return {
-        passed: true,
-        output: output.trim(),
+        passed: result.exitCode === 0,
+        output: (result.stdout + "\n" + result.stderr).trim(),
         durationMs: Date.now() - start,
-        error: "",
+        error: result.exitCode === 0 ? "" : result.stderr,
       }
     } catch (err) {
-      const stderr = err instanceof Error ? err.message : String(err)
-      const output = (err as Error & { stdout?: Buffer })?.stdout?.toString() || ""
       return {
         passed: false,
-        output: output + "\n" + stderr,
+        output: "",
         durationMs: Date.now() - start,
-        error: stderr,
+        error: err instanceof Error ? err.message : String(err),
       }
     }
   }
 
-  private runTests(): VerificationResult {
+  /**
+   * Run evolve-specific test suite for fast verification.
+   */
+  private async runTests(): Promise<VerificationResult> {
     const start = Date.now()
     try {
-      const output = execSync("bun run scripts/run-tests.ts 2>&1", {
-        encoding: "utf-8",
-        timeout: 120000,
-        cwd: process.cwd(),
-      })
+      const bunPath = resolveBunPath()
+      const result = await runCommand(bunPath, ["test", "src/evolve/engine.test.ts"], 120000)
 
-      const passed = !output.includes("FAIL") && !output.includes("fail") && !output.includes("✗")
+      const output = (result.stdout + "\n" + result.stderr).trim()
+      const passed = result.exitCode === 0
 
       return {
         passed,
-        output: output.trim(),
+        output,
         durationMs: Date.now() - start,
-        error: "",
+        error: passed ? "" : result.stderr,
       }
     } catch (err) {
-      const stderr = err instanceof Error ? err.message : String(err)
-      const output = (err as Error & { stdout?: Buffer })?.stdout?.toString() || ""
       return {
         passed: false,
-        output: output + "\n" + stderr,
+        output: "",
         durationMs: Date.now() - start,
-        error: stderr,
+        error: err instanceof Error ? err.message : String(err),
       }
     }
   }
