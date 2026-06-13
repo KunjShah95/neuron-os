@@ -1,6 +1,6 @@
 # Aegis Command Reference
 
-> **Version:** 1.1.6 · **Binary:** `aegis` · **Package:** `neuron-aegis`
+> **Version:** 1.1.9 · **Binary:** `aegis` · **Package:** `neuron-aegis`
 
 ---
 

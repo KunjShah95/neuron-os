@@ -2,130 +2,120 @@
 
 *The Operating System for Autonomous AI Agents*
 
-[![Version](https://img.shields.io/badge/version-1.1.9-blue)]()
-[![Roadmap](https://img.shields.io/badge/roadmap-1--year%20plan-purple)]()
-[![Status](https://img.shields.io/badge/status-active%20development-orange)]()
-[![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.3.14-black)]()
-[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6)]()
+[![Version](https://img.shields.io/badge/version-1.1.9-blue)](https://www.npmjs.com/package/neuron-aegis)
+[![npm](https://img.shields.io/npm/v/neuron-aegis)](https://www.npmjs.com/package/neuron-aegis)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
+[![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.3.14-black)](https://bun.sh)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6)](https://www.typescriptlang.org)
 [![GitHub](https://img.shields.io/badge/GitHub-KunjShah95%2Fneuron--os-181717?logo=github)](https://github.com/KunjShah95/neuron-os)
+
+> **Neuron OS** is a local-first, TypeScript-native operating system for autonomous AI agents. Spawn typed agents, watch them work in real-time across terminal, web, chat, and API surfaces, and trust every action through built-in audit logging, per-agent tool policies, cost attribution, and an encrypted credential vault.
 
 ---
 
-> **Neuron OS** is a local-first, TypeScript-native operating system for autonomous AI agents. Spawn typed agents, watch them work in real-time across terminal/web/chat/API surfaces, and trust every action through built-in audit logging, per-agent tool policies, and cost attribution.
-
-## Quick Start
-
-**🚀 New to Aegis? Start here:**
+## Install
 
 ```bash
-# Install globally
 npm install -g neuron-aegis
-
-# Quick interactive setup (recommended for first-time users)
-aegis init
-
-# Or configure API keys directly
-aegis setup-keys
-
-# Check your setup
-aegis doctor
-
-# Launch Aegis
-aegis wakeup
 ```
 
-**Zero install — three ways to start:**
+Requires [Bun](https://bun.sh) >= 1.3.14. If Bun is not installed, the CLI will print the one-line install command.
 
-**1. CURL** (Linux/macOS — downloads prebuilt binary)
 ```bash
+# macOS / Linux
+curl -fsSL https://bun.sh/install | bash
+
+# Windows (PowerShell)
+powershell -c "irm bun.sh/install.ps1|iex"
+```
+
+**Other install methods:**
+
+```bash
+# NPX (no global install)
+npx neuron-aegis
+
+# From source
+git clone https://github.com/KunjShah95/neuron-os.git
+cd neuron-os && bun install
+bun run index.ts
+
+# Docker
+docker run -d --name aegis -p 8080:8080 \
+  -e ANTHROPIC_API_KEY=sk-ant-... \
+  ghcr.io/kunjshah95/neuron-os:latest
+
+# curl installer (Linux/macOS — prebuilt binary)
 curl -fsSL https://raw.githubusercontent.com/KunjShah95/neuron-os/main/install.sh | bash
-```
 
-**2. NPX** (cross-platform — auto-downloads shim)
-```bash
-npx neuron-aegis                  # interactive mode picker
-npx neuron-aegis status           # system overview
-npx neuron-aegis chat             # streaming AI chat
-npx neuron-aegis dashboard        # live agent monitoring TUI
-npx neuron-aegis serve            # start REST API server
-```
-The shim downloads the prebuilt binary on first run and caches it at `~/.aegis/bin/`.
-If you have [Bun](https://bun.sh) installed, `bunx neuron-aegis` skips the download and runs TypeScript directly.
-
-**3. Docker** (containerized)
-```bash
-docker run -d --name aegis -p 8080:8080 ghcr.io/kunjshah95/neuron-os:latest
-```
-
-**Windows (PowerShell):**
-```powershell
+# Windows PowerShell installer
 irm https://raw.githubusercontent.com/KunjShah95/neuron-os/main/install.ps1 | iex
 ```
 
-**Or install from source** (for development):
+---
+
+## Quick Start
 
 ```bash
-git clone https://github.com/KunjShah95/neuron-os.git
-cd neuron-os
-bun install
-
-bun run index.ts                   # interactive mode picker
-bun run index.ts dashboard         # Live agent monitoring TUI
-bun run index.ts chat              # Streaming AI chat
-bun run index.ts status            # System overview
-bun run index.ts serve             # Start REST API server
+aegis setup-keys     # configure your AI provider API key
+aegis doctor         # verify installation
+aegis wakeup         # interactive mode picker
 ```
 
-**Prerequisites:** [Bun](https://bun.sh) >= 1.3.14 (only needed for source install — the curl/npx methods don't require it)
+Or jump straight in:
+
+```bash
+aegis chat                          # streaming AI chat TUI
+aegis ask "explain this codebase"   # one-shot query
+aegis agent spawn build             # spawn a build agent
+aegis orchestrate "add dark mode"   # multi-agent goal execution
+```
 
 ---
 
-## What's in the Box
+## CLI Commands
 
-### CLI Commands Reference
+Run `aegis <command> --help` for detailed usage on any command.
 
-Run `aegis` (no args) for the interactive mode picker, or use any command directly:
-
-```bash
-aegis <command> [subcommand] [options]
-aegis <command> --help   # detailed usage for any command
-```
-
-#### Getting Started
+### First Run
 
 | Command | Description |
 |---------|-------------|
-| `aegis` / `aegis wakeup` | Interactive mode selector (36 TUI modes) |
-| `aegis init` | First-run setup wizard |
-| `aegis setup` | Guided provider configuration |
-| `aegis setup-keys` | Configure AI provider API keys |
-| `aegis doctor` | Verify installation and provider connectivity |
-| `aegis status` | System health overview |
-| `aegis health` | Deep health check (DB, adapters, providers) |
+| `aegis wakeup` | Interactive mode picker (36 TUI modes) |
+| `aegis init` | First-run quick-start wizard |
+| `aegis setup` | Guided workspace configuration |
+| `aegis setup-keys` | Interactive API key configuration (13 providers) |
+| `aegis doctor` | System health diagnostics — checks providers, DB, adapters |
+| `aegis status` | System overview — agents, memory, runtime |
+| `aegis health` | Deep health check |
+| `aegis version` | Show version |
 
-#### AI & Chat
+### AI & Chat
 
 | Command | Description |
 |---------|-------------|
-| `aegis ask <prompt>` | One-shot AI query, exit when done |
 | `aegis chat` | Streaming AI chat TUI (multi-provider, sessions, history) |
-| `aegis plan <task>` | Generate a step-by-step plan for a task |
-| `aegis orchestrate <goal>` | Multi-agent orchestration toward a goal |
-| `aegis research <topic>` | Deep research mode with memory integration |
+| `aegis ask <question>` | One-shot codebase question, read-only |
+| `aegis plan <goal>` | Generate a step-by-step implementation plan |
+| `aegis research <goal>` | Autonomous research loop with ratchet safety |
+| `aegis orchestrate <goal>` | Decompose and execute a goal across multiple parallel agents |
+| `aegis supervise <goal>` | Spawn an agent and auto-restart on failure |
 
-#### Agent Management
+### Agent Management
 
 | Command | Description |
 |---------|-------------|
 | `aegis agent spawn <type>` | Spawn a typed agent |
 | `aegis agent kill <id>` | Kill an agent |
 | `aegis agent list` | List running agents |
-| `aegis agent inspect <id>` | Inspect agent state |
-| `aegis agent-run <type> <task>` | Run agent directly (non-interactive) |
-| `aegis supervise` | Agent supervisor — monitor and auto-restart |
+| `aegis agent logs <id>` | Stream agent logs |
+| `aegis agent inspect <id>` | Detailed agent state |
+| `aegis agent prewarm` | Manage pre-warmed agent pool |
+| `aegis agent-run <goal>` | Approval-based agent orchestrator |
+| `aegis pool` | Worker pool management |
+| `aegis reflect <session-id>` | Score progress and suggest next steps for a session |
 
-#### Memory & Knowledge
+### Memory & Knowledge
 
 | Command | Description |
 |---------|-------------|
@@ -139,37 +129,41 @@ aegis <command> --help   # detailed usage for any command
 | `aegis session resume <id>` | Resume a previous session |
 | `aegis session export <id>` | Export session transcript |
 | `aegis session prune` | Delete old sessions |
+| `aegis knowledge` | Knowledge graph management |
 | `aegis insights` | Cross-DB analytics joining audit, billing, experience, telemetry |
+| `aegis experience` | Experience replay buffer — agent trajectory tracking |
 
-#### Consciousness / Self-Improvement
+### Consciousness & Self-Improvement
 
 | Command | Description |
 |---------|-------------|
-| `aegis dream run` | Trigger 6-phase dream cycle (replay→pattern→compress→counterfactual→social→mood) |
-| `aegis dream insights` | Show generated insights |
-| `aegis evolve run` | Auto-code mutation from dream insights with test-backed apply |
+| `aegis dream run` | Trigger 6-phase dream cycle (replay → pattern → compress → counterfactual → social → mood) |
+| `aegis dream insights` | Show generated insights from last dream cycle |
+| `aegis evolve run` | Propose and apply code mutations verified by tests |
 | `aegis evolve list` | List pending mutations |
-| `aegis persona show` | Show agent's 8-trait personality profile |
+| `aegis persona show` | Agent 8-trait personality profile |
 | `aegis persona evolve` | Evolve traits from recent experience |
-| `aegis soul card` | Display archetype soul card with mood state |
-| `aegis soul mood` | Show current mood and behavioral heuristics |
+| `aegis soul card` | Archetype soul card with mood state |
+| `aegis soul mood` | Current mood and behavioral heuristics |
 | `aegis social status` | Peer discovery and gossip network status |
 | `aegis social share` | Share insights/mutations with peers |
-| `aegis improve` | Self-improvement: skill extraction + failure clustering |
-| `aegis improve monitor` | Watch improvement progress |
-| `aegis experience list` | List recorded experiences |
-| `aegis reflect` | Generate a reflection from recent sessions |
-| `aegis predict` | Predict outcomes from historical patterns |
+| `aegis improve skill` | Skill extraction from successful experiences |
+| `aegis improve failure` | Failure clustering and analysis |
+| `aegis improve adversarial` | Adversarial self-play red-teaming |
+| `aegis improve monitor` | Watch improvement progress live |
+| `aegis reflect <session-id>` | Score a session and generate next-step suggestions |
+| `aegis predict` | Failure risk forecast and cost trend analysis |
 | `aegis train record` | Record agent trajectory for fine-tuning export |
 | `aegis train export` | Export trajectories (atropos/jsonl format) |
 
-#### Evaluation & Quality
+### Evaluation & Quality
 
 | Command | Description |
 |---------|-------------|
 | `aegis eval run <suite>` | Run eval harness suite |
 | `aegis eval ci` | CI gate — exit 1 if below baseline |
-| `aegis eval baseline` | Set a new quality baseline |
+| `aegis eval baseline` | Set new quality baseline |
+| `aegis eval experiment` | Manage eval experiments |
 | `aegis harness run` | Run harness test suites |
 | `aegis harness report` | Generate harness report |
 | `aegis benchmark run` | Agent quality regression detection |
@@ -177,821 +171,456 @@ aegis <command> --help   # detailed usage for any command
 | `aegis bench run <task>` | Benchmark all providers on a task |
 | `aegis bench list` | List benchmark history |
 | `aegis adversarial run` | Adversarial self-play red-team scenarios |
-| `aegis ci` | Full CI: tests + typecheck + lint + docs |
+| `aegis ci` | Full CI: tests + typecheck + lint + docs check |
 
-#### Cost & Economy
+### Cost & Economy
 
 | Command | Description |
 |---------|-------------|
 | `aegis cost total` | Total spend to date |
-| `aegis cost models` | Spend by model |
-| `aegis cost sessions` | Spend by session |
+| `aegis cost models` | Spend breakdown by model |
+| `aegis cost sessions` | Spend breakdown by session |
 | `aegis cost budget` | Set or show budget |
 | `aegis cost report` | Full cost report |
-| `aegis router route <task>` | Auto-select cheapest viable provider |
-| `aegis router list` | List provider routing scores |
-| `aegis preflight <task>` | Pre-flight cost estimate before spawning |
-| `aegis pricing` | Show current provider pricing table |
-| `aegis metrics` | Runtime metrics dashboard |
+| `aegis router route <task>` | Auto-select cheapest viable provider for a task |
+| `aegis router list` | Provider routing scores |
+| `aegis estimate <goal>` | Pre-flight cost estimate before spawning |
+| `aegis pricing` | Current provider pricing table |
+| `aegis metrics` | Runtime metrics snapshot |
 
-#### Platform Adapters
+### Multi-Agent Coordination
+
+| Command | Description |
+|---------|-------------|
+| `aegis mesh run <spec>` | Run a multi-agent mesh (5 topologies: sequential, fan-out, debate, ensemble, supervisor) |
+| `aegis mesh status` | Mesh run status |
+| `aegis debate start` | Structured agent debate with 3 arbitrator types |
+| `aegis workflow run <file>` | Execute a workflow YAML pipeline |
+| `aegis workflow build` | TUI workflow builder — compose pipelines as directed graphs |
+
+### Platform Adapters
 
 | Command | Description |
 |---------|-------------|
 | `aegis discord` | Start Discord bot adapter |
 | `aegis slack` | Start Slack bot adapter |
 | `aegis telegram` | Start Telegram bot adapter |
-| `aegis email` | Start email (SMTP) adapter |
+| `aegis email` | Start email (SMTP/Nodemailer) adapter |
 | `aegis sms` | Start SMS adapter (Twilio) |
 | `aegis whatsapp` | Start WhatsApp adapter (Twilio) |
-| `aegis voice` | Voice call adapter (Twilio) |
-| `aegis voice-local` | Local voice adapter configuration |
-| `aegis webhook` | Start generic webhook adapter |
+| `aegis voice` | Voice call adapter (Twilio TTS) |
+| `aegis voice-local` | Local voice mode (STT/TTS) |
+| `aegis webhook` | Start generic webhook receiver (GitHub, Twilio, generic) |
 
-#### Infrastructure & APIs
+### Infrastructure & APIs
 
 | Command | Description |
 |---------|-------------|
-| `aegis serve` | Start HTTP REST API + WebSocket server |
-| `aegis mcp serve` | Start MCP server (exposes `spawn_agent`, `list_agents`, `send_message`, `get_agent_output`) |
+| `aegis serve` | Start HTTP REST API + WebSocket server (port 8080) |
+| `aegis mcp serve` | Start MCP server — exposes `spawn_agent`, `list_agents`, `send_message`, `get_agent_output` to any MCP client |
 | `aegis mcp connect` | Connect to external MCP servers configured in `aegis.config.json` |
+| `aegis mcp list` | List configured MCP servers and registered tools |
+| `aegis distributed start` | Start a distributed worker |
+| `aegis distributed status` | Worker pool status |
+| `aegis production dashboard` | Production SLO + cost + health dashboard |
+| `aegis tls setup` | Configure TLS for API server |
 | `aegis cron list` | List scheduled jobs |
 | `aegis cron add <schedule> <cmd>` | Add a cron job |
-| `aegis cron remove <id>` | Remove a cron job |
 | `aegis trigger list` | List triggers (cron, file_watch, webhook, condition) |
 | `aegis trigger add` | Add a trigger |
-| `aegis distributed start` | Start distributed worker |
-| `aegis distributed status` | Worker pool status |
-| `aegis pool` | Worker pool management |
-| `aegis mesh run <spec>` | Run a multi-agent mesh (5 topologies) |
-| `aegis debate start` | Start a structured agent debate |
-| `aegis workflow run <file>` | Execute a workflow YAML |
-| `aegis tls setup` | Configure TLS for API server |
-| `aegis production dashboard` | Production SLO + cost + health dashboard |
+| `aegis openapi` | Generate OpenAPI 3.0 spec from routes |
 
-#### Developer Tools
+### Developer Tools
 
 | Command | Description |
 |---------|-------------|
 | `aegis config set <key> <value>` | Set a configuration value |
 | `aegis config get <key>` | Get a configuration value |
 | `aegis config list` | List all config |
-| `aegis skills list` | Browse available skills |
-| `aegis skills install <name>` | Install a skill |
-| `aegis skills list-staged` | List extracted skill candidates awaiting approval |
-| `aegis skills approve <id>` | Approve a staged skill and write it to `src/skills/` |
+| `aegis skills list` | Browse installed skills |
+| `aegis skills install <name>` | Install a skill from marketplace |
+| `aegis skills list-staged` | List auto-extracted skill candidates awaiting approval |
+| `aegis skills approve <id>` | Approve a staged skill — writes it to `src/skills/` |
 | `aegis profile list` | List all agent identity profiles |
-| `aegis profile create` | Create a new agent profile (flags: `--type`, `--name`, `--model`) |
+| `aegis profile create` | Create a new agent profile (`--type`, `--name`, `--model`) |
 | `aegis profile get <id>` | Print a profile as JSON |
 | `aegis profile delete <id>` | Delete a profile |
 | `aegis profile set-default <id>` | Set the default profile for an agent type |
-| `aegis toolset list` | List tool bundles |
+| `aegis toolset list` | List composable tool bundles |
 | `aegis toolset new <name>` | Create a custom toolset |
 | `aegis plugin install <name>` | Install a signed plugin |
-| `aegis plugin publish` | Publish a plugin to marketplace |
+| `aegis plugin publish` | Publish a plugin to the marketplace |
 | `aegis plugin list` | List installed plugins |
 | `aegis plugin remove <name>` | Remove a plugin |
-| `aegis marketplace search <query>` | Search skill marketplace |
-| `aegis sandbox run <cmd>` | Run command in isolated sandbox |
+| `aegis marketplace search <query>` | Search the agent marketplace |
+| `aegis sandbox` | Sandbox status and controls |
 | `aegis computer` | Computer use tool interface |
-| `aegis openapi` | Generate OpenAPI spec from routes |
-| `aegis telemetry status` | Telemetry pipeline status |
 | `aegis audit log` | View append-only audit log |
-| `aegis providers list` | List all 13 AI providers and their status |
+| `aegis audit query` | Query audit log by agent, time range, event type |
+| `aegis providers list` | List all 13 AI providers with config status |
 | `aegis providers test <name>` | Test provider connectivity |
-| `aegis docscrawl` | Crawl and index documentation |
+| `aegis docscrawl` | Crawl and index documentation sites |
 | `aegis project list` | List project workspaces |
 | `aegis project switch <name>` | Switch active project |
-| `aegis project new <name>` | Create a new isolated workspace |
-| `aegis completion bash` | Generate bash shell completion |
-| `aegis completion zsh` | Generate zsh shell completion |
+| `aegis project new <name>` | Create an isolated project workspace |
+| `aegis telemetry status` | Telemetry pipeline status (opt-in, no PII) |
+| `aegis completion bash` | Generate bash shell completion script |
+| `aegis completion zsh` | Generate zsh shell completion script |
 
-### Web Frontends
+---
 
-| Directory | Purpose | Stack |
-|-----------|---------|-------|
-| [`website/`](website/) | Public marketing site | Vite + React 19 + Framer Motion 12 + Tailwind 3 |
-| [`dashboard/`](dashboard/) | Web app (Console, Chat, Agents, Docs, etc.) | Vite + React 19 + React Router 7 + Tailwind 3 |
+## Agent Types (14)
 
-```bash
-cd website && bun install && bun run dev    # :5173
-cd dashboard && bun install && bun run dev  # :5173, proxies /api to :8080
-```
-
-### Agent System (14 Types)
-
-Spawn typed agents with scoped tools, auto-recovery, and lifecycle hooks:
-
-| Type | Mode | Tools | Description |
-|------|------|-------|-------------|
-| `build` | primary | all | Full-access development agent |
+| Type | Access | Tools | Use case |
+|------|--------|-------|----------|
+| `build` | primary | all | Full-access development |
 | `plan` | primary | read-only | Architecture and planning |
-| `main` | primary | read, web, bash | Default agent type |
+| `main` | primary | read, web, bash | Default general-purpose |
 | `read` | subagent | read-only | Fast codebase exploration |
-| `write` | subagent | write/edit/read | File creation and editing |
+| `write` | subagent | write, edit, read | File creation and editing |
 | `test` | subagent | bash (restricted), read | Test execution |
-| `validate` | subagent | read, bash (lint) | Type checking and linting |
-| `review` | subagent | read-only | Code review (security, patterns) |
+| `validate` | subagent | read, bash (lint) | Typecheck and lint |
+| `review` | subagent | read-only | Code review |
 | `debug` | subagent | all | Systematic debugging |
-| `document` | subagent | read, write | Documentation generation |
+| `document` | subagent | read, write | Documentation |
 | `refactor` | subagent | read, write, edit | Code restructuring |
 | `deploy` | subagent | bash (deploy), read | Deployment and CI/CD |
-| `monitor` | subagent | bash, read | File watching and health checks |
+| `monitor` | subagent | bash, read | File watching and health |
 | `explore` | subagent | read-only | Lightweight search |
 
-### Soul & Emotion System
+---
 
-Every agent gets a **soul** — an archetype-driven emotional model that shapes communication and behavior:
+## AI Providers (13)
 
-- **8 Archetypes:** Architect, Craftsman, Sage, Scout, Guardian, Alchemist, Oracle, Weaver
-- **6 Mood States:** elated, confident, content, anxious, frustrated, burned_out — triggered by outcome streaks
-- **Soul Cards:** ASCII art trait display with progress bars, injected into agent system prompts
-- **Behavioral Heuristics:** Mood overrides verbosity, tone, formality, and emoji usage at runtime
-- **Automatic:** SoulManager auto-creates souls on spawn, records outcomes on exit
+All providers routed through a unified `Provider` interface. The model router auto-selects cheapest viable provider per task type.
 
-### Multi-Platform Gateway (11 Adapters)
+| Provider | Key env var | Notes |
+|----------|-------------|-------|
+| Anthropic | `ANTHROPIC_API_KEY` | Default; Claude Sonnet 4.x |
+| OpenAI | `OPENAI_API_KEY` | GPT-4o, o3-mini |
+| DeepSeek | `DEEPSEEK_API_KEY` | Low-cost reasoning |
+| Groq | `GROQ_API_KEY` | Free tier; fast Llama 3.3 70B |
+| Gemini | `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini 2.0 Flash |
+| Mistral | `MISTRAL_API_KEY` | mistral-large |
+| Azure OpenAI | `AZURE_OPENAI_API_KEY` | Enterprise Azure endpoint |
+| Together AI | `TOGETHERAI_API_KEY` | Open-source models |
+| OpenRouter | `OPENROUTER_API_KEY` | 200+ models; free `:free` tier |
+| xAI | `XAI_API_KEY` | Grok |
+| Cohere | `COHERE_API_KEY` | Command R |
+| Perplexity | `PERPLEXITY_API_KEY` | Search-augmented |
+| Ollama | `OLLAMA_URL` | Local inference, no key needed |
 
-One interface, eleven chat platforms. All behind `src/adapters/gateway.ts`:
+Switch at runtime in chat TUI: `/provider set openai`, `/provider set anthropic model=claude-sonnet-4-20250514`
 
-- Discord bot (Socket Mode)
-- Slack bot (Socket Mode)
-- Telegram bot
-- SMS (Twilio)
-- Voice calls (Twilio)
-- WhatsApp (Twilio)
-- Email (SMTP/Nodemailer)
-- Webhook (generic + GitHub)
-- Matrix (matrix-js-sdk)
-- Signal (signal-cli REST API)
-- IRC (irc-framework)
+---
 
-### WebSocket Gateway
+## Platform Adapters (11)
 
-Bun-native WebSocket server on port 8081 with multi-user channels, token-based auth, and real-time state streaming — built for live dashboards and collaborative agent monitoring.
+One multi-platform gateway. All adapters share the same agent runtime.
 
-### AI Providers (13)
-
-Anthropic, OpenAI, DeepSeek, Groq, Gemini, Mistral, Azure OpenAI, Together AI, Ollama (local), OpenRouter, xAI, Cohere, Perplexity — plus custom endpoints. Auto-routed by cost with `aegis router route`. Switch at runtime in chat TUI with `/provider set <name>`.
-
-### Project Workspaces
-
-Isolate everything per project — sessions, memory, dreams, evolutions, personas, social data. Each project lives in its own `~/.aegis/projects/<name>/` directory. Switch with `aegis project switch`.
-
-### Toolset System
-
-Compose tool bundles from 10 built-in toolsets (web, search, vision, code-execution, delegation, file-ops, shell, research, full-stack, all) with transitive dependency resolution. Create custom toolsets with `aegis toolset new`.
-
-### Core Features
-
-- **Typed IPC Protocol** — JSON-line messages over stdin/stdout with heartbeat, auto-recovery (exponential backoff)
-- **Lifecycle Hooks** — pre/post hooks for spawn, kill, message, error, exit events
-- **Plugin System** — Ed25519-signed plugins with semver dependency resolution, SQLite registry, 5 hook points, full CLI lifecycle
-- **Soul System** — 8 archetypes, 6 mood states, behavioral heuristics injected into agent prompts
-- **Dream Engine** — 6-phase idle-time dream cycle: memory replay, pattern discovery, knowledge compression, counterfactual exploration, shared dreaming, mood consolidation
-- **Dream→Agent Feedback Loop** — Dream insights inject into every agent session's system prompt as a 4th context layer. High-confidence insights (`confidence ≥ 0.8`, `sourceCount ≥ 3`) promoted to `~/.aegis/config.json` and survive restarts.
-- **Evolution Engine** — Auto-code mutation from dream insights + failure clusters. 8 mutation strategies. Test-verified auto-apply with rollback.
-- **Persona System** — 8 tracked traits (curiosity, tenacity, caution, creativity, precision, efficiency, collaboration, confidence) that evolve from experience + dreams
-- **Social Network** — Multi-instance gossip protocol with file-beacon peer discovery, reputation scoring, trust levels, insight/mutation sharing
-- **HMAC-signed REST API** — timing-safe comparison, replay-protection window
-- **Session Persistence** — SQLite-backed session store with resume, export, prune, merge
-- **Multi-User Sessions** — Shared agent workspaces with event-driven lifecycle and WebSocket forwarding
-- **Knowledge Graph** — SQLite-backed entity-relationship store with auto-extraction from sessions
-- **Vector Memory** — TF-IDF + cosine similarity for semantic search across conversations
-- **Unified Memory Query** — Single interface across FTS5 recall, vector, sessions, experience, and graph stores
-- **AgentMemory Sidecar** — Optional hybrid BM25+Vector+Graph engine (95.2% R@5 on LongMemEval-S)
-- **Cross-Session Synthesis** — `aegis memory synthesize <topic>` merges knowledge across all memory stores
-- **Per-Agent Namespaces** — TTL-managed memory scoped by agent type with auto-archival
-- **MCP Integration** — Client (consume external MCP servers as tools) and server (`aegis mcp serve` exposes `spawn_agent`, `list_agents`, `send_message`, `get_agent_output` to any MCP client)
-- **Tool Gateway** — Built-in `brave_search` (Brave Search API) and `gateway_fetch` (HTML-stripped web fetch) available to any agent via `web_search` permission flag; no per-agent config required
-- **Agent Profile Builder** — Per-agent-type identity profiles (`~/.aegis/profiles/<type>.json`): system prompt override, model, skills, budget, MCP servers. Managed via `aegis profile` CLI
-- **Tool-based Security** — Per-agent-type tool permissions with pattern-restricted bash
-- **Skill Staging Gate** — Auto-extracted skills land in `.aegis/skill-staging.json`; require `aegis skills approve <id>` before injection into future prompts — prevents bad-output skill propagation
-- **Skill System** — Extensible skills with local registry, staging namespace, and marketplace API
-- **Cron Engine** — Scheduled jobs with heartbeat monitoring
-- **Trigger Engine** — Cron, file_watch, webhook, condition, and gateway_command triggers
-- **Background Agents** — File-watching and scheduled background agent execution
-- **Cost Attribution** — Per-task, per-agent, per-session token tracking with USD pricing
-- **Model Router** — Auto-selects cheapest viable provider per task type using real pricing data
-- **Pre-Flight Cost Check** — Estimates cost before spawning, blocks if over threshold
-- **Provider Benchmarking** — `aegis bench providers` compares all 13 providers on quality/cost
-- **Auto-Recovery** — Configurable retries with exponential backoff and per-agent state tracking
-- **Experience Replay** — Auto-retry failed runs with adaptive strategies, auto-extract skills
-- **Self-Improvement Scheduler** — Cron-driven skill extraction (6h) and failure clustering (12h)
-- **Adversarial Self-Play** — Red-team agents challenge defenders, finds regressions
-- **Multi-Agent Mesh** — 5 orchestration topologies (sequential, fan-out, debate, ensemble, supervisor) with typed agent roles
-- **Debate Engine** — Structured disagreement resolution: agent-based, HITL, or majority-rule arbitration with signed decisions
-- **Eval Harness** — Full test framework with graders, golden dataset pipeline, CI gate, experiment management, HITL review, flaky detection
-- **Training Recorder** — Full trajectory capture (JSONL) for every agent session with export to atropos/jsonl formats
-- **Distributed Runtime** — Multi-host worker pool with bully leader election and encrypted transport
-- **Capacity-Aware Placement** — Workers self-report CPU/memory/GPU, scheduler picks best host
-- **Role-Based Access Control** — Admin/operator/developer/viewer roles with SHA-256 hashed API keys
-- **Encrypted Credential Vault** — AES-256-GCM secrets with scrypt-derived master key and key rotation
-- **SLO Tracking** — Rolling-window uptime, latency, error rate with burn rate calculation
-- **Distributed Tracing** — SQLite-backed trace spans with parent-child relationships
-- **Production Dashboard** — Aggregated view of SLOs, costs, failures, and agent health
-- **Cross-DB Insights** — Joins audit, billing, experience, and telemetry databases
-- **Project Workspaces** — Isolated per-project state (sessions, memory, dreams, evolutions, personas)
+Discord · Slack · Telegram · SMS (Twilio) · Voice (Twilio) · WhatsApp (Twilio) · Email (SMTP) · Webhook (GitHub, generic) · Matrix · Signal · IRC
 
 ---
 
 ## Architecture
 
-### System Overview
+### Module Map
 
-```mermaid
-graph LR
-    subgraph "User Layer"
-        CLI[CLI / index.ts]
-        WEB[Web Dashboard :5173]
-        WS[WebSocket Gateway :8081]
-        GW[Multi-Platform Gateway]
-    end
-
-    subgraph "Terminal Modes (36+)"
-        ML[Mode Launcher]
-        ML --> CHAT[chat] & DASH[dashboard] & ST[status]
-        ML --> MEM[memory] & AGT[agent] & CFG[config]
-        ML --> CR[cron] & SK[skills] & SV[serve]
-        ML --> CP[mcp] & COST[cost] & RTR[router]
-        ML --> EST[estimate] & INS[insights] & BNCH[bench]
-        ML --> IMP[improve] & PROD[production] & DIST[distributed]
-        ML --> PLG[plugin] & DRM[dream] & EVO[evolve]
-        ML --> PER[persona] & SOC[social] & EVAL[eval]
-        ML --> MESH[mesh] & TR[train] & TS[toolset]
-        ML --> PRJ[project] & VC[voice] & SL[soul]
-    end
-
-    CLI --> ML
-    WEB --> WS
-
-    subgraph "Agent Runtime"
-        AM[AgentManager]
-        RT[Runtime]
-        AM --> RT
-        RT --> TYPES[14 Agent Types]
-        RT --> SOUL{Soul Engine}
-        SOUL --> ARCH[8 Archetypes]
-        SOUL --> MOOD[6 Mood States]
-        AM --> HOOKS[Plugin Hooks: 5 Points]
-        AM --> IPC[Typed IPC Protocol]
-    end
-```
-
-### Core Architecture
-
-```mermaid
-graph TB
-    subgraph "Consciousness Layer"
-        DREAM[Dream Engine] --> PHASES[Replay · Pattern · Compress<br/>Counterfactual · Share · Mood]
-        EVOLVE[Evolution Engine] --> MUTATE[Refactor · Optimize · Bugfix<br/>Error-handling · Security · more]
-        PERSONA[Persona System] --> TRAITS[Curiosity · Tenacity · Caution<br/>Creativity · Precision · more]
-        SOCIAL[Social Network] --> GOSSIP[Peer Discovery · Gossip<br/>Reputation · Trust Levels]
-    end
-
-    subgraph "Memory & Knowledge"
-        MS[Memory System]
-        MS --> KG[(Knowledge Graph)]
-        MS --> VEC[(Vector Memory)]
-        MS --> FTS5[(FTS5 Recall)]
-        MS --> SESS[(Session Store)]
-        MS --> EXP[Experience Replay]
-    end
-
-    subgraph "Coordination"
-        MESH_ENG[Mesh Orchestrator]
-        DEBATE[Debate Engine]
-        MESH_ENG --> TOPOS[5 Topologies]
-        DEBATE --> ARB[3 Arbitrator Types]
-    end
-
-    subgraph "Evaluation & Training"
-        HARNESS[Eval Harness]
-        GRADER[Grader Suite · Golden Dataset]
-        CI[CI Gate · Baselines]
-        TRAIN[Trajectory Recorder]
-    end
-
-    subgraph "Infrastructure"
-        PLUGIN[Plugin System] --> SIGN[Ed25519 Signed]
-        PLUGIN --> REG[SQLite Registry]
-        PLUGIN --> SEMVER[Semver Resolution]
-        DIST_RT[Distributed Runtime] --> POOL[Multi-Host Pool]
-        DIST_RT --> ENC[AES-256 Transport]
-        API[HMAC-signed REST API]
-        AUTH[RBAC · Vault · Audit]
-        OBS[SLO · Tracing · Prod Dashboard]
-        BILL[Cost Attribution]
-        PROJ[Project Workspaces]
-        TLS[Toolset System · 10 Bundles]
-    end
-
-    DREAM --> MS & SOUL
-    EVOLVE --> DREAM
-    PERSONA --> DREAM
-    SOCIAL --> EVOLVE
-    MESH_ENG --> AM
-    DEBATE --> MESH_ENG
-    HARNESS --> MESH_ENG
-    TRAIN --> AM
-    API --> AUTH
-```
-
-### AI Providers & Adapters
-
-```mermaid
-graph LR
-    subgraph "AI Providers (13)"
-        P_ANTH[Anthropic] & P_OAI[OpenAI] & P_DS[DeepSeek]
-        P_GK[Groq] & P_GM[Gemini] & P_MS[Mistral]
-        P_AZ[Azure] & P_TG[Together] & P_OR[OpenRouter]
-        P_XAI[xAI] & P_CH[Cohere] & P_PP[Perplexity] & P_OL[Ollama]
-    end
-
-    subgraph "Platform Adapters (11)"
-        A_DC[Discord] & A_SL[Slack] & A_TG[Telegram]
-        A_SMS[SMS] & A_VC[Voice] & A_WA[WhatsApp]
-        A_EM[Email] & A_WH[Webhook]
-        A_MX[Matrix] & A_SG[Signal] & A_IR[IRC]
-    end
-
-    RTR[Model Router] --> P_ANTH & P_OAI & P_DS & P_GK & P_GM & P_MS & P_AZ & P_TG & P_OR & P_XAI & P_CH & P_PP & P_OL
-    GW[Multi-Platform Gateway] --> A_DC & A_SL & A_TG & A_SMS & A_VC & A_WA & A_EM & A_WH & A_MX & A_SG & A_IR
-```
-
-### Module Breakdown
-
-| Module | Path | Responsibility |
-|--------|------|----------------|
-| CLI | `src/cli/` | Command registration, banner, theme, palette |
-| Modes | `src/modes/` | Mode framework + 36 TUI mode screens |
-| Agent | `src/agent/` | Agent lifecycle, process management, IPC, hooks, soul |
+| Module | Path | What it does |
+|--------|------|-------------|
+| CLI | `src/cli/` | 80+ command registration, banner, theme |
+| Modes | `src/modes/` | 36 TUI mode screens |
+| Agent | `src/agent/` | Lifecycle, IPC, hooks, pool, soul, engine |
+| Profile | `src/profile/` | Per-type identity profiles stored in `~/.aegis/profiles/` |
 | Soul | `src/agent/soul.ts` | 8 archetypes, 6 moods, behavioral heuristics |
-| Profile | `src/profile/` | Agent identity profiles — model, skills, system prompt, budget per type |
-| Dashboard TUI | `src/tui/` | Dashboard rendering, state management, commands |
-| Chat TUI | `src/chat/` | Chat UI, streaming, provider integration, sessions |
-| Web Dashboard | `dashboard/` | Vite + React 19 frontend with 12 route pages |
-| Wizard | `src/wizard/` | Interactive setup flows |
-| Tools | `src/tools/` | Tool registry, 8 built-in tools, and Tool Gateway (`brave_search`, `gateway_fetch`) |
-| Toolsets | `src/toolsets/` | Composable tool bundles with dependency resolution |
-| Skills | `src/skills/` | Skill loading, registry, staging store, and remote API client |
-| Memory | `src/memory/` | Session persistence, knowledge graph, vector, namespaces, synthesis |
-| Experience | `src/experience/` | Experience replay buffer, retrieval, skill curation |
-| Dream | `src/dream/` | 6-phase idle-time dream cycle with insight generation |
-| Evolve | `src/evolve/` | Auto-code mutation, typecheck+tests verification |
-| Persona | `src/persona/` | 8-trait agent personality evolution from experience |
-| Social | `src/social/` | Multi-instance gossip protocol, peer discovery, reputation |
+| Chat TUI | `src/chat/` | Streaming chat UI, sessions, provider switching |
+| Dashboard TUI | `src/tui/` | Live dashboard rendering |
+| Web Dashboard | `dashboard/` | Vite + React 19 frontend (Costs, SLOs, Audit, Agents) |
+| Website | `website/` | Marketing site (Vite + React 19 + Framer Motion) |
+| Tools | `src/tools/` | Tool registry + `brave_search` / `gateway_fetch` gateway |
+| Toolsets | `src/toolsets/` | 10 composable bundles with dependency resolution |
+| Skills | `src/skills/` | Skill registry, staging store, marketplace client |
+| Memory | `src/memory/` | Session store, knowledge graph, vector, namespaces, synthesis |
+| Experience | `src/experience/` | Replay buffer, retrieval, skill curation |
+| Dream | `src/dream/` | 6-phase idle dream cycle + insight injector |
+| Evolve | `src/evolve/` | Auto-code mutation with typecheck+test verification |
+| Persona | `src/persona/` | 8-trait personality evolution |
+| Social | `src/social/` | Gossip protocol, peer discovery, reputation |
+| Improve | `src/improve/` | Skill extraction, failure clustering, adversarial self-play, skill staging |
 | Economy | `src/economy/` | Cost routing, pricing registry, budget guard, pre-flight |
-| Improve | `src/improve/` | Skill extraction, failure clustering, adversarial self-play |
-| Plugin | `src/plugin/` | Ed25519-signed plugins, SQLite registry, hooks, resolver |
-| Mesh | `src/mesh/` | Multi-agent orchestration: 5 topologies, 7 agent roles |
-| Debate | `src/debate/` | Disagreement detection, 3 arbitrator types, signed decisions |
-| Harness | `src/harness/` | Eval suite: graders, golden dataset, CI gate, experiments, HITL |
-| Training | `src/training/` | Trajectory recording and export for every agent session |
-| Distributed | `src/distributed/` | Worker pool, encrypted transport, capacity placement, management |
-| Adapters | `src/adapters/` | 11-platform gateway (Discord, Slack, Telegram, Matrix, Signal, IRC, etc.) |
-| API | `src/api/` | HTTP REST API server with HMAC + RBAC authentication |
-| AI | `src/ai/` | Provider manager (13 providers), factory, model references |
-| Auth | `src/auth/` | RBAC role management, API key auth, HTTP middleware |
-| Vault | `src/vault/` | AES-256-GCM credential vault, env loader, provider bridge |
-| Project | `src/project/` | Isolated workspaces with per-project config and state |
-| Voice | `src/voice/` | Voice system configuration and provider integration |
+| Mesh | `src/mesh/` | 5 orchestration topologies, 7 agent roles |
+| Debate | `src/debate/` | Structured disagreement resolution, 3 arbitrator types |
+| Harness | `src/harness/` | Eval suite, graders, golden dataset, CI gate, experiments |
+| Training | `src/training/` | Trajectory recorder and export |
+| Plugin | `src/plugin/` | Ed25519-signed plugins, semver resolution, 5 hook points |
+| Distributed | `src/distributed/` | Multi-host pool, bully election, AES-256 transport |
+| Adapters | `src/adapters/` | 11-platform gateway |
+| API | `src/api/` | HMAC-signed REST server |
+| Auth | `src/auth/` | RBAC, API key auth, middleware |
+| Vault | `src/vault/` | AES-256-GCM credential vault, scrypt key derivation |
+| Audit | `src/audit/` | Append-only audit log, secrets scrubbing |
+| Billing | `src/billing/` | Per-call cost tracking, budget enforcement |
 | Observability | `src/observability/` | SLO tracking, distributed tracing, production dashboard |
-| Triggers | `src/triggers/` | Cron, file_watch, webhook, condition, background agents |
-| Audit | `src/audit/` | Append-only audit logging for all agent actions |
-| Billing | `src/billing/` | Per-LLM-call cost tracking, budget enforcement |
+| Sandbox | `src/sandbox/` | Policy engine, Docker isolation |
+| MCP | `src/mcp/` | MCP client + server (agent tools exposed via JSON-RPC) |
+| Workflow | `src/workflow/` | YAML pipeline executor |
+| Marketplace | `src/marketplace/` | Agent config registry with Ed25519 signing |
+| Project | `src/project/` | Isolated per-project workspaces |
+| Session | `src/session/` | Multi-user session store with WebSocket forwarding |
+
+### System Flow
+
+```
+User (CLI / Web / Chat Platform)
+        │
+        ▼
+   AgentManager  ──── IPC (JSON-lines over stdin/stdout) ────►  Worker Process
+        │                                                              │
+        ├── Soul Engine (archetype + mood → system prompt)            │
+        ├── Profile Store (~/.aegis/profiles/)                        │
+        ├── Memory System (KG + vector + FTS5 + sessions)             │
+        ├── Economy (cost routing + budget guard)                     │
+        ├── Audit Store (append-only, secrets scrubbed)               │
+        ├── Plugin Hooks (5 lifecycle points)                         │
+        └── Dream Engine (idle-time insight injection)                │
+                                                                       │
+                                                     ReAct loop (Vercel AI SDK)
+                                                     Tool calls gated by PolicyEngine
+                                                     Context compaction at token threshold
+```
 
 ---
 
-## Security Model
+## Security
 
-- **Per-agent tool permissions** — read, write, edit, bash, grep, glob, web_fetch, web_search, read_skill, brave_search, gateway_fetch
-- **Pattern-restricted bash** — test, validate, deploy agents can only run approved command patterns
-- **HMAC-signed API** — all REST endpoints require signed requests with replay protection
-- **RBAC** — Admin/operator/developer/viewer roles with SHA-256 hashed API keys; permission checks on every route
-- **Auditable** — all agent actions logged with timestamps to append-only audit log; API keys and tokens auto-scrubbed from all log fields before write
-- **Encrypted credential vault** — AES-256-GCM with scrypt-derived master key, per-entry random IVs, key rotation
-- **Signed plugins** — Ed25519 signature verification at install time with SHA-256 checksums
-- **Distributed transport encryption** — AES-256-GCM between workers with SHA-256 derived shared key
-- **Vault-to-provider bridge** — API keys stored in vault auto-sync to provider resolution at unlock
-- **User-level permissions** — agents operate with the user's filesystem permissions
-- **Local by default** — all agents run locally unless explicitly configured otherwise
-- **Zero-trust isolation** — Docker container sandboxing for high-risk agent types
+| Control | Implementation |
+|---------|---------------|
+| Per-agent tool permissions | `ToolPermission[]` per agent type; `read`, `write`, `bash`, `grep`, `glob`, `web_search`, `brave_search`, `gateway_fetch`, `read_skill` |
+| Pattern-restricted bash | `test`, `validate`, `deploy` types only run approved command patterns |
+| Secrets scrubbing | `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `sk-*`, `Bearer *`, `*_KEY=`, `*_SECRET=` patterns redacted from all 4 audit log fields before SQLite write |
+| HMAC-signed REST API | All endpoints require signed requests with replay-protection window |
+| RBAC | Admin / operator / developer / viewer roles; SHA-256 hashed API keys |
+| Encrypted vault | AES-256-GCM with scrypt-derived master key, per-entry random IVs, key rotation |
+| Signed plugins | Ed25519 signature + SHA-256 checksum verified at install |
+| Distributed transport | AES-256-GCM between workers with SHA-256 derived shared key |
+| Docker sandboxing | High-risk agent types run with `--cap-drop ALL` and read-only rootfs |
+| Policy engine | Regex-based rule evaluation on file paths and shell commands; `strictMode` denies by default |
+| Local by default | No telemetry unless opted in; all data stays on the machine |
 
 ---
 
-## Setup
+## Environment Variables
 
-### Environment Variables
+### AI Providers
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | For Anthropic | Anthropic API key |
-| `OPENAI_API_KEY` | For OpenAI | OpenAI API key |
-| `DEEPSEEK_API_KEY` | For DeepSeek | DeepSeek API key |
-| `GROQ_API_KEY` | For Groq | Groq API key |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | For Gemini | Google Gemini API key |
-| `MISTRAL_API_KEY` | For Mistral | Mistral API key |
-| `AZURE_OPENAI_API_KEY` | For Azure | Azure OpenAI key |
-| `TOGETHERAI_API_KEY` | For Together AI | Together AI key |
-| `OPENROUTER_API_KEY` | For OpenRouter | OpenRouter API key |
-| `XAI_API_KEY` | For xAI | xAI API key |
-| `COHERE_API_KEY` | For Cohere | Cohere API key |
-| `PERPLEXITY_API_KEY` | For Perplexity | Perplexity API key |
-| `OLLAMA_URL` | For Ollama | Base URL for local Ollama server |
-| `AEGIS_DEFAULT_PROVIDER` | Optional | Default provider name |
-| `AEGIS_LOG_LEVEL` | Optional | Log level: debug, info, warn, error |
-| `AEGIS_MODEL_ROUTER` | Optional | Set to `disabled` to bypass model routing |
-| `AEGIS_PREFLIGHT` | Optional | Set to `disabled` to skip pre-flight cost checks |
-| `AEGIS_DISTRIBUTED` | Optional | Enable distributed runtime worker pool |
-| `AEGIS_CLUSTER_SECRET` | Optional | Shared secret for distributed transport encryption |
-| `AGENTMEMORY_URL` | Optional | agentmemory sidecar URL (default: http://localhost:3111) |
-| `AGENTMEMORY_SECRET` | Optional | Bearer token for agentmemory auth |
-| `AGENTMEMORY_ENABLED` | Optional | Set to `false` to disable |
-| `BRAVE_SEARCH_API_KEY` | Optional | Enables `brave_search` tool via Brave Search API |
+| Variable | Description |
+|----------|-------------|
+| `ANTHROPIC_API_KEY` | Anthropic (Claude) |
+| `OPENAI_API_KEY` | OpenAI (GPT-4o, o3) |
+| `DEEPSEEK_API_KEY` | DeepSeek |
+| `GROQ_API_KEY` | Groq (free Llama tier) |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini |
+| `MISTRAL_API_KEY` | Mistral |
+| `AZURE_OPENAI_API_KEY` | Azure OpenAI |
+| `TOGETHERAI_API_KEY` | Together AI |
+| `OPENROUTER_API_KEY` | OpenRouter |
+| `XAI_API_KEY` | xAI / Grok |
+| `COHERE_API_KEY` | Cohere |
+| `PERPLEXITY_API_KEY` | Perplexity |
+| `OLLAMA_URL` | Ollama base URL (default: `http://localhost:11434`) |
+| `AEGIS_AI_API_KEY` | Universal fallback if no provider-specific key found |
 
-### Interactive Setup
+### Runtime
 
-```bash
-bun run index.ts setup    # Guided provider configuration
-bun run index.ts setup-keys  # Configure API keys
-bun run index.ts doctor    # Verify installation
-```
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `AEGIS_DEFAULT_PROVIDER` | `anthropic` | Default provider name |
+| `AEGIS_LOG_LEVEL` | `info` | `debug` / `info` / `warn` / `error` |
+| `AEGIS_MODEL_ROUTER` | `auto` | Set to `disabled` to bypass routing |
+| `AEGIS_PREFLIGHT` | `enabled` | Set to `disabled` to skip cost pre-flight checks |
+| `AEGIS_MAX_TURNS` | `50` | Hard ceiling on ReAct loop turns per agent run |
+| `AEGIS_NO_DOTENV` | — | Set to `1` in CI to skip `.env` loading |
+| `AEGIS_DISTRIBUTED` | — | Set to enable multi-host worker pool |
+| `AEGIS_CLUSTER_SECRET` | — | Shared secret for distributed AES-256 transport |
 
-### Runtime Provider Switching
+### Integrations
 
-In the chat TUI:
-```
-/provider list                    # List available providers
-/provider set openai             # Switch to OpenAI
-/provider set anthropic model=claude-sonnet-4-20250514  # With model
-```
+| Variable | Description |
+|----------|-------------|
+| `BRAVE_SEARCH_API_KEY` | Enables `brave_search` tool via Brave Search API |
+| `AGENTMEMORY_URL` | agentmemory sidecar URL (default: `http://localhost:3111`) |
+| `AGENTMEMORY_SECRET` | Bearer token for agentmemory auth |
+| `AGENTMEMORY_ENABLED` | Set to `false` to disable sidecar |
+| `AEGIS_API_KEY` | API key required for REST server auth |
+| `AEGIS_VAULT_KEY` | Master key for AES-256-GCM credential vault |
+| `AEGIS_SANDBOX` | Set to `docker` for container-isolated agent execution |
+
+Copy `.env.example` to `.env` and fill in at least one provider key. The postinstall script does this automatically on `npm install`.
 
 ---
 
 ## Development
 
 ```bash
-# TypeScript typecheck
+# Typecheck
 bun run typecheck
 
-# Run all tests
-bun run test
+# Run tests
+bun test src/dream/engine.test.ts      # single file
+bun run test                           # full suite
 
-# Run CI suite (typecheck + lint + docs check + tests)
+# CI (typecheck + lint + docs check + tests)
 bun run ci
 
-# Individual test suites
-bun run test:dashboard     # Dashboard TUI tests
-bun run test:chat          # Chat TUI tests
+# Lint / format
+bun run lint
+bun run format
 
-# Coverage
-bun run coverage           # Terminal coverage report
-bun run coverage:html      # HTML coverage report
+# Generate docs
+bun run docs:generate     # writes shared/commands.json from CLI source
+bun run docs:check        # verifies docs are current (runs in CI)
 
-# Lint & format
-bun run lint               # ESLint
-bun run format             # Prettier
-
-# Docs generator
-bun run docs:generate      # Generate shared/commands.json from CLI source
-bun run docs:check         # Verify docs are up to date (runs in CI)
-
-# Benchmarking
-bun run bench              # Run memory system benchmark
-bun run bench:list         # List available benchmarks
-bun run bench:history      # Show benchmark history
-bun run bench:update       # Run and update baseline
+# Benchmarks
+bun run bench
+bun run bench:update      # run and update baseline
 
 # OpenAPI spec
-bun run openapi            # Generate OpenAPI specification
+bun run openapi
 
-# Build binaries
+# Build prebuilt binaries
 bun run build:binary                   # Windows x64
 bun run build:binary:linux             # Linux x64
 bun run build:binary:mac               # macOS x64
 bun run build:binary:mac-arm64         # macOS ARM64
 
-# Build web frontends
-cd dashboard && bun run build          # Web dashboard
-cd website && bun run build            # Marketing website
+# Web frontends
+cd dashboard && bun install && bun run dev    # :5173
+cd website  && bun install && bun run dev    # :5173
 
 # Docker
-bun run docker:build                   # Build Docker image
-bun run docker:push                    # Push to registry
-bun run docker:up                      # Compose up
-bun run docker:up:dev                  # Compose up with dev profile
+bun run docker:build
+bun run docker:up
+bun run docker:up:dev
 ```
 
-### Extending
+### Adding Things
 
-- **New mode** — create file in `src/modes/`, implement `Mode` interface, register in `src/modes/index.ts`
-- **New CLI command** — create file in `src/cli/commands/`, register in `index.ts`
-- **New agent type** — add to `AGENT_TYPES` in `src/agent/agent-types.ts`
-- **New tool** — implement tool function, register in `src/tools/registry.ts`
-- **New dashboard page** — create route in `dashboard/src/routes/`, add to `App.tsx` and `Sidebar.tsx`
-- **New adapter** — implement gateway interface in `src/adapters/`
+| Thing | How |
+|-------|-----|
+| New CLI command | Create `src/cli/commands/<name>.ts`, export `register<Name>(program)`, import in `src/cli/commands/index.ts` |
+| New agent type | Add to `AGENT_TYPES` in `src/agent/agent-types.ts` |
+| New TUI mode | Create in `src/modes/`, implement `Mode` interface, register in `src/modes/index.ts` |
+| New tool | Implement and register in `src/tools/registry.ts` |
+| New adapter | Implement gateway interface in `src/adapters/` |
+| New dashboard page | Add route in `dashboard/src/routes/`, wire in `App.tsx` and `Sidebar.tsx` |
+
+### Test Patterns
+
+```typescript
+// SQLite stores — pass dbPath for temp isolation
+new ExperienceStore({ dbPath: "/tmp/test.db" })
+
+// Mutations
+makeMutation()  // creates test mutation with default values
+
+// Dream/Evolution engines — pass partial config via constructor
+new DreamEngine({ dbPath: "/tmp/dream.db" })
+```
 
 ---
 
-## Docker
-
-Multi-stage Dockerfile included for production deployment:
-
-```bash
-# Build
-docker build -t neuron-os/aegis:latest .
-
-# Run API server
-docker run -p 8080:8080 \
-  -e ANTHROPIC_API_KEY=sk-... \
-  neuron-os/aegis:latest
-
-# Compose (local dev with hot reload)
-docker compose --profile dev up
-```
-
-### Production Deployment (Docker Compose)
-
-Create `docker-compose.prod.yml` with all security features enabled:
+## Docker (Production)
 
 ```yaml
-version: "3.9"
+# docker-compose.prod.yml
 services:
   aegis:
     image: ghcr.io/kunjshah95/neuron-os:latest
-    container_name: aegis-prod
-    ports:
-      - "8080:8080"
-    volumes:
-      - aegis-data:/home/aegis/.aegis
+    ports: ["8080:8080"]
+    volumes: [aegis-data:/home/aegis/.aegis]
     environment:
-      # API authentication
-      - AEGIS_API_KEY=${AEGIS_API_KEY:?Set AEGIS_API_KEY}
+      - AEGIS_API_KEY=${AEGIS_API_KEY}
+      - AEGIS_VAULT_KEY=${AEGIS_VAULT_KEY}
       - AEGIS_AUTH_REQUIRED=true
-
-      # Vault encryption
-      - AEGIS_VAULT_KEY=${AEGIS_VAULT_KEY:?Set AEGIS_VAULT_KEY}
-
-      # Sandbox isolation
       - AEGIS_SANDBOX=docker
-
-      # CORS (set to your dashboard URL)
-      - AEGIS_API_CORS_ORIGINS=${AEGIS_API_CORS_ORIGINS:-http://localhost:5173}
-
-      # Rate limiting
-      - AEGIS_API_RATE_LIMIT=200
-
-      # AI provider keys (example)
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
-
-      # Model routing
-      - AEGIS_MODEL_ROUTER=auto
-      - AEGIS_PREFLIGHT=enabled
-
-      # Observability
-      - AEGIS_LOG_LEVEL=info
-
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "bun", "-e", "fetch('http://localhost:8080/api/v1/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
+      test: ["CMD", "bun", "-e", "fetch('http://localhost:8080/api/v1/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
 
 volumes:
   aegis-data:
-    driver: local
 ```
 
-Run it:
 ```bash
-# Create required secrets
-echo "AEGIS_API_KEY=$(openssl rand -hex 32)" > .env
+echo "AEGIS_API_KEY=$(openssl rand -hex 32)"   > .env
 echo "AEGIS_VAULT_KEY=$(openssl rand -hex 32)" >> .env
-echo "ANTHROPIC_API_KEY=sk-ant-..." >> .env
-
-# Start the service
+echo "ANTHROPIC_API_KEY=sk-ant-..."            >> .env
 docker compose -f docker-compose.prod.yml --env-file .env up -d
-
-# Verify it's running
-docker compose -f docker-compose.prod.yml ps
-curl http://localhost:8080/api/v1/health
 ```
 
-All secrets are passed via environment variables from `.env`. Keep this file secure and never commit it to version control. Use your secret manager (Vault, AWS Secrets Manager, 1Password CLI) to inject secrets in production.
-
 ---
 
-## Roadmap (2026-2027)
+## Roadmap
 
-Neuron OS has shipped 11 major milestones since v0.2.0. The roadmap below shows what's built and what's next.
+### ✅ Shipped
 
-### ✅ v0.7.0 — Cost Attribution & Benchmarking — **SHIPPED**
+| Version | Theme | Key Deliverables |
+|---------|-------|-----------------|
+| v0.7.0 | Cost Attribution | `aegis cost`, `aegis bench providers`, 13-provider pricing registry, model router |
+| v0.8.0 | Long-Term Memory | SQLite knowledge graph, vector memory, per-agent namespaces, unified query |
+| v0.9.0 | Distributed Runtime | Multi-host pool, bully leader election, AES-256-GCM transport |
+| v0.10.0 | Self-Improving Agents | Skill extraction, failure clustering, adversarial self-play, 6h/12h cron |
+| v0.11.0 | Plugin Marketplace | Ed25519-signed plugins, semver resolution, WebSocket gateway |
+| v0.12.0 | Multi-Agent Teams | 5 mesh topologies, 7 agent roles, debate engine, signed decisions |
+| v0.13.0 | Consciousness Layer | Soul engine, dream engine, evolution engine, persona system, social network |
+| v0.14.0 | Eval & Training | Eval harness, golden dataset pipeline, trajectory recorder, CI gate |
+| v1.0.0 | Production-Ready | RBAC, encrypted vault, SLO tracking, distributed tracing, production dashboard |
+| v1.1.x | Platform Stability | CLI freeze fix, 3-tier SIGINT, clean shutdown, shared keepAlive utility |
+| v1.1.5 | Provider Diversity | NVIDIA NIM, Groq free tier, OpenRouter free tier, default fallback chain |
+| v1.1.6 | Dream→Agent Loop | InsightInjector 4-layer system prompt, persistent insight promotion, `aegis version` |
+| v1.1.7 | Operational Hardening | Secrets scrubbing in audit log, busy-aware heartbeat, `"hung"` status, skill staging gate |
+| v1.1.8 | MCP Ecosystem | MCP server agent tools (`spawn_agent`, `list_agents`, `send_message`, `get_agent_output`), Tool Gateway (`brave_search`, `gateway_fetch`) |
+| v1.1.9 | Agent Profile Builder | Per-type identity profiles at `~/.aegis/profiles/`, `aegis profile` CLI |
 
-- `aegis cost {total,models,sessions,history,budget,report}` CLI with real USD pricing
-- `aegis benchmark {run,status,baseline}` with regression detection and CI-compatible JSON
-- `aegis bench providers "<task>"` — benchmarks all 13 providers on quality + cost
-- `aegis insights` — cross-DB analytics joining audit, billing, experience, telemetry
-- `aegis router route/list/suggest` — auto-selects cheapest viable provider
-- `aegis estimate` — pre-flight cost estimation with warn/block thresholds
-- 13 providers tracked in pricing registry with real per-1k-token costs
+### 🔮 Upcoming
 
----
+| Version | Theme | Key Deliverables |
+|---------|-------|-----------------|
+| v0.15.0 | Tool-Level Economy | Per-tool pricing, budgeted agents, spot routing, cost spike alerts |
+| Q1 2027 | Orchestration at Scale | Declarative swarm specs (YAML), convergence detection, debate tree pruning |
+| Q2 2027 | Self-Improving Runtime | Failure prioritization, adversarial regression auto-feed, Dashboard v2 |
+| v1.2.0 | Performance & Scale | Connection pooling, SSE streaming, 50+ concurrent agents, incremental memory indexing |
+| v1.3.0 | Enterprise Integration | SSO/SAML/OIDC, webhook events, OpenTelemetry audit export, RBAC as code |
+| v1.4.0 | Plugin Ecosystem | Plugin sandboxing, plugin test framework, marketplace revenue (Stripe) |
+| v2.0.0 | Distributed Production OS | Multi-region runtime, hot standby, ML-based cost optimizer, SOC 2 compliance |
 
-### ✅ v0.8.0 — Knowledge Graph & Long-Term Memory — **SHIPPED**
-
-- SQLite-backed knowledge graph with entity extraction, relationship linking, confidence scoring
-- Per-agent memory namespaces with TTL-based expiry and archival
-- Cross-session synthesis (`aegis memory synthesize <topic>`) across 5 stores
-- Unified Memory Query — single interface searching FTS5, vector, sessions, experience, graph
-- Auto-extraction from agent sessions
-
----
-
-### ✅ v0.9.0 — Distributed Runtime — **SHIPPED**
-
-- Multi-host worker pool with TCP-based bully leader election
-- AES-256-GCM encrypted transport with SHA-256 key derivation
-- Capacity-aware placement (CPU, memory, GPU scoring)
-- Worker heartbeat monitoring with automatic timeout
-
----
-
-### ✅ v0.10.0 — Self-Improving Agents — **SHIPPED**
-
-- Skill extraction from successful experiences (clustering by embedding similarity)
-- Failure clustering by goal + tag overlap with severity scoring
-- Adversarial self-play — 8 scenario templates with regression detection
-- Auto-skill packaging to `src/skills/auto-*.ts`
-- Self-improvement scheduler (cron: 6h extraction, 12h clustering)
-
----
-
-### ✅ v1.0.0 — Production-Ready — **SHIPPED**
-
-- RBAC with admin/operator/developer/viewer roles, SHA-256 hashed API keys
-- Encrypted credential vault — AES-256-GCM with scrypt-derived master key
-- SLO tracking — rolling-window uptime, latency, error rate, burn rate
-- Distributed tracing — SQLite-backed trace spans with parent-child
-- Production dashboard — aggregated SLOs, costs, failures, agent health
-- Background agents via TriggerEngine
-
----
-
-### ✅ v0.11.0 — Plugin Marketplace & WebSocket Gateway — **SHIPPED**
-
-- Ed25519-signed plugins with semver dependency resolution and integrity checks
-- Full plugin CLI: `aegis plugin {publish,install,list,remove,search,info}`
-- SQLite plugin registry with 5 hook points (spawn, tool_call, message, ipc, shutdown)
-- Bun-native WebSocket gateway (port 8081) with multi-user channels and token auth
-- Multi-user SQLite session store with event-driven lifecycle for WebSocket forwarding
-
----
-
-### ✅ v0.11.1 — Dream/Evolution Tests & Soul JSON — **SHIPPED**
-
-| Deliverable | Description |
-|-------------|-------------|
-| **Testable Stores** | DreamStore/EvolutionStore accept `{ dbPath? }` for isolated testing |
-| **54 Unit Tests** | Full coverage of DreamStore, DreamEngine, EvolutionStore, EvolutionEngine, MutationGenerator |
-| **Soul JSON Output** | `soul list/card/mood --json` for programmatic access |
-
----
-
-### ✅ v0.12.0 — Multi-Agent Teams at Scale — **SHIPPED**
-
-- Mesh orchestrator with 5 topologies: sequential, fan-out, debate, ensemble, supervisor
-- 7 typed agent roles: researcher, implementer, reviewer, tester, architect, debugger, coordinator
-- Debate engine with 3 arbitrator types: agent-based, human-in-the-loop, majority vote
-- Structured disagreement resolution with signed decision records
-
----
-
-### ✅ v0.13.0 — Consciousness Layer — **SHIPPED**
-
-- Soul Engine — 8 archetypes, 6 mood states, behavioral heuristics injected into agent prompts
-- Dream Engine — 6-phase idle-time cycle: memory replay, pattern discovery, knowledge compression, counterfactual exploration, shared dreaming, mood consolidation
-- Evolution Engine — 8 mutation strategies with auto-apply and test-backed rollback
-- Persona System — 8 tracked traits evolving from experience and dream insights
-- Social Network — gossip protocol with file-beacon peer discovery, reputation scoring, trust levels
-
----
-
-### ✅ v0.14.0 — Eval & Training Pipeline — **SHIPPED**
-
-- Eval harness with grader suite, golden dataset pipeline (silver→gold→audit→archived), CI gate
-- Multi-agent eval with 6 coordination patterns, per-agent metrics
-- Experiment management and HITL review workflow
-- Training recorder — full trajectory capture (JSONL) for every agent session
-- Export formats: atropos, jsonl
-
----
-
-### ✅ v0.10.x — Platform Stability & Resilience — **SHIPPED**
-
-**What it delivered:** The CLI won't freeze. Shutdowns are always clean. SIGTERM is never ignored.
-
-| Deliverable | Description |
-|-------------|-------------|
-| **CLI freeze fix** | Stdin readline symbol leak after `@clack/prompts` teardown — extracted to `src/cli/stdin.ts` |
-| **SIGINT passthrough** | 3-tier Ctrl+C handling: SIGINT → SIGTERM → force-kill |
-| **Adapter shutdown safety** | `.catch(() => process.exit(1))` on all adapter `.stop()` chains |
-| **SIGTERM everywhere** | Handlers on chat, serve, mcp, agent, all adapters, distributed |
-| **Shared keepAlive() utility** | Centralized shutdown handling in `src/cli/keepAlive.ts` with `registerShutdownHandlers()` |
-| **Command history on Ctrl+C** | `process.on("exit")` handler ensures history is written even on early exits |
-| **MCP server cleanup** | Captures `stop()` handle and stops MCP HTTP server cleanly on shutdown |
-
----
-
-### ✅ v1.1.7 — Operational Hardening — **SHIPPED**
-
-| Deliverable | Description |
-|-------------|-------------|
-| **Secrets Scrubbing** | API keys, tokens, and `sk-*` patterns auto-redacted from all 4 audit log fields before SQLite write |
-| **Busy-aware Heartbeat** | Agent status: `idle` → `busy` (tool call in flight) → `hung` (unresponsive). Only `hung` agents are killed — no more false-positive kills during slow builds |
-| **Skill Staging Gate** | Extracted skills land in `.aegis/skill-staging.json`; `aegis skills approve <id>` required before injection |
-| **`"hung"` AgentStatus** | New status value between heartbeat miss and kill — one grace interval before escalation |
-
----
-
-### ✅ v1.1.8 — MCP Ecosystem — **SHIPPED**
-
-| Deliverable | Description |
-|-------------|-------------|
-| **MCP Server — Agent Tools** | `aegis mcp serve` exposes `spawn_agent`, `list_agents`, `send_message`, `get_agent_output` — Claude Desktop and other MCP clients can orchestrate Aegis agents directly |
-| **Tool Gateway** | `brave_search` (Brave Search REST API) and `gateway_fetch` (HTML-stripped web fetch) registered as built-in tools; available to any agent via `web_search` permission flag |
-
----
-
-### ✅ v1.1.9 — Agent Profile Builder — **SHIPPED**
-
-| Deliverable | Description |
-|-------------|-------------|
-| **`AgentProfile` Schema** | Per-type identity: name, system prompt override, model, temperature, skills list, MCP servers, budget default |
-| **Profile Store** | Backed by `~/.aegis/profiles/<id>.json`; persists across restarts |
-| **`aegis profile` CLI** | `list`, `create`, `get`, `delete`, `set-default` subcommands |
-
----
-
-### 🔮 v0.15.0 — Tool-Level Economy
-
-**Theme:** Every action has a price. Every dollar has a benchmark.
-
-| Milestone | Deliverable |
-|-----------|-------------|
-| **Per-Tool Pricing** | Every tool has compute/API/I/O cost + latency profile |
-| **Budgeted Agents** | `budget_usd` on task def; agent self-throttles spend |
-| **Spot Routing** | Cross-provider cost router picks current cheapest provider |
-| **Public Benchmarks** | `quality / USD` leaderboard per provider per task class |
-| **Cost Spike Alerts** | Automated Slack/Discord alerts on budget breach |
-
----
-
-### 🔮 Q1 2027 — Multi-Agent Orchestration at Platform Scale
-
-**Theme:** Swarms form and dissolve around tasks, not topology.
-
-| Milestone | Deliverable |
-|-----------|-------------|
-| **Declarative Swarm Specs** | YAML defines agent composition, budget, success criteria |
-| **Convergence Detection** | Swarm auto-terminates when consensus or diminishing returns |
-| **Debate Tree Pruning** | Active learning to prune low-value debate branches |
-
----
-
-### 🔮 Q2 2027 — Self-Improving Runtime (Karpathy-Delta Closure)
-
-**Theme:** The system closes the loop — extract, validate, publish, repeat.
-
-| Milestone | Deliverable |
-|-----------|-------------|
-| **Failure Prioritization** | Grouped failures ranked by frequency and blast radius |
-| **Adversarial Regression Auto-Feed** | Red-team findings auto-incorporated as known failure patterns |
-| **Dashboard v2** | Knowledge graph + dream visualization in web app |
+Full details in [ROADMAP.md](ROADMAP.md).
 
 ---
 
 ## Contributing
 
-1. **Open a Discussion** in the [RFCs category](https://github.com/KunjShah95/neuron-os/discussions/categories) for cross-module features
-2. **Open an issue** labeled `roadmap` for focused, single-module proposals
-3. **Pick up a spec** from [`docs/superpowers/specs/`](docs/superpowers/specs/) and ship it
+1. Open a [Discussion](https://github.com/KunjShah95/neuron-os/discussions) for cross-module features
+2. Open an [Issue](https://github.com/KunjShah95/neuron-os/issues) labeled `roadmap` for focused proposals
+3. Pick up a spec from [`docs/superpowers/specs/`](docs/superpowers/specs/) and ship it
 
-See [ROADMAP.md](ROADMAP.md) for the full strategic roadmap, [docs/security-whitepaper.md](docs/security-whitepaper.md) for the formal enterprise security document, and [docs/](docs/) for complete documentation. The website also includes a [comparison section](https://neuron-os.dev/#comparison) vs LangChain, AutoGPT, and CrewAI.
+See [docs/](docs/) for architecture guides, security whitepaper, and module documentation.
 
 ---
 
 ## License
 
-MIT
+MIT — [KunjShah95](https://github.com/KunjShah95)
 
 ---
 
 <p align="center">
   <a href="https://github.com/KunjShah95/neuron-os">GitHub</a> ·
+  <a href="https://www.npmjs.com/package/neuron-aegis">npm</a> ·
   <a href="https://github.com/KunjShah95/neuron-os/discussions">Discussions</a> ·
   <a href="https://github.com/KunjShah95/neuron-os/issues">Issues</a>
 </p>
