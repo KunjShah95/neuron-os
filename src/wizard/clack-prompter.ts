@@ -45,7 +45,7 @@ export function createClackPrompter(): WizardPrompter {
           message: params.message,
           placeholder: params.placeholder,
           defaultValue: params.defaultValue,
-          validate: params.validate as ((value: string) => string | undefined) | undefined,
+          validate: params.validate as NonNullable<Parameters<typeof p.text>[0]>["validate"],
         }),
       )
     },

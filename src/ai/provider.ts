@@ -13,6 +13,81 @@ export function clearVaultCredentials(): void {
   vaultOverrides.clear()
 }
 
+// ── Auto Provider Detection ──────────────────────────────────────────
+
+const PROVIDER_PRIORITY: Array<{ provider: string; model: string }> = [
+  { provider: "groq", model: "llama-3.3-70b-versatile" },
+  { provider: "openrouter", model: "openrouter/free" },
+  { provider: "gemini", model: "gemini-2.0-flash" },
+  { provider: "deepseek", model: "deepseek-chat" },
+  { provider: "togetherai", model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo" },
+  { provider: "nvidia", model: "mistralai/mixtral-8x22b-instruct-v0.1" },
+  { provider: "mistral", model: "mistral-large-latest" },
+  { provider: "anthropic", model: "claude-sonnet-4-20250514" },
+  { provider: "openai", model: "gpt-4o" },
+  { provider: "xai", model: "grok-2" },
+  { provider: "cohere", model: "command-r-plus" },
+  { provider: "perplexity", model: "sonar-pro" },
+]
+
+export function getConfiguredProviders(): Array<{ provider: string; model: string; apiKey?: string }> {
+  const configured: Array<{ provider: string; model: string; apiKey?: string }> = []
+  for (const entry of PROVIDER_PRIORITY) {
+    const apiKey = resolveApiKey(entry.provider)
+    if (apiKey) {
+      configured.push({ provider: entry.provider, model: entry.model, apiKey })
+    }
+  }
+  return configured
+}
+
+export function getDefaultConfiguredProvider(): { provider: string; model: string; apiKey?: string } | null {
+  const providers = getConfiguredProviders()
+  return providers[0] ?? null
+}
+
+export function buildAutoFallbacks(): AIConfig["fallbacks"] {
+  const all = getConfiguredProviders()
+  if (all.length <= 1) return undefined
+  return all.slice(1).map((p) => ({
+    provider: p.provider,
+    model: p.model,
+    apiKey: p.apiKey ?? resolveApiKey(p.provider),
+  }))
+}
+
+export function resolveAutoAIConfig(overrides?: Partial<AIConfig>): AIConfig {
+  const configured = getConfiguredProviders()
+  if (!configured.length) {
+    return {
+      provider: "groq" as AIProvider,
+      model: "llama-3.3-70b-versatile",
+      ...overrides,
+    }
+  }
+  const primary = configured[0]!
+  const fallbacks = configured.length > 1
+    ? configured.slice(1).map((p) => ({
+        provider: p.provider as AIProvider,
+        model: p.model,
+        apiKey: p.apiKey ?? resolveApiKey(p.provider),
+      }))
+    : undefined
+  return {
+    provider: primary.provider as AIProvider,
+    model: primary.model,
+    apiKey: primary.apiKey ?? resolveApiKey(primary.provider),
+    fallbacks,
+    ...overrides,
+  }
+}
+
+export function requireAnyProvider(): void {
+  if (getConfiguredProviders().length > 0) return
+  console.error(`\n  ✗ No AI provider configured. Run: aegis setup-keys\n`)
+  process.exit(1)
+}
+
 export type AIProvider = AIProviderType
 
 export interface AIConfig {

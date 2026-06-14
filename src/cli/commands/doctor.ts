@@ -181,11 +181,6 @@ function checkEnvironment(): CheckResult {
     warnings.push("Windows detected — some features limited (Docker sandbox)")
   }
 
-  // Check terminal capabilities
-  if (!process.stdout.isTTY) {
-    warnings.push("Non-TTY output — TUI modes unavailable")
-  }
-
   if (issues.length === 0 && warnings.length === 0) {
     return {
       status: "pass",

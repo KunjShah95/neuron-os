@@ -50,9 +50,9 @@ async function listLocalSkills(): Promise<LocalSkill[]> {
     }
 
     skills.push({
-      name: meta.name || entry.name,
-      description: meta.description || "",
-      tags: meta.tags || [],
+      name: (meta.name as string) || entry.name,
+      description: (meta.description as string) || "",
+      tags: (meta.tags as string[]) || [],
     })
   }
 

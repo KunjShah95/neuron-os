@@ -1,4 +1,4 @@
-import { MemorySlot } from "./types.js";
+import type { MemorySlot } from "./types.js";
 
 export class ForgettingCurveEstimator {
   private retentionThreshold: number; // e.g. 0.35 (memories with R < threshold are pruned)

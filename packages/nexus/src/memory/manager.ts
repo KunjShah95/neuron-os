@@ -1,5 +1,5 @@
-import { StorageAdapter } from "../storage/adapter.js";
-import { MemorySlot, MemoryType, MemoryStats } from "./types.js";
+import type { StorageAdapter } from "../storage/adapter.js";
+import type { MemorySlot, MemoryType, MemoryStats } from "./types.js";
 import { ForgettingCurveEstimator } from "./forgetting.js";
 
 export class NexusMemoryManager {

@@ -1,6 +1,7 @@
 import type { Command } from "commander"
 import { theme } from "../theme"
 import { showBanner } from "../banner"
+import type { EvaluationCriteria } from "../../mesh/types"
 
 export function registerAgentRun(program: Command) {
   program
@@ -39,13 +40,13 @@ async function handleAgentRun(
   }
   console.log()
 
-  const evaluation = opts.eval
+  const evaluation = (opts.eval
     ? opts.eval
         .split(",")
         .map((m) => m.trim())
         .filter(Boolean)
-        .map((metric) => ({ metric: metric as string }))
-    : undefined
+        .map((metric) => ({ metric }))
+    : undefined) as EvaluationCriteria[] | undefined
 
   try {
     const { runAgentOrchestrator } = await import("../../modes/agent-run")

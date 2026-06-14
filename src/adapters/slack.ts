@@ -23,7 +23,7 @@ interface SlackConfig {
 
 export function createSlackAdapter(config: SlackConfig): PlatformAdapter {
   const client = new WebClient(config.botToken)
-  let socketModeClient: { on(event: string, handler: (event: Record<string, unknown>) => void): void; start(): Promise<void>; disconnect(): Promise<void> } | null = null
+  let socketModeClient: any = null
 
   return {
     name: "slack",
@@ -53,7 +53,7 @@ export function createSlackAdapter(config: SlackConfig): PlatformAdapter {
             const channel = ev.channel as string | undefined
             const user = ev.user as string | undefined
 
-            if (!checkAuth(user, config.allowedUserIds)) return
+            if (!checkAuth(user ?? "", config.allowedUserIds)) return
 
             // Extract command from mention: "<@BOTID> /command args"
             const match = text.match(/\/\w+/)
@@ -64,7 +64,7 @@ export function createSlackAdapter(config: SlackConfig): PlatformAdapter {
             if (!parsed) return
 
             await routeCommand(parsed.command, parsed.args, async (responseText) => {
-              await client.chat.postMessage({ channel, text: responseText, mrkdwn: true })
+              await client.chat.postMessage({ channel: channel ?? "", text: responseText, mrkdwn: true })
             }, config.project)
           }
         })

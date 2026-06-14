@@ -29,8 +29,7 @@ function replyTo(msg: AgentIpcMessage, type: string, payload?: unknown): void {
 // The Agent worker will use the central AgentRuntime/AgentEngine when available,
 // falling back to the original builtin tool set for standalone usage.
 import { createAgentRuntime } from "./runtime"
-import { AIProviderManager, type AIConfig, resolveApiKey } from "../ai"
-import { getDefaultModel } from "../ai/models"
+import { AIProviderManager, type AIConfig, resolveAutoAIConfig } from "../ai"
 import { AGENT_TYPES } from "./agent-types"
 
 import { AgentEngine } from "./engine"
@@ -38,24 +37,29 @@ import { AgentEngine } from "./engine"
 let engine: AgentEngine | null = null
 
 function buildAIConfig(): AIConfig {
-  // Read provider + model from env, with a reasonable default
-  const provider = (process.env.AEGIS_AI_PROVIDER || process.env.AEGIS_DEFAULT_PROVIDER || "openai") as string
-  const defaultModel = process.env.AEGIS_AI_MODEL || process.env.AEGIS_DEFAULT_MODEL || getDefaultModel(provider)
-  // Budget-aware model degradation: use cheaper model when budget is tight
+  const explicitProvider = process.env.AEGIS_AI_PROVIDER || process.env.AEGIS_DEFAULT_PROVIDER
+  const explicitModel = process.env.AEGIS_AI_MODEL || process.env.AEGIS_DEFAULT_MODEL
+  const cfg = explicitProvider
+    ? resolveAutoAIConfig({
+        provider: explicitProvider as any,
+        model: explicitModel ?? undefined,
+        baseUrl: process.env.AEGIS_AI_BASE_URL,
+        temperature: process.env.AEGIS_TEMPERATURE ? parseFloat(process.env.AEGIS_TEMPERATURE) : undefined,
+        maxOutputTokens: process.env.AEGIS_MAX_TOKENS ? parseInt(process.env.AEGIS_MAX_TOKENS, 10) : undefined,
+      })
+    : resolveAutoAIConfig({
+        baseUrl: process.env.AEGIS_AI_BASE_URL,
+        temperature: process.env.AEGIS_TEMPERATURE ? parseFloat(process.env.AEGIS_TEMPERATURE) : undefined,
+        maxOutputTokens: process.env.AEGIS_MAX_TOKENS ? parseInt(process.env.AEGIS_MAX_TOKENS, 10) : undefined,
+      })
   const budgetStatus = process.env.AEGIS_BUDGET_STATUS
   const degradedModel = process.env.AEGIS_DEGRADED_MODEL
-  const model = degradedModel && budgetStatus && budgetStatus !== "continue" ? degradedModel : defaultModel
-  if (model !== defaultModel) {
-    log("info", `Budget degradation: ${defaultModel} → ${model} (status: ${budgetStatus})`)
+  const model = degradedModel && budgetStatus && budgetStatus !== "continue" ? degradedModel : cfg.model
+  if (model !== cfg.model) {
+    log("info", `Budget degradation: ${cfg.model} → ${model} (status: ${budgetStatus})`)
+    cfg.model = model
   }
-  return {
-    provider,
-    model,
-    apiKey: process.env.AEGIS_AI_API_KEY || resolveApiKey(provider),
-    baseUrl: process.env.AEGIS_AI_BASE_URL,
-    temperature: process.env.AEGIS_TEMPERATURE ? parseFloat(process.env.AEGIS_TEMPERATURE) : undefined,
-    maxOutputTokens: process.env.AEGIS_MAX_TOKENS ? parseInt(process.env.AEGIS_MAX_TOKENS, 10) : undefined,
-  }
+  return cfg
 }
 
 async function ensureEngine(): Promise<AgentEngine> {

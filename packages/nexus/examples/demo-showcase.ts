@@ -76,7 +76,7 @@ async function main() {
   stats = memoryManager.getStats();
   console.log(`  Sweep completed: forgotten ${forgottenCount} slot(s). Remaining: ${stats.totalSlots}`);
   const remaining = await memoryManager.getMemories();
-  console.log(`  Remaining Memory: "${pc.bold(remaining[0].content)}" (Importance: ${remaining[0].importance})\n`);
+  console.log(`  Remaining Memory: "${pc.bold(remaining[0]?.content ?? "")}" (Importance: ${remaining[0]?.importance ?? 0})\n`);
 
   // 4. Capability Sandbox Registry & Profiling
   console.log(pc.bold("🛠️  4. Tool Registry & Performance Profiling Sandbox..."));

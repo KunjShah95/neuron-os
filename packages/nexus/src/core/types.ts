@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { StorageAdapter } from "../storage/adapter.js";
+import type { StorageAdapter } from "../storage/adapter.js";
 
 export const AgentConfigSchema = z.object({
   name: z.string().min(1, "Agent name is required"),

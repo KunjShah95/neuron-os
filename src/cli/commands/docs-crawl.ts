@@ -26,10 +26,10 @@ export function registerDocsCrawl(program: Command) {
       const config = buildConfig({
         url: opts.local ? undefined : url,
         path: opts.local ? url : undefined,
-        mode: opts.mode,
-        depth: opts.depth,
-        limit: opts.limit,
-        output: opts.output,
+        mode: opts.mode as Parameters<typeof buildConfig>[0]["mode"],
+        depth: opts.depth as Parameters<typeof buildConfig>[0]["depth"],
+        limit: opts.limit as Parameters<typeof buildConfig>[0]["limit"],
+        output: opts.output as Parameters<typeof buildConfig>[0]["output"],
         noFiles: opts.files === false,
         noKg: opts.kg === false,
       })

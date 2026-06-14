@@ -72,8 +72,8 @@ export function registerEvolve(program: Command) {
   evolve
     .command("apply <id>")
     .description("Apply and verify a proposed mutation")
-    .action((id: string) => {
-      const result = evolutionEngine.applyAndVerify(id)
+    .action(async (id: string) => {
+      const result = await evolutionEngine.applyAndVerify(id)
       if (result === "passed") {
         console.log(`  ${theme.success("✓")} Mutation ${theme.bold(id.slice(0, 12))} applied successfully`)
       } else if (result === "rolled-back") {

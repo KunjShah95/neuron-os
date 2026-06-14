@@ -58,7 +58,7 @@ export class DistributedAPI {
 
   async stop(): Promise<void> {
     if (this.server) {
-      await new Promise<void>((resolve) => this.server.close(() => resolve()))
+      await new Promise<void>((resolve) => this.server!.close(() => resolve()))
       this.server = null
     }
   }

@@ -160,7 +160,7 @@ export function registerKnowledge(program: Command) {
     .action(async (nsId: string, content: string, opts: { type: string; source: string }) => {
       const { memoryNamespaceManager } = await import("../../memory/namespace")
       try {
-        const entry = memoryNamespaceManager.addEntry(nsId, content, opts.type as string, opts.source)
+        const entry = memoryNamespaceManager.addEntry(nsId, content, opts.type as Parameters<typeof memoryNamespaceManager.addEntry>[2], opts.source)
         console.log(theme.success(`  ✓ Entry added: ${entry.id}`))
       } catch (err) {
         console.log(theme.error(`  ${(err as Error).message}`))
@@ -247,7 +247,7 @@ export function registerKnowledge(program: Command) {
       const { KnowledgeSynthesizer } = await import("../../memory/synthesize")
       const result = await KnowledgeSynthesizer.synthesize({
         topic,
-        sources: opts.sources ? opts.sources.split(",").map((s) => s.trim()) : undefined,
+        sources: (opts.sources ? opts.sources.split(",").map((s) => s.trim()) : undefined) as Parameters<typeof KnowledgeSynthesizer.synthesize>[0]["sources"],
         maxSources: opts.maxSources,
       })
 

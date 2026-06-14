@@ -41,7 +41,7 @@ export class AgentSimulator {
         // Check assertions
         let passed = true;
         for (let i = 0; i < sc.assertions.length; i++) {
-          const check = await sc.assertions[i](result, this.agent);
+          const check = await sc.assertions[i]!(result, this.agent);
           if (!check) {
             passed = false;
             break;

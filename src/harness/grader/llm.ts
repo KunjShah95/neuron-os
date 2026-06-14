@@ -162,7 +162,7 @@ Output ONLY valid JSON:
 
   try {
     const result = await callJudge(systemPrompt, userPrompt, config)
-    const r = result as Record<string, unknown>
+    const r = result as unknown as Record<string, unknown>
     const scoreA = typeof r.score_a === "number" ? r.score_a : result.score
     const scoreB = typeof r.score_b === "number" ? r.score_b : result.score
 
@@ -347,7 +347,7 @@ async function tryJudgeCall(
 ): Promise<JudgeResponse> {
   const { createAIProvider } = await import("../../ai/provider")
   const ai = createAIProvider({
-    provider: provider as string,
+    provider: provider as Parameters<typeof createAIProvider>[0]["provider"],
     model,
     apiKey: (apiKey ?? process.env.AEGIS_JUDGE_API_KEY) || undefined,
     temperature: 0.2,

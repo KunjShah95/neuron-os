@@ -576,7 +576,7 @@ export class MutationGenerator {
       sourceCount: 1,
       actionable: true,
       applied: false,
-    })
+    } as DreamInsight)
     if (!changes) return null
 
     const newContent = this.applyChanges(content, changes)
@@ -674,7 +674,7 @@ export class MutationGenerator {
           sourceCount: 1,
           actionable: true,
           applied: false,
-        })
+        } as DreamInsight)
       }
 
       mutations.push(
@@ -688,7 +688,7 @@ export class MutationGenerator {
           confidence: 0.4,
           sourceInsight: pattern,
           sourceDreamId: "",
-          sourceFailureIds: [cluster.id || ""].filter(Boolean),
+          sourceFailureIds: [cluster.id || ""].filter(Boolean) as string[],
         }),
       )
     }

@@ -8,7 +8,7 @@ import type { LanguageModel } from "ai"
 import type { LanguageModelV3 } from "@ai-sdk/provider"
 import { z } from "zod"
 import chalk from "chalk"
-import { AIProviderManager, resolveApiKey } from "../../ai"
+import { AIProviderManager, resolveAutoAIConfig } from "../../ai"
 import type { AIConfig, AIProvider } from "../../ai"
 import { ActionTracker } from "../../agent/action-tracker"
 import { AgentToolExecutor } from "../../agent/agent-tools"
@@ -37,14 +37,17 @@ const planSchema = z.object({
 })
 
 function buildAIConfig(): AIConfig {
-  const provider = (process.env.AEGIS_AI_PROVIDER ?? "openai") as AIProvider
-  return {
-    provider,
-    model: process.env.AEGIS_AI_MODEL ?? "gpt-4o",
-    apiKey: process.env.AEGIS_AI_API_KEY || resolveApiKey(provider),
-    baseUrl: process.env.AEGIS_AI_BASE_URL,
-    temperature: 0.5,
+  const explicitProvider = process.env.AEGIS_AI_PROVIDER
+  const explicitModel = process.env.AEGIS_AI_MODEL
+  if (explicitProvider) {
+    return resolveAutoAIConfig({
+      provider: explicitProvider as AIProvider,
+      model: explicitModel ?? undefined,
+      baseUrl: process.env.AEGIS_AI_BASE_URL,
+      temperature: 0.7,
+    })
   }
+  return resolveAutoAIConfig({ temperature: 0.7 })
 }
 
 const PLAN_INSTRUCTIONS = (codebase: string, hasWeb: boolean) =>

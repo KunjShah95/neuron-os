@@ -1,4 +1,4 @@
-import { ReasoningStep } from "../core/reasoning.js";
+import type { ReasoningStep } from "../core/reasoning.js";
 
 export class TemporalReplayer {
   private steps: ReasoningStep[] = [];
@@ -18,7 +18,7 @@ export class TemporalReplayer {
   stepForward(): ReasoningStep | null {
     if (this.pointer < this.steps.length - 1) {
       this.pointer++;
-      return this.steps[this.pointer];
+      return this.steps[this.pointer] ?? null;
     }
     return null;
   }
@@ -30,7 +30,7 @@ export class TemporalReplayer {
     if (this.pointer >= 0) {
       const step = this.steps[this.pointer];
       this.pointer--;
-      return step;
+      return step ?? null;
     }
     return null;
   }
@@ -42,7 +42,7 @@ export class TemporalReplayer {
     return {
       pointer: this.pointer,
       total: this.steps.length,
-      currentStep: this.pointer >= 0 ? this.steps[this.pointer] : null,
+      currentStep: this.pointer >= 0 ? (this.steps[this.pointer] ?? null) : null,
     };
   }
 

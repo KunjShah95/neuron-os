@@ -96,7 +96,7 @@ export class WorkerPool extends EventEmitter {
       })
 
       this.server.listen(this.config.listenPort, () => {
-        this.server.address() as AddressInfo
+        this.server!.address() as AddressInfo
         const local = this.getLocalInfo()
         local.status = "ready"
         this._localInfo = local
@@ -413,7 +413,7 @@ export class WorkerPool extends EventEmitter {
     this.connections.clear()
 
     if (this.server) {
-      await new Promise<void>((resolve) => this.server.close(() => resolve()))
+      await new Promise<void>((resolve) => this.server!.close(() => resolve()))
       this.server = null
     }
 

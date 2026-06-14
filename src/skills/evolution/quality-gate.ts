@@ -29,15 +29,13 @@ async function llmJudge(
   timeoutMs: number,
 ): Promise<{ verdict: "pass" | "fail" | "skipped"; reason?: string }> {
   try {
-    const { createAIProvider } = await import("../../ai")
-    const provider = process.env.AEGIS_AI_PROVIDER || "openai"
-    const model = process.env.AEGIS_EVOLUTION_JUDGE_MODEL || process.env.AEGIS_AI_MODEL || "gpt-4o"
-
-    const ai = createAIProvider({
-      provider: provider as string,
-      model,
-      apiKey: process.env.AEGIS_AI_API_KEY,
+    const { createAIProvider, resolveAutoAIConfig } = await import("../../ai")
+    const cfg = resolveAutoAIConfig({
+      ...(process.env.AEGIS_AI_PROVIDER ? { provider: process.env.AEGIS_AI_PROVIDER as any } : {}),
+      ...(process.env.AEGIS_EVOLUTION_JUDGE_MODEL || process.env.AEGIS_AI_MODEL ? { model: process.env.AEGIS_EVOLUTION_JUDGE_MODEL || process.env.AEGIS_AI_MODEL } : {}),
     })
+
+    const ai = createAIProvider(cfg)
 
     const evidenceSummary = candidate.evidence
       .slice(0, 3)

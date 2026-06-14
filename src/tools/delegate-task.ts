@@ -92,7 +92,7 @@ export const delegateTaskTool: Tool = {
       const newAgentId = await agentManager.spawn({
         name: agentName,
         script: "src/agent/agent-worker.ts",
-        agentType: (targetType as string) || "build",
+        agentType: ((targetType || "build") as Parameters<typeof agentManager.spawn>[0]["agentType"]),
         env: {
           AEGIS_AGENT_TYPE: targetType || "build",
         },

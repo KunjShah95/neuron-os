@@ -192,7 +192,7 @@ export function registerProduction(program: Command): void {
     .action(async (name: string, opts) => {
       const value = await promptValue("Enter value to store: ")
       try {
-        const entry = vault.store(name, value, opts.type as string)
+        const entry = vault.store(name, value, opts.type as Parameters<typeof vault.store>[2])
         console.log(`\n  Stored: ${entry.id} (${entry.name})\n`)
       } catch (err: unknown) {
         console.log(`\n  ❌ ${err instanceof Error ? err.message : String(err)}\n`)
@@ -221,7 +221,7 @@ export function registerProduction(program: Command): void {
     .description("List credentials")
     .option("-t, --type <type>", "Filter by type")
     .action(async (opts) => {
-      const entries = vault.list(opts.type as string)
+      const entries = vault.list(opts.type as Parameters<typeof vault.list>[0])
       if (entries.length === 0) {
         console.log("\n  No entries.\n")
         return

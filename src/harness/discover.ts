@@ -559,7 +559,8 @@ export class TestDiscoverer {
         }
       }
     } catch (err) {
-      // Directory not accessible - skip with warning
+      const code = (err as NodeJS.ErrnoException)?.code
+      if (code === "ENOENT") return
       console.warn(`[DISCOVER] Error reading directory: ${err}`)
     }
   }

@@ -17,6 +17,7 @@ import { AIProviderManager } from "../ai"
 import type { AIConfig } from "../ai"
 import { getDefaultConfiguredProvider } from "../ai/provider-guard"
 import { resolveApiKey } from "../ai/provider"
+import { getDefaultModel, type AIProviderType } from "../ai/models"
 import { AgentToolExecutor } from "../agent/agent-tools"
 import { ActionTracker } from "../agent/action-tracker"
 import { RatchetRuntime } from "../agent/ratchet"
@@ -69,10 +70,10 @@ export async function runResearchLoop(
   const ratchet = new RatchetRuntime()
 
   const defaultProvider = getDefaultConfiguredProvider()
-  const resolvedProvider = process.env.AEGIS_AI_PROVIDER ?? defaultProvider?.provider ?? "anthropic"
+  const resolvedProvider = process.env.AEGIS_AI_PROVIDER ?? defaultProvider?.provider ?? "groq"
   const ai = new AIProviderManager({
     provider: resolvedProvider as string,
-    model: process.env.AEGIS_AI_MODEL ?? defaultProvider?.model ?? "claude-sonnet-4-20250514",
+    model: process.env.AEGIS_AI_MODEL ?? defaultProvider?.model ?? getDefaultModel(resolvedProvider as AIProviderType),
     apiKey: resolveApiKey(resolvedProvider),
     baseUrl: process.env.AEGIS_AI_BASE_URL,
     temperature: 0.8,

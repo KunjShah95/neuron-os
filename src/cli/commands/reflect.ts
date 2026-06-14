@@ -7,8 +7,7 @@
  */
 
 import type { Command } from "commander"
-import { AIProviderManager, resolveApiKey } from "../../ai"
-import { getDefaultModel } from "../../ai/models"
+import { AIProviderManager, resolveAutoAIConfig } from "../../ai"
 import { ReflectionLoop } from "../../agent/reflection"
 import { theme } from "../theme"
 import { showBanner } from "../banner"
@@ -24,23 +23,22 @@ export function registerReflect(program: Command) {
     .action(async (sessionId: string, opts: { goal?: string; provider?: string; model?: string; json?: boolean }) => {
       showBanner()
 
-      const provider = opts.provider || process.env.AEGIS_AI_PROVIDER || "openai"
-      const model = opts.model || process.env.AEGIS_AI_MODEL || getDefaultModel(provider as string)
+      const provider = opts.provider || process.env.AEGIS_AI_PROVIDER
+      const model = opts.model || process.env.AEGIS_AI_MODEL
       const goal = opts.goal || "(no goal specified)"
+
+      const aiConfig = resolveAutoAIConfig({
+        ...(provider ? { provider: provider as any } : {}),
+        ...(model ? { model } : {}),
+      })
 
       console.log(`  ${theme.heading("🔍 Reflection")}`)
       console.log(`  ${theme.muted(`Session:   `)} ${sessionId}`)
-      console.log(`  ${theme.muted(`Provider:  `)} ${provider}/${model}`)
+      console.log(`  ${theme.muted(`Provider:  `)} ${aiConfig.provider}/${aiConfig.model}`)
       console.log()
 
       try {
-        const ai = new AIProviderManager({
-          provider: provider as string,
-          model,
-          apiKey: resolveApiKey(provider) || process.env.AEGIS_AI_API_KEY,
-          baseUrl: process.env.AEGIS_AI_BASE_URL,
-          temperature: 0.2,
-        })
+        const ai = new AIProviderManager(aiConfig)
 
         const reflection = new ReflectionLoop(ai.getModel())
 

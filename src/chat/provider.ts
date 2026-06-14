@@ -1,10 +1,9 @@
+import type { ModelMessage } from "ai"
 import type { ChatState } from "./store"
 import { appendToStreamingMessage, finalizeStreamingMessage, setStreamingError } from "./store"
-import { AIProviderManager, type AIConfig, parseFallbacksFromEnv } from "../ai"
+import { AIProviderManager, type AIConfig, resolveAutoAIConfig } from "../ai"
 import { AgentEngine, createAgentRuntime } from "../agent"
 import { loadConfig } from "../config"
-import type { ModelMessage } from "ai"
-import type { AIProviderType } from "../ai/models"
 
 export interface ProviderConfig {
   apiKey?: string
@@ -15,38 +14,29 @@ export interface ProviderConfig {
 
 function loadAIConfig(): AIConfig {
   const cfg = loadConfig()
-  const provider = (process.env.AEGIS_AI_PROVIDER ||
+  const explicitProvider = process.env.AEGIS_AI_PROVIDER ||
     process.env.AEGIS_DEFAULT_PROVIDER ||
     process.env.DEFAULT_AI_PROVIDER ||
-    process.env.AI_PROVIDER ||
-    cfg.provider ||
-    "anthropic") as AIProviderType
-  const model =
-    process.env.AEGIS_AI_MODEL ||
+    process.env.AI_PROVIDER
+  const explicitModel = process.env.AEGIS_AI_MODEL ||
     process.env.AEGIS_DEFAULT_MODEL ||
     process.env.DEFAULT_AI_MODEL ||
-    process.env.AI_MODEL ||
-    cfg.model ||
-    "claude-sonnet-4-20250514"
-  const apiKey =
-    process.env.AEGIS_AI_API_KEY ||
-    process.env.ANTHROPIC_API_KEY ||
-    process.env.OPENAI_API_KEY ||
-    process.env.OPENROUTER_API_KEY ||
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
-    process.env.GROQ_API_KEY ||
-    process.env.MISTRAL_API_KEY ||
-    process.env.DEEPSEEK_API_KEY ||
-    cfg.apiKey
-  return {
-    provider,
-    model,
-    apiKey,
-    baseUrl: process.env.AI_BASE_URL || cfg.baseUrl,
+    process.env.AI_MODEL
+  if (explicitProvider || explicitModel) {
+    const prov = explicitProvider || cfg.provider || "anthropic"
+    return resolveAutoAIConfig({
+      provider: prov as any,
+      model: explicitModel || cfg.model,
+      temperature: process.env.AI_TEMPERATURE ? Number(process.env.AI_TEMPERATURE) : (cfg.temperature ?? 0.7),
+      maxOutputTokens: process.env.AI_MAX_TOKENS ? Number(process.env.AI_MAX_TOKENS) : (cfg.maxTokens ?? 8192),
+      baseUrl: process.env.AI_BASE_URL || cfg.baseUrl,
+    })
+  }
+  return resolveAutoAIConfig({
     temperature: process.env.AI_TEMPERATURE ? Number(process.env.AI_TEMPERATURE) : (cfg.temperature ?? 0.7),
     maxOutputTokens: process.env.AI_MAX_TOKENS ? Number(process.env.AI_MAX_TOKENS) : (cfg.maxTokens ?? 8192),
-    fallbacks: parseFallbacksFromEnv(),
-  }
+    baseUrl: process.env.AI_BASE_URL || cfg.baseUrl,
+  })
 }
 
 let chatSessionCounter = 0

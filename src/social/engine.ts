@@ -200,7 +200,7 @@ export class SocialEngine {
   }
 
   listPeers(status?: string) {
-    return socialStore.listPeers(status as string)
+    return socialStore.listPeers(status as Parameters<typeof socialStore.listPeers>[0])
   }
 
   getStats(): SocialStats {

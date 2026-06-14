@@ -38,11 +38,12 @@ export async function extractSkillsFromSession(sessionId: string, skillName: str
 
   log.info(`Found ${shellCommands.length} commands. Generating SKILL.md with AI...`)
 
-  const ai = createAIProvider({
-    provider: (process.env.AEGIS_AI_PROVIDER || "openai") as string,
-    model: process.env.AEGIS_AI_MODEL || "gpt-4o",
-    apiKey: process.env.AEGIS_AI_API_KEY,
+  const { resolveAutoAIConfig } = require("../ai")
+  const cfg = resolveAutoAIConfig({
+    ...(process.env.AEGIS_AI_PROVIDER ? { provider: process.env.AEGIS_AI_PROVIDER as any } : {}),
+    ...(process.env.AEGIS_AI_MODEL ? { model: process.env.AEGIS_AI_MODEL } : {}),
   })
+  const ai = createAIProvider(cfg)
 
   const prompt = `You are an expert systems engineer. An agent ran the following shell commands successfully to achieve a goal. 
 Extract them into a reusable, generic skill script named SKILL.md.

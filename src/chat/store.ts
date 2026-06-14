@@ -94,7 +94,7 @@ export function createInitialChatState(agentType?: string): ChatState {
     sessionId: generateSessionId(agentType),
     checkpoints: [],
     config: {
-      model: "claude-sonnet-4-20250514",
+      model: "llama-3.3-70b-versatile",
       maxTokens: 8192,
     },
   }
@@ -233,7 +233,7 @@ export function loadChatStateFromSession(
     sessionId,
     checkpoints: [],
     config: {
-      model: record.providerConfig?.model || "claude-sonnet-4-20250514",
+      model: record.providerConfig?.model || "llama-3.3-70b-versatile",
       maxTokens: record.providerConfig?.maxTokens || 8192,
     },
   }

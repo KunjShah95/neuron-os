@@ -109,7 +109,7 @@ async function handleMeshRun(
         return
     }
 
-    const result = await orchestrator.run(config)
+    const result = await orchestrator.run(config as unknown as Parameters<typeof orchestrator.run>[0])
 
     console.log(theme.success("  ✅ Mesh run completed\n"))
     console.log(

@@ -59,7 +59,7 @@ export class ServicesMarket {
     if (supply === 0) return 0;
 
     // Use first provider basePrice as quote standard
-    const base = providers[0].basePrice;
+    const base = providers[0]!.basePrice;
     return base * (1 + demand / supply);
   }
 

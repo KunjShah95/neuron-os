@@ -10,6 +10,8 @@ export function registerMemory(program: Command) {
 
   mem
     .command("show")
+    .alias("list")
+    .alias("ls")
     .description("Show current MEMORY.md content")
     .action(async () => {
       const content = await memorySystem.loadMemory()
@@ -127,7 +129,7 @@ export function registerMemory(program: Command) {
     }
     console.log(`  ${theme.dim(`  Vector entries: ${vecStats.total}`)}`)
     console.log()
-    console.log(`  ${theme.muted("Subcommands: show, add, search, facts, vector, stats, policy")}`)
+    console.log(`  ${theme.muted("Subcommands: show (list/ls), add, search, facts, vector, stats, policy")}`)
     console.log()
   })
 

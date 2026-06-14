@@ -46,7 +46,7 @@ export class SQLiteStorageAdapter implements StorageAdapter {
         // @ts-ignore
         const betterSqlite = await import("better-sqlite3");
         // better-sqlite3 exports the class as default
-        const Database = betterSqlite.default;
+        const Database = betterSqlite.default as unknown as new (path: string) => unknown;
         this.db = new Database(this.dbPath);
       } catch (e) {
         // Both failed, fallback to memory

@@ -93,7 +93,7 @@ export class TracingStore {
       .prepare("SELECT * FROM spans WHERE session_id = ? ORDER BY start_time ASC")
       .all(sessionId) as Record<string, unknown>[]
     return rows.map((r) => ({
-      spanId: r.span_id,
+      spanId: r.span_id as string,
       parentSpanId: r.parent_span_id,
       sessionId: r.session_id,
       agentId: r.agent_id,
@@ -104,8 +104,8 @@ export class TracingStore {
       endTime: r.end_time,
       input: r.input,
       output: r.output,
-      metadata: r.metadata ? JSON.parse(r.metadata) : undefined,
-    }))
+      metadata: r.metadata ? JSON.parse(r.metadata as string) : undefined,
+    })) as TraceSpan[]
   }
 
   public getStats(): {

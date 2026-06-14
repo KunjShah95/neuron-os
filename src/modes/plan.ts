@@ -6,19 +6,22 @@
  */
 
 import { createAgentRuntime } from "../agent/runtime"
-import { AIProviderManager, type AIConfig, resolveApiKey } from "../ai"
+import { AIProviderManager, type AIConfig, resolveAutoAIConfig } from "../ai"
 import { AgentEngine } from "../agent/engine"
 import type { AIProviderType } from "../ai/models"
 
 function buildAIConfig(): AIConfig {
-  const provider = (process.env.AEGIS_AI_PROVIDER ?? "openai") as AIProviderType
-  return {
-    provider,
-    model: process.env.AEGIS_AI_MODEL ?? "gpt-4o",
-    apiKey: process.env.AEGIS_AI_API_KEY || resolveApiKey(provider),
-    baseUrl: process.env.AEGIS_AI_BASE_URL,
-    temperature: 0.5,
+  const explicitProvider = process.env.AEGIS_AI_PROVIDER
+  const explicitModel = process.env.AEGIS_AI_MODEL
+  if (explicitProvider) {
+    return resolveAutoAIConfig({
+      provider: explicitProvider as AIProviderType,
+      model: explicitModel ?? undefined,
+      baseUrl: process.env.AEGIS_AI_BASE_URL,
+      temperature: 0.5,
+    })
   }
+  return resolveAutoAIConfig({ temperature: 0.5 })
 }
 
 /**

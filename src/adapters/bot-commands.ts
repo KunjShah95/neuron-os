@@ -312,14 +312,13 @@ export async function handleChat(msg: string): Promise<CommandResult> {
   }
 
   try {
-    const { AIProviderManager } = await import("../ai")
-    const ai = new AIProviderManager({
-      provider: (process.env.AEGIS_AI_PROVIDER ?? "openai") as AIProviderType,
-      model: process.env.AEGIS_AI_MODEL ?? "gpt-4o",
-      apiKey: process.env.AEGIS_AI_API_KEY,
+    const { AIProviderManager, resolveAutoAIConfig } = await import("../ai")
+    const ai = new AIProviderManager(resolveAutoAIConfig({
+      ...(process.env.AEGIS_AI_PROVIDER ? { provider: process.env.AEGIS_AI_PROVIDER as AIProviderType } : {}),
+      ...(process.env.AEGIS_AI_MODEL ? { model: process.env.AEGIS_AI_MODEL } : {}),
       baseUrl: process.env.AEGIS_AI_BASE_URL,
       temperature: 0.7,
-    })
+    }))
 
     const { generateText } = await import("ai")
     const result = await generateText({

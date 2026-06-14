@@ -20,7 +20,7 @@ export class AuditQueryEngine {
           entry.detail.toLowerCase().includes(lowerQuery) ||
           entry.agentThought.toLowerCase().includes(lowerQuery),
       )
-      .slice(0, limit)
+      .slice(0, limit) as unknown as Record<string, unknown>[]
   }
 
   public getSessionHistory(sessionId: string) {

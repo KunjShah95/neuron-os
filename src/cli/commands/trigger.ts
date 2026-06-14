@@ -24,7 +24,7 @@ export function registerTrigger(program: Command): void {
     .action(async (opts) => {
       const { triggerEngine } = await import("../../triggers/registry")
       const list = triggerEngine.list({
-        type: opts.type as string,
+        type: opts.type as NonNullable<Parameters<typeof triggerEngine.list>[0]>["type"],
         tag: opts.tag,
         enabled: opts.enabled ? true : opts.disabled ? false : undefined,
       })
@@ -124,8 +124,8 @@ export function registerTrigger(program: Command): void {
 
       const trigger = triggerEngine.register({
         name,
-        type: type as string,
-        config,
+        type: type as Parameters<typeof triggerEngine.register>[0]["type"],
+        config: config as unknown as Parameters<typeof triggerEngine.register>[0]["config"],
         action,
         tags: opts.tags ? opts.tags.split(",").map((s: string) => s.trim()) : undefined,
         enabled: true,

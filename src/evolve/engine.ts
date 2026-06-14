@@ -204,7 +204,7 @@ export class EvolutionEngine {
   }
 
   listMutations(limit = 20, status?: string): CodeMutation[] {
-    return this.store.listMutations(limit, status as string)
+    return this.store.listMutations(limit, status as Parameters<typeof this.store.listMutations>[1])
   }
 
   getStats(): EvolutionStats {

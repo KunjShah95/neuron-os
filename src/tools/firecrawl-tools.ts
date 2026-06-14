@@ -8,13 +8,13 @@
 import type { Tool, ToolResult } from "./registry"
 
 // Use dynamic import to avoid type issues
-async function getFirecrawlClient(): Promise<Record<string, unknown> | null> {
+async function getFirecrawlClient(): Promise<Record<string, any> | null> {
   const apiKey = process.env.FIRECRAWL_API_KEY
   if (!apiKey) {
     return null
   }
   const { default: FirecrawlApp } = await import("@mendable/firecrawl-js")
-  return new FirecrawlApp({ apiKey })
+  return new FirecrawlApp({ apiKey }) as unknown as Record<string, any>
 }
 
 function isFirecrawlEnabled(): boolean {

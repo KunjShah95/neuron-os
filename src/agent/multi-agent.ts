@@ -12,7 +12,7 @@
  */
 
 import { generateText, stepCountIs } from "ai"
-import { AIProviderManager, resolveApiKey } from "../ai"
+import { AIProviderManager, resolveAutoAIConfig } from "../ai"
 import type { AIConfig } from "../ai"
 import { agentPool } from "./agent-pool"
 
@@ -48,14 +48,17 @@ export interface OrchestrationResult {
 }
 
 function buildAIConfig(): AIConfig {
-  const provider = (process.env.AEGIS_AI_PROVIDER ?? "openai") as string
-  return {
-    provider,
-    model: process.env.AEGIS_AI_MODEL ?? "gpt-4o",
-    apiKey: process.env.AEGIS_AI_API_KEY || resolveApiKey(provider),
-    baseUrl: process.env.AEGIS_AI_BASE_URL,
-    temperature: 0.5,
+  const explicitProvider = process.env.AEGIS_AI_PROVIDER
+  const explicitModel = process.env.AEGIS_AI_MODEL
+  if (explicitProvider) {
+    return resolveAutoAIConfig({
+      provider: explicitProvider as any,
+      model: explicitModel ?? undefined,
+      baseUrl: process.env.AEGIS_AI_BASE_URL,
+      temperature: 0.5,
+    })
   }
+  return resolveAutoAIConfig({ temperature: 0.5 })
 }
 
 /**

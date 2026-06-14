@@ -97,7 +97,7 @@ const terminalRenderer = new TerminalRenderer({
 
 // Configure marked to use terminal renderer
 marked.setOptions({
-  renderer: terminalRenderer as object,
+  renderer: terminalRenderer as unknown as NonNullable<Parameters<typeof marked.setOptions>[0]>["renderer"],
 })
 
 /**

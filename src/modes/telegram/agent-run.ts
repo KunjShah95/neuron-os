@@ -4,7 +4,7 @@
  */
 
 import { ToolLoopAgent, stepCountIs, jsonSchema } from "ai"
-import { AIProviderManager, resolveApiKey } from "../../ai"
+import { AIProviderManager, resolveAutoAIConfig } from "../../ai"
 import type { AIConfig, AIProvider } from "../../ai"
 import { ActionTracker } from "../../agent/action-tracker"
 import { AgentToolExecutor } from "../../agent/agent-tools"
@@ -14,14 +14,17 @@ import { replyMd } from "./text"
 import { finishOrApprove } from "./approval-session"
 
 function buildAIConfig(): AIConfig {
-  const provider = (process.env.AEGIS_AI_PROVIDER ?? "openai") as AIProvider
-  return {
-    provider,
-    model: process.env.AEGIS_AI_MODEL ?? "gpt-4o",
-    apiKey: process.env.AEGIS_AI_API_KEY || resolveApiKey(provider),
-    baseUrl: process.env.AEGIS_AI_BASE_URL,
-    temperature: 0.7,
+  const explicitProvider = process.env.AEGIS_AI_PROVIDER
+  const explicitModel = process.env.AEGIS_AI_MODEL
+  if (explicitProvider) {
+    return resolveAutoAIConfig({
+      provider: explicitProvider as AIProvider,
+      model: explicitModel ?? undefined,
+      baseUrl: process.env.AEGIS_AI_BASE_URL,
+      temperature: 0.7,
+    })
   }
+  return resolveAutoAIConfig({ temperature: 0.7 })
 }
 
 function agentOptions(maxSteps: number, instructions: string) {
@@ -140,8 +143,8 @@ export async function runAsk(ctx: { reply: (t: string, o?: object) => Promise<un
   const agent = new ToolLoopAgent({
     ...agentOptions(20, `Workspace root: ${process.cwd()}. Read-only research mode.`),
     tools,
-  } as ConstructorParameters<typeof ToolLoopAgent>[0])
-  const { text } = await agent.generate({ prompt: question })
+  } as unknown as ConstructorParameters<typeof ToolLoopAgent>[0])
+  const { text } = await agent.generate({ prompt: question } as Parameters<typeof agent.generate>[0])
   await replyMd(ctx, text || "(no answer)")
 }
 
@@ -156,8 +159,8 @@ export async function runAgent(
   const agent = new ToolLoopAgent({
     ...agentOptions(40, `Workspace root: ${process.cwd()}. All mutations are staged until approval.`),
     tools,
-  } as ConstructorParameters<typeof ToolLoopAgent>[0])
-  const { text } = await agent.generate({ prompt: goal })
+  } as unknown as ConstructorParameters<typeof ToolLoopAgent>[0])
+  const { text } = await agent.generate({ prompt: goal } as Parameters<typeof agent.generate>[0])
   if (text?.trim()) await replyMd(ctx, text.trim())
   await finishOrApprove(ctx, chatId, tracker, executor, "✅ Done. No file changes were needed.")
 }
@@ -180,8 +183,8 @@ export async function runPlanSteps(
       model: ai.getModel(),
       stopWhen: stepCountIs(30),
       tools,
-    } as ConstructorParameters<typeof ToolLoopAgent>[0])
-    const { text } = await agent.generate({ prompt })
+    } as unknown as ConstructorParameters<typeof ToolLoopAgent>[0])
+    const { text } = await agent.generate({ prompt } as Parameters<typeof agent.generate>[0])
     if (text?.trim()) await replyMd(ctx, text.trim())
   }
 

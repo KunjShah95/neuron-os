@@ -109,7 +109,7 @@ export function createMatrixAdapter(config: MatrixConfig): PlatformAdapter {
     const c = client
     if (!c) throw new Error("Matrix client not started")
 
-    await (c as MatrixClient).sendEvent(roomId, "m.room.message", {
+    await (c as MatrixClient).sendEvent(roomId, "m.room.message" as any, {
       msgtype: "m.text",
       body: clip(text, MATRIX_MAX, TRUNCATION_SUFFIX),
       format: "org.matrix.custom.html",

@@ -137,7 +137,7 @@ export function registerAgent(program: Command) {
                 : undefined,
           })
 
-          const instance = agentManager.get(id)
+          const instance = agentManager.get(id)!
           console.log(theme.success(`  ✓ Agent "${name}" spawned successfully`))
           console.log(`    id:     ${theme.dim(id)}`)
           console.log(`    pid:    ${theme.dim(String(instance.pid))}`)

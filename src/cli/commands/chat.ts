@@ -7,10 +7,11 @@ import { isValidAgentType } from "../../agent"
 import { createAgentRuntime } from "../../agent/runtime"
 import { AIProviderManager, type AIConfig } from "../../ai"
 import { getDefaultConfiguredProvider } from "../../ai/provider-guard"
+import { resolveApiKey } from "../../ai/provider"
 import { AgentEngine } from "../../agent/engine"
 import { loadConfig, saveConfig } from "../../config"
 import type { ModelMessage } from "ai"
-import type { AIProviderType } from "../../ai/models"
+import { getDefaultModel, type AIProviderType } from "../../ai/models"
 
 export function registerChat(program: Command) {
   program
@@ -36,7 +37,7 @@ function loadAIConfig(overrideProvider?: string, overrideModel?: string): AIConf
     process.env.AI_PROVIDER ||
     cfg.provider ||
     defaultProvider?.provider ||
-    "anthropic") as AIProviderType
+    "groq") as AIProviderType
   const model =
     overrideModel ||
     process.env.AEGIS_AI_MODEL ||
@@ -45,20 +46,11 @@ function loadAIConfig(overrideProvider?: string, overrideModel?: string): AIConf
     process.env.AI_MODEL ||
     cfg.model ||
     defaultProvider?.model ||
-    "claude-sonnet-4-20250514"
+    getDefaultModel(provider)
   return {
     provider,
     model,
-    apiKey:
-      process.env.AEGIS_AI_API_KEY ||
-      process.env.ANTHROPIC_API_KEY ||
-      process.env.OPENAI_API_KEY ||
-      process.env.OPENROUTER_API_KEY ||
-      process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
-      process.env.GROQ_API_KEY ||
-      process.env.MISTRAL_API_KEY ||
-      process.env.DEEPSEEK_API_KEY ||
-      cfg.apiKey,
+    apiKey: process.env.AEGIS_AI_API_KEY || resolveApiKey(provider) || cfg.apiKey,
     baseUrl: process.env.AEGIS_AI_BASE_URL || process.env.AI_BASE_URL || cfg.baseUrl,
     temperature: cfg.temperature ?? 0.7,
     maxOutputTokens: cfg.maxTokens ?? 8192,
@@ -88,16 +80,16 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
   const agentType = opts.type
   const cfg = loadConfig()
   const defaultProvider = getDefaultConfiguredProvider()
+  const provider = (opts.provider ||
+    process.env.AEGIS_AI_PROVIDER ||
+    process.env.AEGIS_DEFAULT_PROVIDER ||
+    process.env.DEFAULT_AI_PROVIDER ||
+    process.env.AI_PROVIDER ||
+    cfg.provider ||
+    defaultProvider?.provider ||
+    "groq") as AIProviderType
   const chatConfig: ChatConfig = {
-    provider:
-      opts.provider ||
-      process.env.AEGIS_AI_PROVIDER ||
-      process.env.AEGIS_DEFAULT_PROVIDER ||
-      process.env.DEFAULT_AI_PROVIDER ||
-      process.env.AI_PROVIDER ||
-      cfg.provider ||
-      defaultProvider?.provider ||
-      "anthropic",
+    provider,
     model:
       opts.model ||
       process.env.AEGIS_AI_MODEL ||
@@ -106,7 +98,7 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
       process.env.AI_MODEL ||
       cfg.model ||
       defaultProvider?.model ||
-      "claude-sonnet-4-20250514",
+      getDefaultModel(provider),
   }
 
   console.log(`  ${theme.info("Chat session started")}`)

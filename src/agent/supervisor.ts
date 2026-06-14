@@ -31,7 +31,7 @@ export class Supervisor {
   private async spawnAndMonitor(): Promise<void> {
     const def: AgentDef = {
       name: `worker-${this.restartCount}`,
-      agentType: this.config.agentType as string,
+      agentType: this.config.agentType as AgentDef["agentType"],
       script: "src/agent/agent-worker.ts", // or whichever script is the main worker wrapper
       args: [this.config.goal],
       env: {
