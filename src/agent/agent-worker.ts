@@ -31,6 +31,7 @@ function replyTo(msg: AgentIpcMessage, type: string, payload?: unknown): void {
 import { createAgentRuntime } from "./runtime"
 import { AIProviderManager, type AIConfig, resolveApiKey } from "../ai"
 import { getDefaultModel } from "../ai/models"
+import { AGENT_TYPES } from "./agent-types"
 
 import { AgentEngine } from "./engine"
 
@@ -60,6 +61,18 @@ function buildAIConfig(): AIConfig {
 async function ensureEngine(): Promise<AgentEngine> {
   if (engine) return engine
   const runtime = createAgentRuntime(AGENT_ID, AGENT_TYPE, process.cwd())
+
+  // Wire tool permissions from agent type definition into the runtime.
+  // This enforces per-agent-type tool filtering — tools not in the allowed
+  // list will be rejected by AgentRuntime.executeTool().
+  if (AGENT_TYPE && AGENT_TYPES[AGENT_TYPE as keyof typeof AGENT_TYPES]) {
+    const agentDef = AGENT_TYPES[AGENT_TYPE as keyof typeof AGENT_TYPES]
+    const allowedToolNames = agentDef.tools
+      .filter((t) => t.allow)
+      .map((t) => t.name)
+    runtime.setAllowedTools(allowedToolNames)
+  }
+
   const ai = new AIProviderManager(buildAIConfig())
   engine = new AgentEngine(runtime, ai, {
     maxSteps: parseInt(process.env.AEGIS_MAX_TURNS ?? "20", 10),
