@@ -77,7 +77,7 @@ export class EvolutionEngine {
         if (mutation.confidence >= this.config.confidenceThreshold) {
           const ok = this.mutator.applyMutation(mutation)
           if (ok) {
-            const result = this.verifier.verifyMutation(mutation)
+            const result = await this.verifier.verifyMutation(mutation)
             if (result.passed) {
               this.store.updateMutation(mutation.id, { status: "applied" })
               mutationsApplied++
@@ -166,22 +166,22 @@ export class EvolutionEngine {
     return this.mutator.applyMutation(mutation)
   }
 
-  verifyMutation(mutationId: string): VerificationResult {
+  async verifyMutation(mutationId: string): Promise<VerificationResult> {
     const mutation = this.store.getMutation(mutationId)
     if (!mutation) {
       return { passed: false, output: "", durationMs: 0, error: "Mutation not found" }
     }
-    return this.verifier.verifyMutation(mutation)
+    return await this.verifier.verifyMutation(mutation)
   }
 
-  applyAndVerify(mutationId: string): "passed" | "failed" | "rolled-back" {
+  async applyAndVerify(mutationId: string): Promise<"passed" | "failed" | "rolled-back"> {
     const mutation = this.store.getMutation(mutationId)
     if (!mutation) return "failed"
 
     const applied = this.mutator.applyMutation(mutation)
     if (!applied) return "failed"
 
-    const result = this.verifier.verifyMutation(mutation)
+    const result = await this.verifier.verifyMutation(mutation)
 
     if (result.passed) {
       this.store.updateMutation(mutation.id, { status: "applied" })
