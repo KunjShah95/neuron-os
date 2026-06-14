@@ -1,10 +1,3 @@
-/**
- * evolve/verification-engine — Verifies code mutations by running typechecks and tests.
- *
- * Uses Bun's process APIs for subprocess execution instead of execSync() shelling out,
- * making it portable across platforms and environments.
- */
-
 import type { CodeMutation } from "./types"
 import { evolutionStore } from "./evolution-store"
 
@@ -15,24 +8,14 @@ export interface VerificationResult {
   error: string
 }
 
-/**
- * Resolve the bun binary path for spawning subprocesses.
- * Uses process.argv0 when available, falls back to "bun".
- */
 function resolveBunPath(): string {
-  // Bun provides the executable path via process.argv0
   const bunPath = process.argv0
-  if (bunPath && (bunPath.includes("bun") || bunPath.includes("node"))) {
+  if (bunPath && bunPath.includes("bun")) {
     return bunPath
   }
-  // Fallback: let the system shell find bun on PATH
   return process.platform === "win32" ? "bun.cmd" : "bun"
 }
 
-/**
- * Run a command via Bun.spawn and capture stdout/stderr.
- * More portable than execSync which relies on shell availability.
- */
 async function runCommand(
   command: string,
   args: string[],
@@ -46,37 +29,18 @@ async function runCommand(
       env: { ...process.env, AEGIS_NO_DOTENV: "1" },
     })
 
-    let stdout = ""
-    let stderr = ""
+    const stdoutPromise = new Response(proc.stdout).text().catch(() => "")
+    const stderrPromise = new Response(proc.stderr).text().catch(() => "")
     let timedOut = false
-
-    void (async () => {
-      const reader = proc.stdout.getReader()
-      const decoder = new TextDecoder()
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        stdout += decoder.decode(value, { stream: true })
-      }
-    })()
-
-    void (async () => {
-      const reader = proc.stderr.getReader()
-      const decoder = new TextDecoder()
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        stderr += decoder.decode(value, { stream: true })
-      }
-    })()
 
     const timer = setTimeout(() => {
       timedOut = true
       proc.kill("SIGTERM")
     }, timeoutMs)
 
-    proc.exited.then((code: number | null) => {
+    void proc.exited.then(async (code: number | null) => {
       clearTimeout(timer)
+      const [stdout, stderr] = await Promise.all([stdoutPromise, stderrPromise])
       if (timedOut) {
         resolve({ stdout, stderr: stderr + `\nCommand timed out after ${timeoutMs}ms`, exitCode: -1 })
       } else {
@@ -146,9 +110,6 @@ export class VerificationEngine {
     }
   }
 
-  /**
-   * Run TypeScript typecheck using Bun's built-in TypeScript support.
-   */
   private async runTypeCheck(): Promise<VerificationResult> {
     const start = Date.now()
     try {
@@ -171,9 +132,6 @@ export class VerificationEngine {
     }
   }
 
-  /**
-   * Run evolve-specific test suite for fast verification.
-   */
   private async runTests(): Promise<VerificationResult> {
     const start = Date.now()
     try {

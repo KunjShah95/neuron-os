@@ -244,14 +244,17 @@ export class MutationGenerator {
     const lines = analysis.content.split("\n")
 
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i]
+      let line = lines[i]
       if (!line) continue
+
+      let modified = false
 
       // Add `unknown` type to catch(err) without type
       if (line.includes("catch (err)") || line.includes("catch(e)")) {
         const replacement = line.replace(/catch\s*\((err|e)\)/g, "catch ($1: unknown)")
         if (replacement !== line) {
-          changes.push({ type: "replace", line: i + 1, text: replacement })
+          line = replacement
+          modified = true
         }
       }
 
@@ -260,8 +263,13 @@ export class MutationGenerator {
       if (anyMatch && !line.trim().startsWith("//") && !line.includes("as any")) {
         const replacement = line.replace(/:\s*any\b/g, ": unknown")
         if (replacement !== line) {
-          changes.push({ type: "replace", line: i + 1, text: replacement })
+          line = replacement
+          modified = true
         }
+      }
+
+      if (modified) {
+        changes.push({ type: "replace", line: i + 1, text: line })
       }
     }
 
@@ -278,8 +286,9 @@ export class MutationGenerator {
       const line = lines[i]
       if (!line) continue
 
-      const m = line.match(/catch\s*\(\w+\s*:\s*\w+\)\s*\{/)
+      const m = line.match(/catch\s*\((\w+)(?:\s*:\s*\w+)?\)\s*\{/)
       if (!m) continue
+      const varName = m[1]!
 
       // Find the catch body
       const bodyStart = i + 1
@@ -304,7 +313,7 @@ export class MutationGenerator {
         changes.push({
           type: "insert-before",
           line: j,
-          text: `  console.error("Operation failed:", err?.message ?? err);`,
+          text: `  console.error("Operation failed:", ${varName}?.message ?? ${varName});`,
         })
       }
     }

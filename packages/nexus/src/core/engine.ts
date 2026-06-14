@@ -1,5 +1,6 @@
 import { NexusAgent } from "./agent.js";
-import { ReasoningStrategy, ReActStrategy, ReasoningResult } from "./reasoning.js";
+import type { ReasoningStrategy, ReasoningResult } from "./reasoning.js";
+import { ReActStrategy } from "./reasoning.js";
 
 export class NexusEngine {
   private agent: NexusAgent;

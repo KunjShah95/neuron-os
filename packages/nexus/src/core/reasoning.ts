@@ -113,7 +113,7 @@ export class TreeOfThoughtsStrategy implements ReasoningStrategy {
     }
 
     // Sort to find the highest-scoring path
-    const bestPath = paths.sort((a, b) => b.score - a.score)[0];
+    const bestPath = paths.sort((a, b) => b.score - a.score)[0]!;
     const tSelect = `Selecting Branch ${bestPath.id} as the optimal execution path (confidence: ${bestPath.score}).`;
     agent.emit("thought", tSelect);
     steps.push({ thought: tSelect, confidenceScore: bestPath.score });
@@ -123,7 +123,7 @@ export class TreeOfThoughtsStrategy implements ReasoningStrategy {
     const tRevision = "Revision: Adding recursive flags to the execution script.";
     agent.emit("thought", tCritique);
     agent.emit("revision", tCritique, tRevision);
-    
+
     steps.push({
       thought: `${tCritique} -> ${tRevision}`,
       confidenceScore: 0.95,

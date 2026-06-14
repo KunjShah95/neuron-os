@@ -1,11 +1,11 @@
-import {
+import type {
   AgentConfig,
   AgentState,
   AgentEventMap,
   AgentEventListener,
   Tool,
 } from "./types.js";
-import { StorageAdapter } from "../storage/adapter.js";
+import type { StorageAdapter } from "../storage/adapter.js";
 import { NexusEngine } from "./engine.js";
 import { ToolRegistry } from "../tools/registry.js";
 

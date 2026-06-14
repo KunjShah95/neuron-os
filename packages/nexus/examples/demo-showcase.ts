@@ -9,10 +9,9 @@ import {
   ToolRegistry,
   TokenLedger,
   CausalTracker,
-  CounterfactualQuery,
   TemporalReplayer,
-  Tool,
 } from "../src/index.js";
+import type { Tool } from "../src/index.js";
 import { z } from "zod";
 
 async function main() {

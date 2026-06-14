@@ -1,5 +1,5 @@
 import pc from "picocolors";
-import { existsSync, writeFileSync, unlinkSync } from "fs";
+import { writeFileSync, unlinkSync } from "fs";
 import { join } from "path";
 
 export async function handleDoctor(): Promise<void> {
