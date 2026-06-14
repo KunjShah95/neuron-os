@@ -54,9 +54,9 @@ async function searchFirecrawl(query: string, count: number): Promise<ToolResult
     const output = results
       .slice(0, count)
       .map((r: Record<string, unknown>, i: number) => {
-        const title = r.title || "Untitled"
-        const url = r.url || ""
-        const markdown = r.markdown || r.content || r.snippet || ""
+        const title = String(r.title || "Untitled")
+        const url = String(r.url || "")
+        const markdown = String(r.markdown || r.content || r.snippet || "")
         const snippet = markdown.slice(0, 300).replace(/\n/g, " ")
 
         return `${i + 1}. ${title}\n   URL: ${url}\n   ${snippet}${markdown.length > 300 ? "..." : ""}`
@@ -123,10 +123,10 @@ async function crawlFirecrawl(
 
     const output = pages
       .map((page: Record<string, unknown>, i: number) => {
-        const metadata = page.metadata || {}
-        const title = metadata.title || "Untitled"
-        const pageUrl = metadata.sourceURL || page.url || ""
-        const markdown = page.markdown || page.content || ""
+        const metadata = (page.metadata || {}) as Record<string, unknown>
+        const title = String(metadata.title || "Untitled")
+        const pageUrl = String(metadata.sourceURL || page.url || "")
+        const markdown = String(page.markdown || page.content || "")
         const preview = markdown.slice(0, 500).replace(/\n/g, " ")
 
         return `[${i + 1}] ${title}\nURL: ${pageUrl}\n\n${preview}${markdown.length > 500 ? "..." : ""}`

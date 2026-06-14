@@ -2,7 +2,7 @@ import type { PluginManifest } from "./manifest"
 
 export async function generateKeyPair(): Promise<CryptoKeyPair> {
   return crypto.subtle.generateKey(
-    { name: "Ed25519" } as AlgorithmIdentifier,
+    { name: "Ed25519" },
     true,
     ["sign", "verify"],
   ) as Promise<CryptoKeyPair>
@@ -13,11 +13,11 @@ export async function exportPublicKey(key: CryptoKey): Promise<ArrayBuffer> {
 }
 
 export async function importPublicKey(raw: ArrayBuffer): Promise<CryptoKey> {
-  return crypto.subtle.importKey("raw", raw, { name: "Ed25519" } as AlgorithmIdentifier, true, ["verify"])
+  return crypto.subtle.importKey("raw", raw, { name: "Ed25519" }, true, ["verify"])
 }
 
 export async function importPrivateKey(raw: ArrayBuffer): Promise<CryptoKey> {
-  return crypto.subtle.importKey("raw", raw, { name: "Ed25519" } as AlgorithmIdentifier, true, ["sign"])
+  return crypto.subtle.importKey("raw", raw, { name: "Ed25519" }, true, ["sign"])
 }
 
 function serializeManifest(m: PluginManifest): Uint8Array {
@@ -30,7 +30,7 @@ export async function signPlugin(
   privateKey: CryptoKey,
 ): Promise<string> {
   const data = serializeManifest(manifest)
-  const signature = await crypto.subtle.sign({ name: "Ed25519" } as AlgorithmIdentifier, privateKey, data)
+  const signature = await crypto.subtle.sign({ name: "Ed25519" }, privateKey, data)
   return Buffer.from(signature).toString("hex")
 }
 
@@ -41,7 +41,7 @@ export async function verifyPluginSignature(
 ): Promise<boolean> {
   const data = serializeManifest(manifest)
   const signature = Buffer.from(signatureHex, "hex")
-  return crypto.subtle.verify({ name: "Ed25519" } as AlgorithmIdentifier, publicKey, signature, data) as Promise<boolean>
+  return crypto.subtle.verify({ name: "Ed25519" }, publicKey, signature, data) as Promise<boolean>
 }
 
 export async function computeChecksum(data: Uint8Array): Promise<string> {
