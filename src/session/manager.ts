@@ -1,4 +1,4 @@
-import { SessionStore } from "./store"
+import { SessionStore, type SharedSession } from "./store"
 
 export type SessionEvent = "agent_joined" | "agent_left" | "user_joined" | "user_left" | "state_updated" | "session_closed"
 
