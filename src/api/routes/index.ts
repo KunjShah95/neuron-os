@@ -8,6 +8,7 @@ import {
 } from "../security"
 import type { ApiRequest, ApiServerConfig } from "../types"
 import { handleAgentRoutes } from "./agents"
+import { handleChatRoutes } from "./chat"
 import { handleMemoryRoutes } from "./memory"
 import { handleSessionRoutes } from "./sessions"
 import { handleSkillRoutes } from "./skills"
@@ -37,7 +38,7 @@ export async function handleRequest(req: ApiRequest, config: ApiServerConfig): P
     })
   }
 
-  const handlers = [handleAgentRoutes, handleMemoryRoutes, handleSystemRoutes, handleSessionRoutes, handleSkillRoutes]
+  const handlers = [handleChatRoutes, handleAgentRoutes, handleMemoryRoutes, handleSystemRoutes, handleSessionRoutes, handleSkillRoutes]
   for (const handler of handlers) {
     const response = await handler(req, config)
     if (response) return response

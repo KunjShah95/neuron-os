@@ -33,6 +33,7 @@ export const DEFAULT_PRICING: ToolPricingType = {
     plan_state: { api_usd: 0.0002, latency_p50_ms: 10, latency_p99_ms: 50 },
     tree_sitter: { compute_usd_per_second: 0.00001, latency_p50_ms: 50, latency_p99_ms: 500 },
     a2ui: { api_usd: 0.001, latency_p50_ms: 300, latency_p99_ms: 1500 },
+    image_generate: { api_usd: 0.004, latency_p50_ms: 5000, latency_p99_ms: 30000 },
   },
   models: {
     "llama-3.3-70b-versatile": {

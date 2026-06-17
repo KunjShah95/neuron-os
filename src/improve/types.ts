@@ -9,7 +9,7 @@ export interface SkillCandidate {
   invocationCount: number
   successRate: number
   createdAt: string
-  status: "candidate" | "validated" | "published" | "rejected"
+  status: "candidate" | "validated" | "published" | "rejected" | "auto_approved"
 }
 
 export interface FailureCluster {

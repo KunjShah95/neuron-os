@@ -580,10 +580,9 @@ export class AgentEngine {
     return lines.join("\n")
   }
 
-  private buildDreamInsightContext(): string {
+  private async buildDreamInsightContext(): Promise<string> {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { dreamEngine } = require("../dream/engine") as typeof import("../dream/engine")
+      const { dreamEngine } = await import("../dream/engine")
       const fresh = dreamEngine.getInsights(10, true)
       const config = loadConfig()
       const persisted = config.persistedInsights ?? []
@@ -618,7 +617,7 @@ export class AgentEngine {
     const base = await this.runtime.buildSystemPrompt()
     const toolDesc = this.buildToolDescription()
     const experienceCtx = this.buildExperienceContext()
-    const dreamCtx = this.buildDreamInsightContext()
+    const dreamCtx = await this.buildDreamInsightContext()
     let systemPrompt = base.trim() ? `${base}\n\n---\n\n${toolDesc}` : toolDesc
     if (experienceCtx) {
       systemPrompt = `${experienceCtx}\n\n---\n\n${systemPrompt}`
@@ -737,7 +736,7 @@ export class AgentEngine {
     const base = await this.runtime.buildSystemPrompt()
     const toolDesc = this.buildToolDescription()
     const experienceCtx = this.buildExperienceContext()
-    const dreamCtx = this.buildDreamInsightContext()
+    const dreamCtx = await this.buildDreamInsightContext()
     let systemPrompt = base.trim() ? `${base}\n\n---\n\n${toolDesc}` : toolDesc
     if (experienceCtx) {
       systemPrompt = `${experienceCtx}\n\n---\n\n${systemPrompt}`

@@ -284,23 +284,42 @@ export function registerSkills(program: Command): void {
 
   skillsCmd
     .command("list-staged")
-    .description("List skill candidates awaiting approval")
+    .description("List skill candidates awaiting approval and auto-approved skills")
     .action(async () => {
       const { skillReviewStore } = await import("../../improve/skill-review")
       const staged = skillReviewStore.listStaged()
-      console.log(`\n  ${theme.heading("Staged Skill Candidates")}`)
-      console.log(`  ${theme.muted(`(${staged.length} pending review)`)}\n`)
+      const autoApproved = skillReviewStore.listAutoApproved()
+
+      console.log(`\n  ${theme.heading("Skill Candidates Queue")}`)
+
+      // ── Staged (pending review) ─────────────────────────────────────
+      console.log(`\n  ${theme.textBright("📋 Pending Review")}`)
+      console.log(`  ${theme.muted(`(${staged.length} candidates awaiting approval)`)}\n`)
       if (staged.length === 0) {
-        console.log(`  ${theme.muted("No candidates staged for review.")}\n`)
-        return
+        console.log(`  ${theme.muted("  No candidates staged for review.")}\n`)
+      } else {
+        for (const c of staged) {
+          console.log(`  ${theme.textBright(c.id)}  ${theme.accent(c.name)}`)
+          console.log(`    ${theme.muted(`confidence: ${(c.confidence * 100).toFixed(0)}%  success-rate: ${(c.successRate * 100).toFixed(0)}%  status: ${c.status}`)}`)
+          if (c.description) console.log(`    ${theme.muted(c.description)}`)
+          console.log()
+        }
+        console.log(`  ${theme.muted("Approve with: aegis skills approve <id>")}\n`)
       }
-      for (const c of staged) {
-        console.log(`  ${theme.textBright(c.id)}  ${theme.accent(c.name)}`)
-        console.log(`    ${theme.muted(`confidence: ${(c.confidence * 100).toFixed(0)}%  success-rate: ${(c.successRate * 100).toFixed(0)}%  status: ${c.status}`)}`)
-        if (c.description) console.log(`    ${theme.muted(c.description)}`)
-        console.log()
+
+      // ── Auto-approved ────────────────────────────────────────────────
+      console.log(`  ${theme.textBright("✅ Auto-Approved")}`)
+      console.log(`  ${theme.muted(`(${autoApproved.length} skills written directly to src/skills/)`)}\n`)
+      if (autoApproved.length === 0) {
+        console.log(`  ${theme.muted("  No auto-approved skills yet.")}\n`)
+      } else {
+        for (const c of autoApproved) {
+          console.log(`  ${theme.textBright(c.id)}  ${theme.accent(c.name)}`)
+          console.log(`    ${theme.muted(`confidence: ${(c.confidence * 100).toFixed(0)}%  success-rate: ${(c.successRate * 100).toFixed(0)}%  invocations: ${c.invocationCount}`)}`)
+          if (c.description) console.log(`    ${theme.muted(c.description)}`)
+          console.log()
+        }
       }
-      console.log(`  ${theme.muted("Approve with: aegis skills approve <id>")}\n`)
     })
 
   // ── skills approve <id> ────────────────────────────────────────────

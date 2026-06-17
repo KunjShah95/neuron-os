@@ -13,6 +13,39 @@ const CANDIDATES_PATH = join(process.cwd(), ".aegis", "skill-candidates.json")
 
 const SIMILARITY_THRESHOLD = 0.65
 
+/**
+ * Default confidence threshold for auto-approving skills without manual staging.
+ * Can be overridden via SKILL_AUTO_APPROVE_THRESHOLD env var (0.0 - 1.0).
+ * A candidate must meet all criteria to auto-approve:
+ *   - confidence >= threshold
+ *   - successRate >= threshold * 0.9 (slightly more lenient on success rate)
+ *   - invocationCount >= min invocations (default 3)
+ *   - status is "validated"
+ */
+function getAutoApproveThreshold(): number {
+  const envVal = process.env.SKILL_AUTO_APPROVE_THRESHOLD
+  if (envVal) {
+    const parsed = Number.parseFloat(envVal)
+    if (!Number.isNaN(parsed) && parsed >= 0 && parsed <= 1) {
+      return parsed
+    }
+    log.warn(`Invalid SKILL_AUTO_APPROVE_THRESHOLD "${envVal}", falling back to default 0.8`)
+  }
+  return 0.8
+}
+
+/** Minimum invocation count before a skill can auto-approve */
+function getAutoApproveMinInvocations(): number {
+  const envVal = process.env.SKILL_AUTO_APPROVE_MIN_INVOCATIONS
+  if (envVal) {
+    const parsed = Number.parseInt(envVal, 10)
+    if (!Number.isNaN(parsed) && parsed >= 1) {
+      return parsed
+    }
+  }
+  return 3
+}
+
 export class SkillExtractor {
   private store: ExperienceStore
   private candidates: SkillCandidate[] = []
@@ -22,7 +55,15 @@ export class SkillExtractor {
     this.loadCandidates()
   }
 
-  extractCandidates(minReward = 0.7): SkillCandidate[] {
+  /**
+   * Extract skill candidates from the experience store, automatically approving
+   * high-confidence candidates without manual staging.
+   *
+   * @param minReward - Minimum reward threshold for considering experiences
+   * @param autoApprove - If true (default), auto-approve high-confidence candidates
+   * @returns All newly extracted candidates (both auto-approved and staged)
+   */
+  extractCandidates(minReward = 0.7, autoApprove = true): SkillCandidate[] {
     const successes = this.store.getByOutcome("success", 200).filter((e) => e.reward >= minReward)
     if (successes.length === 0) return []
 
@@ -31,6 +72,7 @@ export class SkillExtractor {
     const clusters = this.clusterBySimilarity(successes)
 
     const newCandidates: SkillCandidate[] = []
+    const stagedCounts = { staged: 0, autoApproved: 0 }
 
     for (const cluster of clusters) {
       if (cluster.length < 2) continue
@@ -66,12 +108,32 @@ export class SkillExtractor {
       }
 
       newCandidates.push(candidate)
+
+      // ── Auto-approve high-confidence candidates ───────────────────────
+      if (autoApprove && this.shouldAutoApprove(candidate)) {
+        candidate.status = "auto_approved"
+        stagedCounts.autoApproved++
+      } else {
+        stagedCounts.staged++
+      }
     }
 
     const merged = this.mergeWithExisting(newCandidates)
     this.candidates = merged
     this.saveCandidates()
-    log.info(`Extracted ${newCandidates.length} skill candidates (${merged.length} total)`)
+
+    // ── Process auto-approvals and stage the rest ───────────────────────
+    for (const candidate of newCandidates) {
+      if (candidate.status === "auto_approved") {
+        this.publishAutoApproved(candidate)
+      } else {
+        skillReviewStore.stage({ ...candidate, status: "validated" })
+      }
+    }
+
+    log.info(
+      `Extracted ${newCandidates.length} skill candidates: ${stagedCounts.staged} staged, ${stagedCounts.autoApproved} auto-approved`,
+    )
 
     return newCandidates
   }
@@ -176,11 +238,71 @@ export class SkillExtractor {
     return true
   }
 
-  getStats(): { totalCandidates: number; published: number; avgConfidence: number } {
+  getStats(): { totalCandidates: number; published: number; autoApproved: number; avgConfidence: number } {
     const total = this.candidates.length
     const published = this.candidates.filter((c) => c.status === "published").length
+    const autoApproved = this.candidates.filter((c) => c.status === "auto_approved").length
     const avgConf = total > 0 ? this.candidates.reduce((s, c) => s + c.confidence, 0) / total : 0
-    return { totalCandidates: total, published, avgConfidence: Math.round(avgConf * 100) / 100 }
+    return {
+      totalCandidates: total,
+      published,
+      autoApproved,
+      avgConfidence: Math.round(avgConf * 100) / 100,
+    }
+  }
+
+  /**
+   * Check whether a candidate meets the criteria for auto-approval.
+   * Requires:
+   *   1. confidence >= auto-approve threshold (default 0.8, configurable via env)
+   *   2. successRate >= threshold * 0.9
+   *   3. invocationCount >= min invocations (default 3, configurable via env)
+   */
+  private shouldAutoApprove(candidate: SkillCandidate): boolean {
+    const threshold = getAutoApproveThreshold()
+    const minInvocation = getAutoApproveMinInvocations()
+    return (
+      candidate.confidence >= threshold &&
+      candidate.successRate >= threshold * 0.9 &&
+      candidate.invocationCount >= minInvocation
+    )
+  }
+
+  /**
+   * Publish a high-confidence skill candidate directly to disk, bypassing manual staging.
+   * Records it in the SkillReviewStore's auto-approved list for auditability.
+   */
+  private publishAutoApproved(candidate: SkillCandidate): void {
+    const skillsDir = join(process.cwd(), "src", "skills")
+    if (!existsSync(skillsDir)) mkdirSync(skillsDir, { recursive: true })
+
+    const filePath = join(skillsDir, `auto-${candidate.name}.ts`)
+
+    const content = [
+      `// Auto-approved skill — confidence: ${(candidate.confidence * 100).toFixed(0)}%`,
+      `// Generated: ${candidate.createdAt}`,
+      `// Derived from: ${candidate.derivedFrom.length} experience(s)`,
+      "",
+      `export const skillId = "${candidate.id}"`,
+      `export const name = "${candidate.name}"`,
+      `export const description = ${JSON.stringify(candidate.description)}`,
+      `export const sourcePattern = ${JSON.stringify(candidate.sourcePattern)}`,
+      `export const confidence = ${candidate.confidence}`,
+      `export const avgReward = ${candidate.avgReward}`,
+      `export const invocationCount = ${candidate.invocationCount}`,
+      `export const successRate = ${candidate.successRate}`,
+      `export const derivedFrom = ${JSON.stringify(candidate.derivedFrom)}`,
+      "",
+    ].join("\n")
+
+    try {
+      writeFileSync(filePath, content, "utf-8")
+      skillReviewStore.recordAutoApproved(candidate)
+      log.info(`Auto-approved skill → ${filePath} (confidence: ${(candidate.confidence * 100).toFixed(0)}%)`)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      log.warn(`Failed to write auto-approved skill ${candidate.name}: ${msg}`)
+    }
   }
 
   private clusterBySimilarity(experiences: ExperienceRecord[]): ExperienceRecord[][] {

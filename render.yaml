@@ -5,7 +5,7 @@
 # Blueprint system. Push to GitHub and Render auto-deploys.
 #
 # Uses Docker mode (our existing Dockerfile). The dockerCommand
-# overrides the Dockerfile CMD to run the Telegram bot.
+# overrides the Dockerfile CMD for Telegram mode.
 # ──────────────────────────────────────────────────────────────────────
 
 services:
@@ -16,8 +16,14 @@ services:
     # Point to our existing Dockerfile
     dockerfilePath: ./Dockerfile
 
-    # Override the default CMD (serve) → Telegram bot for mobile access
+    # Default: run the Telegram bot (controlled from your phone 24/7)
     dockerCommand: bun run index.ts telegram
+
+    # To run the API server with the process supervisor (auto-restart on crash):
+    # dockerCommand: bun run index.ts serve --supervisor
+    #
+    # To run the API server directly (no supervisor watchdog):
+    # dockerCommand: bun run index.ts serve
 
     # Health check endpoint (the API health endpoint is always available)
     healthCheckPath: /api/v1/health

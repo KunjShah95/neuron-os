@@ -18,6 +18,7 @@
 import { experienceStore, type ClusterInsight } from "../experience/store"
 import { generateClusterReport, writeInsightsToMemory } from "../experience/cluster"
 import { skillCurator } from "../skills/curator"
+import { join } from "node:path"
 import { createLogger } from "../cli/logger"
 
 const log = createLogger("distillation")
@@ -50,6 +51,10 @@ export interface DistillationConfig {
   pruneThreshold?: number
   /** Whether to write insights to MEMORY.md (default: true) */
   writeMemory?: boolean
+  /** Enable auto-approval of high-confidence skills (default: true) */
+  autoApprove?: boolean
+  /** Confidence threshold for auto-approval (0.0-1.0, default: 0.8, env: SKILL_AUTO_APPROVE_THRESHOLD) */
+  autoApproveThreshold?: number
 }
 
 // ── Pipeline ──────────────────────────────────────────────────────────
@@ -59,7 +64,20 @@ export interface DistillationConfig {
  * This is the main entry point called from TUI commands, cron, or lifecycle hooks.
  */
 export async function runDistillationPipeline(config: DistillationConfig = {}): Promise<DistillationResult> {
-  const { minRepetitions = 3, minConfidence = 70, maxSkills = 5, pruneThreshold = 0.3, writeMemory = true } = config
+  const {
+    minRepetitions = 3,
+    minConfidence = 70,
+    maxSkills = 5,
+    pruneThreshold = 0.3,
+    writeMemory = true,
+    autoApprove = true,
+    autoApproveThreshold,
+  } = config
+
+  // Set env var for extractor to pick up custom threshold
+  if (autoApproveThreshold !== undefined) {
+    process.env.SKILL_AUTO_APPROVE_THRESHOLD = String(autoApproveThreshold)
+  }
 
   const runId = `distill-${Date.now().toString(36)}`
   const timestamp = new Date().toISOString()
@@ -72,20 +90,46 @@ export async function runDistillationPipeline(config: DistillationConfig = {}): 
     `Experience store: ${stats.totalExperiences} total, ${stats.successCount} successes, ${stats.failureCount} failures`,
   )
 
-  // ── 2. Find skill candidates from successful sessions ───────────────
+  // ── 2. Find skill candidates via SkillExtractor (with auto-approval) ──
+  const { SkillExtractor } = await import("../improve/skill-extractor")
+  const { skillReviewStore } = await import("../improve/skill-review")
+
+  const extractor = new SkillExtractor(experienceStore)
+  const candidates = extractor.extractCandidates(0.7, autoApprove)
+
+  // Also check the old-style experienceStore candidates for backward compatibility
   const skillCandidates = experienceStore.findSkillCandidates(minRepetitions)
-  log.info(`Found ${skillCandidates.length} skill candidates (min ${minRepetitions} repetitions)`)
+  log.info(`Found ${skillCandidates.length} legacy candidates, ${candidates.length} extracted via SkillExtractor`)
 
+  const queueStats = skillReviewStore.getQueueStats()
+  log.info(
+    `Skill queue: ${queueStats.staged} staged, ${queueStats.autoApproved} auto-approved (avg confidence: ${(queueStats.avgConfidence * 100).toFixed(0)}%)`,
+  )
+
+  // Build skillsExtracted report from extractor results
   const skillsExtracted: DistillationResult["skillsExtracted"] = []
+  for (const candidate of candidates) {
+    if (candidate.status === "auto_approved" || candidate.status === "published") {
+      const path = join(process.cwd(), "src", "skills", `auto-${candidate.name}.ts`)
+      skillsExtracted.push({
+        name: candidate.name,
+        confidence: candidate.confidence,
+        path,
+        description: candidate.description.slice(0, 100),
+      })
+    }
+  }
 
+  // ── Also check old-style candidates (backward compat) ───────────────
   for (const candidate of skillCandidates.slice(0, maxSkills)) {
     if (candidate.confidence < minConfidence) {
       log.debug(`Skipping ${candidate.name}: confidence ${candidate.confidence} < ${minConfidence}`)
       continue
     }
+    // Skip if already handled by SkillExtractor
+    if (skillsExtracted.some((s) => s.name === candidate.name || s.description.includes(candidate.name))) continue
 
     try {
-      // Build skill content from the candidate's action steps
       const content = [
         "---",
         `name: ${candidate.name}`,
@@ -111,7 +155,6 @@ export async function runDistillationPipeline(config: DistillationConfig = {}): 
         "",
       ].join("\n")
 
-      // Save via the skill curator
       const path = await skillCurator.saveProposedSkill(candidate.name, content)
       await skillCurator.recordUse(candidate.name, true, 100)
 
@@ -122,7 +165,7 @@ export async function runDistillationPipeline(config: DistillationConfig = {}): 
         description: candidate.goal.slice(0, 100),
       })
 
-      log.info(`Extracted skill: ${candidate.name} (${candidate.confidence}%)`)
+      log.info(`Extracted legacy skill: ${candidate.name} (${candidate.confidence}%)`)
     } catch (err: unknown) {
       log.warn(`Failed to extract skill ${candidate.name}: ${err instanceof Error ? err.message : String(err)}`)
     }

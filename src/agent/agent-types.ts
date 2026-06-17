@@ -46,6 +46,8 @@ const ALL_TOOLS: ToolPermission[] = [
   { name: "web_fetch", allow: true },
   { name: "web_search", allow: true },
   { name: "computer", allow: true },
+  { name: "browser", allow: true },
+  { name: "image_generate", allow: true },
 ]
 
 const READ_ONLY_TOOLS: ToolPermission[] = [

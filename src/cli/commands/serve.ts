@@ -18,6 +18,7 @@ export function registerServe(program: Command) {
     .option("--session-db", "Enable session store endpoints at /api/v1/sessions/*")
     .option("--ws", "Enable WebSocket gateway on port 8081", false)
     .option("--ws-port <port>", "WebSocket gateway port", "8081")
+    .option("--supervisor", "Run under process supervisor (auto-restart on crash)", false)
     .action(
       async (opts: {
         port?: string
@@ -31,12 +32,71 @@ export function registerServe(program: Command) {
         sessionDb?: boolean
         ws?: boolean
         wsPort?: string
+        supervisor?: boolean
       }) => {
+        // ── Supervisor mode: re-exec under process supervisor ────────────
+        if (opts.supervisor) {
+          const supervisorPath = new URL("../../cli/supervisor.ts", import.meta.url).pathname
+          const entryPoint = (Bun as any).main || process.argv[1] || "index.ts"
+          const filteredArgs = process.argv.slice(2).filter((a) => a !== "--supervisor")
+          // Determine entry style: bun run <script> vs compiled binary
+          const isScriptRun = entryPoint.endsWith(".ts") || entryPoint.endsWith(".js") || entryPoint.endsWith(".mjs")
+          const childCmd = isScriptRun
+            ? ["bun", "run", entryPoint, ...filteredArgs]
+            : [entryPoint, ...filteredArgs]
+          const supervisorCmd = ["bun", "run", supervisorPath, "--", ...childCmd]
+          console.log(theme.info(`  Running under process supervisor (auto-restart on crash)`))
+          console.log(theme.dim(`  Exec: ${supervisorCmd.slice(0, 3).join(" ")} ...`))
+          const proc = Bun.spawn(supervisorCmd, {
+            stdio: ["inherit", "inherit", "inherit"],
+            env: { ...process.env, AEGIS_SUPERVISED: "1" },
+          })
+          const exitCode = await proc.exited
+          process.exit(exitCode ?? 1)
+          return
+        }
+
         const { startApiServer } = await import("../../api")
         const port = parseInt(opts.port ?? "8080", 10)
         const { gateway } = await import("../../adapters/gateway")
 
         console.log(theme.heading("  Starting Aegis API Server"))
+        console.log()
+
+        // ── Preflight checks ────────────────────────────────────────────
+        // Check data directory is writable
+        const { mkdirSync, accessSync, constants } = await import("node:fs")
+        const { resolve: resolvePath } = await import("node:path")
+        const homeDir = process.env.HOME || process.env.USERPROFILE || ""
+        const aegisDir = resolvePath(homeDir, ".aegis")
+        try {
+          mkdirSync(aegisDir, { recursive: true })
+          accessSync(aegisDir, constants.W_OK)
+          console.log(theme.dim(`  Data directory: ${aegisDir} (writable)`))
+        } catch (err) {
+          console.log(theme.warn(`  Warning: Data directory ${aegisDir} is not writable. Some features may not work.`))
+        }
+
+        // Check SQLite is available
+        try {
+          const Database = (await import("better-sqlite3")).default
+          const testDb = new Database(":memory:")
+          testDb.close()
+          console.log(theme.dim("  SQLite: available"))
+        } catch {
+          console.log(theme.warn("  Warning: SQLite (better-sqlite3) not available. Session persistence disabled."))
+        }
+
+        // Check AI provider availability (informational only)
+        const { getConfiguredProviders } = await import("../../ai/provider")
+        const providers = getConfiguredProviders()
+        if (providers.length > 0) {
+          console.log(theme.dim(`  AI providers: ${providers.map((p) => p.provider).join(", ")}`))
+        } else {
+          console.log(theme.warn("  No AI providers configured. POST /api/v1/chat will return 503."))
+          console.log(theme.dim("  Set an API key (e.g. ANTHROPIC_API_KEY) or run: aegis setup-keys"))
+        }
+
         console.log()
 
         const server = startApiServer({

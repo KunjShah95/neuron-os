@@ -11,6 +11,8 @@ export { memoryWriteTool } from "./memory-write"
 export { memorySearchTool } from "./memory-search"
 export { planStateTool } from "./plan-state"
 export { treeSitterTool } from "./tree-sitter"
+export { browserTool } from "./browser"
+export { imageGenerateTool } from "./image-generate"
 
 import { toolRegistry } from "./registry"
 import { bashTool } from "./bash"
@@ -34,6 +36,8 @@ import { executeCodeTool } from "./execute-code"
 import { docsCrawlTool } from "../docs-crawl/tool"
 import { planStateTool } from "./plan-state"
 import { treeSitterTool } from "./tree-sitter"
+import { browserTool } from "./browser"
+import { imageGenerateTool } from "./image-generate"
 
 // Auto-register A2UI tool (import side-effect registers it)
 import "./a2ui-tool"
@@ -62,6 +66,8 @@ export function registerBuiltinTools(): void {
   toolRegistry.register(docsCrawlTool)
   toolRegistry.register(planStateTool)
   toolRegistry.register(treeSitterTool)
+  toolRegistry.register(browserTool)
+  toolRegistry.register(imageGenerateTool)
   registerGatewayTools()
 }
 

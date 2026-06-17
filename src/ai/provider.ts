@@ -84,8 +84,18 @@ export function resolveAutoAIConfig(overrides?: Partial<AIConfig>): AIConfig {
 
 export function requireAnyProvider(): void {
   if (getConfiguredProviders().length > 0) return
-  console.error(`\n  ✗ No AI provider configured. Run: aegis setup-keys\n`)
-  process.exit(1)
+  console.error("")
+  console.error("  ✗ No AI provider configured.")
+  console.error("")
+  console.error("  To get started, set at least one API key:")
+  console.error("    • export ANTHROPIC_API_KEY=sk-...")
+  console.error("    • export OPENAI_API_KEY=sk-...")
+  console.error("    • export GROQ_API_KEY=gsk_...")
+  console.error("")
+  console.error("  Or run: aegis setup-keys")
+  console.error("")
+  // Throw instead of process.exit so callers can catch if needed
+  throw new Error("No AI provider configured. Run: aegis setup-keys or set an API key environment variable.")
 }
 
 export type AIProvider = AIProviderType

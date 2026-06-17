@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-12T15:09:24.201Z",
+  "generatedAt": "2026-06-14T16:45:36.661Z",
   "commands": [
     {
       "name": "adversarial",
@@ -2541,7 +2541,8 @@
       "options": [],
       "sourceFile": "src/cli/commands/memory.ts",
       "description": "Show current MEMORY.md content",
-      "parent": "memory"
+      "parent": "memory",
+      "alias": "ls"
     },
     {
       "name": "memory stats",
@@ -3412,6 +3413,78 @@
       "parent": "production"
     },
     {
+      "name": "profile",
+      "options": [],
+      "sourceFile": "src/cli/commands/profile.ts",
+      "description": "Manage agent identity profiles"
+    },
+    {
+      "name": "profile create",
+      "options": [
+        {
+          "flag": "--type <agentType>",
+          "description": "Agent type name",
+          "required": true
+        },
+        {
+          "flag": "--name <name>",
+          "description": "Display name for the profile",
+          "required": true
+        },
+        {
+          "flag": "--model <model>",
+          "description": "Model override (provider:model-id)",
+          "required": false
+        },
+        {
+          "flag": "--temperature <n>",
+          "description": "Temperature override",
+          "required": false
+        },
+        {
+          "flag": "--budget <usd>",
+          "description": "Budget USD per task",
+          "required": false
+        },
+        {
+          "flag": "--skills <skills>",
+          "description": "Comma-separated skill names",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/profile.ts",
+      "description": "Create a new agent profile",
+      "parent": "profile"
+    },
+    {
+      "name": "profile delete <id>",
+      "options": [],
+      "sourceFile": "src/cli/commands/profile.ts",
+      "description": "Delete a profile",
+      "parent": "profile"
+    },
+    {
+      "name": "profile get <id>",
+      "options": [],
+      "sourceFile": "src/cli/commands/profile.ts",
+      "description": "Print a profile as JSON",
+      "parent": "profile"
+    },
+    {
+      "name": "profile list",
+      "options": [],
+      "sourceFile": "src/cli/commands/profile.ts",
+      "description": "List all profiles",
+      "parent": "profile"
+    },
+    {
+      "name": "profile set-default <id>",
+      "options": [],
+      "sourceFile": "src/cli/commands/profile.ts",
+      "description": "Set a profile as the default for its agent type",
+      "parent": "profile"
+    },
+    {
       "name": "project",
       "options": [],
       "sourceFile": "src/cli/commands/project.ts",
@@ -4065,6 +4138,13 @@
       "description": "Manage skills and browse the marketplace (also: evolution, publish, hub)"
     },
     {
+      "name": "skills approve",
+      "options": [],
+      "sourceFile": "src/cli/commands/skills.ts",
+      "description": "Approve a staged skill candidate and write it to src/skills/",
+      "parent": "skills"
+    },
+    {
       "name": "skills browse",
       "options": [
         {
@@ -4123,6 +4203,13 @@
       "options": [],
       "sourceFile": "src/cli/commands/skills.ts",
       "description": "List installed skills",
+      "parent": "skills"
+    },
+    {
+      "name": "skills list-staged",
+      "options": [],
+      "sourceFile": "src/cli/commands/skills.ts",
+      "description": "List skill candidates awaiting approval",
       "parent": "skills"
     },
     {

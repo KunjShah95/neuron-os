@@ -80,6 +80,8 @@ import { registerTls } from "./tls"
 import { registerMarketplace } from "./marketplace"
 import { registerProviders } from "./providers"
 import { registerProfile } from "./profile"
+import { registerBrowser } from "./browser"
+import { registerImageGenerate } from "./image-generate"
 
 export function registerAllCommands(program: Command) {
   registerDoctor(program)
@@ -163,4 +165,6 @@ export function registerAllCommands(program: Command) {
   registerMarketplace(program)
   registerProviders(program)
   registerProfile(program)
+  registerBrowser(program)
+  registerImageGenerate(program)
 }

@@ -65,16 +65,25 @@ ENV AEGIS_LOG_LEVEL=info \
     HOME=/home/aegis
 
 # Health check — pings the API server health endpoint
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD bun -e "fetch('http://localhost:8080/api/v1/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
+# Increased start_period to 15s (Bun needs time to transpile TypeScript on first run)
+# Uses timeout to prevent hanging health check processes
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD bun -e "const c=new AbortController();setTimeout(()=>c.abort(),8000);fetch('http://localhost:8080/api/v1/health',{signal:c.signal}).then(r=>{if(!r.ok)throw 1;return r.json()}).then(j=>{if(j.status!=='ok')throw 1;process.exit(0)}).catch(()=>process.exit(1))"
 
 # Expose API server port (serves REST API + dashboard static files)
 EXPOSE 8080
 
-# Default: start the API server (serve mode)
+# Default: start the API server under the process supervisor
+# The --supervisor flag wraps the server in a watchdog that auto-restarts
+# on unplanned crashes with exponential backoff (1s to 30s, up to 20 retries).
+# Docker's restart: unless-stopped handles the outer container restart;
+# the supervisor handles fast inner-process restarts.
+#
 # Override CMD to run other commands, e.g.:
-#   docker run <image> chat
-#   docker run <image> status --json
-#   docker run <image> agent list
+#   docker run <image> serve                        (supervisor mode)
+#   docker run <image> serve --no-supervisor        (direct mode, no watchdog)
+#   docker run <image> chat                         (CLI chat mode)
+#   docker run <image> status --json                (status check)
+#   docker run <image> agent list                   (list agents)
 ENTRYPOINT ["bun", "run", "index.ts"]
-CMD ["serve"]
+CMD ["serve", "--supervisor"]

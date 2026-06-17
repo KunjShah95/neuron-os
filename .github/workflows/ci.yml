@@ -333,6 +333,35 @@ jobs:
             dashboard/coverage/
           if-no-files-found: warn
 
+  e2e-smoke:
+    name: E2E Smoke (server health, crash log, modules)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.x'
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: bun-
+
+      - run: bun install --frozen-lockfile
+
+      - name: Run E2E smoke test
+        run: bun run scripts/e2e-smoke-test.ts
+        timeout-minutes: 5
+        env:
+          # No API keys needed — the test verifies the server starts, health
+          # endpoint responds, validation works, crash log writes/reads,
+          # and supervisor/guard modules import correctly — all without
+          # calling any AI provider.
+          AEGIS_LOG_LEVEL: error
+
   aegis-ci-fix:
     name: Aegis CI Auto-Fix
     if: failure() && github.event_name == 'push'

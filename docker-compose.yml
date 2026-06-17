@@ -19,13 +19,17 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+    # Two-layer crash protection:
+    #   1. Docker restart: unless-stopped restarts the container if supervisor fails
+    #   2. Supervisor (--supervisor in Dockerfile CMD) auto-restarts the server
+    #      internally with exponential backoff (1s-30s) on unplanned crashes
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "bun", "-e", "fetch('http://localhost:8080/api/v1/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
+      test: ["CMD", "bun", "-e", "const c=new AbortController();setTimeout(()=>c.abort(),8000);fetch('http://localhost:8080/api/v1/health',{signal:c.signal}).then(r=>{if(!r.ok)throw 1;return r.json()}).then(j=>{if(j.status!=='ok')throw 1;process.exit(0)}).catch(()=>process.exit(1))"]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 15s
 
   # Development-only: hot-reload web dashboard
   dashboard-dev:
