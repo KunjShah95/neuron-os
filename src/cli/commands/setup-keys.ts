@@ -1,5 +1,6 @@
 import * as p from "@clack/prompts"
 import type { Command } from "commander"
+import { resetStdin } from "../stdin"
 import { credentialVault } from "../../vault"
 import { saveConfig, loadConfig } from "../../config"
 import { MODEL_REFERENCES, type AIProviderType } from "../../ai/models"
@@ -679,6 +680,8 @@ export async function runSetupKeysWizard(): Promise<void> {
       process.exit(0)
     }
     throw err
+  } finally {
+    resetStdin()
   }
 }
 

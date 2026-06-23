@@ -8,6 +8,7 @@
 import type { Command } from "commander"
 import { theme } from "../theme"
 import { showBanner } from "../banner"
+import { resetStdin } from "../stdin"
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from "node:fs"
 import { resolve, join } from "node:path"
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml"
@@ -285,6 +286,8 @@ async function handleWorkflowBuild() {
   } catch (err: unknown) {
     s.stop("Export failed")
     console.error(theme.error(`\n  ✗ Error: ${err instanceof Error ? err.message : String(err)}\n`))
+  } finally {
+    resetStdin()
   }
 }
 
