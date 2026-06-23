@@ -196,6 +196,18 @@ export class AuditStore {
     return rows.reverse().map((r) => this.rowToEntry(r))
   }
 
+  searchRecords(keyword: string, limit = 50, offset = 0): AuditEntry[] {
+    const pattern = `%${keyword.toLowerCase()}%`
+    const sql = `
+      SELECT * FROM audit_log
+      WHERE lower(summary) LIKE ? OR lower(detail) LIKE ? OR lower(agent_thought) LIKE ?
+      ORDER BY id DESC
+      LIMIT ? OFFSET ?
+    `
+    const rows = this.db.prepare(sql).all(pattern, pattern, pattern, limit, offset) as Record<string, unknown>[]
+    return rows.reverse().map((r) => this.rowToEntry(r))
+  }
+
   getSessionAudit(sessionId: string): AuditEntry[] {
     return this.query({ sessionId, limit: 1000 })
   }
