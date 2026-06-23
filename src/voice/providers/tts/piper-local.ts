@@ -55,8 +55,9 @@ export class PiperLocalProvider implements TTSProvider {
       return Buffer.alloc(0)
     }
 
+    const { spawn } = await import("node:child_process")
+
     return new Promise<Buffer>((resolve, reject) => {
-      const { spawn } = require("node:child_process") as typeof import("node:child_process")
 
       const proc = spawn(this.binaryPath, ["--model", modelPath, "--output-raw", "--quiet"], {
         stdio: ["pipe", "pipe", "pipe"],
