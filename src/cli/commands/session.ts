@@ -17,12 +17,18 @@ export function registerSession(program: Command) {
     .description("List recent sessions")
     .option("-n, --count <n>", "Number of sessions to show", "10")
     .option("--status <status>", "Filter by status (active, completed, failed, paused)")
-    .action(async (opts: { count?: string; status?: string }) => {
+    .option("--json", "Output as JSON")
+    .action(async (opts: { count?: string; status?: string; json?: boolean }) => {
       const { sessionStore } = await import("../../memory/session-persistence")
 
       const count = parseInt(opts.count ?? "10", 10)
       const status = opts.status as "active" | "completed" | "failed" | "paused" | undefined
       const sessions = status ? sessionStore.listSessions(status) : sessionStore.restoreRecentSessions(count)
+
+      if (opts.json) {
+        console.log(JSON.stringify(sessions, null, 2))
+        return
+      }
 
       if (sessions.length === 0) {
         console.log(theme.dim("  No sessions found."))
