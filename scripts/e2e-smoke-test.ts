@@ -68,7 +68,7 @@ async function startServer(): Promise<void> {
 
     if (exited) {
       const exitCode = await serverProc.exited
-      const stderr = await new Response(serverProc.stderr).text()
+      const stderr = serverProc.stderr instanceof ReadableStream ? await new Response(serverProc.stderr).text() : ""
       log("CRASHED", `Server exited with code ${exitCode} during startup`)
       if (stderr.length > 0) {
         const truncated = stderr.length > 2000 ? stderr.slice(-2000) : stderr
@@ -108,7 +108,7 @@ async function testHealthEndpoint(): Promise<boolean> {
 
   try {
     const res = await fetchWithTimeout(`${BASE_URL}/api/v1/health`)
-    const body = await res.json()
+    const body = await res.json() as any
 
     if (res.status === 200 && body.status === "ok") {
       ok(`GET /api/v1/health -> 200, status: "${body.status}"`)
@@ -131,7 +131,7 @@ async function testMetricsEndpoint(): Promise<boolean> {
 
   try {
     const res = await fetchWithTimeout(`${BASE_URL}/api/v1/metrics`)
-    const body = await res.json()
+    const body = await res.json() as any
 
     if (res.status === 200 && body.system) {
       ok(`GET /api/v1/metrics -> 200`)
@@ -154,7 +154,7 @@ async function testProvidersEndpoint(): Promise<boolean> {
 
   try {
     const res = await fetchWithTimeout(`${BASE_URL}/api/v1/chat/providers`)
-    const body = await res.json()
+    const body = await res.json() as any
 
     if (res.status === 200) {
       ok(`GET /api/v1/chat/providers -> 200`)
@@ -183,7 +183,7 @@ async function testChatEndpoint(): Promise<boolean> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: "" }),
     })
-    const body = await res.json()
+    const body = await res.json() as any
 
     if (res.status === 400) {
       ok("POST /api/v1/chat (empty message) -> 400 (correct validation)")
@@ -209,7 +209,7 @@ async function test404Endpoint(): Promise<boolean> {
 
   try {
     const res = await fetchWithTimeout(`${BASE_URL}/api/v1/nonexistent`)
-    const body = await res.json()
+    const body = await res.json() as any
 
     if (res.status === 404 && body.error === "Not found") {
       ok(`GET /api/v1/nonexistent -> 404 (correct)`)
@@ -293,7 +293,7 @@ async function testTypesEndpoint(): Promise<boolean> {
 
   try {
     const res = await fetchWithTimeout(`${BASE_URL}/api/v1/types`)
-    const body = await res.json()
+    const body = await res.json() as any
 
     if (res.status === 200 && body.types) {
       ok(`GET /api/v1/types -> 200, ${body.types.length} types`)
@@ -357,8 +357,8 @@ async function testGuardModule(): Promise<boolean> {
   console.log("\n\x1b[1m═══ 12. Guard Module (error boundaries) ═══\x1b[0m\n")
 
   try {
-    const { registerErrorBoundaries } = await import("../src/cli/guard")
-    ok("guard.ts imports successfully, registerErrorBoundaries available")
+    const guard = await import("../src/cli/guard")
+    ok(`guard.ts imports successfully, registerErrorBoundaries=${typeof guard.registerErrorBoundaries}`)
     return true
   } catch (err) {
     fail(`guard.ts import -> ERROR: ${err}`)
