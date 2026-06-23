@@ -77,7 +77,7 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
               }
             }
 
-            const upgraded = server.upgrade(request)
+            const upgraded = (server as Bun.Server<undefined>).upgrade(request)
             if (upgraded) return new Response(null, { status: 101 })
             return new Response("WebSocket upgrade failed", { status: 400 })
           }

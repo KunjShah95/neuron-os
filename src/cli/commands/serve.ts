@@ -79,7 +79,7 @@ export function registerServe(program: Command) {
 
         // Check SQLite is available
         try {
-          const Database = (await import("better-sqlite3")).default
+          const Database = (await import("better-sqlite3")).default as unknown as new (path: string) => { close(): void }
           const testDb = new Database(":memory:")
           testDb.close()
           console.log(theme.dim("  SQLite: available"))

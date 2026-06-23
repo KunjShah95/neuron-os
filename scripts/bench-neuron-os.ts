@@ -35,22 +35,18 @@ const BOLD = "\x1b[1m"
 const DIM = "\x1b[2m"
 const GREEN = "\x1b[32m"
 const YELLOW = "\x1b[33m"
-const CYAN = "\x1b[36m"
 const RESET = "\x1b[0m"
 
 function bold(s: string): string { return `${BOLD}${s}${RESET}` }
 function dim(s: string): string { return `${DIM}${s}${RESET}` }
 function green(s: string): string { return `${GREEN}${s}${RESET}` }
 function yellow(s: string): string { return `${YELLOW}${s}${RESET}` }
-function cyan(s: string): string { return `${CYAN}${s}${RESET}` }
 
 function fmtMs(ms: number): string {
   if (ms >= 1000) return `${(ms / 1000).toFixed(2)}s`
   if (ms >= 1) return `${ms.toFixed(2)}ms`
   return `${(ms * 1000).toFixed(0)}µs`
 }
-
-function fmtPct(v: number): string { return `${(v * 100).toFixed(1)}%` }
 
 // ── Benchmark Runner ─────────────────────────────────────────────
 

@@ -1,5 +1,5 @@
 import { sessionStore } from "../memory/session-persistence"
-import { createAIProvider } from "../ai"
+import { createAIProvider, resolveAutoAIConfig } from "../ai"
 import fs from "node:fs"
 import path from "node:path"
 import { createLogger } from "../cli/logger"
@@ -38,7 +38,6 @@ export async function extractSkillsFromSession(sessionId: string, skillName: str
 
   log.info(`Found ${shellCommands.length} commands. Generating SKILL.md with AI...`)
 
-  const { resolveAutoAIConfig } = require("../ai")
   const cfg = resolveAutoAIConfig({
     ...(process.env.AEGIS_AI_PROVIDER ? { provider: process.env.AEGIS_AI_PROVIDER as any } : {}),
     ...(process.env.AEGIS_AI_MODEL ? { model: process.env.AEGIS_AI_MODEL } : {}),

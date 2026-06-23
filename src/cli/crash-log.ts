@@ -200,7 +200,7 @@ export function readRecentCrashes(count = 10): CrashRecord[] {
     const records: CrashRecord[] = []
     for (let i = lines.length - 1; i >= 0 && records.length < count; i--) {
       try {
-        const parsed = JSON.parse(lines[i])
+        const parsed = JSON.parse(lines[i]!)
         if (parsed && parsed.type === "crash") {
           records.push(parsed)
         }
