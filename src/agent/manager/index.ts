@@ -1,0 +1,7 @@
+export { AgentManager, agentManager } from "./agent-manager"
+export type { ManagerContext } from "./state"
+export { cleanupAllSandboxes, cleanupSandbox, DEFAULT_RECOVERY, now } from "./state"
+export { getIsolationLevelFor, killAgent, spawnAgent, spawnDistributedAgent } from "./lifecycle"
+export { handleIpcMessage, readAgentStream, routeIpcMessage, sendIpcMessage, waitForAgentReady } from "./ipc"
+export { calculateBackoffDelay, cancelAgentRecovery, performAgentRecovery, triggerAgentRecovery } from "./recovery"
+export { computePrewarmStats, listPrewarmedTypes, promoteWarmAgent, runPrewarmTick, scheduleWarmAgentShutdown } from "./prewarm"
