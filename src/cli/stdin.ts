@@ -7,6 +7,14 @@
  *   2. Leftover bytes in the buffer (the Enter key that confirmed the selection)
  *   3. Stale data event listeners
  *
+ * Root cause: @clack/core calls emitKeypressEvents(stdin) on each prompt, which
+ * sets stdin._keypressEventsEmitted = true and attaches keypress-decoder /
+ * escape-decoder symbols. Its rl.close() does NOT clear these, so the next
+ * emitKeypressEvents() call skips re-attaching the data listener — stdin freezes.
+ *
+ * Checked @clack/core 1.4.2 (latest as of 2026-06): still affected.
+ * This workaround must stay until the fix is upstreamed into @clack/core.
+ *
  * IMPORTANT: This must NOT call pause() on Windows — it breaks subsequent
  * readline/TUI input. Only remove stale listeners and reset raw mode.
  */

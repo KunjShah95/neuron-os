@@ -9,8 +9,8 @@
         "@ai-sdk/azure": "^3.0.70",
         "@ai-sdk/mistral": "^3.0.37",
         "@ai-sdk/openai": "^3.0.67",
-        "@clack/core": "^1.4.1",
-        "@clack/prompts": "^1.5.1",
+        "@clack/core": "^1.4.2",
+        "@clack/prompts": "^1.6.0",
         "@mendable/firecrawl-js": "^4.25.2",
         "@slack/socket-mode": "^2.0.7",
         "@slack/web-api": "^7.16.0",
@@ -40,8 +40,8 @@
         "@ai-sdk/azure": "^3.0.70",
         "@ai-sdk/mistral": "^3.0.37",
         "@ai-sdk/openai": "^3.0.67",
-        "@clack/core": "^1.4.1",
-        "@clack/prompts": "^1.5.1",
+        "@clack/core": "^1.4.2",
+        "@clack/prompts": "^1.6.0",
         "@mendable/firecrawl-js": "^4.25.2",
         "@slack/socket-mode": "^2.0.7",
         "@slack/web-api": "^7.16.0",
@@ -93,9 +93,9 @@
 
     "@babel/runtime": ["@babel/runtime@7.29.7", "", {}, "sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw=="],
 
-    "@clack/core": ["@clack/core@1.4.1", "", { "dependencies": { "fast-wrap-ansi": "^0.2.0", "sisteransi": "^1.0.5" } }, "sha512-FILJa1gGKEFTGZAJE9RpVhrjKz3c3h4ar60dSv6cGuDqufQ84YEIS3GAGvZiN+H6yaLbbvTFNejjCC4tXpZEuw=="],
+    "@clack/core": ["@clack/core@1.4.2", "", { "dependencies": { "fast-wrap-ansi": "^0.2.0", "sisteransi": "^1.0.5" } }, "sha512-0Ty/1Gfm+Kb07sXcuESjyKfwEhSy4Ns1AgeEisHb/bDY5fWme0tTeTkU14T1Gmcs17YIjB/teiDe4uaCghbYqQ=="],
 
-    "@clack/prompts": ["@clack/prompts@1.5.1", "", { "dependencies": { "@clack/core": "1.4.1", "fast-string-width": "^3.0.2", "fast-wrap-ansi": "^0.2.0", "sisteransi": "^1.0.5" } }, "sha512-zccHj2z2oCCO4yrDiRSlFOxWerGqRiysP7a5jPK6uoI9URKAquwY42Dd/iUP8JWHxEzdRe4TlbvZCo8z1/mhrw=="],
+    "@clack/prompts": ["@clack/prompts@1.6.0", "", { "dependencies": { "@clack/core": "1.4.2", "fast-string-width": "^3.0.2", "fast-wrap-ansi": "^0.2.0", "sisteransi": "^1.0.5" } }, "sha512-EYlRokl8szrP9Z25qT5aepMdBjzBvHF9ZEhzIiUBc9guz/T31EqRgvD0QSgZcpE93xiwrr+OkB4nz0BZyF6fSA=="],
 
     "@colors/colors": ["@colors/colors@1.5.0", "", {}, "sha512-ooWCrlZP11i8GImSjTHYHLkvFDP48nS4+204nGb1RiX/WXYHmJA2III9/e2DWVabCESdW7hBAEzHRqUn9OUVvQ=="],
 
