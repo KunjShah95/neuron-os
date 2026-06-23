@@ -31,7 +31,7 @@ async function llmJudge(
   try {
     const { createAIProvider, resolveAutoAIConfig } = await import("../../ai")
     const cfg = resolveAutoAIConfig({
-      ...(process.env.AEGIS_AI_PROVIDER ? { provider: process.env.AEGIS_AI_PROVIDER as any } : {}),
+      ...(process.env.AEGIS_AI_PROVIDER ? { provider: process.env.AEGIS_AI_PROVIDER as import("../../ai").AIProvider } : {}),
       ...(process.env.AEGIS_EVOLUTION_JUDGE_MODEL || process.env.AEGIS_AI_MODEL ? { model: process.env.AEGIS_EVOLUTION_JUDGE_MODEL || process.env.AEGIS_AI_MODEL } : {}),
     })
 

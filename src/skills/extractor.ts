@@ -39,7 +39,7 @@ export async function extractSkillsFromSession(sessionId: string, skillName: str
   log.info(`Found ${shellCommands.length} commands. Generating SKILL.md with AI...`)
 
   const cfg = resolveAutoAIConfig({
-    ...(process.env.AEGIS_AI_PROVIDER ? { provider: process.env.AEGIS_AI_PROVIDER as any } : {}),
+    ...(process.env.AEGIS_AI_PROVIDER ? { provider: process.env.AEGIS_AI_PROVIDER as import("../ai").AIProvider } : {}),
     ...(process.env.AEGIS_AI_MODEL ? { model: process.env.AEGIS_AI_MODEL } : {}),
   })
   const ai = createAIProvider(cfg)

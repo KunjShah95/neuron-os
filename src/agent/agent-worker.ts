@@ -29,7 +29,7 @@ function replyTo(msg: AgentIpcMessage, type: string, payload?: unknown): void {
 // The Agent worker will use the central AgentRuntime/AgentEngine when available,
 // falling back to the original builtin tool set for standalone usage.
 import { createAgentRuntime } from "./runtime"
-import { AIProviderManager, type AIConfig, resolveAutoAIConfig } from "../ai"
+import { AIProviderManager, type AIConfig, type AIProvider, resolveAutoAIConfig } from "../ai"
 import { AGENT_TYPES } from "./agent-types"
 
 import { AgentEngine } from "./engine"
@@ -41,7 +41,7 @@ function buildAIConfig(): AIConfig {
   const explicitModel = process.env.AEGIS_AI_MODEL || process.env.AEGIS_DEFAULT_MODEL
   const cfg = explicitProvider
     ? resolveAutoAIConfig({
-        provider: explicitProvider as any,
+        provider: explicitProvider as AIProvider,
         model: explicitModel ?? undefined,
         baseUrl: process.env.AEGIS_AI_BASE_URL,
         temperature: process.env.AEGIS_TEMPERATURE ? parseFloat(process.env.AEGIS_TEMPERATURE) : undefined,

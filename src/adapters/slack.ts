@@ -21,9 +21,15 @@ interface SlackConfig {
   project?: string
 }
 
+interface SocketModeClientLike {
+  on(event: string, handler: (payload: Record<string, unknown>) => unknown): void
+  start(): Promise<void>
+  disconnect(): Promise<void>
+}
+
 export function createSlackAdapter(config: SlackConfig): PlatformAdapter {
   const client = new WebClient(config.botToken)
-  let socketModeClient: any = null
+  let socketModeClient: SocketModeClientLike | null = null
 
   return {
     name: "slack",

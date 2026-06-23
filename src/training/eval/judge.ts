@@ -63,8 +63,7 @@ async function tryJudgeModel(
 ): Promise<number | null> {
   try {
     const { createAIProvider } = await import("../../ai/provider")
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const provider: any = createAIProvider({ provider: "openrouter", model })
+    const provider = createAIProvider({ provider: "openrouter", model })
 
     const response = await provider.complete({
       system: "You are an evaluation judge. Output ONLY a number between 0.0 and 1.0. No prose, no explanation.",

@@ -43,8 +43,7 @@ export class Summarizer {
     try {
       // Try using the AI provider
       const { createAIProvider } = await import("../../ai/provider")
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const provider: any = createAIProvider({ provider: "openrouter", model: "claude-sonnet-4-6" })
+      const provider = createAIProvider({ provider: "openrouter", model: "claude-sonnet-4-6" })
 
       const response = await provider.complete({
         system:

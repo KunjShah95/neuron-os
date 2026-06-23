@@ -12,7 +12,7 @@
  */
 
 import { generateText, stepCountIs } from "ai"
-import { AIProviderManager, resolveAutoAIConfig } from "../ai"
+import { AIProviderManager, resolveAutoAIConfig, type AIProvider } from "../ai"
 import type { AIConfig } from "../ai"
 import { agentPool } from "./agent-pool"
 
@@ -52,7 +52,7 @@ function buildAIConfig(): AIConfig {
   const explicitModel = process.env.AEGIS_AI_MODEL
   if (explicitProvider) {
     return resolveAutoAIConfig({
-      provider: explicitProvider as any,
+      provider: explicitProvider as AIProvider,
       model: explicitModel ?? undefined,
       baseUrl: process.env.AEGIS_AI_BASE_URL,
       temperature: 0.5,

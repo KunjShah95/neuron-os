@@ -37,7 +37,7 @@ export function registerServe(program: Command) {
         // ── Supervisor mode: re-exec under process supervisor ────────────
         if (opts.supervisor) {
           const supervisorPath = new URL("../../cli/supervisor.ts", import.meta.url).pathname
-          const entryPoint = (Bun as any).main || process.argv[1] || "index.ts"
+          const entryPoint = process.argv[1] || "index.ts"
           const filteredArgs = process.argv.slice(2).filter((a) => a !== "--supervisor")
           // Determine entry style: bun run <script> vs compiled binary
           const isScriptRun = entryPoint.endsWith(".ts") || entryPoint.endsWith(".js") || entryPoint.endsWith(".mjs")
