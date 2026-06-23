@@ -43,16 +43,20 @@ export class Summarizer {
     try {
       // Try using the AI provider
       const { createAIProvider } = await import("../../ai/provider")
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const provider: any = createAIProvider({ provider: "openrouter", model: "claude-sonnet-4-6" })
-
-      const response = await provider.complete({
-        system:
-          "You are summarizing prior conversation context for an AI agent. Be terse. Preserve entities, decisions, and unresolved questions. Output ONLY the summary, no preamble.",
-        prompt: context,
-        maxTokens: this.config.summaryTokenBudget,
-        signal: controller.signal,
+      const provider = createAIProvider({
+        provider: "openrouter",
+        model: "claude-sonnet-4-6",
+        maxOutputTokens: this.config.summaryTokenBudget,
       })
+
+      const response = await provider.generate([
+        {
+          role: "system",
+          content:
+            "You are summarizing prior conversation context for an AI agent. Be terse. Preserve entities, decisions, and unresolved questions. Output ONLY the summary, no preamble.",
+        },
+        { role: "user", content: context },
+      ])
 
       return response.text ?? ""
     } catch (err: unknown) {

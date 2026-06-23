@@ -3,7 +3,7 @@ import { createLogger } from "../../cli/logger"
 import { jsonResponse } from "../security"
 import type { ApiRequest, ApiServerConfig } from "../types"
 import { AgentEngine } from "../../agent/engine"
-import { AIProviderManager, resolveAutoAIConfig, getConfiguredProviders } from "../../ai"
+import { AIProviderManager, resolveAutoAIConfig, getConfiguredProviders, type AIProvider } from "../../ai"
 import { createAgentRuntime } from "../../agent/runtime"
 import type { ModelMessage } from "ai"
 
@@ -64,7 +64,7 @@ function buildEngine(
   }
 
   const config = resolveAutoAIConfig({
-    provider: providerOverride as any,
+    provider: providerOverride as AIProvider,
     model: modelOverride,
     temperature,
   })

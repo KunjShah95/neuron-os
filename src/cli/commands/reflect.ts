@@ -7,7 +7,7 @@
  */
 
 import type { Command } from "commander"
-import { AIProviderManager, resolveAutoAIConfig } from "../../ai"
+import { AIProviderManager, resolveAutoAIConfig, type AIProvider } from "../../ai"
 import { ReflectionLoop } from "../../agent/reflection"
 import { theme } from "../theme"
 import { showBanner } from "../banner"
@@ -28,7 +28,7 @@ export function registerReflect(program: Command) {
       const goal = opts.goal || "(no goal specified)"
 
       const aiConfig = resolveAutoAIConfig({
-        ...(provider ? { provider: provider as any } : {}),
+        ...(provider ? { provider: provider as AIProvider } : {}),
         ...(model ? { model } : {}),
       })
 

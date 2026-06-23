@@ -1,7 +1,7 @@
 import type { ModelMessage } from "ai"
 import type { ChatState } from "./store"
 import { appendToStreamingMessage, finalizeStreamingMessage, setStreamingError } from "./store"
-import { AIProviderManager, type AIConfig, resolveAutoAIConfig } from "../ai"
+import { AIProviderManager, type AIConfig, type AIProvider, resolveAutoAIConfig } from "../ai"
 import { AgentEngine, createAgentRuntime } from "../agent"
 import { loadConfig } from "../config"
 
@@ -25,7 +25,7 @@ function loadAIConfig(): AIConfig {
   if (explicitProvider || explicitModel) {
     const prov = explicitProvider || cfg.provider || "anthropic"
     return resolveAutoAIConfig({
-      provider: prov as any,
+      provider: prov as AIProvider,
       model: explicitModel || cfg.model,
       temperature: process.env.AI_TEMPERATURE ? Number(process.env.AI_TEMPERATURE) : (cfg.temperature ?? 0.7),
       maxOutputTokens: process.env.AI_MAX_TOKENS ? Number(process.env.AI_MAX_TOKENS) : (cfg.maxTokens ?? 8192),
