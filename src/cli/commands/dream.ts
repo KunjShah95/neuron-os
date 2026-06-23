@@ -45,9 +45,15 @@ export function registerDream(program: Command) {
     .description("List recent dreams")
     .option("-l, --limit <count>", "Number of dreams to show", "10")
     .option("-t, --agent-type <type>", "Filter by agent type")
+    .option("--json", "Output as JSON")
     .action((opts) => {
       const limit = Number.parseInt(opts.limit, 10)
       const dreams = dreamEngine.listDreams(limit, opts.agentType)
+
+      if (opts.json) {
+        console.log(JSON.stringify(dreams, null, 2))
+        return
+      }
 
       if (dreams.length === 0) {
         console.log(`  ${theme.muted("No dreams recorded yet.")}`)
@@ -76,6 +82,7 @@ export function registerDream(program: Command) {
     .option("-l, --limit <count>", "Number of insights to show", "30")
     .option("--actionable", "Show only actionable insights")
     .option("--apply <id>", "Mark an insight as applied")
+    .option("--json", "Output as JSON")
     .action((opts) => {
       if (opts.apply) {
         dreamEngine.markInsightApplied(opts.apply)
@@ -85,6 +92,11 @@ export function registerDream(program: Command) {
 
       const limit = Number.parseInt(opts.limit, 10)
       const insights = dreamEngine.getInsights(limit, !!opts.actionable)
+
+      if (opts.json) {
+        console.log(JSON.stringify(insights, null, 2))
+        return
+      }
 
       if (insights.length === 0) {
         console.log(`  ${theme.muted("No insights found.")}`)
@@ -180,8 +192,14 @@ export function registerDream(program: Command) {
   dream
     .command("stats")
     .description("Show dream system statistics")
-    .action(() => {
+    .option("--json", "Output as JSON")
+    .action((opts) => {
       const stats = dreamEngine.getStats()
+
+      if (opts.json) {
+        console.log(JSON.stringify(stats, null, 2))
+        return
+      }
 
       console.log()
       console.log(`  ${theme.bold("🌙 Dream Statistics")}`)

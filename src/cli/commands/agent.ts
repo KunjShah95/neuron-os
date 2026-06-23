@@ -47,13 +47,19 @@ export function registerAgent(program: Command) {
     .option("-s, --status <status>", "Filter by status (running, idle, stopped, error)")
     .option("--tag <tag>", "Filter by tag")
     .option("--type <type>", "Filter by agent type")
-    .action((opts: { status?: string; tag?: string; type?: string }) => {
+    .option("--json", "Output as JSON")
+    .action((opts: { status?: string; tag?: string; type?: string; json?: boolean }) => {
       const filter: { status?: string; tag?: string; agentType?: string } = {}
       if (opts.status) filter.status = opts.status
       if (opts.tag) filter.tag = opts.tag
       if (opts.type) filter.agentType = opts.type
 
       const agents = agentManager.list(Object.keys(filter).length ? filter : undefined)
+
+      if (opts.json) {
+        console.log(JSON.stringify(agents, null, 2))
+        return
+      }
 
       if (agents.length === 0) {
         console.log(theme.dim("No agents found. Use `aegis agent spawn <name>` to create one."))

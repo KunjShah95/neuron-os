@@ -95,9 +95,15 @@ export function registerEvolve(program: Command) {
     .description("List mutations")
     .option("-l, --limit <count>", "Number of mutations to show", "20")
     .option("-s, --status <status>", "Filter by status")
+    .option("--json", "Output as JSON")
     .action((opts) => {
       const limit = Number.parseInt(opts.limit, 10)
       const mutations = evolutionEngine.listMutations(limit, opts.status)
+
+      if (opts.json) {
+        console.log(JSON.stringify(mutations, null, 2))
+        return
+      }
 
       if (mutations.length === 0) {
         console.log(`  ${theme.muted("No mutations found.")}`)
@@ -145,8 +151,14 @@ export function registerEvolve(program: Command) {
   evolve
     .command("stats")
     .description("Show evolution system statistics")
-    .action(() => {
+    .option("--json", "Output as JSON")
+    .action((opts) => {
       const stats = evolutionEngine.getStats()
+
+      if (opts.json) {
+        console.log(JSON.stringify(stats, null, 2))
+        return
+      }
 
       console.log()
       console.log(`  ${theme.bold("🧬 Evolution Statistics")}`)
