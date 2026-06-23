@@ -61,7 +61,8 @@ export function createMatrixAdapter(config: MatrixConfig): PlatformAdapter {
         log.info(`Matrix sync complete: ${_state}`)
       })
 
-      c.on("RoomMember.membership", (_event: unknown, member: { membership: string; userId: string; roomId: string }) => {
+      c.on("RoomMember.membership", (...args: unknown[]) => {
+        const member = args[1] as { membership: string; userId: string; roomId: string }
         if (member.membership === "invite" && member.userId === config.userId) {
           (c.joinRoom(member.roomId) as Promise<unknown>).catch((err: Error) => {
             log.warn(`Failed to auto-join room ${member.roomId}: ${err.message}`)
@@ -70,7 +71,9 @@ export function createMatrixAdapter(config: MatrixConfig): PlatformAdapter {
       })
 
       // ── Message handler ─────────────────────────────────────────────
-      c.on("Room.timeline", (event: { getType(): string; getSender(): string | null; getContent(): { body?: string } | null }, room: { roomId: string }) => {
+      c.on("Room.timeline", (...args: unknown[]) => {
+        const event = args[0] as { getType(): string; getSender(): string | null; getContent(): { body?: string } | null }
+        const room = args[1] as { roomId: string }
         // Only handle messages
         if (event.getType() !== "m.room.message") return
         // Ignore own messages

@@ -23,7 +23,7 @@ interface SlackConfig {
 
 interface SocketModeClientLike {
   on(event: string, handler: (payload: Record<string, unknown>) => unknown): void
-  start(): Promise<void>
+  start(): Promise<unknown>
   disconnect(): Promise<void>
 }
 

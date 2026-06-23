@@ -104,7 +104,7 @@ async function handleImageGenerate(opts: {
       const platform = process.platform
       try {
         if (platform === "darwin") execSync(`open "${urls[0]}"`, { timeout: 5000 })
-        else if (platform === "win32") execSync(`start "" "${urls[0]}"`, { timeout: 5000, shell: true })
+        else if (platform === "win32") execSync(`start "" "${urls[0]}"`, { timeout: 5000, shell: "cmd.exe" })
         else execSync(`xdg-open "${urls[0]}"`, { timeout: 5000 })
         console.log(`  ${theme.muted("Opened in browser.")}`)
       } catch {

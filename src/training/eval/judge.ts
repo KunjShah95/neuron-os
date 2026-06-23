@@ -63,13 +63,18 @@ async function tryJudgeModel(
 ): Promise<number | null> {
   try {
     const { createAIProvider } = await import("../../ai/provider")
-    const provider = createAIProvider({ provider: "openrouter", model })
+    const provider = createAIProvider({ provider: "openrouter", model, maxOutputTokens: 10 })
 
-    const response = await provider.complete({
-      system: "You are an evaluation judge. Output ONLY a number between 0.0 and 1.0. No prose, no explanation.",
-      prompt: `Task: ${task.description}\n\nExpected: ${judgePrompt}\n\nAgent output:\n${output.slice(0, 4000)}`,
-      maxTokens: 10,
-    })
+    const response = await provider.generate([
+      {
+        role: "system",
+        content: "You are an evaluation judge. Output ONLY a number between 0.0 and 1.0. No prose, no explanation.",
+      },
+      {
+        role: "user",
+        content: `Task: ${task.description}\n\nExpected: ${judgePrompt}\n\nAgent output:\n${output.slice(0, 4000)}`,
+      },
+    ])
 
     const text = (response.text ?? "").trim()
     const score = parseFloat(text)
