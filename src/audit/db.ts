@@ -2,25 +2,11 @@ import { auditStore } from "./store"
 
 export class AuditQueryEngine {
   /**
-   * Search the audit log using a simple keyword search across summary and detail.
-   * In a real Software 3.0 world, this could use embeddings/vector search.
+   * Search the audit log with SQL-level LIKE filtering across summary, detail,
+   * and agentThought. Supports pagination via offset.
    */
-  public search(query: string, limit = 50): Record<string, unknown>[] {
-    // This is a naive substring search. For true natural language, you'd integrate an LLM
-    // to map the query "Why did the agent delete my file?" -> SQL or Vector Query.
-    const lowerQuery = query.toLowerCase()
-
-    // Get recent 1000 events and filter
-    const recent = auditStore.getRecent(1000)
-
-    return recent
-      .filter(
-        (entry) =>
-          entry.summary.toLowerCase().includes(lowerQuery) ||
-          entry.detail.toLowerCase().includes(lowerQuery) ||
-          entry.agentThought.toLowerCase().includes(lowerQuery),
-      )
-      .slice(0, limit) as unknown as Record<string, unknown>[]
+  public search(query: string, limit = 50, offset = 0): Record<string, unknown>[] {
+    return auditStore.searchRecords(query, limit, offset) as unknown as Record<string, unknown>[]
   }
 
   public getSessionHistory(sessionId: string) {
