@@ -32,12 +32,12 @@ export class DialecticEngine {
 
   private load(): UserModel {
     try {
-      if (!existsSync(this.modelPath)) return { ...EMPTY_USER_MODEL }
+      if (!existsSync(this.modelPath)) return structuredClone(EMPTY_USER_MODEL)
       return JSON.parse(readFileSync(this.modelPath, "utf-8"))
     } catch {
       log.warn("User model corrupted — recovering from backup")
       // Try to recover from audit log's last confirmed version
-      return { ...EMPTY_USER_MODEL }
+      return structuredClone(EMPTY_USER_MODEL)
     }
   }
 

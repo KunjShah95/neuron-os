@@ -69,19 +69,12 @@ export class CodeMutator {
   private backupFile(relativePath: string): void {
     const sourcePath = join(process.cwd(), relativePath)
     const backupPath = this.getBackupPath(relativePath)
-    const backupDir = join(this.backupDir, relativePath.replace(/\\/g, "/").split("/").slice(0, -1).join("/"))
-
-    if (!existsSync(backupDir)) {
-      mkdirSync(backupDir, { recursive: true })
-    }
-
     copyFileSync(sourcePath, backupPath)
   }
 
   private getBackupPath(relativePath: string): string {
-    const timestamp = Date.now()
-    const safeName = relativePath.replace(/\\/g, "/").replace(/[^a-zA-Z0-9_/.-]/g, "_")
-    return join(this.backupDir, `${timestamp}-${safeName}.bak`)
+    const safeName = relativePath.replace(/[\\/]/g, "_").replace(/[^a-zA-Z0-9_.-]/g, "_")
+    return join(this.backupDir, `${safeName}.bak`)
   }
 }
 
