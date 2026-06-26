@@ -5,17 +5,18 @@
  * Returns top-k hits with a finalScore that blends all three signals.
  */
 
+import type { Database } from "bun:sqlite"
 import { createLogger } from "../../cli/logger"
 import type { RecallHit, RecallQuery, RecallConfig } from "./types"
 
 const log = createLogger("recall:retriever")
 
 export class FTS5Retriever {
-  private db: import("better-sqlite3").Database | null = null
+  private db: Database | null = null
 
   constructor(private config: RecallConfig) {}
 
-  setDb(db: import("better-sqlite3").Database): void {
+  setDb(db: Database): void {
     this.db = db
   }
 
