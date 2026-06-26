@@ -136,7 +136,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          bun build index.ts --compile --target=${{ matrix.bun_target }} --outfile=dist/${{ matrix.binary }}${{ matrix.ext }}
+          bun build index.ts --compile --target=${{ matrix.bun_target }} --external chromium-bidi --outfile=dist/${{ matrix.binary }}${{ matrix.ext }}
           chmod +x dist/${{ matrix.binary }}${{ matrix.ext }} 2>/dev/null || true
           ls -lh dist/
 

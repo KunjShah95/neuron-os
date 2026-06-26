@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-14T16:45:36.661Z",
+  "generatedAt": "2026-06-26T01:18:39.739Z",
   "commands": [
     {
       "name": "adversarial",
@@ -142,6 +142,11 @@
         {
           "flag": "--type <type>",
           "description": "Filter by agent type",
+          "required": false
+        },
+        {
+          "flag": "--json",
+          "description": "Output as JSON",
           "required": false
         }
       ],
@@ -510,6 +515,44 @@
       ],
       "sourceFile": "src/cli/commands/skills.ts",
       "description": "Browse trending skills on agentskills.io"
+    },
+    {
+      "name": "browser",
+      "options": [
+        {
+          "flag": "-u, --url <url>",
+          "description": "URL to navigate to",
+          "required": false
+        },
+        {
+          "flag": "-s, --screenshot [path]",
+          "description": "Take a screenshot and save to file (optional path, default: screenshot.png)",
+          "required": false
+        },
+        {
+          "flag": "--html [selector]",
+          "description": "Get page HTML (optional CSS selector)",
+          "required": false
+        },
+        {
+          "flag": "--console",
+          "description": "Get browser console logs",
+          "required": false
+        },
+        {
+          "flag": "--snapshot",
+          "description": "Get page text snapshot (title + visible text)",
+          "required": false
+        },
+        {
+          "flag": "--close",
+          "description": "Close the browser session",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/browser.ts",
+      "description": "Browser automation — manage browser sessions, open URLs, take screenshots",
+      "alias": "br"
     },
     {
       "name": "chat",
@@ -1149,6 +1192,11 @@
           "flag": "--apply <id>",
           "description": "Mark an insight as applied",
           "required": false
+        },
+        {
+          "flag": "--json",
+          "description": "Output as JSON",
+          "required": false
         }
       ],
       "sourceFile": "src/cli/commands/dream.ts",
@@ -1167,6 +1215,11 @@
         {
           "flag": "-t, --agent-type <type>",
           "description": "Filter by agent type",
+          "required": false
+        },
+        {
+          "flag": "--json",
+          "description": "Output as JSON",
           "required": false
         }
       ],
@@ -1202,7 +1255,13 @@
     },
     {
       "name": "dream stats",
-      "options": [],
+      "options": [
+        {
+          "flag": "--json",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ],
       "sourceFile": "src/cli/commands/dream.ts",
       "description": "Show dream system statistics",
       "parent": "dream"
@@ -1597,6 +1656,11 @@
           "flag": "-s, --status <status>",
           "description": "Filter by status",
           "required": false
+        },
+        {
+          "flag": "--json",
+          "description": "Output as JSON",
+          "required": false
         }
       ],
       "sourceFile": "src/cli/commands/evolve.ts",
@@ -1654,7 +1718,13 @@
     },
     {
       "name": "evolve stats",
-      "options": [],
+      "options": [
+        {
+          "flag": "--json",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ],
       "sourceFile": "src/cli/commands/evolve.ts",
       "description": "Show evolution system statistics",
       "parent": "evolve"
@@ -2074,6 +2144,47 @@
       ],
       "sourceFile": "src/cli/commands/health.ts",
       "description": "Show system health overview"
+    },
+    {
+      "name": "image-generate",
+      "options": [
+        {
+          "flag": "-p, --prompt <text>",
+          "description": "Text description of the image to generate",
+          "required": true
+        },
+        {
+          "flag": "-s, --size <size>",
+          "description": "Image size (256x256, 512x512, 1024x1024, 1024x768, 768x1024, 1280x720, 720x1280)",
+          "required": false,
+          "defaultValue": "1024x1024"
+        },
+        {
+          "flag": "-n, --count <n>",
+          "description": "Number of images (1-4)",
+          "required": false,
+          "defaultValue": "1"
+        },
+        {
+          "flag": "-b, --backend <backend>",
+          "description": "Force specific backend (fal, replicate, stability)",
+          "required": false
+        },
+        {
+          "flag": "--save <path>",
+          "description": "Save image to file (Stability AI only, saves base64 to PNG)",
+          "required": false
+        },
+        {
+          "flag": "--open",
+          "description": "Open the first image URL in the browser",
+          "required": false,
+          "defaultValue": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/image-generate.ts",
+      "description": "Generate an image from a text prompt using AI (FAL/Replicate/Stability)",
+      "alias": "imggen"
     },
     {
       "name": "improve",
@@ -3938,6 +4049,12 @@
           "description": "WebSocket gateway port",
           "required": false,
           "defaultValue": "8081"
+        },
+        {
+          "flag": "--supervisor",
+          "description": "Run under process supervisor (auto-restart on crash)",
+          "required": false,
+          "defaultValue": false
         }
       ],
       "sourceFile": "src/cli/commands/serve.ts",
@@ -4032,6 +4149,11 @@
         {
           "flag": "--status <status>",
           "description": "Filter by status (active, completed, failed, paused)",
+          "required": false
+        },
+        {
+          "flag": "--json",
+          "description": "Output as JSON",
           "required": false
         }
       ],
@@ -4209,7 +4331,7 @@
       "name": "skills list-staged",
       "options": [],
       "sourceFile": "src/cli/commands/skills.ts",
-      "description": "List skill candidates awaiting approval",
+      "description": "List skill candidates awaiting approval and auto-approved skills",
       "parent": "skills"
     },
     {

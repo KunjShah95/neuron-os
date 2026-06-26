@@ -37,7 +37,7 @@ export function registerServe(program: Command) {
         // ── Supervisor mode: re-exec under process supervisor ────────────
         if (opts.supervisor) {
           const supervisorPath = new URL("../../cli/supervisor.ts", import.meta.url).pathname
-          const entryPoint = process.argv[1] || "index.ts"
+          const entryPoint = (Bun as any).main || process.argv[1] || "index.ts"
           const filteredArgs = process.argv.slice(2).filter((a) => a !== "--supervisor")
           // Determine entry style: bun run <script> vs compiled binary
           const isScriptRun = entryPoint.endsWith(".ts") || entryPoint.endsWith(".js") || entryPoint.endsWith(".mjs")
@@ -77,14 +77,14 @@ export function registerServe(program: Command) {
           console.log(theme.warn(`  Warning: Data directory ${aegisDir} is not writable. Some features may not work.`))
         }
 
-        // Check SQLite is available
+        // Check SQLite is available (bun:sqlite is the actual persistence backend)
         try {
-          const Database = (await import("better-sqlite3")).default as unknown as new (path: string) => { close(): void }
+          const { Database } = await import("bun:sqlite")
           const testDb = new Database(":memory:")
           testDb.close()
           console.log(theme.dim("  SQLite: available"))
         } catch {
-          console.log(theme.warn("  Warning: SQLite (better-sqlite3) not available. Session persistence disabled."))
+          console.log(theme.warn("  Warning: SQLite (bun:sqlite) not available. Session persistence disabled."))
         }
 
         // Check AI provider availability (informational only)
