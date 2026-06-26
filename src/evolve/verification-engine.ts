@@ -1,5 +1,5 @@
 import type { CodeMutation } from "./types"
-import { evolutionStore } from "./evolution-store"
+import { evolutionStore, type EvolutionStore } from "./evolution-store"
 
 export interface VerificationResult {
   passed: boolean
@@ -7,6 +7,13 @@ export interface VerificationResult {
   durationMs: number
   error: string
 }
+
+export type CommandRunner = (
+  command: string,
+  args: string[],
+  timeoutMs: number,
+  cwd?: string,
+) => Promise<{ stdout: string; stderr: string; exitCode: number }>
 
 function resolveBunPath(): string {
   const bunPath = process.argv0
@@ -51,11 +58,16 @@ async function runCommand(
 }
 
 export class VerificationEngine {
+  constructor(
+    private store: EvolutionStore = evolutionStore,
+    private runner: CommandRunner = runCommand,
+  ) {}
+
   async verifyMutation(mutation: CodeMutation): Promise<VerificationResult> {
     const start = Date.now()
 
     try {
-      evolutionStore.updateMutation(mutation.id, { status: "verifying" })
+      this.store.updateMutation(mutation.id, { status: "verifying" })
       const typeResult = await this.runTypeCheck()
 
       if (!typeResult.passed) {
@@ -65,7 +77,7 @@ export class VerificationEngine {
           durationMs: Date.now() - start,
           error: typeResult.error,
         }
-        evolutionStore.updateMutation(mutation.id, {
+        this.store.updateMutation(mutation.id, {
           status: "failed",
           testResults: result.output,
           testPassed: false,
@@ -83,7 +95,7 @@ export class VerificationEngine {
         error: testResult.error,
       }
 
-      evolutionStore.updateMutation(mutation.id, {
+      this.store.updateMutation(mutation.id, {
         status: result.passed ? "passed" : "failed",
         testResults: result.output,
         testPassed: result.passed,
@@ -99,7 +111,7 @@ export class VerificationEngine {
         error: err instanceof Error ? err.message : String(err),
       }
 
-      evolutionStore.updateMutation(mutation.id, {
+      this.store.updateMutation(mutation.id, {
         status: "failed",
         testResults: result.error,
         testPassed: false,
@@ -114,7 +126,7 @@ export class VerificationEngine {
     const start = Date.now()
     try {
       const bunPath = resolveBunPath()
-      const result = await runCommand(bunPath, ["run", "--bun", "tsc", "--noEmit"], 60000)
+      const result = await this.runner(bunPath, ["run", "--bun", "tsc", "--noEmit"], 60000)
 
       return {
         passed: result.exitCode === 0,
@@ -136,7 +148,7 @@ export class VerificationEngine {
     const start = Date.now()
     try {
       const bunPath = resolveBunPath()
-      const result = await runCommand(bunPath, ["test", "src/evolve/engine.test.ts"], 120000)
+      const result = await this.runner(bunPath, ["test", "src/evolve/engine.test.ts"], 120000)
 
       const output = (result.stdout + "\n" + result.stderr).trim()
       const passed = result.exitCode === 0

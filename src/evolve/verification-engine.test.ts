@@ -2,9 +2,18 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test"
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
-import { VerificationEngine } from "./verification-engine"
+import { VerificationEngine, type CommandRunner } from "./verification-engine"
 import { EvolutionStore } from "./evolution-store"
 import type { CodeMutation } from "./types"
+
+/**
+ * Stub command runner so unit tests don't spawn real tsc / bun test
+ * subprocesses (which take tens of seconds and exceed the default test
+ * timeout). Returns the given exit code immediately.
+ */
+function stubRunner(exitCode: number): CommandRunner {
+  return async () => ({ stdout: "", stderr: "", exitCode })
+}
 
 function tempDbDir(): string {
   return mkdtempSync(join(tmpdir(), "verif-test-"))
@@ -42,7 +51,7 @@ describe("VerificationEngine", () => {
   beforeEach(() => {
     dbDir = tempDbDir()
     store = new EvolutionStore(undefined, { dbPath: dbDir })
-    engine = new VerificationEngine(store)
+    engine = new VerificationEngine(store, stubRunner(0))
   })
 
   afterEach(() => {
@@ -87,11 +96,13 @@ describe("VerificationEngine", () => {
     })
 
     it("handles errors gracefully and returns failed result", async () => {
-      // Create a mutation with a corrupt diff to trigger an error path
+      // A failing command (non-zero exit, e.g. tsc errors) must yield a
+      // failed result rather than throwing.
+      const failEngine = new VerificationEngine(store, stubRunner(1))
       const mutation = store.createMutation(makeMutation({
         filePath: "/nonexistent/path/file.ts",
       }))
-      const result = await engine.verifyMutation(mutation)
+      const result = await failEngine.verifyMutation(mutation)
       expect(result.passed).toBe(false)
       expect(result.durationMs).toBeGreaterThanOrEqual(0)
     })
