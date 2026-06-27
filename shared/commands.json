@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-26T01:18:39.739Z",
+  "generatedAt": "2026-06-27T02:19:19.668Z",
   "commands": [
     {
       "name": "adversarial",
@@ -4365,6 +4365,27 @@
       ],
       "sourceFile": "src/cli/commands/skills.ts",
       "description": "Search the skills marketplace",
+      "parent": "skills"
+    },
+    {
+      "name": "skills uninstall",
+      "options": [],
+      "sourceFile": "src/cli/commands/skills.ts",
+      "description": "Uninstall a locally installed skill",
+      "parent": "skills"
+    },
+    {
+      "name": "skills update",
+      "options": [],
+      "sourceFile": "src/cli/commands/skills.ts",
+      "description": "Update installed skill(s) to latest marketplace version",
+      "parent": "skills"
+    },
+    {
+      "name": "skills watch",
+      "options": [],
+      "sourceFile": "src/cli/commands/skills.ts",
+      "description": "Watch skills directory and hot-reload on changes",
       "parent": "skills"
     },
     {

@@ -1,6 +1,6 @@
 import { Command } from "commander"
-import { fetchTopSkills, searchSkills, fetchSkillDetail } from "../../skills/remote"
-import { skillRegistry } from "../../skills/registry"
+import { fetchTopSkills, searchSkills, fetchSkillDetail, buildSkillMarkdown } from "../../skills/remote"
+import { skillRegistry, startSkillHotReload, type Skill } from "../../skills/registry"
 import { theme } from "../theme"
 import { createLogger } from "../logger"
 import {
@@ -12,8 +12,9 @@ import {
   publishToHub,
   browseHub,
 } from "../../skills/evolution"
-import { existsSync, readdirSync } from "node:fs"
-import { join } from "node:path"
+import { existsSync, readdirSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
+import { join, resolve } from "node:path"
+import { homedir } from "node:os"
 
 const log = createLogger("cli:skills")
 
@@ -110,34 +111,123 @@ export function registerSkills(program: Command): void {
     .action(async (name: string, options: { force?: boolean }) => {
       console.log(`\n  ${theme.heading(`Installing skill: ${name}`)}\n`)
 
-      // Check if already installed
+      await skillRegistry.loadAll()
+
       const existing = skillRegistry.get(name)
       if (existing && !options.force) {
         console.log(`  ${theme.muted(`Skill "${name}" is already installed. Use --force to overwrite.`)}\n`)
         return
       }
 
-      // Look up skill detail
       const detail = await fetchSkillDetail(name)
       if (!detail) {
         console.log(`  ${theme.muted(`Skill "${name}" not found in marketplace.`)}\n`)
-        console.log(`  ${theme.muted(`Try 'aegis skills search ${name}' to find it.`)}\n`)
+        console.log(`  ${theme.muted(`Try: aegis skills search ${name}`)}\n`)
         return
       }
 
-      const installUrl = `https://skills.sh/skills/${detail.id || detail.name}`
-      console.log(`  ${theme.textBright("Found:")} ${detail.name}`)
-      console.log(`  ${theme.textBright("By:")} ${detail.owner}`)
-      console.log(`  ${theme.textBright("Description:")} ${detail.description}`)
-      console.log("")
-      console.log(`  ${theme.muted("To install, visit:")}`)
-      console.log(`  ${theme.accent(installUrl)}`)
-      console.log("")
-      console.log(`  ${theme.muted("Follow the instructions on the page to copy the SKILL.md into:")}`)
-      console.log(`  ${theme.muted(`  skills/${detail.name}/SKILL.md`)}`)
-      console.log("")
+      const installDir = join(homedir(), ".aegis", "skills", detail.name)
+      const skillMdPath = join(installDir, "SKILL.md")
 
-      log.info("Skill install requested", { name, detail: detail.id })
+      mkdirSync(installDir, { recursive: true })
+      writeFileSync(skillMdPath, buildSkillMarkdown(detail))
+      await skillRegistry.loadAll()
+
+      console.log(`  ${theme.accent(`✅ Installed: ${detail.name}`)}`)
+      console.log(`  ${theme.muted(`   → ${skillMdPath}`)}\n`)
+      log.info("Skill installed", { name: detail.name, path: skillMdPath })
+    })
+
+  // ── skills uninstall <name> ────────────────────────────────────────
+
+  skillsCmd
+    .command("uninstall")
+    .description("Uninstall a locally installed skill")
+    .argument("<name>", "Skill name to uninstall")
+    .action(async (name: string) => {
+      console.log(`\n  ${theme.heading(`Uninstalling skill: ${name}`)}\n`)
+
+      await skillRegistry.loadAll()
+      const skill = skillRegistry.get(name)
+      if (!skill) {
+        console.log(`  ${theme.muted(`Skill "${name}" is not installed.`)}\n`)
+        return
+      }
+
+      const safeBase = join(homedir(), ".aegis", "skills")
+      if (!resolve(skill.path).startsWith(safeBase)) {
+        console.log(`  ${theme.muted(`Cannot uninstall "${name}": not in user install directory (${safeBase}).`)}\n`)
+        return
+      }
+
+      rmSync(skill.path, { recursive: true, force: true })
+      skillRegistry.removeSkill(name)
+
+      console.log(`  ${theme.accent(`✅ Uninstalled: ${name}`)}\n`)
+      log.info("Skill uninstalled", { name, path: skill.path })
+    })
+
+  // ── skills update [name] ───────────────────────────────────────────
+
+  skillsCmd
+    .command("update")
+    .description("Update installed skill(s) to latest marketplace version")
+    .argument("[name]", "Skill name (omit to update all user-installed skills)")
+    .action(async (name: string | undefined) => {
+      await skillRegistry.loadAll()
+
+      const safeBase = join(homedir(), ".aegis", "skills")
+      const targets: Skill[] = name
+        ? ([skillRegistry.get(name)].filter(Boolean) as Skill[])
+        : skillRegistry.list().filter((s) => resolve(s.path).startsWith(safeBase))
+
+      if (name && targets.length === 0) {
+        console.log(`\n  ${theme.muted(`Skill "${name}" is not installed.`)}\n`)
+        return
+      }
+
+      console.log(`\n  ${theme.heading("Updating skills")}\n`)
+      let updated = 0
+
+      for (const skill of targets) {
+        const detail = await fetchSkillDetail(skill.metadata.name)
+        if (!detail) {
+          console.log(`  ${theme.muted(`"${skill.metadata.name}" — not found in marketplace, skipped`)}`)
+          continue
+        }
+        writeFileSync(join(skill.path, "SKILL.md"), buildSkillMarkdown(detail))
+        updated++
+        console.log(`  ${theme.accent(`✅ ${skill.metadata.name}`)}`)
+      }
+
+      await skillRegistry.loadAll()
+      console.log(`\n  ${theme.muted(`${updated} skill(s) updated.`)}\n`)
+    })
+
+  // ── skills watch ───────────────────────────────────────────────────
+
+  skillsCmd
+    .command("watch")
+    .description("Watch skills directory and hot-reload on changes")
+    .action(async () => {
+      const watchDir = join(homedir(), ".aegis", "skills")
+      console.log(`\n  ${theme.heading("Skill Hot-Reload")}`)
+      console.log(`  ${theme.muted(`Watching: ${watchDir}`)}`)
+      console.log(`  ${theme.muted("Press Ctrl+C to stop.")}\n`)
+
+      const watcher = startSkillHotReload(skillRegistry)
+
+      skillRegistry.loadAll().then(() => {
+        console.log(`  ${theme.muted(`Loaded ${skillRegistry.list().length} skill(s). Waiting for changes...`)}\n`)
+      })
+
+      process.on("SIGINT", () => {
+        watcher.close()
+        console.log(`\n  ${theme.muted("Watcher stopped.")}\n`)
+        process.exit(0)
+      })
+
+      await new Promise(() => {})
     })
 
   // ── skills list ────────────────────────────────────────────────────

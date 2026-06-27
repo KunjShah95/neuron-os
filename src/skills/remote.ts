@@ -59,6 +59,23 @@ export async function fetchSkillDetail(id: string): Promise<RemoteSkill | null> 
   }
 }
 
+export function buildSkillMarkdown(skill: RemoteSkill): string {
+  const lines: string[] = [
+    "---",
+    `name: ${skill.name}`,
+    `description: ${skill.description}`,
+    `author: ${skill.owner}`,
+  ]
+  if (skill.tags?.length > 0) {
+    lines.push(`tags: [${skill.tags.join(", ")}]`)
+  }
+  lines.push("---", "", `# ${skill.name}`, "", skill.description)
+  if (skill.repo) {
+    lines.push("", `_Source: ${skill.repo}_`)
+  }
+  return lines.join("\n") + "\n"
+}
+
 export async function fetchRegistryStats(): Promise<{ totalSkills: number; totalSources: number } | null> {
   try {
     const res = await fetch(`${SKILLS_SH_API}/skills/stats`)

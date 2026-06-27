@@ -126,6 +126,9 @@ async function main() {
   // ── 6.10 Skills CLI Tests ───────────────────────────────────────────
   await run("Skills CLI Tests", ["bun", "test", "src/modes/skills.test.ts"])
 
+  // ── 6.10b Skills Integration Tests ──────────────────────────────────
+  await run("Skills Integration Tests", ["bun", "test", "src/skills/skills-integration.test.ts"])
+
   // ── 6.11 Rate Limiter Tests ───────────────────────────────────────
   await run("Rate Limiter Tests", ["bun", "test", "src/api/rate-limiter.test.ts"])
 
