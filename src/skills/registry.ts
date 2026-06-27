@@ -51,6 +51,7 @@ export class SkillRegistry {
   }
 
   async loadAll(): Promise<void> {
+    this.skills.clear()
     for (const skillPath of this.skillPaths) {
       if (!existsSync(skillPath)) continue
 

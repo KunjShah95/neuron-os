@@ -60,16 +60,17 @@ export async function fetchSkillDetail(id: string): Promise<RemoteSkill | null> 
 }
 
 export function buildSkillMarkdown(skill: RemoteSkill): string {
+  const cleanDescription = skill.description.replace(/\r?\n/g, " ")
   const lines: string[] = [
     "---",
     `name: ${skill.name}`,
-    `description: ${skill.description}`,
+    `description: ${cleanDescription}`,
     `author: ${skill.owner}`,
   ]
   if (skill.tags?.length > 0) {
     lines.push(`tags: [${skill.tags.join(", ")}]`)
   }
-  lines.push("---", "", `# ${skill.name}`, "", skill.description)
+  lines.push("---", "", `# ${skill.name}`, "", cleanDescription)
   if (skill.repo) {
     lines.push("", `_Source: ${skill.repo}_`)
   }

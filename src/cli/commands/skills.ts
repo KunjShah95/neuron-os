@@ -13,7 +13,7 @@ import {
   browseHub,
 } from "../../skills/evolution"
 import { existsSync, readdirSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
-import { join, resolve } from "node:path"
+import { join, resolve, sep } from "node:path"
 import { homedir } from "node:os"
 
 const log = createLogger("cli:skills")
@@ -154,8 +154,8 @@ export function registerSkills(program: Command): void {
         return
       }
 
-      const safeBase = join(homedir(), ".aegis", "skills")
-      if (!resolve(skill.path).startsWith(safeBase)) {
+      const safeBase = resolve(homedir(), ".aegis", "skills")
+      if (!resolve(skill.path).startsWith(safeBase + sep)) {
         console.log(`  ${theme.muted(`Cannot uninstall "${name}": not in user install directory (${safeBase}).`)}\n`)
         return
       }
@@ -176,10 +176,10 @@ export function registerSkills(program: Command): void {
     .action(async (name: string | undefined) => {
       await skillRegistry.loadAll()
 
-      const safeBase = join(homedir(), ".aegis", "skills")
+      const safeBase = resolve(homedir(), ".aegis", "skills")
       const targets: Skill[] = name
         ? ([skillRegistry.get(name)].filter(Boolean) as Skill[])
-        : skillRegistry.list().filter((s) => resolve(s.path).startsWith(safeBase))
+        : skillRegistry.list().filter((s) => resolve(s.path).startsWith(safeBase + sep))
 
       if (name && targets.length === 0) {
         console.log(`\n  ${theme.muted(`Skill "${name}" is not installed.`)}\n`)
