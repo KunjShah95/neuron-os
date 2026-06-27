@@ -1,6 +1,8 @@
 import { readFile, readdir } from "node:fs/promises"
 import { resolve, join, basename } from "node:path"
-import { existsSync } from "node:fs"
+import { existsSync, watch, mkdirSync } from "node:fs"
+import type { FSWatcher } from "node:fs"
+import { homedir } from "node:os"
 
 export interface SkillMetadata {
   name: string
@@ -34,9 +36,8 @@ export class SkillRegistry {
   private skills = new Map<string, Skill>()
   private skillPaths: string[] = []
 
-  constructor() {
-    // Default skill search paths
-    this.skillPaths = [
+  constructor(paths?: string[]) {
+    this.skillPaths = paths ?? [
       resolve(process.cwd(), "skills"),
       resolve(process.cwd(), ".aegis/skills"),
       resolve(process.env.HOME || process.env.USERPROFILE || "~", ".aegis/skills"),
@@ -50,6 +51,7 @@ export class SkillRegistry {
   }
 
   async loadAll(): Promise<void> {
+    this.skills.clear()
     for (const skillPath of this.skillPaths) {
       if (!existsSync(skillPath)) continue
 
@@ -144,6 +146,10 @@ export class SkillRegistry {
     return this.skills.get(name)
   }
 
+  removeSkill(name: string): void {
+    this.skills.delete(name)
+  }
+
   list(): Skill[] {
     return Array.from(this.skills.values())
   }
@@ -226,3 +232,28 @@ export class SkillRegistry {
 }
 
 export const skillRegistry = new SkillRegistry()
+
+export function startSkillHotReload(registry: SkillRegistry): FSWatcher {
+  const watchDir = resolve(homedir(), ".aegis", "skills")
+  mkdirSync(watchDir, { recursive: true })
+
+  let debounce: ReturnType<typeof setTimeout> | null = null
+  const triggerReload = () => {
+    if (debounce) clearTimeout(debounce)
+    debounce = setTimeout(() => registry.loadAll(), 150)
+  }
+
+  let watcher: FSWatcher
+  try {
+    watcher = watch(watchDir, { recursive: true }, triggerReload)
+  } catch (err: unknown) {
+    if (String(err).includes("ERR_FEATURE_UNAVAILABLE_ON_PLATFORM")) {
+      watcher = watch(watchDir, { recursive: false }, triggerReload)
+    } else {
+      throw err
+    }
+  }
+
+  watcher.unref()
+  return watcher
+}
