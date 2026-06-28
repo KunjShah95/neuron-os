@@ -56,6 +56,9 @@ data/experience/
 # Ignore leftover test temp directories
 tmp-*
 
+# Evolution engine backup artifacts (auto-generated during code-mutator runs)
+data/evolve/backups/
+
 # Ignore Qodo / AI agent config artifacts
 .qodo/
 
@@ -91,12 +94,12 @@ src/utils/hello.ts
 # Ignore docs (design specs, plans, etc.)
 docs/
 
-# Ignore all Markdown files except the top-level README and ROADMAP
+# Ignore all Markdown files except essential project docs
 *.md
 !/README.md
 !/ROADMAP.md
 !/COMMANDS.md
+!/CHANGELOG.md
+!/CONTRIBUTING.md
+!/SECURITY.md
 !/security-whitepaper.md
-!.planning/specs/*.md
-!.planning/plans/*.md
-!CONTRIBUTING.md
