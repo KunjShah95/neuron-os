@@ -24,9 +24,9 @@
     "samples": 5
   },
   "4: +200 auto mems": {
-    "mean": 1.8,
+    "mean": 2.5,
     "min": 1.5,
-    "max": 2.3,
+    "max": 4.6,
     "samples": 5
   },
   "5: +500 facts": {
