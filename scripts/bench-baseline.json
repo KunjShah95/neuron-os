@@ -1,0 +1,56 @@
+{
+  "0: Empty buildContext": {
+    "mean": 1.4,
+    "min": 0.577,
+    "max": 4.1,
+    "samples": 5
+  },
+  "1: 10 memories": {
+    "mean": 0.522,
+    "min": 0.394,
+    "max": 0.969,
+    "samples": 5
+  },
+  "2: 100 memories": {
+    "mean": 0.475,
+    "min": 0.387,
+    "max": 0.558,
+    "samples": 5
+  },
+  "3: +30 daily logs": {
+    "mean": 0.647,
+    "min": 0.595,
+    "max": 0.763,
+    "samples": 5
+  },
+  "4: +200 auto mems": {
+    "mean": 1.8,
+    "min": 1.5,
+    "max": 2.3,
+    "samples": 5
+  },
+  "5: +500 facts": {
+    "mean": 2.1,
+    "min": 1.5,
+    "max": 2.4,
+    "samples": 5
+  },
+  "6a: Search specific": {
+    "mean": 7.8,
+    "min": 6.8,
+    "max": 9.6,
+    "samples": 5
+  },
+  "6b: Search broad": {
+    "mean": 6.9,
+    "min": 6.5,
+    "max": 7.5,
+    "samples": 5
+  },
+  "6c: Search facts": {
+    "mean": 7.0,
+    "min": 6.4,
+    "max": 7.7,
+    "samples": 5
+  }
+}
