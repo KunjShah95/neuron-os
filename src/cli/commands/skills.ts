@@ -12,6 +12,7 @@ import {
   publishToHub,
   browseHub,
 } from "../../skills/evolution"
+import { detectSources, importSources } from "../../skills/import/index"
 import { existsSync, readdirSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
 import { join, resolve, sep } from "node:path"
 import { homedir } from "node:os"
@@ -471,5 +472,88 @@ export function registerSkills(program: Command): void {
         console.log(`  ${theme.muted("No skills eligible for retirement.")}\n`)
       }
       console.log("")
+    })
+
+  // ── skills import ──────────────────────────────────────────────────
+
+  skillsCmd
+    .command("import")
+    .description("Import skills from other AI assistants (Claude Code, Continue.dev, Cursor, Windsurf, Aider)")
+    .option("-n, --dry-run", "Show what would be imported without writing files")
+    .option("-f, --force", "Overwrite existing skills with the same name")
+    .option("-d, --dest <path>", "Destination skill directory", join(homedir(), ".aegis", "skills"))
+    .option("--cwd <path>", "Project directory to scan (defaults to current working directory)")
+    .action(async (options: { dryRun?: boolean; force?: boolean; dest?: string; cwd?: string }) => {
+      const cwd = resolve(options.cwd || process.cwd())
+      const destDir = resolve(options.dest || join(homedir(), ".aegis", "skills"))
+
+      console.log(`\n  ${theme.heading("Importing Skills from Other Assistants")}\n`)
+      if (options.dryRun) {
+        console.log(`  ${theme.muted("(dry run — no files will be written)")}\n`)
+      }
+
+      const sources = detectSources(cwd)
+
+      if (sources.length === 0) {
+        console.log(`  ${theme.muted("No external assistant configurations found in:")}`)
+        console.log(`  ${theme.muted(`  ${cwd}`)}`)
+        console.log(`  ${theme.muted(`  ${homedir()}`)}`)
+        console.log(`\n  ${theme.muted("Supported: Claude Code (CLAUDE.md), Continue.dev (~/.continue/config.json),")}`)
+        console.log(`  ${theme.muted("           Cursor (.cursorrules, .cursor/rules/), Windsurf (.windsurfrules),")}`)
+        console.log(`  ${theme.muted("           Aider (.aider.conf.yml)\n")}`)
+        return
+      }
+
+      const kindLabel: Record<string, string> = {
+        "claude-code": "Claude Code",
+        continue: "Continue.dev",
+        cursor: "Cursor",
+        windsurf: "Windsurf",
+        aider: "Aider",
+      }
+
+      const totalSkills = sources.reduce((n, s) => n + s.skills.length, 0)
+      console.log(`  ${theme.muted(`Found ${sources.length} source(s) with ${totalSkills} skill(s) to import`)}\n`)
+
+      for (const source of sources) {
+        console.log(`  ${theme.textBright(kindLabel[source.kind] || source.kind)}  ${theme.muted(source.label)}`)
+        for (const skill of source.skills) {
+          console.log(`    ${theme.accent("→")} ${skill.name}  ${theme.muted(skill.description.slice(0, 60))}`)
+        }
+        console.log("")
+      }
+
+      const results = importSources(sources, destDir, { force: options.force, dryRun: options.dryRun })
+      const written = results.filter((r) => !r.skipped)
+      const skipped = results.filter((r) => r.skipped)
+
+      if (!options.dryRun) {
+        if (written.length > 0) {
+          console.log(`  ${theme.accent(`✅ Imported ${written.length} skill(s) to ${destDir}`)}`)
+          for (const r of written) {
+            console.log(`    ${theme.muted(r.destPath)}`)
+          }
+        }
+        if (skipped.length > 0) {
+          console.log(`\n  ${theme.muted(`Skipped ${skipped.length} skill(s):`)}\n`)
+          for (const r of skipped) {
+            console.log(`    ${theme.muted(`${r.skill.name} — ${r.reason}`)}`)
+          }
+          if (skipped.some((r) => r.reason?.startsWith("already exists"))) {
+            console.log(`\n  ${theme.muted("Use --force to overwrite existing skills.")}`)
+          }
+        }
+        if (written.length > 0) {
+          console.log(`\n  ${theme.muted("Run 'aegis skills list' to see all installed skills.")}`)
+        }
+      } else {
+        console.log(`  ${theme.muted(`Would import ${written.length} skill(s) to ${destDir}`)}`)
+        if (skipped.length > 0) {
+          console.log(`  ${theme.muted(`Would skip ${skipped.length} skill(s) (use --force to overwrite)`)}`)
+        }
+      }
+
+      console.log("")
+      log.info("Skills import complete", { written: written.length, skipped: skipped.length, dryRun: !!options.dryRun })
     })
 }
