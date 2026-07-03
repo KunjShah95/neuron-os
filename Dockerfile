@@ -26,7 +26,7 @@ FROM oven/bun:1 AS production
 
 LABEL org.opencontainers.image.title="Neuron OS (Aegis)"
 LABEL org.opencontainers.image.description="The Operating System for Autonomous AI Agents"
-LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.version="1.1.9"
 LABEL org.opencontainers.image.licenses="MIT"
 
 # Create non-root user for security (low-level, no adduser/addgroup dependency)

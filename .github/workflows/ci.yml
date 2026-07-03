@@ -375,4 +375,4 @@ jobs:
         uses: ./.github/actions/aegis-ci-fix
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          auto-merge: "true"
+          auto-merge: "false"

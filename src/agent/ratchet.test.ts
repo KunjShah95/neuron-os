@@ -44,7 +44,7 @@ describe("Ratchet Tests", () => {
   it("should ratchet stash no repo", async () => {
     const rt = new RatchetRuntime()
     // /tmp or a non-git dir — stash should return false safely
-    const result = rt.stash("C:/Windows")
+    const result = rt.stash("/nonexistent-directory-for-testing")
     expect(result === false).toBe(true)
   })
 

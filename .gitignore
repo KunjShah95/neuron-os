@@ -103,3 +103,13 @@ docs/
 !/CONTRIBUTING.md
 !/SECURITY.md
 !/security-whitepaper.md
+!/NOTICE.md
+!/ARCHITECTURE.md
+!/BUSINESS.md
+!/AGENTS.md
+!/CLAUDE.md
+!/MEMORY.md
+!/user.md
+
+# Local Claude settings (developer machine-specific)
+.claude/settings.local.json

@@ -2,6 +2,7 @@
   "name": "nexus-agent-framework",
   "version": "0.1.0",
   "description": "A developer-first, high-performance agent framework",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

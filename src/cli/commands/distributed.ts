@@ -34,7 +34,8 @@ let currentPool: import("../../distributed").WorkerPool | null = null
 async function handleStart(opts: { port?: string; role?: string; leader?: string; secret?: string; tags?: string[] }) {
   const { WorkerPool } = await import("../../distributed")
 
-  const secret = opts.secret ?? process.env.AEGIS_CLUSTER_SECRET ?? "aegis-default-secret"
+  const secret = opts.secret ?? process.env.AEGIS_CLUSTER_SECRET
+  if (!secret) throw new Error("AEGIS_CLUSTER_SECRET is required. Set it via --secret flag or AEGIS_CLUSTER_SECRET environment variable.")
   const nodeId = `node-${hostname()}-${opts.port}`
 
   let leaderHost: string | undefined

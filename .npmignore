@@ -21,6 +21,7 @@ tmp-*/
 .planning/
 .husky/
 .github/
+.claude/
 dashboard/
 website/
 demo/

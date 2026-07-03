@@ -31,7 +31,9 @@ export class DistributedAPI {
   constructor(pool: WorkerPool) {
     this.pool = pool
     this.placer = new CapacityPlacer(pool)
-    this.key = SecureTransport.deriveKey(process.env.AEGIS_CLUSTER_SECRET ?? "aegis-default-secret")
+    const clusterSecret = process.env.AEGIS_CLUSTER_SECRET
+    if (!clusterSecret) throw new Error("AEGIS_CLUSTER_SECRET environment variable is required for distributed runtime encryption.")
+    this.key = SecureTransport.deriveKey(clusterSecret)
     this.setupRoutes()
   }
 

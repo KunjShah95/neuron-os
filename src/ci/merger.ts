@@ -2,6 +2,15 @@ import { execSync } from "child_process"
 import { createLogger } from "../cli/logger"
 import { minimatch } from "minimatch"
 
+function validatePrNumber(n: number): void {
+  if (!Number.isInteger(n) || n < 1) throw new Error(`Invalid PR number: ${n}`)
+}
+
+function validateRepo(r: string): string {
+  if (!/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/.test(r)) throw new Error(`Invalid repo: ${r}`)
+  return r
+}
+
 const log = createLogger("ci-merger")
 
 export function pathsMatchAllowlist(changedFiles: string[], allowedPaths: string[]): boolean {
@@ -11,6 +20,8 @@ export function pathsMatchAllowlist(changedFiles: string[], allowedPaths: string
 
 export function getChangedFiles(repo: string, prNumber: number): string[] {
   try {
+    validatePrNumber(prNumber)
+    validateRepo(repo)
     const output = execSync(`gh pr view ${prNumber} --repo "${repo}" --json files --jq '.files[].path'`, {
       encoding: "utf-8",
       timeout: 15_000,
@@ -23,6 +34,8 @@ export function getChangedFiles(repo: string, prNumber: number): string[] {
 
 export function checkCiStatus(repo: string, branch: string): boolean {
   try {
+    validateRepo(repo)
+    if (/[^a-zA-Z0-9_./-]/.test(branch)) throw new Error(`Invalid branch: ${branch}`)
     const output = execSync(
       `gh run list --repo "${repo}" --branch "${branch}" --limit 1 --json conclusion --jq '.[0].conclusion'`,
       { encoding: "utf-8", timeout: 15_000 },
@@ -35,6 +48,8 @@ export function checkCiStatus(repo: string, branch: string): boolean {
 
 export function checkApprovalComment(repo: string, prNumber: number): boolean {
   try {
+    validatePrNumber(prNumber)
+    validateRepo(repo)
     const output = execSync(`gh pr view ${prNumber} --repo "${repo}" --json comments --jq '.comments[].body'`, {
       encoding: "utf-8",
       timeout: 15_000,
@@ -53,6 +68,8 @@ export async function autoMerge(params: {
   requireHumanApproval: boolean
 }): Promise<boolean> {
   const { repo, prNumber, branch, allowedPaths, requireHumanApproval } = params
+  validatePrNumber(prNumber)
+  validateRepo(repo)
 
   log.info(`Checking auto-merge for ${repo} PR #${prNumber}`)
 

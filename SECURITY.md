@@ -4,7 +4,7 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.1.x (current) | ✅ Active development — security patches within 48 hours |
+| 1.1.x (current) | ✅ Active development — security patches within 48 hours |
 
 ## Reporting a Vulnerability
 
@@ -12,7 +12,7 @@ We take security seriously. If you discover a security vulnerability, please **d
 
 ### Disclosure Process
 
-1. **Report via email:** Send details to `security@aegis.dev` (or open a [GitHub Security Advisory](https://github.com/aegis/aegis/security/advisories/new))
+1. **Report via email:** Send details to `kunjshah95@gmail.com` (or open a [GitHub Security Advisory](https://github.com/KunjShah95/neuron-os/security/advisories/new))
 2. **Include:** Description, reproduction steps, affected versions, and any proof-of-concept
 3. **Response time:** We acknowledge receipt within 24 hours and provide an initial assessment within 72 hours
 4. **Coordinated disclosure:** We work with you on a fix timeline before public disclosure (typically 7–14 days)
@@ -78,6 +78,6 @@ We use `bun.lock` for deterministic dependency resolution. All dependencies are 
 
 ## Contact
 
-- **Security issues:** `security@aegis.dev`
-- **GitHub Security:** https://github.com/aegis/aegis/security
+- **Security issues:** `kunjshah95@gmail.com`
+- **GitHub Security:** https://github.com/KunjShah95/neuron-os/security
 - **Bug bounty:** Not yet available — we appreciate responsible disclosure

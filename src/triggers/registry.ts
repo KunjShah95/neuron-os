@@ -583,7 +583,8 @@ export class TriggerEngine {
       case "custom": {
         if (!cfg.customCommand) return 0
         const { execSync } = await import("node:child_process")
-        const result = execSync(cfg.customCommand, { encoding: "utf8", timeout: 5000 })
+        const sanitized = cfg.customCommand.replace(/[;&|`$(){}[\]!#~<>*?\\\n\r]/g, "")
+        const result = execSync(sanitized, { encoding: "utf8", timeout: 5000, shell: true })
         return parseFloat(result.trim()) || 0
       }
       default:
