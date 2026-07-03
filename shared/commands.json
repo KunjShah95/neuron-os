@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-27T02:19:19.668Z",
+  "generatedAt": "2026-07-03T01:20:06.501Z",
   "commands": [
     {
       "name": "adversarial",
@@ -4304,6 +4304,34 @@
       "options": [],
       "sourceFile": "src/cli/commands/skills.ts",
       "description": "Browse and publish skills on agentskills.io",
+      "parent": "skills"
+    },
+    {
+      "name": "skills import",
+      "options": [
+        {
+          "flag": "-n, --dry-run",
+          "description": "Show what would be imported without writing files",
+          "required": false
+        },
+        {
+          "flag": "-f, --force",
+          "description": "Overwrite existing skills with the same name",
+          "required": false
+        },
+        {
+          "flag": "-d, --dest <path>",
+          "description": "Destination skill directory",
+          "required": false
+        },
+        {
+          "flag": "--cwd <path>",
+          "description": "Project directory to scan (defaults to current working directory)",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/skills.ts",
+      "description": "Import skills from other AI assistants (Claude Code, Continue.dev, Cursor, Windsurf, Aider)",
       "parent": "skills"
     },
     {

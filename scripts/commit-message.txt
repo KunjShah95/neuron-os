@@ -1,0 +1,16 @@
+fix: comprehensive server stabilization and crash recovery
+
+This commit addresses critical server stability issues with a process
+watchdog, crash logging, improved error boundaries, memory management,
+and E2E validation.
+
+Changes:
+- src/cli/supervisor.ts - Process watchdog (Bun.spawn, exponential backoff 1s-30s)
+- src/cli/crash-log.ts - Structured crash logging to ~/.aegis/crash.log
+- src/cli/guard.ts - Expanded non-fatal error patterns (28 to 50)
+- src/api/routes/chat.ts - Engine cleanup in finally blocks
+- src/cli/commands/serve.ts - --supervisor flag for watchdog mode
+- Dockerfile - Default CMD uses --supervisor for auto-restart
+- docker-compose.yml, fly.toml, railway.toml, render.yaml - Supervisor docs
+- .github/workflows/ci.yml - E2E smoke test in CI pipeline
+- scripts/e2e-smoke-test.ts - 13 tests (server health, crash log, modules)
