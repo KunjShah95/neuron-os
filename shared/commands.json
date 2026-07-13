@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-03T01:20:06.501Z",
+  "generatedAt": "2026-07-13T08:37:11.076Z",
   "commands": [
     {
       "name": "adversarial",
@@ -2207,6 +2207,13 @@
       "parent": "improve"
     },
     {
+      "name": "improve pipeline",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Run autonomous self-improvement pipeline — extract → validate → publish → monitor (Hermes-parity auto-skill generation)",
+      "parent": "improve"
+    },
+    {
       "name": "improve scheduler",
       "options": [],
       "sourceFile": "src/cli/commands/improve.ts",
@@ -3820,6 +3827,12 @@
       "description": "Register a background agent"
     },
     {
+      "name": "register-cron",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Register auto-improve cron trigger (every 12h) for fully autonomous operation"
+    },
+    {
       "name": "reject <id>",
       "options": [],
       "sourceFile": "src/cli/commands/improve.ts",
@@ -3965,6 +3978,39 @@
       ],
       "sourceFile": "src/cli/commands/improve.ts",
       "description": "Run adversarial self-play session"
+    },
+    {
+      "name": "run",
+      "options": [
+        {
+          "flag": "--min-reward <n>",
+          "description": "Minimum reward for considering experiences",
+          "required": false,
+          "defaultValue": "0.7"
+        },
+        {
+          "flag": "--skip-validate",
+          "description": "Skip eval validation phase",
+          "required": false
+        },
+        {
+          "flag": "--skip-publish",
+          "description": "Skip skill publishing phase",
+          "required": false
+        },
+        {
+          "flag": "--skip-monitor",
+          "description": "Skip monitor stats phase",
+          "required": false
+        },
+        {
+          "flag": "--skip-cleanup",
+          "description": "Skip stale candidate cleanup",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Run the full autonomous pipeline end-to-end"
     },
     {
       "name": "run <job>",
@@ -4665,6 +4711,12 @@
       "options": [],
       "sourceFile": "src/cli/commands/agent.ts",
       "description": "Show prewarm statistics and running warm agents"
+    },
+    {
+      "name": "status",
+      "options": [],
+      "sourceFile": "src/cli/commands/improve.ts",
+      "description": "Show pipeline status — last run results and stats"
     },
     {
       "name": "status",

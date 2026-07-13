@@ -30,8 +30,8 @@ function makeMutation(overrides: Partial<CodeMutation> = {}): CodeMutation {
     testPassed: false,
     testDurationMs: 0,
     createdAt: new Date().toISOString(),
-    appliedAt: null,
-    rollbackAt: null,
+    appliedAt: "",
+    rollbackAt: "",
     ...overrides,
   }
 }
@@ -50,6 +50,7 @@ describe("EvolutionStore", () => {
   })
 
   it("creates DB file at specified path", () => {
+    store.getMutation("dummy")
     expect(existsSync(join(dbDir, "evolution.db"))).toBe(true)
   })
 
@@ -241,9 +242,23 @@ describe("MutationGenerator", () => {
 })
 
 describe("EvolutionEngine", () => {
+  let engine: EvolutionEngine
+  let dbDir: string
+
+  beforeEach(() => {
+    dbDir = tempDbDir()
+  })
+
+  afterEach(() => {
+    if (engine) {
+      engine.close()
+    }
+    try { rmSync(dbDir, { recursive: true, force: true }) } catch {}
+  })
+
   describe("constructor & config", () => {
     it("creates with default config", () => {
-      const engine = new EvolutionEngine()
+      engine = new EvolutionEngine(undefined, { dbPath: dbDir })
       const config = engine.getConfig()
       expect(config.enabled).toBe(true)
       expect(config.confidenceThreshold).toBe(DEFAULT_EVOLUTION_CONFIG.confidenceThreshold)
@@ -251,13 +266,13 @@ describe("EvolutionEngine", () => {
     })
 
     it("accepts partial config overrides", () => {
-      const engine = new EvolutionEngine({ enabled: false, confidenceThreshold: 0.9 })
+      engine = new EvolutionEngine({ enabled: false, confidenceThreshold: 0.9 }, { dbPath: dbDir })
       expect(engine.getConfig().enabled).toBe(false)
       expect(engine.getConfig().confidenceThreshold).toBe(0.9)
     })
 
     it("getConfig returns a copy", () => {
-      const engine = new EvolutionEngine()
+      engine = new EvolutionEngine(undefined, { dbPath: dbDir })
       const config = engine.getConfig()
       config.enabled = false
       expect(engine.getConfig().enabled).toBe(true)
@@ -266,7 +281,7 @@ describe("EvolutionEngine", () => {
 
   describe("updateConfig", () => {
     it("merges config updates and preserves unset fields", () => {
-      const engine = new EvolutionEngine()
+      engine = new EvolutionEngine(undefined, { dbPath: dbDir })
       engine.updateConfig({ enabled: false })
       expect(engine.getConfig().enabled).toBe(false)
       expect(engine.getConfig().confidenceThreshold).toBe(DEFAULT_EVOLUTION_CONFIG.confidenceThreshold)
@@ -275,7 +290,7 @@ describe("EvolutionEngine", () => {
 
   describe("runCycle", () => {
     it("returns zeroed report when disabled", async () => {
-      const engine = new EvolutionEngine({ enabled: false })
+      engine = new EvolutionEngine({ enabled: false }, { dbPath: dbDir })
       const report = await engine.runCycle()
       expect(report.mutationsProposed).toBe(0)
       expect(report.mutationsApplied).toBe(0)
@@ -283,7 +298,7 @@ describe("EvolutionEngine", () => {
     })
 
     it("returns a report when enabled", async () => {
-      const engine = new EvolutionEngine()
+      engine = new EvolutionEngine(undefined, { dbPath: dbDir })
       const report = await engine.runCycle()
       expect(report).toBeDefined()
       expect(typeof report.mutationsProposed).toBe("number")

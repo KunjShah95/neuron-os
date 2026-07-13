@@ -77,7 +77,10 @@ class PriorityQueue {
 
   enqueue(task: PoolTask): void {
     const level = PRIORITY_ORDER[task.priority] ?? 2
-    this.queues[level]!.push(task)
+    const q = this.queues[level]
+    if (q) {
+      q.push(task)
+    }
   }
 
   dequeue(): PoolTask | undefined {

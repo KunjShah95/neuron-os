@@ -37,7 +37,7 @@ export function registerServe(program: Command) {
         // ── Supervisor mode: re-exec under process supervisor ────────────
         if (opts.supervisor) {
           const supervisorPath = new URL("../../cli/supervisor.ts", import.meta.url).pathname
-          const entryPoint = (Bun as any).main || process.argv[1] || "index.ts"
+          const entryPoint = ((Bun as Record<string, unknown>).main || process.argv[1] || "index.ts") as string
           const filteredArgs = process.argv.slice(2).filter((a) => a !== "--supervisor")
           // Determine entry style: bun run <script> vs compiled binary
           const isScriptRun = entryPoint.endsWith(".ts") || entryPoint.endsWith(".js") || entryPoint.endsWith(".mjs")
@@ -73,7 +73,7 @@ export function registerServe(program: Command) {
           mkdirSync(aegisDir, { recursive: true })
           accessSync(aegisDir, constants.W_OK)
           console.log(theme.dim(`  Data directory: ${aegisDir} (writable)`))
-        } catch (err) {
+        } catch {
           console.log(theme.warn(`  Warning: Data directory ${aegisDir} is not writable. Some features may not work.`))
         }
 

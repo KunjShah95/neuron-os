@@ -77,9 +77,9 @@ async function handleImageGenerate(opts: {
 
   if (metadata?.urls) {
     const urls = metadata.urls as string[]
-    for (let i = 0; i < urls.length; i++) {
-      console.log(`  ${theme.bold(`Image ${i + 1}:`)} ${theme.info(urls[i]!)}`)
-    }
+    urls.forEach((url, i) => {
+      console.log(`  ${theme.bold(`Image ${i + 1}:`)} ${theme.info(url)}`)
+    })
   } else if (result.output.startsWith("data:image")) {
     // Base64 data URL from Stability AI
     console.log(`  ${theme.muted("Image received as base64 data URL.")}`)
@@ -91,21 +91,22 @@ async function handleImageGenerate(opts: {
     }
   } else {
     const lines = result.output.split("\n").filter(Boolean)
-    for (let i = 0; i < lines.length; i++) {
-      console.log(`  ${theme.bold(`Image ${i + 1}:`)} ${theme.info(lines[i]!)}`)
-    }
+    lines.forEach((line, i) => {
+      console.log(`  ${theme.bold(`Image ${i + 1}:`)} ${theme.info(line)}`)
+    })
   }
 
   console.log()
   if (opts.open && metadata?.urls) {
     const urls = metadata.urls as string[]
-    if (urls[0]) {
+    const firstUrl = urls[0]
+    if (firstUrl) {
       const { execSync } = await import("node:child_process")
       const platform = process.platform
       try {
-        if (platform === "darwin") execSync(`open "${urls[0]}"`, { timeout: 5000 })
-        else if (platform === "win32") execSync(`start "" "${urls[0]}"`, { timeout: 5000, shell: "cmd.exe" })
-        else execSync(`xdg-open "${urls[0]}"`, { timeout: 5000 })
+        if (platform === "darwin") execSync(`open "${firstUrl}"`, { timeout: 5000 })
+        else if (platform === "win32") execSync(`start "" "${firstUrl}"`, { timeout: 5000, shell: "cmd.exe" })
+        else execSync(`xdg-open "${firstUrl}"`, { timeout: 5000 })
         console.log(`  ${theme.muted("Opened in browser.")}`)
       } catch {
         console.log(`  ${theme.muted("Could not open browser automatically.")}`)

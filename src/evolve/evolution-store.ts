@@ -11,23 +11,33 @@ function generateId(): string {
 }
 
 export class EvolutionStore {
-  private db: Database
+  private _db: Database | null = null
   private initialized = false
+  private project?: string
+  private options?: { dbPath?: string }
 
   constructor(project?: string, options?: { dbPath?: string }) {
-    const dir = options?.dbPath
-      ? options.dbPath
-      : (() => {
-          const dataDir = project
-            ? join(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "projects", project)
-            : join(process.cwd(), "data")
-          return join(dataDir, "evolve")
-        })()
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-    this.db = new Database(join(dir, "evolution.db"))
-    this.db.exec("PRAGMA journal_mode = WAL")
-    this.db.exec("PRAGMA synchronous = NORMAL")
-    this.init()
+    this.project = project
+    this.options = options
+  }
+
+  private get db(): Database {
+    if (!this._db) {
+      const dir = this.options?.dbPath
+        ? this.options.dbPath
+        : (() => {
+            const dataDir = this.project
+              ? join(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "projects", this.project)
+              : join(process.cwd(), "data")
+            return join(dataDir, "evolve")
+          })()
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+      this._db = new Database(join(dir, "evolution.db"))
+      this._db.exec("PRAGMA journal_mode = WAL")
+      this._db.exec("PRAGMA synchronous = NORMAL")
+      this.init()
+    }
+    return this._db
   }
 
   private init(): void {
@@ -226,6 +236,15 @@ export class EvolutionStore {
       appliedAt: (row.applied_at as string) || "",
       rollbackAt: (row.rollback_at as string) || "",
     }
+  }
+
+  close(): void {
+    if (this._db) {
+      this._db.close()
+      this._db = null
+      this.initialized = false
+    }
+    log.info("Evolution store closed")
   }
 }
 

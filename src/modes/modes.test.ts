@@ -6,7 +6,7 @@
  * mode registration/discovery surface.
  */
 
-import { describe, it, expect, beforeEach } from "bun:test"
+import { describe, it, expect } from "bun:test"
 import { parseKey } from "./types"
 import type { Mode, KeyEvent } from "./types"
 import type { PlanStep, Plan } from "./plan/types"

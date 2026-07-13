@@ -1,5 +1,5 @@
 import { EventEmitter } from "node:events"
-import { createServer, connect, type Socket, type AddressInfo } from "node:net"
+import { createServer, connect, type Socket } from "node:net"
 import { cpus, totalmem, freemem, hostname } from "node:os"
 
 import type { WorkerInfo, WorkerStatus, ClusterConfig, ElectionState } from "./types"
@@ -96,7 +96,6 @@ export class WorkerPool extends EventEmitter {
       })
 
       this.server.listen(this.config.listenPort, () => {
-        this.server!.address() as AddressInfo
         const local = this.getLocalInfo()
         local.status = "ready"
         this._localInfo = local
@@ -413,7 +412,10 @@ export class WorkerPool extends EventEmitter {
     this.connections.clear()
 
     if (this.server) {
-      await new Promise<void>((resolve) => this.server!.close(() => resolve()))
+      await new Promise<void>((resolve) => {
+        if (this.server) this.server.close(() => resolve())
+        else resolve()
+      })
       this.server = null
     }
 
@@ -471,7 +473,8 @@ export class WorkerPool extends EventEmitter {
         }, 60_000)
 
         this.pendingTasks.set(task.id, { resolve, reject, timer })
-        this.sendMessage(this.leaderSocket as NonNullable<typeof this.leaderSocket>, "forward-task", {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        this.sendMessage(this.leaderSocket!, "forward-task", {
           targetWorkerId: workerId,
           taskId: task.id,
           taskType: task.type,

@@ -269,6 +269,49 @@ describe("AuditStore", () => {
     expect(stats.byType["error"]).toBeGreaterThanOrEqual(1)
   })
 
+  // ── Secrets Scrubbing ────────────────────────────────────────────────
+
+  it("should scrub environment secrets from recorded fields dynamically", () => {
+    // Set temporary environment variables
+    process.env.TEST_TEMP_API_KEY = "super-secret-key-12345"
+    process.env.TEST_TEMP_DB_SECRET = "very-confidential-password-999"
+    process.env.TEST_TEMP_AUTH_TOKEN = "jwt-token-val-888888"
+
+    const sessionId = makeSessionId()
+    testSessions.push(sessionId)
+
+    store.record(
+      makeEntry(sessionId, {
+        summary: "Running command with key super-secret-key-12345",
+        detail: "Using secret very-confidential-password-999 and token jwt-token-val-888888",
+        context: JSON.stringify({ token: "jwt-token-val-888888" }),
+        agentThought: "I must use super-secret-key-12345 to authenticate",
+      })
+    )
+
+    const entries = store.getSessionAudit(sessionId)
+    expect(entries).toHaveLength(1)
+    const entry = entries[0]!
+
+    expect(entry.summary).not.toContain("super-secret-key-12345")
+    expect(entry.summary).toContain("[REDACTED]")
+
+    expect(entry.detail).not.toContain("very-confidential-password-999")
+    expect(entry.detail).not.toContain("jwt-token-val-888888")
+    expect(entry.detail).toContain("[REDACTED]")
+
+    expect(entry.context).not.toContain("jwt-token-val-888888")
+    expect(entry.context).toContain("[REDACTED]")
+
+    expect(entry.agentThought).not.toContain("super-secret-key-12345")
+    expect(entry.agentThought).toContain("[REDACTED]")
+
+    // Clean up temporary environment variables
+    delete process.env.TEST_TEMP_API_KEY
+    delete process.env.TEST_TEMP_DB_SECRET
+    delete process.env.TEST_TEMP_AUTH_TOKEN
+  })
+
   // ── Cleanup ─────────────────────────────────────────────────────────
 
   it("should close without error", () => {

@@ -64,6 +64,7 @@ function testCommand(
   })
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function testSubcommand(
   parentName: string,
   subName: string,

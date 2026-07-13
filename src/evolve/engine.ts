@@ -17,8 +17,8 @@ export class EvolutionEngine {
   private config: EvolutionConfig
   private cycleCount = 0
 
-  constructor(config?: Partial<EvolutionConfig>) {
-    this.store = new EvolutionStore()
+  constructor(config?: Partial<EvolutionConfig>, options?: { dbPath?: string }) {
+    this.store = new EvolutionStore(undefined, options)
     this.mutationGen = new MutationGenerator()
     this.mutator = new CodeMutator()
     this.verifier = new VerificationEngine()
@@ -209,6 +209,10 @@ export class EvolutionEngine {
 
   getStats(): EvolutionStats {
     return this.store.getStats()
+  }
+
+  close(): void {
+    this.store.close()
   }
 }
 

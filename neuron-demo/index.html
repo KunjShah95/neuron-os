@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #000;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding-top: 80px;
+      }
+      .title {
+        font-size: 96px;
+        font-weight: 800;
+        letter-spacing: -2px;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+      .subtitle {
+        font-size: 32px;
+        opacity: 0.8;
+        margin-bottom: 40px;
+        max-width: 800px;
+        text-align: center;
+        line-height: 1.4;
+      }
+      .features {
+        width: 90%;
+        max-width: 1200px;
+        text-align: left;
+        font-size: 24px;
+        line-height: 1.6;
+      }
+      .features li {
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+      }
+      .features li::before {
+        content: "▸";
+        color: #00ff88;
+        margin-right: 12px;
+        font-weight: bold;
+      }
+      code,
+      .monospace {
+        font-family: "JetBrains Mono", monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-1999=" root"="" data-composition-id="main" data-start="0" data-duration="15" data-width="1920" data-height="1080">
+      <div data-hf-id="hf-4478" class="title clip" id="title" data-start="0" data-duration="10" data-composition-id="main" data-width="1920" data-height="1080">
+      <div data-hf-id="hf-pie0" class="title clip" id="title" data-start="0" data-duration="5" data-track="1">Neuron OS</div>
+      <div data-hf-id="hf-syv8" class="subtitle clip" id="subtitle" data-start="2" data-duration="5" data-track="2">The Operating System for Autonomous AI Agents</div>
+      <ul data-hf-id="hf-q227" class="features clip" id="features" data-start="4" data-duration="10" data-track="3">
+        <li data-hf-id="hf-gv4m">Spawn typed agents in real‑time</li>
+        <li data-hf-id="hf-e6aa">Audit logging &amp; encrypted vault</li>
+        <li data-hf-id="hf-zrgw">Multi‑provider model routing</li>
+        <li data-hf-id="hf-wkjq">Self‑improving via dream/evolve cycles</li>
+        <li data-hf-id="hf-lm5b">Discord, Slack, Telegram adapters</li>
+      </ul>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // Animate title
+      tl.from("#title", { opacity: 0, y: -80, duration: 1.2, ease: "power3.out" }, 0)
+        // Animate subtitle
+        .from("#subtitle", { opacity: 0, y: 40, duration: 1, ease: "power3.out" }, 0.5)
+        // Animate each feature item with stagger
+        .from("#features li", { opacity: 0, y: 30, stagger: 0.25, duration: 0.8, ease: "power3.out" }, 1.5);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </div></body>
+</html>

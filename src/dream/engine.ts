@@ -19,8 +19,8 @@ export class DreamEngine {
   private cycleCount = 0
   private idleSince: number | null = null
 
-  constructor(config?: Partial<DreamConfig>) {
-    this.store = new DreamStore()
+  constructor(config?: Partial<DreamConfig>, options?: { dbPath?: string }) {
+    this.store = new DreamStore(undefined, options)
     this.config = { ...DEFAULT_DREAM_CONFIG, ...config }
   }
 

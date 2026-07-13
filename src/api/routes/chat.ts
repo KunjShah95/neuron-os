@@ -110,6 +110,14 @@ export async function handleChatRoutes(req: ApiRequest, config: ApiServerConfig)
       }, config, req)
     }
 
+    // TypeScript doesn't narrow after try/catch — guard for type safety
+    if (!engine || !aiConfig) {
+      return jsonResponse(503, {
+        error: "AI provider initialization failed",
+        code: "NO_PROVIDER",
+      }, config, req)
+    }
+
     // Build message array from history + current message
     const messages: ModelMessage[] = [
       ...history.map((h) => ({ role: h.role as "user" | "assistant" | "system", content: h.content })),
@@ -125,7 +133,7 @@ export async function handleChatRoutes(req: ApiRequest, config: ApiServerConfig)
         async start(controller) {
           try {
             let fullText = ""
-            await engine!.streamChat(messages, {
+            await engine.streamChat(messages, {
               onChunk: (chunk) => {
                 if (aborted) return
                 fullText += chunk
@@ -172,29 +180,29 @@ export async function handleChatRoutes(req: ApiRequest, config: ApiServerConfig)
           "Content-Type": "text/event-stream",
           "Cache-Control": "no-cache",
           Connection: "keep-alive",
-          "X-Provider": aiConfig!.provider,
-          "X-Model": aiConfig!.model,
+          "X-Provider": aiConfig.provider,
+          "X-Model": aiConfig.model,
         },
       })
     }
 
     // ── Non-streaming response ────────────────────────────────────
     try {
-      const result = await engine!.chat(messages)
+      const result = await engine.chat(messages)
       log.info("Chat response completed", {
-        provider: aiConfig!.provider,
-        model: aiConfig!.model,
+        provider: aiConfig.provider,
+        model: aiConfig.model,
         responseLength: result.text.length,
       })
 
       return jsonResponse(200, {
         response: result.text,
-        provider: aiConfig!.provider,
-        model: aiConfig!.model,
+        provider: aiConfig.provider,
+        model: aiConfig.model,
       }, config, req)
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : "AI provider error"
-      log.error("Chat generation failed", { error: errMsg, provider: aiConfig!.provider, model: aiConfig!.model })
+      log.error("Chat generation failed", { error: errMsg, provider: aiConfig.provider, model: aiConfig.model })
 
       // Distinguish between provider errors and internal errors
       const isProviderError =
@@ -207,8 +215,8 @@ export async function handleChatRoutes(req: ApiRequest, config: ApiServerConfig)
       return jsonResponse(isProviderError ? 502 : 500, {
         error: errMsg,
         code: isProviderError ? "PROVIDER_ERROR" : "INTERNAL_ERROR",
-        provider: aiConfig!.provider,
-        model: aiConfig!.model,
+        provider: aiConfig.provider,
+        model: aiConfig.model,
       }, config, req)
     } finally {
       // Ensure engine is always cleaned up after non-streaming request

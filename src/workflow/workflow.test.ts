@@ -6,8 +6,6 @@ import { describe, it, expect } from "bun:test"
 import {
   validateWorkflowConfig,
   validateWorkflowNode,
-  WorkflowConfigSchema,
-  WorkflowNodeSchema,
 } from "./schema"
 import { validateWorkflow } from "./validator"
 import type { WorkflowConfig } from "./types"

@@ -52,7 +52,7 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
 
   // ── Try to bind to the requested port, auto-retry on next port if busy ──
   const MAX_PORT_RETRIES = 5
-  let server: ReturnType<typeof Bun.serve>
+  let server!: ReturnType<typeof Bun.serve>
   let boundPort = config.port
 
   for (let attempt = 0; attempt <= MAX_PORT_RETRIES; attempt++) {
@@ -148,7 +148,7 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
   }
 
   // At this point `server` is guaranteed to be assigned from the successful loop above.
-  const boundServer = server!
+  const boundServer = server as NonNullable<typeof server>
 
   startWsEventBridge()
   const unsubA2ui = startA2uiWsBridge()

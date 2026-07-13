@@ -130,8 +130,16 @@ export class AuditStore {
 
   private scrubSecrets(text: string): string {
     let result = text
-    const knownKeys = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GROQ_API_KEY", "HUGGINGFACE_API_KEY"]
-    for (const key of knownKeys) {
+    const secretKeys = Object.keys(process.env).filter((key) => {
+      const upperKey = key.toUpperCase()
+      return (
+        upperKey.endsWith("_KEY") ||
+        upperKey.endsWith("_SECRET") ||
+        upperKey.endsWith("_TOKEN")
+      )
+    })
+
+    for (const key of secretKeys) {
       const val = process.env[key]
       if (val && val.length >= 8) {
         result = result.split(val).join("[REDACTED]")

@@ -41,7 +41,7 @@ function findChromiumExecutable(): string | undefined {
       if (chromes.length === 0) continue
       // Pick the highest version
       chromes.sort().reverse()
-      const chromeDir = join(base, chromes[0]!)
+      const chromeDir = join(base, chromes[0] ?? "")
       // Look for chrome executable
       for (const subdir of ["chrome-win64", "chrome-linux", "chrome-mac"]) {
         const exePath = join(chromeDir, subdir, subdir.includes("win") ? "chrome.exe" : "chrome")

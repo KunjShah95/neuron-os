@@ -144,21 +144,32 @@ describe("CLI smoke tests", () => {
       "init",
     ]
 
-    for (const cmd of commands) {
-      // Each invocation cold-starts `bun run index.ts` (~5s, but can exceed
-      // 30s when the machine is saturated); allow generous headroom so the
-      // test isn't killed (exit 143) under parallel load.
-      test(
-        `${cmd} --help exits 0`,
-        () => {
-          const { exitCode, stdout, stderr } = runCLI([cmd, "--help"])
-          expect(exitCode).toBe(0)
-          const combined = stdout + stderr
-          expect(combined.length).toBeGreaterThan(0)
-        },
-        60000,
-      )
-    }
+    test("all commands --help exits 0", async () => {
+      const limit = 15
+      const results: Array<{ cmd: string; exitCode: number; stdout: string; stderr: string }> = []
+
+      for (let i = 0; i < commands.length; i += limit) {
+        const chunk = commands.slice(i, i + limit)
+        const chunkPromises = chunk.map(async (cmd) => {
+          const proc = Bun.spawn(["bun", "run", "index.ts", cmd, "--help"], {
+            stdout: "pipe",
+            stderr: "pipe",
+          })
+          const stdoutPromise = new Response(proc.stdout).text()
+          const stderrPromise = new Response(proc.stderr).text()
+          const exitCode = await proc.exited
+          const stdout = await stdoutPromise
+          const stderr = await stderrPromise
+          return { cmd, exitCode, stdout, stderr }
+        })
+        results.push(...(await Promise.all(chunkPromises)))
+      }
+
+      for (const res of results) {
+        expect(res.exitCode).toBe(0)
+        expect((res.stdout + res.stderr).trim().length).toBeGreaterThan(0)
+      }
+    }, 120000)
   })
 
   describe("Tier 2: non-LLM commands", () => {

@@ -85,6 +85,32 @@ export function registerImprove(program: Command) {
     .description("Analyze adversarial results for regressions")
     .action(handleAdversarialAnalyze)
 
+  // ── Pipeline subcommand (autonomous mode) ────────────────────
+
+  const pipeline = improve
+    .command("pipeline")
+    .description("Run autonomous self-improvement pipeline — extract → validate → publish → monitor (Hermes-parity auto-skill generation)")
+
+  pipeline
+    .command("run")
+    .description("Run the full autonomous pipeline end-to-end")
+    .option("--min-reward <n>", "Minimum reward for considering experiences", "0.7")
+    .option("--skip-validate", "Skip eval validation phase")
+    .option("--skip-publish", "Skip skill publishing phase")
+    .option("--skip-monitor", "Skip monitor stats phase")
+    .option("--skip-cleanup", "Skip stale candidate cleanup")
+    .action(handlePipelineRun)
+
+  pipeline
+    .command("status")
+    .description("Show pipeline status — last run results and stats")
+    .action(handlePipelineStatus)
+
+  pipeline
+    .command("register-cron")
+    .description("Register auto-improve cron trigger (every 12h) for fully autonomous operation")
+    .action(handlePipelineRegisterCron)
+
   // ── Scheduler subcommands ────────────────────────────────────
 
   const scheduler = improve.command("scheduler").description("Self-improvement cron scheduler management")
@@ -103,6 +129,7 @@ export function registerImprove(program: Command) {
     .description("Run extraction/clustering immediately (skill-extract, failure-cluster, all)")
     .action(handleSchedulerRun)
 }
+
 
 // ── Skill handlers ─────────────────────────────────────────────────
 
@@ -491,4 +518,146 @@ async function handleSchedulerRun(job: string) {
     }
   }
   console.log()
+}
+
+// ── Pipeline handlers ──────────────────────────────────────────────────
+
+async function handlePipelineRun(opts: {
+  minReward?: string
+  skipValidate?: boolean
+  skipPublish?: boolean
+  skipMonitor?: boolean
+  skipCleanup?: boolean
+}) {
+  showBanner()
+  const { AutoImprovePipeline } = await import("../../improve/pipeline")
+  const pipeline = new AutoImprovePipeline({
+    minReward: parseFloat(opts.minReward ?? "0.7") || 0.7,
+    minAutoApproveConfidence: 0.8,
+  })
+
+  const skipPhases: string[] = []
+  if (opts.skipValidate) skipPhases.push("validate")
+  if (opts.skipPublish) skipPhases.push("publish")
+  if (opts.skipMonitor) skipPhases.push("monitor")
+  if (opts.skipCleanup) skipPhases.push("cleanup")
+
+  console.log(theme.heading("\n  🤖 Autonomous Self-Improvement Pipeline\n"))
+  console.log(`  ${theme.muted("extract → validate → publish → monitor → cleanup")}`)
+  console.log()
+
+  const result = await pipeline.run(skipPhases)
+
+  // Phase results
+  for (const phase of result.phases) {
+    const icon =
+      phase.status === "passed"
+        ? theme.success("✅")
+        : phase.status === "failed"
+          ? theme.error("❌")
+          : phase.status === "skipped"
+            ? theme.dim("⏭")
+            : theme.warn("⏳")
+    const duration = phase.durationMs < 1000 ? `${phase.durationMs}ms` : `${(phase.durationMs / 1000).toFixed(1)}s`
+    console.log(`  ${icon} ${theme.bold(phase.name.padEnd(28))} ${theme.dim(duration.padStart(8))}`)
+    console.log(`     ${phase.details}`)
+    console.log()
+  }
+
+  // Summary
+  const passed = result.phases.filter((p) => p.status === "passed").length
+  const skipped = result.phases.filter((p) => p.status === "skipped").length
+  const totalDuration =
+    result.totalDurationMs < 1000
+      ? `${result.totalDurationMs}ms`
+      : `${(result.totalDurationMs / 1000).toFixed(1)}s`
+
+  console.log(theme.heading("  Summary\n"))
+  console.log(`  Phases:      ${theme.success(`${passed} passed`)}${skipped > 0 ? `, ${theme.dim(`${skipped} skipped`)}` : ""}`)
+  console.log(`  Candidates:  ${result.extractionStats.candidatesFound} found (${result.extractionStats.autoApproved} auto-approved, ${result.extractionStats.staged} staged)`)
+  console.log(`  Validation:  ${result.validationStats.passed}/${result.validationStats.validated} passed (avg ${(result.validationStats.avgScore * 100).toFixed(1)}%)`)
+  console.log(`  Monitoring:  ${result.monitoringStats.totalSkills} skills tracked, ${result.monitoringStats.degradingSkills} degrading`)
+  console.log(`  Duration:    ${totalDuration}`)
+  console.log()
+
+  if (!result.success) {
+    console.log(`  ${theme.error("Pipeline completed with failures. Check logs for details.")}`)
+    console.log()
+  }
+}
+
+async function handlePipelineStatus() {
+  showBanner()
+  const { skillMonitor } = await import("../../improve/skill-monitor")
+  const { experienceStore } = await import("../../experience/store")
+  const { ImprovementScheduler } = await import("../../improve/scheduler")
+  const { SkillExtractor } = await import("../../improve/skill-extractor")
+  const scheduler = new ImprovementScheduler()
+  const extractor = new SkillExtractor()
+
+  const storeStats = experienceStore.getStats()
+  const monitorStats = skillMonitor.getStats()
+  const extractionStats = extractor.getStats()
+  const schedulerActive = scheduler.hasDefaults()
+
+  // Check for auto-improve cron trigger
+  const { triggerEngine } = await import("../../triggers/registry")
+  const autoTriggers = triggerEngine.list({ tag: "auto-improve" })
+
+  console.log(theme.heading("\n  📊 Auto-Improve Pipeline Status\n"))
+
+  console.log(theme.textBright("  Experience Store"))
+  console.log("    Records:    " + theme.bold(String(storeStats.totalExperiences)) + " (" + theme.success(storeStats.successCount + " ok") + ", " + theme.error(storeStats.failureCount + " fail") + ")")
+  console.log("    Avg reward: " + storeStats.avgReward.toFixed(2))
+  console.log()
+
+  console.log(theme.textBright("  Skill Candidates"))
+  console.log("    Total:      " + theme.bold(String(extractionStats.totalCandidates)))
+  console.log("    Published:  " + theme.success(String(extractionStats.published)))
+  console.log("    Confidence: " + (extractionStats.avgConfidence * 100).toFixed(0) + "%")
+  console.log()
+
+  console.log(theme.textBright("  Skill Monitor"))
+  console.log("    Skills:     " + theme.bold(String(monitorStats.totalSkills)))
+  console.log("    Degrading:  " + (monitorStats.degradingSkills > 0 ? theme.error(String(monitorStats.degradingSkills)) : theme.success("0")))
+  console.log("    Avg rate:   " + (monitorStats.avgSuccessRate * 100).toFixed(0) + "%")
+  console.log()
+
+  console.log(theme.textBright("  Automation"))
+  if (schedulerActive) {
+    console.log(`    Scheduler:  ${theme.success("✅ Active")}`)
+  } else {
+    console.log(`    Scheduler:  ${theme.dim("⏸ Inactive")}`)
+    console.log(`    ${theme.muted("Run 'aegis improve scheduler init' to enable")}`)
+  }
+  if (autoTriggers.length > 0) {
+    console.log(`    Auto cron:  ${theme.success("✅ Registered")} (every 12h)`)
+    for (const t of autoTriggers) {
+      console.log(`    ${theme.dim(`${t.id} — fired ${t.fireCount} time(s)`)}`)
+    }
+  } else {
+    console.log(`    Auto cron:  ${theme.dim("⏸ Not registered")}`)
+    console.log(`    ${theme.muted("Run 'aegis improve pipeline register-cron' to enable")}`)
+  }
+  console.log()
+}
+
+async function handlePipelineRegisterCron() {
+  showBanner()
+  const { AutoImprovePipeline } = await import("../../improve/pipeline")
+  const pipeline = new AutoImprovePipeline()
+
+  const id = pipeline.registerAutoTrigger()
+  if (id) {
+    console.log(theme.heading("\n  ✅ Auto-Improve Cron Registered\n"))
+    console.log(`  Trigger ID: ${theme.bold(id)}`)
+    console.log(`  Schedule:   ${theme.muted("Every 12 hours")}`)
+    console.log(`  Goal:       ${theme.muted("aegis improve pipeline run")}`)
+    console.log()
+    console.log(`  ${theme.muted("The pipeline will now run automatically in the background.")}`)
+    console.log(`  ${theme.muted("Check status with: aegis improve pipeline status")}`)
+    console.log()
+  } else {
+    console.log(theme.success("\n  Auto-improve cron is already registered.\n"))
+  }
 }

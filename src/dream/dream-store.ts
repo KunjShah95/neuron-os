@@ -11,23 +11,33 @@ function generateId(): string {
 }
 
 export class DreamStore {
-  private db: Database
+  private _db: Database | null = null
   private initialized = false
+  private project?: string
+  private options?: { dbPath?: string }
 
   constructor(project?: string, options?: { dbPath?: string }) {
-    const dir = options?.dbPath
-      ? options.dbPath
-      : (() => {
-          const dataDir = project
-            ? join(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "projects", project)
-            : join(process.cwd(), "data")
-          return join(dataDir, "dream")
-        })()
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-    this.db = new Database(join(dir, "dream.db"))
-    this.db.exec("PRAGMA journal_mode = WAL")
-    this.db.exec("PRAGMA synchronous = NORMAL")
-    this.init()
+    this.project = project
+    this.options = options
+  }
+
+  private get db(): Database {
+    if (!this._db) {
+      const dir = this.options?.dbPath
+        ? this.options.dbPath
+        : (() => {
+            const dataDir = this.project
+              ? join(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "projects", this.project)
+              : join(process.cwd(), "data")
+            return join(dataDir, "dream")
+          })()
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+      this._db = new Database(join(dir, "dream.db"))
+      this._db.exec("PRAGMA journal_mode = WAL")
+      this._db.exec("PRAGMA synchronous = NORMAL")
+      this.init()
+    }
+    return this._db
   }
 
   private init(): void {
@@ -150,7 +160,7 @@ export class DreamStore {
     }
   }
 
-  addInsight(insight: Omit<DreamInsight, "id" | "createdAt"> & { id?: string; createdAt?: string }): DreamInsight {
+  addInsight(insight: Omit<DreamInsight, "id" | "createdAt" | "applied"> & { id?: string; createdAt?: string; applied?: boolean }): DreamInsight {
     const id = insight.id || generateId()
     const now = insight.createdAt || new Date().toISOString()
     const full: DreamInsight = {
@@ -162,7 +172,7 @@ export class DreamStore {
       confidence: insight.confidence,
       sourceCount: insight.sourceCount,
       actionable: insight.actionable,
-      applied: insight.applied,
+      applied: insight.applied ?? false,
       createdAt: now,
     }
 
@@ -240,7 +250,11 @@ export class DreamStore {
   }
 
   close(): void {
-    this.db.close()
+    if (this._db) {
+      this._db.close()
+      this._db = null
+      this.initialized = false
+    }
     log.info("Dream store closed")
   }
 

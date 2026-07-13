@@ -101,14 +101,18 @@ async function searchDuckDuckGo(query: string, count: number): Promise<ToolResul
 
   let si = 0
   while ((match = snippetRegex.exec(html)) !== null && si < results.length) {
-    results[si]!.snippet = (match[1] ?? "").replace(/<[^>]*>/g, "").trim()
+    const result = results[si]
+    if (result) result.snippet = (match[1] ?? "").replace(/<[^>]*>/g, "").trim()
     si++
   }
 
   let ui = 0
   while ((match = urlRegex.exec(html)) !== null && ui < results.length) {
-    const href = (match[1] ?? "").replace(/&amp;/g, "&")
-    results[ui]!.url = href.startsWith("http") ? href : `https://${href}`
+    const result = results[ui]
+    if (result) {
+      const href = (match[1] ?? "").replace(/&amp;/g, "&")
+      result.url = href.startsWith("http") ? href : `https://${href}`
+    }
     ui++
   }
 

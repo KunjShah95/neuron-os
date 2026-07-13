@@ -288,7 +288,7 @@ export class MutationGenerator {
 
       const m = line.match(/catch\s*\((\w+)(?:\s*:\s*\w+)?\)\s*\{/)
       if (!m) continue
-      const varName = m[1]!
+      const varName = m[1] ?? ""
 
       // Find the catch body
       const bodyStart = i + 1

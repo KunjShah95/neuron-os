@@ -124,7 +124,7 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
     return { ai, engine }
   }
 
-  let { ai: _ai, engine } = buildEngine(chatConfig)
+  let { engine } = buildEngine(chatConfig)
   const messages: ModelMessage[] = []
 
   // ── Ensure stdin is in a usable state before readline ──────────
@@ -187,12 +187,11 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
             chatConfig.provider = parts[1]
             const rebuilt = buildEngine(chatConfig)
             engine = rebuilt.engine
-            _ai = rebuilt.ai
             // Persist to config
             try {
-              const cfg = loadConfig()
-              cfg.provider = parts[1]
-              saveConfig(cfg)
+              const c = loadConfig()
+              c.provider = parts[1]
+              saveConfig(c)
             } catch {
               /* ignore */
             }
@@ -210,11 +209,10 @@ async function handleChat(opts: { type?: string; provider?: string; model?: stri
             chatConfig.model = parts[1]
             const rebuilt = buildEngine(chatConfig)
             engine = rebuilt.engine
-            _ai = rebuilt.ai
             // Persist to config
             try {
-              const cfg = loadConfig()
-              cfg.model = parts[1]
+              const c = loadConfig()
+              c.model = parts[1]
               saveConfig(cfg)
             } catch {
               /* ignore */

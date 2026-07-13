@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test"
-import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from "node:fs"
+import { mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs"
 import { join, resolve } from "node:path"
-import { tmpdir } from "node:os"
 import { CodeMutator } from "./code-mutator"
 import type { CodeMutation } from "./types"
 

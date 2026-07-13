@@ -65,7 +65,7 @@ export function resolveAutoAIConfig(overrides?: Partial<AIConfig>): AIConfig {
       ...overrides,
     }
   }
-  const primary = configured[0]!
+  const primary = configured[0] as { provider: string; model: string; apiKey?: string }
   const fallbacks = configured.length > 1
     ? configured.slice(1).map((p) => ({
         provider: p.provider as AIProvider,

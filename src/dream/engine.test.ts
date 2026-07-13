@@ -7,25 +7,10 @@ import { DreamStore } from "./dream-store"
 import { InsightGenerator } from "./insight-generator"
 import { MemoryReplay } from "./memory-replay"
 import { DEFAULT_DREAM_CONFIG } from "./types"
-import type { DreamInsight, MemoryReplayResult } from "./types"
+import type { MemoryReplayResult } from "./types"
 
 function tempDbDir(): string {
   return mkdtempSync(join(tmpdir(), "dream-test-"))
-}
-
-function makeInsight(overrides: Partial<DreamInsight> & { dreamId: string }): DreamInsight {
-  return {
-    id: `insight-${Date.now().toString(36)}`,
-    type: "pattern",
-    title: "Test insight",
-    description: "A test insight",
-    confidence: 0.8,
-    sourceCount: 3,
-    actionable: true,
-    applied: false,
-    createdAt: new Date().toISOString(),
-    ...overrides,
-  }
 }
 
 describe("DreamStore", () => {
@@ -43,6 +28,7 @@ describe("DreamStore", () => {
   })
 
   it("creates DB file at specified path", () => {
+    store.getDream("dummy")
     expect(existsSync(join(dbDir, "dream.db"))).toBe(true)
   })
 
@@ -196,16 +182,20 @@ describe("DreamStore", () => {
 
 describe("DreamEngine", () => {
   let engine: DreamEngine
+  let dbDir: string
+
+  beforeEach(() => {
+    dbDir = tempDbDir()
+  })
 
   afterEach(() => {
     engine.close()
-    const dataDir = join(process.cwd(), "data", "dream")
-    try { rmSync(dataDir, { recursive: true, force: true }) } catch {}
+    try { rmSync(dbDir, { recursive: true, force: true }) } catch {}
   })
 
   describe("constructor & config", () => {
     it("creates with default config", () => {
-      engine = new DreamEngine()
+      engine = new DreamEngine(undefined, { dbPath: dbDir })
       const config = engine.getConfig()
       expect(config.enabled).toBe(true)
       expect(config.minIdleMinutes).toBe(DEFAULT_DREAM_CONFIG.minIdleMinutes)
@@ -213,13 +203,13 @@ describe("DreamEngine", () => {
     })
 
     it("accepts partial config overrides", () => {
-      engine = new DreamEngine({ minIdleMinutes: 10, maxDreamDurationMs: 60000 })
+      engine = new DreamEngine({ minIdleMinutes: 10, maxDreamDurationMs: 60000 }, { dbPath: dbDir })
       expect(engine.getConfig().minIdleMinutes).toBe(10)
       expect(engine.getConfig().maxDreamDurationMs).toBe(60000)
     })
 
     it("getConfig returns a copy (immutable)", () => {
-      engine = new DreamEngine()
+      engine = new DreamEngine(undefined, { dbPath: dbDir })
       const config = engine.getConfig()
       config.enabled = false
       expect(engine.getConfig().enabled).toBe(true)
@@ -228,13 +218,13 @@ describe("DreamEngine", () => {
 
   describe("updateConfig", () => {
     it("merges config updates", () => {
-      engine = new DreamEngine()
+      engine = new DreamEngine(undefined, { dbPath: dbDir })
       engine.updateConfig({ enabled: false })
       expect(engine.getConfig().enabled).toBe(false)
     })
 
     it("does not affect unset fields", () => {
-      engine = new DreamEngine()
+      engine = new DreamEngine(undefined, { dbPath: dbDir })
       engine.updateConfig({ enabled: false })
       expect(engine.getConfig().minIdleMinutes).toBe(DEFAULT_DREAM_CONFIG.minIdleMinutes)
     })
@@ -242,7 +232,7 @@ describe("DreamEngine", () => {
 
   describe("runCycle", () => {
     it("returns a populated report", async () => {
-      engine = new DreamEngine()
+      engine = new DreamEngine(undefined, { dbPath: dbDir })
       const report = await engine.runCycle()
       expect(report.cycleId).toBeDefined()
       expect(report.startedAt).toBeDefined()

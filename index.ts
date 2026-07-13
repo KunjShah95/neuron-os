@@ -123,6 +123,42 @@ const { recordCommand, flushOnExit } = await import("./src/telemetry")
 const { sessionStore, getProjectSessionStore } = await import("./src/memory/session-persistence")
 const { getActiveProject } = await import("./src/project/context")
 
+// ── Auto-register self-improvement system ────────────────────────────
+// Wires the ImprovementScheduler cron triggers and the autonomous
+// pipeline trigger on startup so self-improvement runs automatically
+// without manual CLI invocation.
+let _selfImprovementRegistered = false
+async function autoRegisterSelfImprovement(): Promise<void> {
+  if (_selfImprovementRegistered) return
+  _selfImprovementRegistered = true
+
+  try {
+    const { ImprovementScheduler } = await import("./src/improve/scheduler")
+    const scheduler = new ImprovementScheduler()
+    if (!scheduler.hasDefaults()) {
+      const ids = scheduler.registerDefaults()
+      log.info(`Auto-registered ${ids.length} self-improvement cron trigger(s)`)
+    }
+
+    // Also register the autonomous pipeline trigger if not already present
+    const { triggerEngine } = await import("./src/triggers/registry")
+    const existing = triggerEngine.list({ tag: "auto-improve" })
+    if (existing.length === 0) {
+      try {
+        const { AutoImprovePipeline } = await import("./src/improve/pipeline")
+        const pipeline = new AutoImprovePipeline()
+        pipeline.registerAutoTrigger()
+        log.info("Auto-registered autonomous pipeline cron trigger (every 12h)")
+      } catch {
+        // non-critical
+      }
+    }
+  } catch (err) {
+    // Self-improvement registration is best-effort
+    log.debug("Failed to register self-improvement triggers", { error: String(err) })
+  }
+}
+
 const log = createLogger("cli")
 
 // Track whether we've already restored sessions (avoid spam on every command)
@@ -233,6 +269,10 @@ program.hook("preAction", () => {
       sessionsRestored = true
       restoreRecentSessions()
     }
+    // Auto-register self-improvement cron triggers on first CLI invocation
+    autoRegisterSelfImprovement().catch(() => {
+      // best-effort
+    })
   }
 })
 

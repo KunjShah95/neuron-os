@@ -28,27 +28,10 @@ function makeCtx(sessionId: string) {
   }
 }
 
-/** Check if Playwright can launch a browser on this system */
-async function isBrowserAvailable(): Promise<boolean> {
-  try {
-    const { chromium } = await import("playwright")
-    const browser = await chromium.launch({
-      headless: true,
-      args: ["--no-sandbox"],
-      timeout: 15000, // Quick check
-    })
-    await browser.close()
-    return true
-  } catch {
-    return false
-  }
-}
-
 let browserAvailable = false
 
 beforeAll(async () => {
   try {
-    const { existsSync } = await import("node:fs")
     const { join } = await import("node:path")
     const { homedir } = await import("node:os")
     const { readdirSync } = await import("node:fs")

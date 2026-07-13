@@ -7,7 +7,7 @@
  *    and the returned unregister function
  */
 
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test"
+import { describe, it, expect } from "bun:test"
 
 // ── resetStdin ────────────────────────────────────────────────────────────
 

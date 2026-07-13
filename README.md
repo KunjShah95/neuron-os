@@ -11,6 +11,8 @@
 
 > **Neuron OS** is a local-first, TypeScript-native operating system for autonomous AI agents. Spawn typed agents, watch them work in real-time across terminal, web, chat, and API surfaces, and trust every action through built-in audit logging, per-agent tool policies, cost attribution, and an encrypted credential vault.
 
+![Neuron OS Demo](./assets/demo.gif)
+
 ---
 
 ## Install
@@ -70,6 +72,10 @@ aegis ask "explain this codebase"   # one-shot query
 aegis agent spawn build             # spawn a build agent
 aegis orchestrate "add dark mode"   # multi-agent goal execution
 ```
+
+## Demo
+![Neuron OS Demo](assets/demo.gif)
+
 
 ---
 
