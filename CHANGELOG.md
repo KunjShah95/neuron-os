@@ -62,6 +62,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Experience pipeline**: `addAction` had no production caller, so the whole failure-clustering and skill-extraction pipeline ran on empty data.
 - **Audit log integrity**: rows are now hash-chained and verifiable, `LIMIT`/`OFFSET` are bound rather than interpolated, and UPDATE/DELETE triggers make the log genuinely append-only.
 - **Git snapshot is non-blocking**: creating an eval experiment ran five blocking `execSync` git commands; it now uses two asynchronous, time-bounded calls.
+- **CLI test suites run on Windows**: the smoke and provider tests spawned `bun` by name, which is not resolvable as a bare executable outside a POSIX shell, so the suites could not run there at all; they now spawn the interpreter running the test.
+- **SQLite writes retry transient failures**: a statement that failed because another process held the same database file is now retried briefly instead of failing the caller.
+- **The security workflow no longer fails on every run**: it used `bun audit --level`, which is not a valid option, so the step always errored with "unknown subcommand"; it is now `--audit-level`.
+- **The audit store accepts an in-memory database**: the `:memory:` path was rewritten into a filename, and `scrubSecrets` crashed on a missing field.
 
 ### Added
 - **Real agent memory**: `memory_read` / `memory_write` / `memory_search` were stubs that persisted nothing. They now write to the episodic and vector stores, search across every store through the unified query, and enforce the namespace ACL that previously had no runtime caller. Cross-namespace access is denied unless a grant exists, and every allow/deny decision is audited.
