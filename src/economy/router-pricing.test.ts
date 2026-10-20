@@ -5,7 +5,7 @@ import { join } from "node:path"
 import { stringify } from "yaml"
 
 import { resolveModelProvider } from "./model-router"
-import { DEFAULT_PRICING, loadPricing, refreshPricing, invalidateCache, getPricingLoadError } from "./pricing-registry"
+import { DEFAULT_PRICING, loadPricing, invalidateCache, getPricingLoadError } from "./pricing-registry"
 import { listProviders } from "../ai/providers"
 
 describe("resolveModelProvider — namespaced model ids", () => {
