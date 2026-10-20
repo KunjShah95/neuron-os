@@ -14,6 +14,7 @@ import type { AgentToolExecutor } from "../agent/agent-tools"
 import { resolveWorkspacePath } from "../sandbox/filesystem"
 import { relative } from "node:path"
 import { jsonSchema } from "ai"
+import type { ToolSet } from "ai"
 
 function ok(output: string): ToolResult {
   return { success: true, output }
@@ -151,11 +152,8 @@ const PARAM_TYPES: Record<string, string> = {
  * Convert registry-shaped tools into the AI SDK tool shape so they can be
  * passed straight to `generateText` / `streamText`.
  */
-export function toSdkTools(
-  tools: Record<string, Tool>,
-  ctx: ToolContext,
-): Record<string, { description: string; parameters: unknown; execute: (args: Record<string, unknown>) => Promise<ToolResult> }> {
-  const out: Record<string, { description: string; parameters: unknown; execute: (args: Record<string, unknown>) => Promise<ToolResult> }> = {}
+export function toSdkTools(tools: Record<string, Tool>, ctx: ToolContext): ToolSet {
+  const out: ToolSet = {}
   for (const [name, tool] of Object.entries(tools)) {
     const properties: Record<string, unknown> = {}
     const required: string[] = []
@@ -170,7 +168,7 @@ export function toSdkTools(
     if (required.length > 0) schema.required = required
     out[name] = {
       description: tool.description,
-      parameters: jsonSchema(schema),
+      inputSchema: jsonSchema(schema),
       execute: (args: Record<string, unknown>) => tool.execute(args, ctx),
     }
   }
