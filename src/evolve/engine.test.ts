@@ -5,6 +5,7 @@ import { tmpdir } from "node:os"
 import { EvolutionEngine } from "./engine"
 import { EvolutionStore } from "./evolution-store"
 import { MutationGenerator } from "./mutation-generator"
+import type { VerificationEngine } from "./verification-engine"
 import { DEFAULT_EVOLUTION_CONFIG } from "./types"
 import type { CodeMutation } from "./types"
 
@@ -298,7 +299,15 @@ describe("EvolutionEngine", () => {
     })
 
     it("returns a report when enabled", async () => {
-      engine = new EvolutionEngine(undefined, { dbPath: dbDir })
+      // Stub the verifier: a real one runs `tsc --noEmit` plus the test suite,
+      // which takes minutes and would blow the test timeout.
+      const stubVerifier = {
+        verifyMutation: async () => ({ passed: true, output: "", durationMs: 0, error: "" }),
+        setAllowedDirs: () => {},
+        setTimeouts: () => {},
+        getConfig: () => ({}),
+      } as unknown as VerificationEngine
+      engine = new EvolutionEngine(undefined, { dbPath: dbDir, verifier: stubVerifier })
       const report = await engine.runCycle()
       expect(report).toBeDefined()
       expect(typeof report.mutationsProposed).toBe("number")
