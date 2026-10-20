@@ -4,6 +4,13 @@ import { readFileSync, existsSync } from "node:fs"
 import { resolve } from "node:path"
 import { setPendingCommand, flushHistorySync } from "./src/cli/history"
 
+/**
+ * Injected at build time by `scripts/build-binary.ts`.
+ * Declared here so the `--version` fast path can use it without importing
+ * anything heavy.
+ */
+declare const __AEGIS_VERSION__: string
+
 const _rawArgs = process.argv.slice(2)
 
 // ── Auto-load .env file ─────────────────────────────────────────────
@@ -96,13 +103,17 @@ loadDotEnv()
 // before any heavy imports are even loaded. We keep only lightweight
 // imports (fs, path, history) at the top and defer everything else.
 if (_rawArgs.includes("--version") || _rawArgs.includes("-V")) {
-  let version = "0.0.0"
-  try {
-    const dir = import.meta.dir ?? process.cwd()
-    const pkg = JSON.parse(readFileSync(resolve(dir, "package.json"), "utf-8"))
-    version = String(pkg.version || "0.0.0")
-  } catch {
-    // fallback
+  // A compiled binary has no package.json next to it, so prefer the
+  // build-time constant injected by scripts/build-binary.ts.
+  let version = typeof __AEGIS_VERSION__ === "string" && __AEGIS_VERSION__ ? __AEGIS_VERSION__ : "0.0.0"
+  if (version === "0.0.0") {
+    try {
+      const dir = import.meta.dir ?? process.cwd()
+      const pkg = JSON.parse(readFileSync(resolve(dir, "package.json"), "utf-8"))
+      version = String(pkg.version || "0.0.0")
+    } catch {
+      // fallback
+    }
   }
   console.log(version)
   process.exit(0)

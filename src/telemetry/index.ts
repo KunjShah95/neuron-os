@@ -23,6 +23,9 @@ import { homedir } from "node:os"
 import { join } from "node:path"
 import { createLogger } from "../cli/logger"
 
+/** Injected at build time by `scripts/build-binary.ts`. */
+declare const __AEGIS_VERSION__: string
+
 const log = createLogger("telemetry")
 
 // ── Constants ─────────────────────────────────────────────────────────
@@ -101,6 +104,10 @@ let _version: string = ""
 
 function getVersion(): string {
   if (_version) return _version
+  if (typeof __AEGIS_VERSION__ === "string" && __AEGIS_VERSION__) {
+    _version = __AEGIS_VERSION__
+    return _version
+  }
   try {
     const pkg = JSON.parse(readFileSync(join(import.meta.dir, "..", "..", "package.json"), "utf-8"))
     _version = String((pkg as Record<string, unknown>).version || "0.0.0")

@@ -9,7 +9,7 @@
  */
 
 import type { Tool, ToolResult } from "./registry"
-import { chromium, type Browser, type BrowserContext, type Page } from "playwright"
+import type { Browser, BrowserContext, Page, chromium as ChromiumType } from "playwright"
 import { existsSync, readdirSync } from "node:fs"
 import { join } from "node:path"
 import { homedir } from "node:os"
@@ -69,6 +69,28 @@ interface BrowserSession {
 
 const sessions = new Map<string, BrowserSession>()
 
+/**
+ * Load Playwright on demand.
+ *
+ * Playwright is imported lazily and stays external to the compiled binary:
+ * bundling it makes Bun resolve `playwright-core/package.json` at build time
+ * and bake the build machine's absolute path into the executable, which then
+ * fails to load on every other machine. Importing it here keeps the rest of
+ * the CLI working on a machine without Playwright installed.
+ */
+async function launchChromium(launchOpts: Parameters<typeof ChromiumType.launch>[0]): Promise<Browser> {
+  let chromium: typeof ChromiumType
+  try {
+    ;({ chromium } = await import("playwright"))
+  } catch (err) {
+    throw new Error(
+      `Browser automation requires Playwright, which is not available: ${err instanceof Error ? err.message : String(err)}. ` +
+        "Install it with 'bun add playwright' and 'bunx playwright install chromium'.",
+    )
+  }
+  return chromium.launch(launchOpts)
+}
+
 /** Evict stale sessions when the map is full or a session is older than TTL */
 function evictStaleSessions(): void {
   const now = Date.now()
@@ -108,7 +130,7 @@ async function getOrCreateSession(sessionId: string): Promise<BrowserSession> {
 
   installSignalHandlers()
 
-  const launchOpts: Parameters<typeof chromium.launch>[0] = {
+  const launchOpts: Parameters<typeof ChromiumType.launch>[0] = {
     headless: true,
     args: [
       "--no-sandbox",
@@ -121,7 +143,7 @@ async function getOrCreateSession(sessionId: string): Promise<BrowserSession> {
   if (CHROMIUM_EXECUTABLE) {
     launchOpts.executablePath = CHROMIUM_EXECUTABLE
   }
-  const browser = await chromium.launch(launchOpts)
+  const browser = await launchChromium(launchOpts)
 
   const context = await browser.newContext({
     viewport: { width: 1920, height: 1080 },

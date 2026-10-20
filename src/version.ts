@@ -5,11 +5,24 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 
+/**
+ * Injected at build time by `bun build --define __AEGIS_VERSION__="x.y.z"`.
+ * A compiled binary has no package.json next to it, so without this the
+ * version would always fall back to "0.0.0".
+ */
+declare const __AEGIS_VERSION__: string
+
 let _version: string | null = null
 
 /** Get the current package version (reads from package.json at first call). */
 export function getVersion(): string {
   if (_version) return _version
+
+  if (typeof __AEGIS_VERSION__ === "string" && __AEGIS_VERSION__) {
+    _version = __AEGIS_VERSION__
+    return _version
+  }
+
   try {
     const dir = import.meta.dir ?? process.cwd()
     const pkg = JSON.parse(readFileSync(join(dir, "..", "package.json"), "utf-8"))
