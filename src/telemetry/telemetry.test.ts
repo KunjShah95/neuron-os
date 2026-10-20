@@ -14,6 +14,11 @@ import { homedir } from "node:os"
 
 const OPT_IN_FILE = join(homedir(), ".aegis", "telemetry-opt-in")
 
+// Point telemetry at a closed local port so flush() fails fast instead of
+// waiting on the real ingestion endpoint (which is unreachable from CI and
+// would otherwise stall every test for the full 5s request timeout).
+const DEAD_ENDPOINT = "http://127.0.0.1:1/telemetry-disabled"
+
 function clearOptInFile() {
   try {
     if (existsSync(OPT_IN_FILE)) unlinkSync(OPT_IN_FILE)
@@ -103,6 +108,7 @@ describe("Telemetry — opt-in/out", () => {
 describe("Telemetry — event recording", () => {
   beforeEach(async () => {
     process.env.AEGIS_TELEMETRY = "1"
+    process.env.AEGIS_TELEMETRY_ENDPOINT = DEAD_ENDPOINT
     clearOptInFile()
     // Clean queue from previous tests
     const tel = await import("./index")
@@ -111,6 +117,7 @@ describe("Telemetry — event recording", () => {
 
   afterEach(() => {
     delete process.env.AEGIS_TELEMETRY
+    delete process.env.AEGIS_TELEMETRY_ENDPOINT
     clearOptInFile()
   })
 
@@ -156,6 +163,7 @@ describe("Telemetry — event recording", () => {
 describe("Telemetry — stats", () => {
   beforeEach(() => {
     delete process.env.AEGIS_TELEMETRY
+    delete process.env.AEGIS_TELEMETRY_ENDPOINT
     clearOptInFile()
   })
 
@@ -183,11 +191,13 @@ describe("Telemetry — stats", () => {
 describe("Telemetry — flush", () => {
   beforeEach(() => {
     process.env.AEGIS_TELEMETRY = "1"
+    process.env.AEGIS_TELEMETRY_ENDPOINT = DEAD_ENDPOINT
     clearOptInFile()
   })
 
   afterEach(() => {
     delete process.env.AEGIS_TELEMETRY
+    delete process.env.AEGIS_TELEMETRY_ENDPOINT
     clearOptInFile()
   })
 

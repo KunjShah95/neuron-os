@@ -32,6 +32,7 @@ const OPT_IN_FILE = join(TELEMETRY_DIR, "telemetry-opt-in")
 const DEFAULT_ENDPOINT = "https://telemetry.aegis.sh/v1/event"
 const MAX_QUEUE_SIZE = 100
 const FLUSH_INTERVAL_MS = 10_000
+const FLUSH_TIMEOUT_MS = 5_000
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -147,15 +148,24 @@ export function recordCommand(command: string, success: boolean, durationMs: num
 
 // ── Flush ─────────────────────────────────────────────────────────────
 
-let flushing = false
+let inFlight: Promise<void> | null = null
 
 /**
  * Send all queued events to the telemetry endpoint.
  * Fire-and-forget — failures are logged at debug level (not user-visible).
+ *
+ * Concurrent calls are safe: a caller that arrives while a flush is already
+ * running waits for that flush to settle and then drains anything queued in
+ * the meantime. The queue is always empty once the returned promise
+ * resolves, regardless of the network outcome.
  */
 export async function flush(): Promise<void> {
-  if (flushing || queue.length === 0) return
-  flushing = true
+  if (inFlight) {
+    await inFlight.catch(() => {})
+    if (queue.length === 0) return
+  }
+
+  if (queue.length === 0) return
 
   const endpoint = process.env.AEGIS_TELEMETRY_ENDPOINT || DEFAULT_ENDPOINT
   const batch = queue.splice(0)
@@ -168,20 +178,27 @@ export async function flush(): Promise<void> {
     },
   }
 
-  try {
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(5_000),
-    })
-    if (!res.ok) {
-      log.debug("Telemetry flush failed", { status: res.status })
+  const request = (async () => {
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(FLUSH_TIMEOUT_MS),
+      })
+      if (!res.ok) {
+        log.debug("Telemetry flush failed", { status: res.status })
+      }
+    } catch (err) {
+      log.debug("Telemetry flush error", { error: String(err) })
     }
-  } catch (err) {
-    log.debug("Telemetry flush error", { error: String(err) })
+  })()
+
+  inFlight = request
+  try {
+    await request
   } finally {
-    flushing = false
+    inFlight = null
   }
 }
 
