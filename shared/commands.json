@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-20T02:44:20.322Z",
+  "generatedAt": "2026-10-20T08:47:09.916Z",
   "commands": [
     {
       "name": "adversarial",
@@ -4727,6 +4727,46 @@
       "parent": "soul"
     },
     {
+      "name": "spec",
+      "options": [],
+      "sourceFile": "src/cli/commands/spec.ts",
+      "description": "Declarative agent specs — validate, run, replay and list recorded runs"
+    },
+    {
+      "name": "spec list",
+      "options": [],
+      "sourceFile": "src/cli/commands/spec.ts",
+      "description": "List recorded spec runs",
+      "parent": "spec"
+    },
+    {
+      "name": "spec replay",
+      "options": [],
+      "sourceFile": "src/cli/commands/spec.ts",
+      "description": "Replay a recorded spec run and verify the spec hash",
+      "parent": "spec"
+    },
+    {
+      "name": "spec run",
+      "options": [
+        {
+          "flag": "--goal <goal>",
+          "description": "Goal handed to the agent",
+          "required": true
+        }
+      ],
+      "sourceFile": "src/cli/commands/spec.ts",
+      "description": "Run an agent spec",
+      "parent": "spec"
+    },
+    {
+      "name": "spec validate",
+      "options": [],
+      "sourceFile": "src/cli/commands/spec.ts",
+      "description": "Validate an agent spec file against the aegis/v1 schema",
+      "parent": "spec"
+    },
+    {
       "name": "stats",
       "options": [],
       "sourceFile": "src/cli/commands/improve.ts",
@@ -5125,8 +5165,19 @@
         },
         {
           "flag": "--webhook-path <path>",
-          "description": "Webhook path (e.g. /webhook/custom)",
+          "description": "Webhook path, must start with /api/v1/webhook/ (e.g. /api/v1/webhook/custom)",
           "required": false
+        },
+        {
+          "flag": "--webhook-secret <secret>",
+          "description": "Webhook shared secret (HMAC-SHA256) for signature verification",
+          "required": false
+        },
+        {
+          "flag": "--webhook-method <method>",
+          "description": "Webhook HTTP method: POST, GET, PUT",
+          "required": false,
+          "defaultValue": "POST"
         },
         {
           "flag": "--metric <metric>",
