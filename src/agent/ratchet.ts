@@ -12,12 +12,26 @@
  * All git operations are no-ops outside a git repo (returns false / no-op).
  */
 
-import { execSync } from "node:child_process"
+import { execFileSync, execSync } from "node:child_process"
 import { Evaluator } from "../mesh/evaluator"
 import type { EvaluationCriteria } from "../mesh/types"
 import { createLogger } from "../cli/logger"
 
 const log = createLogger("agent:ratchet")
+
+export type GitCommandRunner = (args: string[], cwd: string) => string
+
+function defaultGitRunner(args: string[], cwd: string): string {
+  return execFileSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    stdio: "pipe",
+  })
+}
+
+export function buildGitRevertArgs(file: string): string[] {
+  return ["checkout", "--", file]
+}
 
 export interface RatchetConfig {
   cwd: string
@@ -34,14 +48,15 @@ export interface RatchetMeasureResult {
 
 export class RatchetRuntime {
   private evaluator?: Evaluator
+  private gitRunner: GitCommandRunner
+
+  constructor(gitRunner?: GitCommandRunner) {
+    this.gitRunner = gitRunner ?? defaultGitRunner
+  }
 
   isGitRepo(cwd: string): boolean {
     try {
-      execSync("git rev-parse --is-inside-work-tree", {
-        cwd,
-        encoding: "utf8",
-        stdio: "pipe",
-      })
+      this.gitRunner(["rev-parse", "--is-inside-work-tree"], cwd)
       return true
     } catch {
       return false
@@ -51,11 +66,7 @@ export class RatchetRuntime {
   stash(cwd: string): boolean {
     if (!this.isGitRepo(cwd)) return false
     try {
-      execSync("git stash push -m 'ratchet-session' --include-untracked", {
-        cwd,
-        encoding: "utf8",
-        stdio: "pipe",
-      })
+      this.gitRunner(["stash", "push", "-m", "ratchet-session", "--include-untracked"], cwd)
       return true
     } catch {
       return false
@@ -65,7 +76,7 @@ export class RatchetRuntime {
   restore(cwd: string): void {
     if (!this.isGitRepo(cwd)) return
     try {
-      execSync("git stash pop", { cwd, encoding: "utf8", stdio: "pipe" })
+      this.gitRunner(["stash", "pop"], cwd)
     } catch {
       log.warn("Could not restore stash — run git stash pop manually")
     }
@@ -74,7 +85,7 @@ export class RatchetRuntime {
   getChangedFiles(cwd: string): string[] {
     if (!this.isGitRepo(cwd)) return []
     try {
-      const out = execSync("git diff --name-only", { cwd, encoding: "utf8" }).trim()
+      const out = this.gitRunner(["diff", "--name-only"], cwd).trim()
       return out ? out.split("\n").filter(Boolean) : []
     } catch {
       return []
@@ -84,11 +95,7 @@ export class RatchetRuntime {
   revertFiles(cwd: string, files: string[]): void {
     for (const file of files) {
       try {
-        execSync(`git checkout -- "${file}"`, {
-          cwd,
-          encoding: "utf8",
-          stdio: "pipe",
-        })
+        this.gitRunner(buildGitRevertArgs(file), cwd)
         log.info("Reverted file", { file })
       } catch {
         log.warn("Could not revert file", { file })

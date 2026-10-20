@@ -7,7 +7,7 @@ import { AIProviderManager } from "../ai"
 import { getAgentType, type AgentTypeName, type ToolPermission } from "./agent-types"
 import { sessionStore, getProjectSessionStore, type SessionStore } from "../memory/session-persistence"
 import { AuditRecorder } from "../audit/recorder"
-import { experienceStore, type Outcome } from "../experience/store"
+import { experienceStore, type ExperienceStore, type Outcome } from "../experience/store"
 import { ExperienceRetriever } from "../experience/retrieval"
 import { RatchetRuntime, type RatchetConfig } from "./ratchet"
 import { Evaluator } from "../mesh/evaluator"
@@ -72,6 +72,15 @@ export function permittedToolNames(permissions: ToolPermission[]): string[] {
   return permissions.filter((p) => p.allow).map((p) => p.name)
 }
 
+export function computeMoodOutcome(outcome: Outcome): "success" | "failure" {
+  return outcome === "success" || outcome === "partial" ? "success" : "failure"
+}
+
+export function isUniqueConstraintError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err)
+  return message.includes("UNIQUE constraint failed") || message.includes("SQLITE_CONSTRAINT")
+}
+
 export interface PlanStateHints {
   /** If true, instructs the model to maintain a TodoWrite plan via plan_state tool */
   enabled: boolean
@@ -88,6 +97,15 @@ export interface PreCompactConfig {
 
 export interface AgentEngineConfig {
   maxSteps?: number
+  /**
+   * Replace the implementation of specific tools.
+   *
+   * The override keeps the registry tool's name, description and parameter
+   * schema (so the model still sees the same contract) but replaces its
+   * `execute`. This is how the approval-based flows stage mutations instead
+   * of writing straight to disk.
+   */
+  toolOverrides?: Record<string, Tool>
   /**
    * Enable TodoWrite-style plan state via the plan_state tool.
    * When enabled, the system prompt includes instructions for the model
@@ -128,6 +146,10 @@ export interface AgentEngineConfig {
    * Custom session store instance. Defaults to the global singleton.
    */
   sessionStore?: SessionStore
+  /**
+   * Custom experience store instance. Defaults to the global singleton.
+   */
+  experienceStore?: ExperienceStore
   /**
    * Project name for project-scoped session persistence.
    * When set, sessions are stored in ~/.aegis/projects/<name>/sessions.db
@@ -171,11 +193,15 @@ export class AgentEngine {
   private experienceEnabled = false
   private experienceStartedAt = ""
   private experienceActionCount = 0
+  private experienceStepIndex = 0
+  private experienceStore: ExperienceStore
   private ratchetRuntime?: RatchetRuntime
   private ratchetConfig?: RatchetConfig
   private evaluationCriteria?: EvaluationCriteria[]
   private sessionStartFiles: string[] = []
   private projectName = ""
+  private sessionCompleting = false
+  private sessionCompleted = false
 
   // ── Plan state ────────────────────────────────────────────
   private planStateEnabled = false
@@ -195,14 +221,18 @@ export class AgentEngine {
   // ── Cost tracking ─────────────────────────────────────────
   totalToolCost = 0
 
+  private toolOverrides: Record<string, Tool> = {}
+
   constructor(runtime: AgentRuntime, ai: AIProviderManager, config?: AgentEngineConfig) {
     this.runtime = runtime
     this.ai = ai
     this.maxSteps = config?.maxSteps ?? 10
+    this.toolOverrides = config?.toolOverrides ?? {}
     this.sessionId = config?.sessionId
     this.sessionName = config?.sessionName
     this.sessionGoal = config?.goal
     this.projectName = config?.project ?? ""
+    this.experienceStore = config?.experienceStore ?? experienceStore
     // Use project-scoped session store when project is specified
     this.sessionStore = config?.project
       ? getProjectSessionStore(config.project)
@@ -334,6 +364,20 @@ export class AgentEngine {
    */
   async completeSession(status: "completed" | "failed" = "completed"): Promise<void> {
     if (!this.sessionId) return
+    if (this.sessionCompleted || this.sessionCompleting) return
+
+    this.sessionCompleting = true
+    try {
+      await this.runCompleteSession(status)
+      this.sessionCompleted = true
+    } finally {
+      this.sessionCompleting = false
+    }
+  }
+
+  private async runCompleteSession(status: "completed" | "failed"): Promise<void> {
+    const sessionId = this.sessionId
+    if (!sessionId) return
 
     const store = this.sessionStore ?? sessionStore
     const cwd = this.runtime.context.cwd
@@ -348,7 +392,7 @@ export class AgentEngine {
       try {
         const evaluator = new Evaluator(cwd)
         const evalResult = await evaluator.evaluate(
-          this.sessionId,
+          sessionId,
           this.sessionGoal ?? "untitled",
           this.evaluationCriteria,
         )
@@ -398,7 +442,7 @@ export class AgentEngine {
 
     // ── Persist session status ───────────────────────────────────────
     try {
-      store.updateSession(this.sessionId, {
+      store.updateSession(sessionId, {
         status: outcome === "success" || outcome === "partial" ? "completed" : "failed",
       })
     } catch (err) {
@@ -407,16 +451,20 @@ export class AgentEngine {
 
     // ── Audit end ────────────────────────────────────────────────────
     if (this.auditRecorder) {
-      this.auditRecorder.recordSessionEnd(outcome === "success" ? "completed" : "failed")
+      try {
+        this.auditRecorder.recordSessionEnd(outcome === "success" ? "completed" : "failed")
+      } catch (err) {
+        log.warn("Failed to record session end", { error: String(err) })
+      }
     }
 
     // ── Experience recording ─────────────────────────────────────────
     if (this.experienceEnabled && this.sessionGoal) {
       try {
-        experienceStore.recordExperience({
-          id: this.sessionId,
+        this.experienceStore.recordExperience({
+          id: sessionId,
           project: this.projectName,
-          sessionId: this.sessionId,
+          sessionId,
           goal: this.sessionGoal,
           agentType: this.runtime.context.agentType ?? "agent",
           outcome,
@@ -429,7 +477,11 @@ export class AgentEngine {
           metrics: JSON.stringify(metrics),
         })
       } catch (err) {
-        log.warn("Failed to record experience", { error: String(err) })
+        if (isUniqueConstraintError(err)) {
+          log.debug("Experience already recorded for session", { sessionId })
+        } else {
+          log.warn("Failed to record experience", { error: String(err) })
+        }
       }
     }
 
@@ -437,7 +489,7 @@ export class AgentEngine {
     if (this.runtime.context.agentId) {
       try {
         const { soulManager } = await import("./soul")
-        const moodOutcome = outcome === "success" ? "success" : "failure"
+        const moodOutcome = computeMoodOutcome(outcome)
         soulManager.updateMood(this.runtime.context.agentId, moodOutcome)
       } catch (err) {
         log.warn("Mood update failed", { error: String(err) })
@@ -525,6 +577,70 @@ export class AgentEngine {
     return toolRegistry.list().filter((t) => permitted.has(t.name))
   }
 
+  private async recordModelUsage(model: string, usage: unknown): Promise<void> {
+    if (!this.sessionId) return
+    const u = usage as
+      | { inputTokens?: number; outputTokens?: number; promptTokens?: number; completionTokens?: number }
+      | undefined
+      | null
+    if (!u) return
+    const promptTokens = u.inputTokens ?? u.promptTokens ?? 0
+    const completionTokens = u.outputTokens ?? u.completionTokens ?? 0
+    if (promptTokens <= 0 && completionTokens <= 0) return
+    try {
+      const { billingTracker } = await import("../billing/tracker")
+      billingTracker.recordUsage(this.sessionId, model, promptTokens, completionTokens)
+    } catch {
+      /* billing must never break an LLM call */
+    }
+  }
+
+  /**
+   * Persist a single executed tool call into the experience buffer.
+   * Failure-safe: an experience write must never break the tool call.
+   */
+  private recordExperienceAction(
+    toolName: string,
+    args: Record<string, unknown>,
+    result: { success: boolean; output: string; error?: string },
+    durationMs: number,
+  ): void {
+    if (!this.experienceEnabled || !this.sessionId || !this.sessionGoal) return
+    try {
+      const argSummary = this.summarizeForLog(args, 300)
+      const resultSummary = this.summarizeForLog(result.success ? result.output : (result.error ?? "unknown error"), 300)
+      this.experienceStore.addAction({
+        experienceId: this.sessionId,
+        stepIndex: this.experienceStepIndex++,
+        actionType: toolName,
+        description: `${toolName}: ${resultSummary.slice(0, 120)}`,
+        details: JSON.stringify({
+          args: argSummary,
+          result: resultSummary,
+          durationMs: Math.round(durationMs),
+        }),
+        outcome: result.success ? "success" : "error",
+        timestamp: new Date().toISOString(),
+      })
+    } catch (err) {
+      log.warn("Failed to record experience action", { error: String(err), tool: toolName })
+    }
+  }
+
+  private summarizeForLog(value: unknown, maxLength: number): string {
+    let text: string
+    if (typeof value === "string") {
+      text = value
+    } else {
+      try {
+        text = JSON.stringify(value) ?? String(value)
+      } catch {
+        text = String(value)
+      }
+    }
+    return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text
+  }
+
   private buildVercelTools(): ToolSet {
     const permissions = this.effectivePermissions()
     const allTools = this.visibleTools(permissions)
@@ -550,6 +666,7 @@ export class AgentEngine {
       }
 
       const toolName = t.name
+      const override = this.toolOverrides[toolName]
 
       ;(tools as Record<string, unknown>)[toolName] = {
         description: t.description,
@@ -562,8 +679,12 @@ export class AgentEngine {
             permissions,
           }
           const startTime = performance.now()
-          const result = await toolRegistry.execute(toolName, args, toolCtx)
+          const result = override
+            ? await override.execute(args, toolCtx)
+            : await toolRegistry.execute(toolName, args, toolCtx)
           const elapsedMs = performance.now() - startTime
+
+          this.recordExperienceAction(toolName, args, result, elapsedMs)
 
           // Record tool cost to billing tracker + cost alert engine (best-effort)
           try {
@@ -660,7 +781,7 @@ export class AgentEngine {
   private buildExperienceContext(): string {
     if (!this.experienceEnabled || !this.sessionGoal) return ""
     try {
-      const retriever = new ExperienceRetriever(experienceStore)
+      const retriever = new ExperienceRetriever(this.experienceStore)
       const similar = retriever.searchSimilar(this.sessionGoal, {
         project: this.projectName || undefined,
         limit: 5,
@@ -773,11 +894,18 @@ export class AgentEngine {
 
     const durationMs = Date.now() - startedAt
 
+    const streamUsage = await result.usage
+
+    await this.recordModelUsage(modelName, streamUsage)
+
     // ── GenAI Tracing: end generation span ──
     if (this.tracingEnabled && this.currentTrace) {
       genaiTracer.endGeneration(this.currentTrace, {
         spanId: this.currentTrace.spanId,
         output: fullText,
+        inputTokens: streamUsage?.inputTokens,
+        outputTokens: streamUsage?.outputTokens,
+        totalTokens: streamUsage?.totalTokens,
         durationMs,
         status: "success",
       })
@@ -884,9 +1012,11 @@ export class AgentEngine {
 
     const durationMs = Date.now() - startedAt
 
+    await this.recordModelUsage(modelName, await result.usage)
+
     // ── GenAI Tracing: end generation span ──
     if (this.tracingEnabled && this.currentTrace) {
-      const usage = result.usage
+      const usage = await result.usage
       genaiTracer.endGeneration(this.currentTrace, {
         spanId: this.currentTrace.spanId,
         output: result.text,

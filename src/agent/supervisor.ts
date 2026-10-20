@@ -1,7 +1,7 @@
 import { agentManager } from "./manager"
 import { tracingStore } from "../telemetry/tracing"
 import { createLogger } from "../cli/logger"
-import type { AgentDef } from "./types"
+import type { AgentDef, AgentInstance } from "./types"
 
 const log = createLogger("supervisor")
 
@@ -9,6 +9,17 @@ export interface SupervisorConfig {
   goal: string
   agentType?: string
   maxRestarts?: number
+  /** Overall deadline for a single monitored run (default: 15 minutes) */
+  maxRunTimeMs?: number
+  /** How often the agent status is polled (default: 2000ms) */
+  pollIntervalMs?: number
+}
+
+export class SupervisorDeadlineError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = "SupervisorDeadlineError"
+  }
 }
 
 export class Supervisor {
@@ -20,6 +31,8 @@ export class Supervisor {
       goal: config.goal,
       agentType: config.agentType || "default",
       maxRestarts: config.maxRestarts ?? 3,
+      maxRunTimeMs: config.maxRunTimeMs ?? 15 * 60 * 1000,
+      pollIntervalMs: config.pollIntervalMs ?? 2000,
     }
   }
 
@@ -32,7 +45,7 @@ export class Supervisor {
     const def: AgentDef = {
       name: `worker-${this.restartCount}`,
       agentType: this.config.agentType as AgentDef["agentType"],
-      script: "src/agent/agent-worker.ts", // or whichever script is the main worker wrapper
+      script: "src/agent/agent-worker.ts",
       args: [this.config.goal],
       env: {
         AEGIS_SUPERVISOR_MODE: "true",
@@ -42,32 +55,84 @@ export class Supervisor {
     try {
       const agentId = await agentManager.spawn(def)
       log.info(`Spawned agent ${agentId}. Monitoring...`)
-
-      return new Promise((resolve, reject) => {
-        const checkInterval = setInterval(async () => {
-          const agent = agentManager.get(agentId)
-          if (!agent) {
-            clearInterval(checkInterval)
-            reject(new Error(`Agent ${agentId} vanished from manager`))
-            return
-          }
-
-          if (agent.status === "stopped") {
-            clearInterval(checkInterval)
-            log.info(`Agent ${agentId} finished successfully.`)
-            resolve()
-          } else if (agent.status === "error") {
-            clearInterval(checkInterval)
-            log.error(`Agent ${agentId} failed with error. Investigating traces...`)
-            await this.handleFailure(agentId)
-            resolve() // after handling failure (which may restart)
-          }
-        }, 2000)
-      })
+      await this.monitor(agentId)
     } catch (err) {
+      if (err instanceof SupervisorDeadlineError) throw err
       log.error(`Failed to spawn agent: ${err}`)
       await this.handleFailure("unknown")
     }
+  }
+
+  private monitor(agentId: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let settled = false
+
+      // `checkInterval` and `deadline` are declared below and only ever
+      // cleared from `cleanup`, which runs after the timers exist.
+      const cleanup = (): void => {
+        clearInterval(checkInterval)
+        clearTimeout(deadline)
+      }
+
+      const succeed = (): void => {
+        if (settled) return
+        settled = true
+        cleanup()
+        resolve()
+      }
+
+      const fail = (err: unknown): void => {
+        if (settled) return
+        settled = true
+        cleanup()
+        reject(err instanceof Error ? err : new Error(String(err)))
+      }
+
+      const tick = async (): Promise<void> => {
+        let agent: AgentInstance | undefined
+        try {
+          agent = agentManager.get(agentId)
+        } catch (err) {
+          fail(err)
+          return
+        }
+
+        if (!agent) {
+          fail(new Error(`Agent ${agentId} vanished from manager`))
+          return
+        }
+
+        if (agent.status === "stopped") {
+          log.info(`Agent ${agentId} finished successfully.`)
+          succeed()
+          return
+        }
+
+        if (agent.status === "error") {
+          log.error(`Agent ${agentId} failed with error. Investigating traces...`)
+          settled = true
+          cleanup()
+          try {
+            await this.handleFailure(agentId)
+            resolve()
+          } catch (err) {
+            reject(err instanceof Error ? err : new Error(String(err)))
+          }
+        }
+      }
+
+      const checkInterval = setInterval(() => {
+        void tick()
+      }, this.config.pollIntervalMs)
+
+      const deadline = setTimeout(() => {
+        fail(
+          new SupervisorDeadlineError(
+            `Supervisor exceeded max run time of ${this.config.maxRunTimeMs}ms while monitoring agent ${agentId}`,
+          ),
+        )
+      }, this.config.maxRunTimeMs)
+    })
   }
 
   private async handleFailure(agentId: string): Promise<void> {
@@ -77,16 +142,12 @@ export class Supervisor {
       return
     }
 
-    // Attempt to read traces for this agent to understand what happened
-    // The session ID might match the agent ID depending on how the worker was initialized
     const traces = tracingStore.getSessionTraces(agentId)
     const lastSpan = traces[traces.length - 1]
 
     log.warn(`Agent failure detected. Last action: ${lastSpan?.name || "Unknown"}`)
     log.info(`Restarting agent... (Attempt ${this.restartCount} of ${this.config.maxRestarts})`)
 
-    // In a Software 3.0 world, the supervisor might prompt a 'fixer' agent to fix the code,
-    // but for now we'll just try to respawn with the same goal.
     await this.spawnAndMonitor()
   }
 }

@@ -8,11 +8,63 @@
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync, watch } from "node:fs"
 import type { FSWatcher } from "node:fs"
-import { resolve } from "node:path"
+import { createHmac, timingSafeEqual } from "node:crypto"
+import { isAbsolute, resolve, sep } from "node:path"
 import { createLogger } from "../cli/logger"
 import type { AgentTypeName } from "../agent/agent-types"
 
 const log = createLogger("triggers")
+
+const SHELL_METACHARACTERS = /[|&;<>`$"'(){}*?!~\r\n]/
+const COMMAND_TOKEN = /^[A-Za-z0-9._\-/\\:@]+$/
+
+export function tokenizeCommandLine(input: string): string[] | null {
+  const tokens: string[] = []
+  let current = ""
+  let quote: '"' | "'" | null = null
+  let started = false
+
+  for (const ch of input) {
+    if (quote) {
+      if (ch === quote) {
+        quote = null
+        continue
+      }
+      current += ch
+      continue
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch
+      started = true
+      continue
+    }
+    if (/\s/.test(ch)) {
+      if (started) {
+        tokens.push(current)
+        current = ""
+        started = false
+      }
+      continue
+    }
+    current += ch
+    started = true
+  }
+
+  if (quote) return null
+  if (started) tokens.push(current)
+  return tokens
+}
+
+function pingAction(): TriggerAction {
+  if (process.platform === "win32") {
+    return { mode: "run-command", goal: "cmd", args: ["/c", "echo", "pong"] }
+  }
+  return { mode: "run-command", goal: "echo", args: ["pong"] }
+}
+
+function isLegacyPingAction(action: TriggerAction): boolean {
+  return action.mode === "run-command" && action.goal === "echo pong" && (action.args ?? []).length === 0
+}
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -77,23 +129,32 @@ export interface TriggerDef {
   lastFiredAt?: string
   fireCount: number
   tags?: string[]
+  /** Previous evaluation result of a condition trigger (edge detection) */
+  conditionState?: boolean
 }
 
 // ── Storage ───────────────────────────────────────────────────────────
 
-const DATA_DIR = resolve(process.cwd(), "data")
-const TRIGGER_FILE = resolve(DATA_DIR, "triggers.json")
+function getDataDir(): string {
+  return process.env.AEGIS_DATA_DIR ?? resolve(process.cwd(), "data")
+}
+
+function getTriggerFile(): string {
+  return resolve(getDataDir(), "triggers.json")
+}
 
 function ensureDir(): void {
-  if (!existsSync(DATA_DIR)) {
-    mkdirSync(DATA_DIR, { recursive: true })
+  const dir = getDataDir()
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true })
   }
 }
 
 function loadTriggersFromDisk(): TriggerDef[] {
   try {
-    if (!existsSync(TRIGGER_FILE)) return []
-    const raw = readFileSync(TRIGGER_FILE, "utf-8")
+    const file = getTriggerFile()
+    if (!existsSync(file)) return []
+    const raw = readFileSync(file, "utf-8")
     return JSON.parse(raw) as TriggerDef[]
   } catch (err) {
     log.warn("Failed to load triggers from disk", { error: String(err) })
@@ -103,7 +164,26 @@ function loadTriggersFromDisk(): TriggerDef[] {
 
 function saveTriggersToDisk(triggers: TriggerDef[]): void {
   ensureDir()
-  writeFileSync(TRIGGER_FILE, JSON.stringify(triggers, null, 2), "utf-8")
+  writeFileSync(getTriggerFile(), JSON.stringify(triggers, null, 2), "utf-8")
+}
+
+// ── Helper: Hour windows ──────────────────────────────────────────────
+
+export function validateDuringHours(window: [number, number]): void {
+  const [start, end] = window
+  if (!Number.isInteger(start) || !Number.isInteger(end)) {
+    throw new Error("duringHours start and end must be whole hours")
+  }
+  if (start < 0 || start > 23 || end < 0 || end > 23) {
+    throw new Error("duringHours start and end must be between 0 and 23")
+  }
+}
+
+export function isWithinDuringHours(hour: number, window: [number, number]): boolean {
+  const [start, end] = window
+  if (start === end) return false
+  if (start < end) return hour >= start && hour < end
+  return hour >= start || hour < end
 }
 
 // ── Helper: Glob-to-regex ─────────────────────────────────────────────
@@ -127,6 +207,7 @@ export class TriggerEngine {
   private activeCronTimers = new Map<string, ReturnType<typeof setInterval>>()
   private activeFileWatchers = new Map<string, FSWatcher>()
   private activeConditionTimers = new Map<string, ReturnType<typeof setInterval>>()
+  private firingTriggers = new Set<string>()
 
   constructor() {
     this.reloadFromDisk()
@@ -152,35 +233,50 @@ export class TriggerEngine {
         name: "ping",
         type: "gateway_command",
         config: { command: "ping" },
-        action: { mode: "run-command", goal: "echo pong" },
+        action: pingAction(),
         enabled: true,
         tags: ["builtin"],
       },
     ]
 
+    let migrated = false
+
     for (const def of defaults) {
-      // Skip if a trigger with this command name is already registered
-      const exists = Array.from(this.triggers.values()).some(
+      const existing = Array.from(this.triggers.values()).find(
         (t) =>
           t.type === "gateway_command" &&
           (t.config as GatewayCommandConfig).command === (def.config as GatewayCommandConfig).command,
       )
-      if (!exists) {
-        const id = "builtin-" + def.name
-        this.triggers.set(id, {
-          ...def,
-          id,
-          createdAt: new Date().toISOString(),
-          fireCount: 0,
-          enabled: true,
-        } as TriggerDef)
+      if (existing) {
+        if (def.name === "ping" && isLegacyPingAction(existing.action)) {
+          existing.action = pingAction()
+          migrated = true
+          log.info('Migrated legacy builtin "ping" trigger to an explicit command + args action')
+        }
+        continue
       }
+      const id = "builtin-" + def.name
+      this.triggers.set(id, {
+        ...def,
+        id,
+        createdAt: new Date().toISOString(),
+        fireCount: 0,
+        enabled: true,
+      } as TriggerDef)
     }
+
+    if (migrated) this.persist()
   }
 
   // ── Public API ──────────────────────────────────────────────────────
 
   register(def: Omit<TriggerDef, "id" | "createdAt" | "fireCount" | "lastFiredAt"> & { id?: string }): TriggerDef {
+    if (def.type === "cron") {
+      const cfg = def.config as CronConfig
+      if (cfg.duringHours) {
+        validateDuringHours(cfg.duringHours)
+      }
+    }
     const id = def.id ?? "trigger-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 6)
     const trigger: TriggerDef = {
       ...def,
@@ -255,13 +351,29 @@ export class TriggerEngine {
     })
   }
 
-  matchWebhook(path: string, method?: string): TriggerDef | undefined {
+  matchWebhook(path: string, method: string): TriggerDef | undefined {
     return Array.from(this.triggers.values()).find((t) => {
       if (t.type !== "webhook" || !t.enabled) return false
       const cfg = t.config as WebhookConfig
-      if (cfg.method && method && cfg.method !== method) return false
+      if (cfg.method && cfg.method !== method) return false
       return path === cfg.path
     })
+  }
+
+  /**
+   * Verify a webhook payload against a per-trigger secret.
+   * Uses constant-time comparison; returns false when the secret is missing or mismatched.
+   */
+  verifyWebhookSecret(trigger: TriggerDef, payload: string, signature: string | null | undefined): boolean {
+    const cfg = trigger.config as WebhookConfig
+    if (!cfg.secret) return true
+    if (!signature) return false
+    const expected = createHmac("sha256", cfg.secret).update(payload, "utf-8").digest("hex")
+    const provided = signature.replace(/^sha256=/i, "")
+    const bufA = Buffer.from(expected, "utf-8")
+    const bufB = Buffer.from(provided, "utf-8")
+    if (bufA.length !== bufB.length) return false
+    return timingSafeEqual(bufA, bufB)
   }
 
   async fire(
@@ -271,11 +383,16 @@ export class TriggerEngine {
     if (!trigger.enabled) {
       return { success: false, error: "Trigger is disabled" }
     }
+    if (this.firingTriggers.has(trigger.id)) {
+      log.warn('Trigger "' + trigger.name + '" is already running, skipping overlapping fire')
+      return { success: false, error: "Trigger is already running" }
+    }
     const goal = goalOverride ?? trigger.action.goal
     log.info('Firing trigger "' + trigger.name + '" (' + trigger.type + ")")
     trigger.lastFiredAt = new Date().toISOString()
     trigger.fireCount++
     this.persist()
+    this.firingTriggers.add(trigger.id)
     try {
       switch (trigger.action.mode) {
         case "spawn-agent": {
@@ -292,6 +409,8 @@ export class TriggerEngine {
             id: "trigger-" + trigger.id,
             payload: { goal },
             timestamp: Date.now(),
+          }).catch((err: unknown) => {
+            log.error('Trigger "' + trigger.name + '" failed to deliver task', { error: String(err) })
           })
           return { success: true, result: "Spawned agent " + agentId }
         }
@@ -302,14 +421,24 @@ export class TriggerEngine {
         }
         case "run-command": {
           const { spawn } = await import("node:child_process")
-          const cmd = goal
-          const args = trigger.action.args ?? []
+          const parsed = this.parseCommand(goal, trigger.action.args)
+          if (!parsed) {
+            return { success: false, error: "Invalid or empty command" }
+          }
+          const allowed = this.allowedCommands()
+          if (allowed && !allowed.includes(parsed.command)) {
+            log.warn("Trigger command is not allowed", { command: parsed.command, trigger: trigger.name })
+            return { success: false, error: `Command "${parsed.command}" is not allowed` }
+          }
+          const cmd = parsed.command
+          const args = parsed.args
           return new Promise((resolve) => {
             let stdout = ""
             let stderr = ""
             const child = spawn(cmd, args, {
               stdio: ["ignore", "pipe", "pipe"],
               cwd: process.cwd(),
+              shell: false,
               env: { ...process.env, AEGIS_TRIGGER_ID: trigger.id, AEGIS_TRIGGER_NAME: trigger.name },
             })
             child.stdout?.on("data", (chunk: Buffer) => {
@@ -347,7 +476,32 @@ export class TriggerEngine {
       const errMsg = err instanceof Error ? err.message : String(err)
       log.error('Trigger "' + trigger.name + '" failed', { error: errMsg })
       return { success: false, error: errMsg }
+    } finally {
+      this.firingTriggers.delete(trigger.id)
     }
+  }
+
+  private parseCommand(goal: string, explicitArgs?: string[]): { command: string; args: string[] } | null {
+    const parts = tokenizeCommandLine(goal)
+    if (!parts || parts.length === 0) return null
+    const command = parts[0]
+    if (!command) return null
+    if (SHELL_METACHARACTERS.test(command)) return null
+    if (!COMMAND_TOKEN.test(command)) return null
+    if (command.includes("..")) return null
+    const args = [...parts.slice(1), ...(explicitArgs ?? [])]
+    return { command, args }
+  }
+
+  private allowedCommands(): string[] | null {
+    const raw = process.env.AEGIS_TRIGGER_ALLOWED_COMMANDS
+    if (!raw) return null
+    const list = raw
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean)
+    if (list.length === 0) return null
+    return list
   }
 
   async fireById(id: string, goalOverride?: string): Promise<{ success: boolean; result?: string; error?: string }> {
@@ -398,10 +552,18 @@ export class TriggerEngine {
       log.warn('Invalid cron schedule for "' + trigger.name + '": ' + cfg.schedule)
       return
     }
+    if (cfg.duringHours) {
+      try {
+        validateDuringHours(cfg.duringHours)
+      } catch (err) {
+        log.warn('Invalid during-hours window for "' + trigger.name + '": ' + String(err))
+        return
+      }
+    }
     const timer = setInterval(async () => {
       if (cfg.duringHours) {
         const hour = new Date().getHours()
-        if (hour < cfg.duringHours[0] || hour >= cfg.duringHours[1]) return
+        if (!isWithinDuringHours(hour, cfg.duringHours)) return
       }
       await this.fire(trigger).catch((err) => {
         log.error('Cron trigger "' + trigger.name + '" fire failed', { error: String(err) })
@@ -434,7 +596,8 @@ export class TriggerEngine {
     if (trigger.type !== "file_watch") return
     if (this.activeFileWatchers.has(trigger.id)) return
     const cfg = trigger.config as FileWatchConfig
-    const watchDir = resolve(process.cwd(), cfg.dir)
+    const watchDir = this.resolveWatchDir(cfg.dir)
+    if (!watchDir) return
     const debounceMs = cfg.debounceMs ?? 1000
     if (!existsSync(watchDir)) {
       log.warn("File watch directory does not exist: " + watchDir)
@@ -472,6 +635,24 @@ export class TriggerEngine {
     } catch (err) {
       log.error('Failed to start file watcher for "' + trigger.name + '"', { error: String(err) })
     }
+  }
+
+  private resolveWatchDir(dir: string): string | null {
+    const projectRoot = resolve(process.cwd())
+    if (!dir || dir.trim().length === 0) {
+      log.warn("File watch directory is empty, skipping watcher")
+      return null
+    }
+    if (isAbsolute(dir)) {
+      log.warn("File watch path must be relative to the project root, refusing: " + dir)
+      return null
+    }
+    const target = resolve(projectRoot, dir)
+    if (target !== projectRoot && !target.startsWith(projectRoot + sep)) {
+      log.warn("File watch path escapes the project root, refusing: " + dir)
+      return null
+    }
+    return target
   }
 
   private stopFileWatcher(id: string): void {
@@ -535,12 +716,25 @@ export class TriggerEngine {
       return
     }
     const triggered = this.compareValues(value, cfg.threshold, cfg.operator)
-    if (triggered) {
-      log.info('Condition triggered for "' + trigger.name + '": ' + value + " " + cfg.operator + " " + cfg.threshold)
-      await this.fire(trigger).catch((err) => {
-        log.error('Condition trigger "' + trigger.name + '" fire failed', { error: String(err) })
-      })
+    const previous = trigger.conditionState === true
+
+    if (!triggered) {
+      if (previous) {
+        trigger.conditionState = false
+        this.persist()
+      }
+      return
     }
+
+    if (previous) {
+      return
+    }
+
+    trigger.conditionState = true
+    log.info('Condition triggered for "' + trigger.name + '": ' + value + " " + cfg.operator + " " + cfg.threshold)
+    await this.fire(trigger).catch((err) => {
+      log.error('Condition trigger "' + trigger.name + '" fire failed', { error: String(err) })
+    })
   }
 
   private async getMetricValue(cfg: ConditionConfig): Promise<number> {

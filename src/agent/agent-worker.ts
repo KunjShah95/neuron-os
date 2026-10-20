@@ -1,5 +1,7 @@
 #!/usr/bin/env bun
 
+import { resolve } from "node:path"
+import { fileURLToPath } from "node:url"
 import type { AgentIpcMessage } from "./types"
 
 const HEARTBEAT_MS = 5_000
@@ -9,8 +11,11 @@ const AGENT_TYPE = process.env.AEGIS_AGENT_TYPE
 
 const MAX_TURNS = parseInt(process.env.AEGIS_MAX_TURNS ?? "20", 10)
 
+const STDIN_MODE = process.env.AEGIS_STDIN_MODE === "true"
+
 let running = true
 let taskCount = 0
+let activeTasks = 0
 
 function send(msg: Omit<AgentIpcMessage, "timestamp">): void {
   const line = JSON.stringify({ ...msg, timestamp: Date.now() }) + "\n"
@@ -30,34 +35,107 @@ function replyTo(msg: AgentIpcMessage, type: string, payload?: unknown): void {
 // falling back to the original builtin tool set for standalone usage.
 import { createAgentRuntime } from "./runtime"
 import { AIProviderManager, type AIConfig, type AIProvider, resolveAutoAIConfig } from "../ai"
+import { MODEL_REFERENCES, type AIProviderType } from "../ai/models"
+import { resolveModelProvider } from "../economy/model-router"
 import { AGENT_TYPES } from "./agent-types"
 
 import { AgentEngine } from "./engine"
 
 let engine: AgentEngine | null = null
 
+export type ModelSelectionSource = "explicit" | "routed" | "default" | "auto"
+
+export interface ModelSelection {
+  provider?: string
+  model?: string
+  source: ModelSelectionSource
+}
+
+const KNOWN_PROVIDERS = new Set<string>(Object.keys(MODEL_REFERENCES))
+
+function isKnownProvider(provider: string): boolean {
+  return KNOWN_PROVIDERS.has(provider)
+}
+
+export function isModelValidForProvider(provider: string, model: string): boolean {
+  const references = MODEL_REFERENCES[provider as AIProviderType]
+  if (references?.some((entry) => entry.id === model)) return true
+  return resolveModelProvider(model) === provider
+}
+
+function readEnv(env: Record<string, string | undefined>, key: string): string | undefined {
+  const value = env[key]
+  if (typeof value !== "string") return undefined
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : undefined
+}
+
+export function resolveModelSelection(env: Record<string, string | undefined>): ModelSelection {
+  const defaultProvider = readEnv(env, "AEGIS_DEFAULT_PROVIDER")
+  const defaultModel = readEnv(env, "AEGIS_DEFAULT_MODEL")
+  const aiProvider = readEnv(env, "AEGIS_AI_PROVIDER")
+  const aiModel = readEnv(env, "AEGIS_AI_MODEL")
+  const routedProvider = readEnv(env, "AEGIS_ROUTED_PROVIDER")
+  const routedModel = readEnv(env, "AEGIS_ROUTED_MODEL")
+
+  const explicitProvider = aiProvider && aiProvider !== defaultProvider ? aiProvider : undefined
+  const explicitModel = aiModel && aiModel !== defaultModel ? aiModel : undefined
+
+  if (explicitProvider || explicitModel) {
+    let provider = explicitProvider ?? defaultProvider
+    const model = explicitModel ?? defaultModel
+    if (!explicitProvider && explicitModel && provider && !isModelValidForProvider(provider, explicitModel)) {
+      const derived = resolveModelProvider(explicitModel)
+      if (isKnownProvider(derived)) provider = derived
+    }
+    return { provider, model, source: "explicit" }
+  }
+
+  if (
+    routedProvider &&
+    routedModel &&
+    isKnownProvider(routedProvider) &&
+    isModelValidForProvider(routedProvider, routedModel)
+  ) {
+    return { provider: routedProvider, model: routedModel, source: "routed" }
+  }
+
+  if (defaultProvider || defaultModel) {
+    return { provider: defaultProvider, model: defaultModel, source: "default" }
+  }
+
+  return { source: "auto" }
+}
+
 function buildAIConfig(): AIConfig {
-  const explicitProvider = process.env.AEGIS_AI_PROVIDER || process.env.AEGIS_DEFAULT_PROVIDER
-  const explicitModel = process.env.AEGIS_AI_MODEL || process.env.AEGIS_DEFAULT_MODEL
-  const cfg = explicitProvider
-    ? resolveAutoAIConfig({
-        provider: explicitProvider as AIProvider,
-        model: explicitModel ?? undefined,
-        baseUrl: process.env.AEGIS_AI_BASE_URL,
-        temperature: process.env.AEGIS_TEMPERATURE ? parseFloat(process.env.AEGIS_TEMPERATURE) : undefined,
-        maxOutputTokens: process.env.AEGIS_MAX_TOKENS ? parseInt(process.env.AEGIS_MAX_TOKENS, 10) : undefined,
-      })
-    : resolveAutoAIConfig({
-        baseUrl: process.env.AEGIS_AI_BASE_URL,
-        temperature: process.env.AEGIS_TEMPERATURE ? parseFloat(process.env.AEGIS_TEMPERATURE) : undefined,
-        maxOutputTokens: process.env.AEGIS_MAX_TOKENS ? parseInt(process.env.AEGIS_MAX_TOKENS, 10) : undefined,
-      })
+  const selection = resolveModelSelection(process.env)
+  if (selection.source === "routed") {
+    log("info", `Model router selected ${selection.provider}/${selection.model}`)
+  }
+
+  const overrides: Partial<AIConfig> = {
+    baseUrl: process.env.AEGIS_AI_BASE_URL,
+    temperature: process.env.AEGIS_TEMPERATURE ? parseFloat(process.env.AEGIS_TEMPERATURE) : undefined,
+    maxOutputTokens: process.env.AEGIS_MAX_TOKENS ? parseInt(process.env.AEGIS_MAX_TOKENS, 10) : undefined,
+    sessionId: AGENT_ID,
+  }
+  if (selection.provider) overrides.provider = selection.provider as AIProvider
+  if (selection.model) overrides.model = selection.model
+
+  const cfg = resolveAutoAIConfig(overrides)
   const budgetStatus = process.env.AEGIS_BUDGET_STATUS
   const degradedModel = process.env.AEGIS_DEGRADED_MODEL
   const model = degradedModel && budgetStatus && budgetStatus !== "continue" ? degradedModel : cfg.model
   if (model !== cfg.model) {
     log("info", `Budget degradation: ${cfg.model} → ${model} (status: ${budgetStatus})`)
     cfg.model = model
+    if (cfg.provider && !isModelValidForProvider(cfg.provider, model)) {
+      const derived = resolveModelProvider(model)
+      if (isKnownProvider(derived)) {
+        log("info", `Provider switch for degraded model: ${cfg.provider} → ${derived}`)
+        cfg.provider = derived as AIProvider
+      }
+    }
   }
   return cfg
 }
@@ -90,6 +168,14 @@ async function ensureEngine(): Promise<AgentEngine> {
 import { episodicMemory } from "../memory/store"
 
 // ── ReAct Loop ─────────────────────────────────────────────────────────
+
+const TOOL_INVOCATION_PATTERN =
+  /^[ \t]*(?:Action|Tool|Tool\s+Call|TOOL_CALL|Function\s+Call|Function)\s*[:=]\s*\S+/im
+
+export function isToolInvocationRequest(text: string): boolean {
+  if (!text) return false
+  return TOOL_INVOCATION_PATTERN.test(text)
+}
 
 let lastReportedCost = 0
 
@@ -137,11 +223,10 @@ async function runReActLoop(goal: string, taskId: number): Promise<string> {
         send({ id: `task-${taskId}`, type: "result", payload: { type: "thought", content: stepText, step: stepCount } })
       }
 
-      // If engine returned no tool invocation hints (simple text), treat as final answer
-      // The AgentEngine exposes tools via the AI SDK; tool calls will be executed by the engine
-      // and included in follow-up messages. For compatibility, stop when text present and
-      // there's no explicit instruction to continue.
-      if (stepText && !/\bAction:|\bTool:|\bcall\b/i.test(stepText)) {
+      // The engine executes tools through the AI SDK. A step is only a request for
+      // more work when the model explicitly emits a tool invocation directive.
+      // Ordinary prose (including words such as "call") must terminate the loop.
+      if (!isToolInvocationRequest(stepText)) {
         log("info", `Task #${taskId}: Agent produced final answer at step ${stepCount}`)
         break
       }
@@ -188,11 +273,14 @@ async function handleRunTask(msg: AgentIpcMessage): Promise<void> {
   taskCount++
   log("info", `Running task #${taskCount}: ${goal.slice(0, 100)}`)
 
+  activeTasks++
   try {
     const output = await runReActLoop(goal, taskCount)
     replyTo(msg, "result", { taskId: taskCount, output, steps: taskCount })
   } catch (err: unknown) {
     replyTo(msg, "error", { message: err instanceof Error ? err.message : String(err), taskId: taskCount })
+  } finally {
+    activeTasks--
   }
 }
 
@@ -240,22 +328,32 @@ async function handleDispatch(msg: AgentIpcMessage): Promise<void> {
 
   taskCount++
 
+  activeTasks++
   try {
     const timeout = payload.timeoutMs ?? 300_000
-    const result = await Promise.race([
-      runReActLoop(fullGoal, taskCount),
-      new Promise<string>((_, reject) => setTimeout(() => reject(new Error("Dispatch task timed out")), timeout)),
-    ])
-
-    send({
-      id: msg.id,
-      type: "dispatch-result",
-      payload: {
-        success: true,
-        output: result,
-        durationMs: Date.now() - (msg.timestamp || Date.now()),
-      },
+    let rejectTimeout: ((reason: Error) => void) | undefined
+    const timeoutPromise = new Promise<string>((_, reject) => {
+      rejectTimeout = reject
     })
+    const timer = setTimeout(() => {
+      rejectTimeout?.(new Error("Dispatch task timed out"))
+    }, timeout)
+
+    try {
+      const result = await Promise.race([runReActLoop(fullGoal, taskCount), timeoutPromise])
+
+      send({
+        id: msg.id,
+        type: "dispatch-result",
+        payload: {
+          success: true,
+          output: result,
+          durationMs: Date.now() - (msg.timestamp || Date.now()),
+        },
+      })
+    } finally {
+      clearTimeout(timer)
+    }
   } catch (err: unknown) {
     send({
       id: msg.id,
@@ -267,6 +365,8 @@ async function handleDispatch(msg: AgentIpcMessage): Promise<void> {
         error: err instanceof Error ? err.message : String(err),
       },
     })
+  } finally {
+    activeTasks--
   }
 }
 
@@ -326,7 +426,14 @@ async function readStdin(): Promise<void> {
   } catch (err) {
     send({ type: "error", payload: { message: `stdin error: ${String(err)}` } })
   } finally {
-    reader.releaseLock()
+    try {
+      reader.releaseLock()
+    } catch {
+      /* the reader may already be released */
+    }
+    if (STDIN_MODE) {
+      running = false
+    }
   }
 }
 
@@ -343,8 +450,12 @@ function startHeartbeat(): void {
 import { taskQueue } from "./queue"
 
 async function pollQueue(): Promise<void> {
-  log("info", `Agent worker started in queue polling mode. Waiting for tasks...`)
+  log("info", `Agent worker started. Polling the task queue and listening on stdin...`)
   while (running) {
+    if (activeTasks > 0) {
+      await new Promise((r) => setTimeout(r, 500))
+      continue
+    }
     const task = taskQueue.pull(AGENT_ID)
     if (task) {
       log("info", `Pulled task: ${task.id} (priority: ${task.priority})`)
@@ -363,19 +474,38 @@ async function pollQueue(): Promise<void> {
 
 // ── Startup ───────────────────────────────────────────────────────────
 
-log("info", `Agent "${AGENT_NAME}" (${AGENT_ID}) type=${AGENT_TYPE ?? "default"} starting…`)
-send({ type: "result", payload: { status: "ready", name: AGENT_NAME, id: AGENT_ID, type: AGENT_TYPE } })
-
-startHeartbeat()
-
-// Default: poll the task queue for work AND listen on stdin for direct IPC.
-// This wires the queue into the default lifecycle — agents always pull
-// from the queue unless started with AEGIS_STDIN_MODE=true (direct IPC).
-if (process.env.AEGIS_STDIN_MODE === "true") {
-  await readStdin()
-} else {
-  await pollQueue()
+function isWorkerEntryPoint(): boolean {
+  if (import.meta.main) return true
+  const entry = process.argv[1]
+  if (!entry) return true
+  try {
+    return resolve(entry) === resolve(fileURLToPath(import.meta.url))
+  } catch {
+    return false
+  }
 }
 
-log("info", "Agent worker exiting")
-process.exit(0)
+async function startWorker(): Promise<void> {
+  log("info", `Agent "${AGENT_NAME}" (${AGENT_ID}) type=${AGENT_TYPE ?? "default"} starting…`)
+  send({ type: "result", payload: { status: "ready", name: AGENT_NAME, id: AGENT_ID, type: AGENT_TYPE } })
+
+  startHeartbeat()
+
+  // Service BOTH channels concurrently: the manager talks to the worker over
+  // stdin, while the shared task queue feeds work in from other processes.
+  const queuePromise = pollQueue()
+  const stdinPromise = readStdin()
+
+  if (STDIN_MODE) {
+    await Promise.all([queuePromise, stdinPromise])
+  } else {
+    await queuePromise
+  }
+
+  log("info", "Agent worker exiting")
+  process.exit(0)
+}
+
+if (isWorkerEntryPoint()) {
+  await startWorker()
+}

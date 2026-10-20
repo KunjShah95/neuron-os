@@ -12,6 +12,7 @@ import { AgentEngine } from "../agent/engine"
 import type { AIProviderType } from "../ai/models"
 import { ActionTracker, type ActionLog } from "../agent/action-tracker"
 import { AgentToolExecutor } from "../agent/agent-tools"
+import { createStagedTools } from "../agent/staged-tools"
 import type { EvaluationCriteria } from "../mesh/types"
 
 interface AgentOrchestratorCallbacks {
@@ -80,6 +81,7 @@ export async function runAgentOrchestrator(
     audit: true,
     evaluation,
     ratchet: ratchetConfig,
+    toolOverrides: createStagedTools(executor, process.cwd()),
   })
 
   try {
@@ -104,8 +106,8 @@ Format your response as a structured plan listing:
     ])
 
     // Phase 2: Stage the changes based on the plan
-    // (In a full implementation, this would parse the AI's plan and stage actions)
-    // For now, we run a second round where the AI executes tools directly
+    // The engine's mutating tools are staged through the ActionTracker,
+    // so nothing reaches disk until the user approves it.
     const executionResult = await engine.chat([
       {
         role: "user",
@@ -117,9 +119,11 @@ Goal: ${goal}
 
 IMPORTANT SAFETY RULES:
 1. Always read the current file content before modifying it
-2. Use modify_file for changes, not create_file (unless it's a genuinely new file)
+2. Use the edit tool for changes to existing files, and write only for genuinely new files
 3. Never modify files in node_modules, .git, or dist
-4. After making changes, verify they work`,
+4. After making changes, verify they work
+
+NOTE: your changes are staged for review, not written to disk yet.`,
       },
     ])
 

@@ -1,8 +1,14 @@
 import { createLogger } from "../../cli/logger"
 import type { DreamStore } from "../dream-store"
-import type { DreamInsight } from "../types"
+import type { DreamInsight, DreamType } from "../types"
 
 const log = createLogger("dream-engine")
+
+const ENGINE_OWN_DREAM_TYPES: ReadonlySet<DreamType> = new Set([
+  "shared-dream-consolidation",
+  "knowledge-compression",
+  "mood-consolidation",
+])
 
 export interface SharedDreamPhaseResult {
   insights: DreamInsight[]
@@ -15,9 +21,11 @@ export async function runSharedDreamPhase(
   activeDreams: Set<string>,
   agentTypes?: string[],
 ): Promise<SharedDreamPhaseResult> {
-  const allDreams = agentTypes
+  const candidates = agentTypes
     ? (await Promise.all(agentTypes.map((t) => store.listDreams(50, t)))).flat()
     : store.listDreams(100)
+
+  const allDreams = candidates.filter((d) => !ENGINE_OWN_DREAM_TYPES.has(d.type))
 
   const dreamsWithInsights = allDreams.filter((d) => d.insightIds.length > 0)
   const minRequired = agentTypes ? 2 : 3
@@ -46,9 +54,7 @@ export async function runSharedDreamPhase(
     const agentCount = agentTypesSet.size
     const highConfidence = allAgentInsights.filter((i) => i.confidence > 0.7)
     const patterns = allAgentInsights.filter((i) => i.type === "pattern")
-    const scopeLabel = agentTypes
-      ? `types ${agentTypes.join(", ")}`
-      : `all types (${[...agentTypesSet].join(", ")})`
+    const scopeLabel = agentTypes ? `types ${agentTypes.join(", ")}` : `all types (${[...agentTypesSet].join(", ")})`
 
     const synthesisInsights: DreamInsight[] = []
 
@@ -109,7 +115,9 @@ export async function runSharedDreamPhase(
         `Total insights consolidated: ${allAgentInsights.length}`,
         `High-confidence findings: ${highConfidence.length}`,
         `Recurring patterns: ${patterns.length}`,
-        agentTypes ? `Filtered to types: ${agentTypes.join(", ")}` : `All agent types: ${[...agentTypesSet].join(", ")}`,
+        agentTypes
+          ? `Filtered to types: ${agentTypes.join(", ")}`
+          : `All agent types: ${[...agentTypesSet].join(", ")}`,
       ].join("\n"),
       vividness: agentCount > (agentTypes ? 2 : 3) ? "vivid" : "moderate",
     })
@@ -119,7 +127,9 @@ export async function runSharedDreamPhase(
   } catch (err) {
     store.updateDream(dream.id, { status: "failed" })
     activeDreams.delete(dream.id)
-    log.error(`${agentTypes ? "Share" : "Shared"} dream ${agentTypes ? "" : "consolidation "}failed: ${err instanceof Error ? err.message : String(err)}`)
+    log.error(
+      `${agentTypes ? "Share" : "Shared"} dream ${agentTypes ? "" : "consolidation "}failed: ${err instanceof Error ? err.message : String(err)}`,
+    )
     return { insights: [], dreamCount: 0 }
   }
 }

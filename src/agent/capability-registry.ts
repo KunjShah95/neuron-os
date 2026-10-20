@@ -394,6 +394,7 @@ const BUILTIN_CAPABILITIES: Capability[] = [
 export class CapabilityRegistry {
   private capabilities = new Map<string, Capability>()
   private registrations = new Map<string, AgentCapabilityRegistration>()
+  private matchCounts = new Map<string, number>()
 
   constructor() {
     // Register built-in capabilities
@@ -550,6 +551,7 @@ export class CapabilityRegistry {
       }
 
       if (score > 0) {
+        this.matchCounts.set(cap.id, (this.matchCounts.get(cap.id) ?? 0) + 1)
         matches.push({ capability: cap, agentId: "", score, matchReasons: reasons })
       }
     }
@@ -651,9 +653,9 @@ export class CapabilityRegistry {
     }
 
     const topCaps = Array.from(this.capabilities.values())
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((c) => ({ id: c.id, name: c.name, matchedCount: this.matchCounts.get(c.id) ?? 0 }))
+      .sort((a, b) => b.matchedCount - a.matchedCount || a.name.localeCompare(b.name))
       .slice(0, 10)
-      .map((c) => ({ id: c.id, name: c.name, matchedCount: 0 }))
 
     return {
       totalCapabilities: this.capabilities.size,

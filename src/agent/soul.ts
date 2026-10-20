@@ -1,6 +1,7 @@
-import { existsSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from "node:fs"
 import { readFile, writeFile, mkdir } from "node:fs/promises"
 import { resolve, join } from "node:path"
+import { homedir } from "node:os"
 
 // ── Soul Archetypes ──────────────────────────────────────────────────
 // Each archetype defines a distinct agent identity with traits,
@@ -493,6 +494,53 @@ export const ARCHETYPE_DEFINITIONS: Record<
 
 export class SoulManager {
   private souls = new Map<string, AgentSoul>()
+  private dir: string
+
+  constructor(options: { dir?: string } = {}) {
+    this.dir = options.dir ?? resolve(homedir(), ".aegis", "souls")
+    this.hydrate()
+  }
+
+  /**
+   * Load previously persisted souls from disk.
+   * A corrupt or unreadable file is skipped rather than breaking the manager.
+   */
+  private hydrate(): void {
+    if (!existsSync(this.dir)) return
+    let entries: string[]
+    try {
+      entries = readdirSync(this.dir)
+    } catch {
+      return
+    }
+    for (const entry of entries) {
+      if (!entry.endsWith(".json")) continue
+      try {
+        const raw = readFileSync(join(this.dir, entry), "utf-8")
+        const parsed = JSON.parse(raw) as AgentSoul
+        if (!parsed || typeof parsed !== "object" || !parsed.archetype) continue
+        const agentId = entry.slice(0, -".json".length)
+        this.souls.set(agentId, parsed)
+      } catch {
+        // Skip unreadable or malformed soul files
+      }
+    }
+  }
+
+  /**
+   * Persist a soul to disk. Failures are swallowed — losing a soul must
+   * never take down the agent that produced it.
+   */
+  private persist(agentId: string): void {
+    const soul = this.souls.get(agentId)
+    if (!soul) return
+    try {
+      mkdirSync(this.dir, { recursive: true })
+      writeFileSync(join(this.dir, `${agentId}.json`), JSON.stringify(soul, null, 2), "utf-8")
+    } catch {
+      // best-effort persistence
+    }
+  }
 
   /**
    * Generate a default soul for a given agent type.
@@ -538,6 +586,7 @@ export class SoulManager {
    */
   register(agentId: string, soul: AgentSoul): void {
     this.souls.set(agentId, soul)
+    this.persist(agentId)
   }
 
   /**
@@ -558,7 +607,11 @@ export class SoulManager {
   }
 
   /**
-   * Remove a soul for a given agent ID.
+   * Retire a soul for a given agent ID.
+   *
+   * The in-memory entry is dropped (the agent is gone) but the persisted
+   * file is kept so the soul's mood and traits survive the process and
+   * remain visible to `aegis soul list` / `aegis soul card`.
    */
   unregister(agentId: string): boolean {
     return this.souls.delete(agentId)
@@ -578,6 +631,7 @@ export class SoulManager {
     const outcome: "success" | "failure" = success ? "success" : "failure"
     soul.mood = computeNextMood(soul.mood, outcome)
     soul.lastEvolved = new Date().toISOString()
+    this.persist(agentId)
   }
 
   /**
@@ -626,6 +680,7 @@ export class SoulManager {
       })
     }
 
+    this.persist(agentId)
     return true
   }
 
@@ -640,6 +695,7 @@ export class SoulManager {
     const newMood = computeNextMood(soul.mood, outcome)
     soul.mood = newMood
     soul.lastEvolved = new Date().toISOString()
+    this.persist(agentId)
     return newMood
   }
 
@@ -716,7 +772,7 @@ export class SoulManager {
     const soul = this.souls.get(agentId)
     if (!soul) return null
 
-    const baseDir = dir || resolve(process.cwd(), ".aegis", "souls")
+    const baseDir = dir || this.dir
     await mkdir(baseDir, { recursive: true })
 
     const filePath = join(baseDir, `${agentId}.json`)

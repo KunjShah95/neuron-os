@@ -106,6 +106,8 @@ async function getOrCreateSession(sessionId: string): Promise<BrowserSession> {
     }
   }
 
+  installSignalHandlers()
+
   const launchOpts: Parameters<typeof chromium.launch>[0] = {
     headless: true,
     args: [
@@ -166,6 +168,20 @@ function cleanupAllSessions(): void {
     sessions.delete(id)
     session.browser.close().catch(() => {})
   }
+}
+
+let signalHandlersInstalled = false
+
+function handleProcessSignal(): void {
+  signalHandlersInstalled = false
+  cleanupAllSessions()
+}
+
+function installSignalHandlers(): void {
+  if (signalHandlersInstalled) return
+  signalHandlersInstalled = true
+  process.once("SIGINT", handleProcessSignal)
+  process.once("SIGTERM", handleProcessSignal)
 }
 
 // ── Helper: Truncate long strings for output ─────────────────────────
@@ -479,14 +495,4 @@ export const browserTool: Tool = {
 
 process.on("beforeExit", () => {
   cleanupAllSessions()
-})
-
-process.on("SIGINT", () => {
-  cleanupAllSessions()
-  process.exit(0)
-})
-
-process.on("SIGTERM", () => {
-  cleanupAllSessions()
-  process.exit(0)
 })
