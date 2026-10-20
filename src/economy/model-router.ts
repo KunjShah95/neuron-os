@@ -24,14 +24,36 @@ export interface RouterResult {
 const MODEL_PREFIX_PROVIDER: Array<[RegExp, string]> = [
   [/^claude-/, "anthropic"],
   [/^gpt-/, "openai"],
+  [/^o[34]-/, "openai"],
   [/^deepseek-/, "deepseek"],
   [/^gemini-/, "gemini"],
   [/^mistral-/, "mistral"],
+  [/^codestral-/, "mistral"],
+  [/^pixtral-/, "mistral"],
   [/^command-/, "cohere"],
   [/^grok-/, "xai"],
   [/^llama-/, "groq"],
-  [/^mixtral-/, "mistral"],
+  [/^mixtral-/, "groq"],
+  [/^qwen-/, "groq"],
+  [/^gemma/, "groq"],
+  [/^meta-llama\//, "openrouter"],
+  [/^meta\//, "nvidia"],
+  [/^mistralai\//, "nvidia"],
+  [/^nvidia\//, "nvidia"],
+  [/^microsoft\//, "openrouter"],
+  [/^google\//, "openrouter"],
+  [/^qwen\//, "openrouter"],
+  [/^cognitivecomputations\//, "openrouter"],
+  [/^openrouter\//, "openrouter"],
+  [/^anthropic\//, "openrouter"],
+  [/^openai\//, "openrouter"],
+  [/^x-ai\//, "openrouter"],
+  [/^deepseek\//, "openrouter"],
+  [/^Qwen\//, "togetherai"],
+  [/^deepseek-ai\//, "togetherai"],
 ]
+
+const FALLBACK_PROVIDER = "openrouter"
 
 const TASK_DEFAULTS: Record<
   string,
@@ -58,11 +80,11 @@ const TASK_DEFAULTS: Record<
   adversarial: { tier: "premium", inputTokens: 3000, outputTokens: 1500, budget: 0.5 },
 }
 
-function resolveModelProvider(modelName: string): string {
+export function resolveModelProvider(modelName: string): string {
   for (const [pattern, provider] of MODEL_PREFIX_PROVIDER) {
     if (pattern.test(modelName)) return provider
   }
-  return "openai"
+  return FALLBACK_PROVIDER
 }
 
 function isProviderRegistered(name: string): boolean {

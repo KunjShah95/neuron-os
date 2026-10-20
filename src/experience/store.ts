@@ -17,12 +17,14 @@
  */
 
 import { Database } from "bun:sqlite"
-import { join } from "node:path"
+import { join, resolve } from "node:path"
 import { mkdirSync, existsSync } from "node:fs"
 import { createLogger } from "../cli/logger"
 import { computeEmbedding, cosineSimilarity } from "../memory/embedding"
 
 const log = createLogger("experience")
+
+const MIN_SIMILARITY = 0.15
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -75,14 +77,24 @@ export interface ClusterInsight {
 export class ExperienceStore {
   private db: Database
   private initialized = false
+  private options: { dbPath?: string }
 
-  constructor(project?: string) {
-    const dataDir = project
-      ? join(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "projects", project)
+  constructor(project?: string | { dbPath?: string }, options: { dbPath?: string } = {}) {
+    const projectName = typeof project === "string" ? project : undefined
+    const inlineOptions = typeof project === "object" && project !== null ? project : {}
+    this.options = { ...inlineOptions, ...options }
+    const dbPath = this.options.dbPath
+    const dataDir = projectName
+      ? join(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "projects", projectName)
       : join(process.cwd(), "data")
-    const dir = join(dataDir, "experience")
+    const dir = dbPath
+      ? dbPath.endsWith(".db")
+        ? resolve(dbPath, "..")
+        : dbPath
+      : join(dataDir, "experience")
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-    this.db = new Database(join(dir, "experience.db"))
+    const dbFile = dbPath && dbPath.endsWith(".db") ? dbPath : join(dir, "experience.db")
+    this.db = new Database(dbFile)
     this.db.exec("PRAGMA journal_mode = WAL")
     this.db.exec("PRAGMA synchronous = NORMAL")
     this.init()
@@ -123,6 +135,15 @@ export class ExperienceStore {
     `)
 
     this.db.exec(`
+      CREATE TABLE IF NOT EXISTS skill_extractions (
+        name TEXT PRIMARY KEY,
+        confidence REAL NOT NULL DEFAULT 0,
+        goal TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL
+      )
+    `)
+
+    this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_experience_project
       ON experiences(project, started_at DESC)
     `)
@@ -147,6 +168,19 @@ export class ExperienceStore {
     const stmt = this.db.prepare(`
       INSERT INTO experiences (id, project, session_id, goal, agent_type, outcome, reward, action_count, started_at, completed_at, summary, tags, metrics)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        project = excluded.project,
+        session_id = excluded.session_id,
+        goal = excluded.goal,
+        agent_type = excluded.agent_type,
+        outcome = excluded.outcome,
+        reward = excluded.reward,
+        action_count = excluded.action_count,
+        started_at = excluded.started_at,
+        completed_at = excluded.completed_at,
+        summary = excluded.summary,
+        tags = excluded.tags,
+        metrics = excluded.metrics
     `)
 
     stmt.run(
@@ -216,6 +250,9 @@ export class ExperienceStore {
    * candidates, embeds the query + each goal+summary, ranks by cosine
    * similarity weighted by outcome and reward.
    *
+   * The `similarity` field is the raw cosine similarity. Outcome and reward
+   * boosts only influence the ranking order, never the relevance threshold.
+   *
    * Sufficient until the buffer exceeds ~10k rows. Beyond that, swap
    * in a vector index (sqlite-vss or external).
    */
@@ -228,7 +265,7 @@ export class ExperienceStore {
     const scored = candidates
       .map((record) => {
         const text = `${record.goal} ${record.summary}`.trim()
-        const sim = cosineSimilarity(queryEmbed, computeEmbedding(text))
+        const similarity = cosineSimilarity(queryEmbed, computeEmbedding(text))
         // Outcome boost: success gets 1.2, partial 0.9, failed 0.8, reverted 0.7
         const outcomeBoost =
           record.outcome === "success"
@@ -240,14 +277,37 @@ export class ExperienceStore {
                 : 0.7 // reverted
         // Reward boost: rewards above 0 get a 0.5–1.0 multiplier
         const rewardBoost = 0.5 + Math.max(0, Math.min(1, record.reward)) * 0.5
-        const adjusted = sim * outcomeBoost * rewardBoost
-        return { record, similarity: adjusted }
+        return { record, similarity, rank: similarity * outcomeBoost * rewardBoost }
       })
-      .filter((r) => r.similarity >= 0.15)
-      .sort((a, b) => b.similarity - a.similarity)
+      .filter((r) => r.similarity >= MIN_SIMILARITY)
+      .sort((a, b) => b.rank - a.rank || b.similarity - a.similarity)
       .slice(0, limit)
 
     return scored.map((r) => ({ ...r.record, similarity: r.similarity }))
+  }
+
+  getById(id: string): ExperienceRecord | null {
+    const row = this.db.prepare("SELECT * FROM experiences WHERE id = ?").get(id) as Record<string, unknown> | null
+    if (!row) return null
+    return this.rowToExperience(row)
+  }
+
+  recordSkillExtraction(name: string, confidence: number, goal: string): void {
+    this.db
+      .prepare(`
+        INSERT INTO skill_extractions (name, confidence, goal, created_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(name) DO UPDATE SET
+          confidence = excluded.confidence,
+          goal = excluded.goal,
+          created_at = excluded.created_at
+      `)
+      .run(name, confidence, goal, new Date().toISOString())
+  }
+
+  countSkillExtractions(): number {
+    const row = this.db.prepare("SELECT COUNT(*) as c FROM skill_extractions").get() as { c: number }
+    return row.c
   }
 
   getActionsForExperience(id: string): ExperienceAction[] {
@@ -415,6 +475,7 @@ export class ExperienceStore {
    */
   findSkillCandidates(minRepetitions = 3): Array<{ name: string; confidence: number; steps: string[]; goal: string }> {
     const successes = this.getRecentSuccesses(200)
+    const failureCounts = this.getFailureCountsByGoal()
 
     // Group by goal similarity
     const goalGroups = new Map<string, typeof successes>()
@@ -443,7 +504,7 @@ export class ExperienceStore {
       }
 
       const avgActions = totalActions / group.length
-      const successRate = group.length / (group.length + this.getFailuresForGoal(normalized))
+      const successRate = group.length / (group.length + (failureCounts.get(normalized) ?? 0))
 
       // High success rate + consistent pattern = good skill candidate
       if (successRate > 0.7 && avgActions <= 5) {
@@ -478,12 +539,17 @@ export class ExperienceStore {
       .slice(0, 60)
   }
 
-  private getFailuresForGoal(normalized: string): number {
-    const all = this.db.prepare("SELECT goal, outcome FROM experiences WHERE outcome = 'failed'").all() as {
-      goal: string
-      outcome: string
-    }[]
-    return all.filter((e) => this.normalizeGoal(e.goal) === normalized).length
+  private getFailureCountsByGoal(): Map<string, number> {
+    const rows = this.db
+      .prepare("SELECT goal, COUNT(*) AS c FROM experiences WHERE outcome = 'failed' GROUP BY goal")
+      .all() as Array<{ goal: string; c: number }>
+
+    const counts = new Map<string, number>()
+    for (const row of rows) {
+      const key = this.normalizeGoal(row.goal)
+      counts.set(key, (counts.get(key) ?? 0) + row.c)
+    }
+    return counts
   }
 
   // ── Cleanup ─────────────────────────────────────────────────────────

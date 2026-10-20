@@ -27,13 +27,16 @@ export interface NamespaceEntry {
 export class MemoryNamespaceManager {
   private db: Database
   private initialized = false
+  private closed = false
 
-  constructor() {
-    const dir = join(process.cwd(), "data", "memory")
+  constructor(dbPath?: string) {
+    const resolvedPath = dbPath ?? join(process.cwd(), "data", "memory", "namespaces.db")
+    const dir = join(resolvedPath, "..")
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-    this.db = new Database(join(dir, "namespaces.db"))
+    this.db = new Database(resolvedPath)
     this.db.exec("PRAGMA journal_mode = WAL")
     this.db.exec("PRAGMA synchronous = NORMAL")
+    this.db.exec("PRAGMA foreign_keys = ON")
     this.init()
   }
 
@@ -115,6 +118,7 @@ export class MemoryNamespaceManager {
     const placeholders = namespaceIds.map(() => "?").join(",")
     const likeClauses = terms.map(() => "LOWER(e.content) LIKE ?").join(" AND ")
     const params: (string | number | null)[] = [...namespaceIds]
+    params.push(new Date().toISOString())
     for (const term of terms) {
       params.push(`%${term}%`)
     }
@@ -123,6 +127,7 @@ export class MemoryNamespaceManager {
       SELECT * FROM namespace_entries e
       WHERE e.namespace_id IN (${placeholders})
         AND e.archived = 0
+        AND e.expires_at > ?
         AND (${likeClauses})
       ORDER BY e.created_at DESC
       LIMIT ?
@@ -142,6 +147,19 @@ export class MemoryNamespaceManager {
     const result = stmt.run(now)
     const count = result.changes
     if (count > 0) log.info(`Archived ${count} expired namespace entries`)
+    return count
+  }
+
+  /**
+   * Hard-delete entries that have expired. Entries are removed regardless
+   * of their archived flag, so expired rows never accumulate.
+   * Returns the number of rows deleted.
+   */
+  purgeExpired(): number {
+    const now = new Date().toISOString()
+    const result = this.db.prepare("DELETE FROM namespace_entries WHERE expires_at < ?").run(now)
+    const count = result.changes
+    if (count > 0) log.info(`Purged ${count} expired namespace entries`)
     return count
   }
 
@@ -203,7 +221,13 @@ export class MemoryNamespaceManager {
   }
 
   close(): void {
-    this.db.close()
+    if (this.closed) return
+    this.closed = true
+    try {
+      this.db.close()
+    } catch {
+      // already closed — nothing to do
+    }
     log.info("Memory namespace manager closed")
   }
 }

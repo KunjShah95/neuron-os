@@ -35,13 +35,16 @@ export interface GraphQuery {
 export class KnowledgeGraph {
   private db: Database
   private initialized = false
+  private closed = false
 
-  constructor() {
-    const dir = join(process.cwd(), "data", "memory")
+  constructor(dbPath?: string) {
+    const resolvedPath = dbPath ?? join(process.cwd(), "data", "memory", "knowledge-graph.db")
+    const dir = join(resolvedPath, "..")
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-    this.db = new Database(join(dir, "knowledge-graph.db"))
+    this.db = new Database(resolvedPath)
     this.db.exec("PRAGMA journal_mode = WAL")
     this.db.exec("PRAGMA synchronous = NORMAL")
+    this.db.exec("PRAGMA foreign_keys = ON")
     this.init()
   }
 
@@ -170,17 +173,24 @@ export class KnowledgeGraph {
     return rows.map((r) => this.rowToEntity(r))
   }
 
+  /**
+   * Get entities related to the given entity.
+   *
+   * `depth` is the number of hops from the root entity: depth 1 returns
+   * direct neighbours only, depth 2 returns neighbours plus their
+   * neighbours, and so on.
+   */
   getRelated(
     entityId: string,
     relationType?: string,
     depth = 1,
   ): Array<{ entity: GraphEntity; relationship: GraphRelationship }> {
-    const visited = new Set<string>()
+    const seen = new Set<string>([entityId])
     const results: Array<{ entity: GraphEntity; relationship: GraphRelationship }> = []
+    const maxHops = Math.max(1, depth)
 
-    const collect = (id: string, currentDepth: number) => {
-      if (currentDepth > depth || visited.has(id)) return
-      visited.add(id)
+    const collect = (id: string, hop: number) => {
+      if (hop >= maxHops) return
 
       let sql = `
         SELECT e.*, r.id as r_id, r.source_id, r.target_id, r.type as r_type, r.weight, r.created_at as r_created_at
@@ -198,7 +208,8 @@ export class KnowledgeGraph {
       const rows = this.db.prepare(sql).all(...params) as Record<string, unknown>[]
       for (const row of rows) {
         const entity = this.rowToEntity(row)
-        if (visited.has(entity.id)) continue
+        if (seen.has(entity.id)) continue
+        seen.add(entity.id)
         const rel: GraphRelationship = {
           id: row.r_id as string,
           sourceId: row.source_id as string,
@@ -208,7 +219,7 @@ export class KnowledgeGraph {
           createdAt: row.r_created_at as string,
         }
         results.push({ entity, relationship: rel })
-        collect(entity.id, currentDepth + 1)
+        collect(entity.id, hop + 1)
       }
     }
 
@@ -322,7 +333,13 @@ export class KnowledgeGraph {
   }
 
   close(): void {
-    this.db.close()
+    if (this.closed) return
+    this.closed = true
+    try {
+      this.db.close()
+    } catch {
+      // already closed — nothing to do
+    }
     log.info("Knowledge graph closed")
   }
 

@@ -29,6 +29,16 @@ const AGENT_TYPE_COMPLEXITY: Record<string, TaskProfile["complexity"]> = {
   build: "complex",
 }
 
+const DEFAULT_WARN_FRACTION = 0.1
+const DEFAULT_BLOCK_FRACTION = 0.5
+
+export interface PreflightThresholds {
+  /** Absolute cost that triggers a warning (defaults to a fraction of the remaining budget) */
+  warnAt?: number
+  /** Absolute cost that blocks the task (defaults to a fraction of the remaining budget) */
+  blockAt?: number
+}
+
 export class PreflightEstimator {
   static estimate(request: PreflightRequest): PreflightEstimate {
     const { goal, agentType = "build", estimatedTokens = 3000, preferredTier = "balanced" } = request
@@ -87,15 +97,10 @@ export class PreflightEstimator {
     return PreflightEstimator.checkThresholds(result)
   }
 
-  static checkThresholds(
-    estimate: PreflightEstimate,
-    thresholds?: {
-      warnAt?: number
-      blockAt?: number
-    },
-  ): PreflightEstimate {
-    const warnAt = thresholds?.warnAt ?? 0.5
-    const blockAt = thresholds?.blockAt ?? 5.0
+  static checkThresholds(estimate: PreflightEstimate, thresholds?: PreflightThresholds): PreflightEstimate {
+    const base = estimate.remainingBudget > 0 ? estimate.remainingBudget : Math.max(estimate.budgetLimit, 0)
+    const warnAt = thresholds?.warnAt ?? base * DEFAULT_WARN_FRACTION
+    const blockAt = thresholds?.blockAt ?? base * DEFAULT_BLOCK_FRACTION
 
     if (estimate.wouldExceedBudget) {
       return {

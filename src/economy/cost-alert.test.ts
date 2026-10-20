@@ -53,7 +53,7 @@ describe("CostAlertEngine", () => {
       const engine = CostAlertEngine.getInstance()
       engine.recordCost("test", 0.01)
       // Trigger evaluate() to generate a spike alert, then clear
-      const baseline = new Date("2026-06-01T00:00:00Z").getTime()
+      const baseline = Date.now() - 6 * 86_400_000
       for (let i = 0; i < 5; i++) engine.recordCost("test", 0.01, baseline + i * 86_400_000)
       engine.recordCost("test", 10.0, Date.now()) // spike
       engine.evaluate()
@@ -66,7 +66,7 @@ describe("CostAlertEngine", () => {
 
     it("pruneAcknowledgedAlerts removes acknowledged alerts", () => {
       const engine = CostAlertEngine.getInstance()
-      const baseline = new Date("2026-06-01T00:00:00Z").getTime()
+      const baseline = Date.now() - 6 * 86_400_000
       for (let i = 0; i < 5; i++) engine.recordCost("test", 0.01, baseline + i * 86_400_000)
       engine.recordCost("test", 10.0, Date.now())
       engine.evaluate()
@@ -101,7 +101,7 @@ describe("CostAlertEngine", () => {
       })
 
       // Record 5 varied low-cost samples (MAD > 0 required for spike detection)
-      const baseline = new Date("2026-06-01T00:00:00Z").getTime()
+      const baseline = Date.now() - 6 * 86_400_000
       engine.recordCost("gpt-4o", 0.008, baseline)
       engine.recordCost("gpt-4o", 0.012, baseline + 86_400_000)
       engine.recordCost("gpt-4o", 0.010, baseline + 2 * 86_400_000)
@@ -124,7 +124,7 @@ describe("CostAlertEngine", () => {
         windowDays: 30,
       })
 
-      const baseline = new Date("2026-06-01T00:00:00Z").getTime()
+      const baseline = Date.now() - 6 * 86_400_000
       engine.recordCost("gpt-4o", 0.008, baseline)
       engine.recordCost("gpt-4o", 0.012, baseline + 86_400_000)
       engine.recordCost("gpt-4o", 0.010, baseline + 2 * 86_400_000)
@@ -151,7 +151,7 @@ describe("CostAlertEngine", () => {
         windowDays: 30,
       })
 
-      const baseline = new Date("2026-06-01T00:00:00Z").getTime()
+      const baseline = Date.now() - 6 * 86_400_000
       // 4 consecutive days with >10% increase (gives 3 transitions → driftDays=3 satisfied)
       engine.recordCost("test-label", 1.0, baseline)
       engine.recordCost("test-label", 1.2, baseline + 86_400_000)
@@ -171,7 +171,7 @@ describe("CostAlertEngine", () => {
         windowDays: 30,
       })
 
-      const baseline = new Date("2026-06-01T00:00:00Z").getTime()
+      const baseline = Date.now() - 6 * 86_400_000
       // Record 5 high-cost samples across a few days
       for (let i = 0; i < 5; i++) {
         engine.recordCost("gpt-4o", 1.0, baseline + i * 86_400_000)
@@ -185,7 +185,7 @@ describe("CostAlertEngine", () => {
   describe("getPendingAlerts / acknowledgeAlert", () => {
     it("lists unacknowledged alerts only", () => {
       const engine = CostAlertEngine.getInstance()
-      const baseline = new Date("2026-06-01T00:00:00Z").getTime()
+      const baseline = Date.now() - 6 * 86_400_000
       for (let i = 0; i < 5; i++) engine.recordCost("test", 0.01, baseline + i * 86_400_000)
       engine.recordCost("test", 10.0, Date.now())
       engine.evaluate()
@@ -197,7 +197,7 @@ describe("CostAlertEngine", () => {
 
     it("acknowledgeAlert marks an alert as acknowledged", () => {
       const engine = CostAlertEngine.getInstance()
-      const baseline = new Date("2026-06-01T00:00:00Z").getTime()
+      const baseline = Date.now() - 6 * 86_400_000
       for (let i = 0; i < 5; i++) engine.recordCost("test", 0.01, baseline + i * 86_400_000)
       engine.recordCost("test", 10.0, Date.now())
       const alerts = engine.evaluate()

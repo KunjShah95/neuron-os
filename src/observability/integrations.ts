@@ -2,6 +2,9 @@ import { Database } from "bun:sqlite"
 import { randomBytes } from "node:crypto"
 import { join } from "node:path"
 import { existsSync, mkdirSync } from "node:fs"
+import { createLogger } from "../cli/logger"
+
+const log = createLogger("traces")
 
 export interface TraceSpan {
   id: string
@@ -19,8 +22,8 @@ export interface TraceSpan {
 export class TraceCollector {
   private db: Database
 
-  constructor() {
-    const dbPath = join(process.cwd(), "data", "observability", "traces.db")
+  constructor(options: { dbPath?: string } = {}) {
+    const dbPath = options.dbPath ?? join(process.cwd(), "data", "observability", "traces.db")
     const dir = join(dbPath, "..")
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
 
@@ -81,9 +84,11 @@ export class TraceCollector {
   endSpan(id: string, status: TraceSpan["status"] = "ok"): void {
     const endTime = Date.now()
     const row = this.db.prepare("SELECT start_time FROM traces WHERE id = ?").get(id) as
-      | { start_time: number }
-      | undefined
-    if (!row) return
+      { start_time: number } | undefined
+    if (!row) {
+      log.warn("endSpan called with unknown span id", { id })
+      return
+    }
     const duration = endTime - row.start_time
     this.db
       .prepare("UPDATE traces SET end_time = ?, duration = ?, status = ? WHERE id = ?")
@@ -92,8 +97,7 @@ export class TraceCollector {
 
   getTrace(traceId: string): TraceSpan[] {
     const self = this.db.prepare("SELECT * FROM traces WHERE id = ?").get(traceId) as
-      | Record<string, unknown>
-      | undefined
+      Record<string, unknown> | undefined
     if (!self) return []
 
     const children = this.db

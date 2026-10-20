@@ -119,6 +119,7 @@ export function scheduleWarmAgentShutdown(ctx: ManagerContext, agentId: string, 
   )
 
   ctx.prewarmShutdownTimers.set(agentId, shutdownTimer)
+  shutdownTimer.unref?.()
 }
 
 export function promoteWarmAgent(ctx: ManagerContext, agentType: string): boolean {

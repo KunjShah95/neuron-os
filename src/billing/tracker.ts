@@ -29,10 +29,12 @@ export interface ToolCostRecord {
 export class BillingTracker {
   private db: Database
 
-  constructor() {
-    const dbPath = join(process.cwd(), "data", "billing", "usage.db")
-    const dir = join(dbPath, "..")
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+  constructor(options?: { dbPath?: string }) {
+    const dbPath = options?.dbPath ?? join(process.cwd(), "data", "billing", "usage.db")
+    if (dbPath !== ":memory:") {
+      const dir = join(dbPath, "..")
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+    }
 
     this.db = new Database(dbPath)
     this.db.exec("PRAGMA journal_mode = WAL")
@@ -136,7 +138,24 @@ export class BillingTracker {
   }
 
   public getTotalSpend(): number {
+    return this.getModelSpend() + this.getToolSpend()
+  }
+
+  public close(): void {
+    try {
+      this.db.close()
+    } catch {
+      // Already closed
+    }
+  }
+
+  public getModelSpend(): number {
     const row = this.db.prepare("SELECT SUM(cost_usd) as total FROM usage").get() as { total: number | null }
+    return row?.total || 0
+  }
+
+  public getToolSpend(): number {
+    const row = this.db.prepare("SELECT SUM(cost_usd) as total FROM tool_usage").get() as { total: number | null }
     return row?.total || 0
   }
 
@@ -196,23 +215,28 @@ export class BillingTracker {
   }
 
   /**
-   * Get daily cost history.
+   * Get daily cost history (model usage + tool spend).
    */
   public getCostHistory(days = 7): Array<{ date: string; totalCost: number }> {
     const cutoff = Date.now() - days * 86400000
     const rows = this.db
       .prepare(
         `
-      SELECT
-        DATE(timestamp / 1000, 'unixepoch') as date,
-        SUM(cost_usd) as totalCost
-      FROM usage
-      WHERE timestamp >= ?
+      SELECT date, SUM(cost) as totalCost
+      FROM (
+        SELECT DATE(timestamp / 1000, 'unixepoch') as date, cost_usd as cost
+        FROM usage
+        WHERE timestamp >= ?
+        UNION ALL
+        SELECT DATE(timestamp / 1000, 'unixepoch') as date, cost_usd as cost
+        FROM tool_usage
+        WHERE timestamp >= ?
+      )
       GROUP BY date
       ORDER BY date ASC
     `,
       )
-      .all(cutoff) as Array<{ date: string; totalCost: number }>
+      .all(cutoff, cutoff) as Array<{ date: string; totalCost: number }>
     return rows
   }
 }

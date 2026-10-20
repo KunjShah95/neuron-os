@@ -33,6 +33,24 @@ export class MemorySystem {
     }
   }
 
+  private writeChains = new Map<string, Promise<void>>()
+
+  private async serializeWrite(path: string, fn: () => Promise<void>): Promise<void> {
+    const previous = this.writeChains.get(path) ?? Promise.resolve()
+    const run = previous.then(
+      () => fn(),
+      () => fn(),
+    )
+    this.writeChains.set(
+      path,
+      run.then(
+        () => undefined,
+        () => undefined,
+      ),
+    )
+    await run
+  }
+
   private async cachedRead(path: string): Promise<string> {
     try {
       if (!existsSync(path)) return ""
@@ -113,33 +131,41 @@ export class MemorySystem {
 
   async appendToUserProfile(content: string): Promise<void> {
     try {
-      const existing = await this.loadUserProfile()
-      const entry = `\n${content}\n`
-      await writeFile(this.userFile, existing + entry, "utf-8")
-      this.invalidateCache(this.userFile)
+      await this.serializeWrite(this.userFile, async () => {
+        const existing = await this.loadUserProfile()
+        const entry = `\n${content}\n`
+        await writeFile(this.userFile, existing + entry, "utf-8")
+        this.invalidateCache(this.userFile)
+      })
     } catch (err) {
       log.error("Failed to append to user.md", { error: String(err) })
     }
   }
 
   async updateUserProfile(updates: Partial<UserProfile>): Promise<void> {
-    const existing = await this.loadUserProfile()
-    let updated = existing
+    try {
+      await this.serializeWrite(this.userFile, async () => {
+        const existing = await this.loadUserProfile()
+        let updated = existing
 
-    if (updates.preferences) {
-      const block = updates.preferences.map((p) => `- ${p}`).join("\n")
-      updated = updated.replace(/## Preferences\n\n[\s\S]*?(?=\n##|$)/, `## Preferences\n\n${block}\n`)
-    }
-    if (updates.neverDo) {
-      const block = updates.neverDo.map((p) => `- ${p}`).join("\n")
-      updated = updated.replace(/## Never Do\n\n[\s\S]*?(?=\n##|$)/, `## Never Do\n\n${block}\n`)
-    }
-    if (updates.name) {
-      updated = updated.replace(/## About You\n\n.*/, `## About You\n\n${updates.name}`)
-    }
+        if (updates.preferences) {
+          const block = updates.preferences.map((p) => `- ${p}`).join("\n")
+          updated = updated.replace(/## Preferences\n\n[\s\S]*?(?=\n##|$)/, `## Preferences\n\n${block}\n`)
+        }
+        if (updates.neverDo) {
+          const block = updates.neverDo.map((p) => `- ${p}`).join("\n")
+          updated = updated.replace(/## Never Do\n\n[\s\S]*?(?=\n##|$)/, `## Never Do\n\n${block}\n`)
+        }
+        if (updates.name) {
+          updated = updated.replace(/## About You\n\n[\s\S]*?(?=\n##|$)/, `## About You\n\n${updates.name}\n`)
+        }
 
-    await writeFile(this.userFile, updated, "utf-8")
-    this.invalidateCache(this.userFile)
+        await writeFile(this.userFile, updated, "utf-8")
+        this.invalidateCache(this.userFile)
+      })
+    } catch (err) {
+      log.error("Failed to update user.md", { error: String(err) })
+    }
   }
 
   async loadMemory(): Promise<string> {
@@ -155,11 +181,13 @@ export class MemorySystem {
 
   async appendToMemory(content: string): Promise<void> {
     try {
-      const existing = await this.loadMemory()
-      const timestamp = new Date().toISOString()
-      const entry = `\n## ${timestamp}\n\n${content}\n`
-      await writeFile(this.memoryFile, existing + entry, "utf-8")
-      this.invalidateCache(this.memoryFile)
+      await this.serializeWrite(this.memoryFile, async () => {
+        const existing = await this.loadMemory()
+        const timestamp = new Date().toISOString()
+        const entry = `\n## ${timestamp}\n\n${content}\n`
+        await writeFile(this.memoryFile, existing + entry, "utf-8")
+        this.invalidateCache(this.memoryFile)
+      })
 
       if (this.agentMemory) {
         try {
@@ -192,19 +220,21 @@ export class MemorySystem {
     const dailyFile = join(this.dailyDir, `${dateStr}.md`)
 
     try {
-      let existing = ""
-      if (existsSync(dailyFile)) {
-        existing = await this.cachedRead(dailyFile)
-      } else {
-        existing = `# Daily Log - ${dateStr}\n\n`
-      }
+      await this.serializeWrite(dailyFile, async () => {
+        let existing = ""
+        if (existsSync(dailyFile)) {
+          existing = await this.cachedRead(dailyFile)
+        } else {
+          existing = `# Daily Log - ${dateStr}\n\n`
+        }
 
-      const isoString = targetDate.toISOString()
-      const timePart = isoString.split("T")[1]
-      const timestamp = timePart ? timePart.split(".")[0] : "00:00:00"
-      const entry = `\n## ${timestamp}\n\n${content}\n`
-      await writeFile(dailyFile, existing + entry, "utf-8")
-      this.invalidateCache(dailyFile)
+        const isoString = targetDate.toISOString()
+        const timePart = isoString.split("T")[1]
+        const timestamp = timePart ? timePart.split(".")[0] : "00:00:00"
+        const entry = `\n## ${timestamp}\n\n${content}\n`
+        await writeFile(dailyFile, existing + entry, "utf-8")
+        this.invalidateCache(dailyFile)
+      })
     } catch (err) {
       log.error(`Failed to append to daily log ${dateStr}`, { error: String(err) })
     }
@@ -303,10 +333,12 @@ export class MemorySystem {
 
   private async storeFacts(facts: ExtractedFact[]): Promise<void> {
     try {
-      const existing = await this.loadFacts()
-      const merged = this.deduplicateFacts([...existing, ...facts])
-      await writeFile(this.factsFile, JSON.stringify(merged, null, 2), "utf-8")
-      this.invalidateCache(this.factsFile)
+      await this.serializeWrite(this.factsFile, async () => {
+        const existing = await this.loadFacts()
+        const merged = this.deduplicateFacts([...existing, ...facts])
+        await writeFile(this.factsFile, JSON.stringify(merged, null, 2), "utf-8")
+        this.invalidateCache(this.factsFile)
+      })
     } catch (err) {
       log.error("Failed to store facts", { error: String(err) })
     }

@@ -45,6 +45,7 @@ export interface SkillMonitorConfig {
   trendWindowDays: number // Days to compute trend over
   degradationThreshold: number // Success rate drop before flagging
   minRecordsForTrend: number // Minimum data points for trend analysis
+  maxRecords: number // Maximum number of history records kept on disk
 }
 
 const DEFAULT_CONFIG: SkillMonitorConfig = {
@@ -52,6 +53,7 @@ const DEFAULT_CONFIG: SkillMonitorConfig = {
   trendWindowDays: 14,
   degradationThreshold: 0.1, // 10% drop triggers suggestion
   minRecordsForTrend: 3,
+  maxRecords: 1000,
 }
 
 // ── SkillMonitor ────────────────────────────────────────────────
@@ -88,6 +90,7 @@ export class SkillMonitor {
       avgDurationMs: this.computeRollingAvg(lastRecord, durationMs),
     }
     this.records.push(record)
+    this.prune()
     this.save()
     log.debug(`Recorded skill usage: ${skillName} (success=${success}, reward=${reward.toFixed(2)})`)
   }
@@ -104,8 +107,8 @@ export class SkillMonitor {
 
     const first = skillRecords[0] as (typeof skillRecords)[0]
     const last = skillRecords[skillRecords.length - 1] as (typeof skillRecords)[0]
-    const totalInvocations = skillRecords.reduce((s, r) => s + r.invocationCount, 0)
-    const totalSuccesses = skillRecords.reduce((s, r) => s + r.successCount, 0)
+    const totalInvocations = skillRecords.reduce((s, r) => Math.max(s, r.invocationCount), 0)
+    const totalSuccesses = skillRecords.reduce((s, r) => Math.max(s, r.successCount), 0)
     const overallSuccessRate = totalInvocations > 0 ? totalSuccesses / totalInvocations : 0
 
     // Compute recent trend (last N days)
@@ -113,11 +116,7 @@ export class SkillMonitor {
     windowStart.setDate(windowStart.getDate() - this.config.trendWindowDays)
     const recentRecords = skillRecords.filter((r) => new Date(r.timestamp) >= windowStart)
 
-    const lastRecord = recentRecords[recentRecords.length - 1]
-    const currentSuccessRate =
-      recentRecords.length >= 2 && lastRecord
-        ? lastRecord.successCount / Math.max(1, lastRecord.invocationCount)
-        : overallSuccessRate
+    const currentSuccessRate = this.computeIntervalSuccessRate(recentRecords, overallSuccessRate)
 
     // Linear regression on success rate over time
     const trend = this.computeTrend(
@@ -194,15 +193,53 @@ export class SkillMonitor {
   // ── Private helpers ──────────────────────────────────────────
 
   private getLatestRecord(skillId: string): SkillPerformanceRecord | undefined {
-    return this.records
-      .filter((r) => r.skillId === skillId)
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0]
+    for (let i = this.records.length - 1; i >= 0; i--) {
+      const record = this.records[i]
+      if (record && record.skillId === skillId) return record
+    }
+    return undefined
   }
 
   private computeRollingAvg(prev: SkillPerformanceRecord | undefined, newValue: number): number {
     if (!prev) return newValue
     // Exponential moving average (α = 0.3)
     return prev.avgReward * 0.7 + newValue * 0.3
+  }
+
+  /**
+   * Success rate over the intervals covered by the given records.
+   * Records hold cumulative counters, so each interval is derived from the
+   * difference against the previous record.
+   */
+  private computeIntervalRates(records: SkillPerformanceRecord[]): Array<{ x: number; y: number }> {
+    return records.map((record, index) => {
+      if (index === 0) {
+        return { x: index, y: record.invocationCount > 0 ? record.successCount / record.invocationCount : 0 }
+      }
+      const previous = records[index - 1] as SkillPerformanceRecord
+      const deltaInvocations = record.invocationCount - previous.invocationCount
+      const deltaSuccesses = record.successCount - previous.successCount
+      return { x: index, y: deltaInvocations > 0 ? deltaSuccesses / deltaInvocations : 0 }
+    })
+  }
+
+  private computeIntervalSuccessRate(records: SkillPerformanceRecord[], fallback: number): number {
+    if (records.length === 0) return fallback
+
+    let invocations = 0
+    let successes = 0
+    records.forEach((record, index) => {
+      if (index === 0) {
+        invocations += record.invocationCount
+        successes += record.successCount
+        return
+      }
+      const previous = records[index - 1] as SkillPerformanceRecord
+      invocations += record.invocationCount - previous.invocationCount
+      successes += record.successCount - previous.successCount
+    })
+
+    return invocations > 0 ? successes / invocations : fallback
   }
 
   private computeTrend(records: SkillPerformanceRecord[]): {
@@ -213,11 +250,7 @@ export class SkillMonitor {
       return { slope: 0, direction: "stable" }
     }
 
-    // Simple linear regression: success rate over time
-    const data = records.map((r, i) => ({
-      x: i,
-      y: r.invocationCount > 0 ? r.successCount / r.invocationCount : 0,
-    }))
+    const data = this.computeIntervalRates(records)
 
     const n = data.length
     const sumX = data.reduce((s, d) => s + d.x, 0)
@@ -267,6 +300,12 @@ export class SkillMonitor {
     }
 
     return suggestions
+  }
+
+  private prune(): void {
+    const max = this.config.maxRecords
+    if (max <= 0 || this.records.length <= max) return
+    this.records.splice(0, this.records.length - max)
   }
 
   private load(): void {

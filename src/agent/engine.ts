@@ -72,6 +72,15 @@ export function permittedToolNames(permissions: ToolPermission[]): string[] {
   return permissions.filter((p) => p.allow).map((p) => p.name)
 }
 
+export function computeMoodOutcome(outcome: Outcome): "success" | "failure" {
+  return outcome === "success" || outcome === "partial" ? "success" : "failure"
+}
+
+export function isUniqueConstraintError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err)
+  return message.includes("UNIQUE constraint failed") || message.includes("SQLITE_CONSTRAINT")
+}
+
 export interface PlanStateHints {
   /** If true, instructs the model to maintain a TodoWrite plan via plan_state tool */
   enabled: boolean
@@ -176,6 +185,8 @@ export class AgentEngine {
   private evaluationCriteria?: EvaluationCriteria[]
   private sessionStartFiles: string[] = []
   private projectName = ""
+  private sessionCompleting = false
+  private sessionCompleted = false
 
   // ── Plan state ────────────────────────────────────────────
   private planStateEnabled = false
@@ -334,6 +345,20 @@ export class AgentEngine {
    */
   async completeSession(status: "completed" | "failed" = "completed"): Promise<void> {
     if (!this.sessionId) return
+    if (this.sessionCompleted || this.sessionCompleting) return
+
+    this.sessionCompleting = true
+    try {
+      await this.runCompleteSession(status)
+      this.sessionCompleted = true
+    } finally {
+      this.sessionCompleting = false
+    }
+  }
+
+  private async runCompleteSession(status: "completed" | "failed"): Promise<void> {
+    const sessionId = this.sessionId
+    if (!sessionId) return
 
     const store = this.sessionStore ?? sessionStore
     const cwd = this.runtime.context.cwd
@@ -348,7 +373,7 @@ export class AgentEngine {
       try {
         const evaluator = new Evaluator(cwd)
         const evalResult = await evaluator.evaluate(
-          this.sessionId,
+          sessionId,
           this.sessionGoal ?? "untitled",
           this.evaluationCriteria,
         )
@@ -398,7 +423,7 @@ export class AgentEngine {
 
     // ── Persist session status ───────────────────────────────────────
     try {
-      store.updateSession(this.sessionId, {
+      store.updateSession(sessionId, {
         status: outcome === "success" || outcome === "partial" ? "completed" : "failed",
       })
     } catch (err) {
@@ -407,16 +432,20 @@ export class AgentEngine {
 
     // ── Audit end ────────────────────────────────────────────────────
     if (this.auditRecorder) {
-      this.auditRecorder.recordSessionEnd(outcome === "success" ? "completed" : "failed")
+      try {
+        this.auditRecorder.recordSessionEnd(outcome === "success" ? "completed" : "failed")
+      } catch (err) {
+        log.warn("Failed to record session end", { error: String(err) })
+      }
     }
 
     // ── Experience recording ─────────────────────────────────────────
     if (this.experienceEnabled && this.sessionGoal) {
       try {
         experienceStore.recordExperience({
-          id: this.sessionId,
+          id: sessionId,
           project: this.projectName,
-          sessionId: this.sessionId,
+          sessionId,
           goal: this.sessionGoal,
           agentType: this.runtime.context.agentType ?? "agent",
           outcome,
@@ -429,7 +458,11 @@ export class AgentEngine {
           metrics: JSON.stringify(metrics),
         })
       } catch (err) {
-        log.warn("Failed to record experience", { error: String(err) })
+        if (isUniqueConstraintError(err)) {
+          log.debug("Experience already recorded for session", { sessionId })
+        } else {
+          log.warn("Failed to record experience", { error: String(err) })
+        }
       }
     }
 
@@ -437,7 +470,7 @@ export class AgentEngine {
     if (this.runtime.context.agentId) {
       try {
         const { soulManager } = await import("./soul")
-        const moodOutcome = outcome === "success" ? "success" : "failure"
+        const moodOutcome = computeMoodOutcome(outcome)
         soulManager.updateMood(this.runtime.context.agentId, moodOutcome)
       } catch (err) {
         log.warn("Mood update failed", { error: String(err) })

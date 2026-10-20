@@ -1,7 +1,7 @@
 import { createLogger } from "../cli/logger"
-import { experienceStore } from "../experience/store"
+import { experienceStore, type ExperienceStore } from "../experience/store"
 import { dreamEngine } from "../dream/engine"
-import { personaStore } from "./persona-store"
+import { personaStore, type PersonaStore } from "./persona-store"
 import type { PersonaEvent, EvolutionTrigger, EvolutionDirection } from "./types"
 
 const log = createLogger("trait-evolver")
@@ -24,18 +24,23 @@ const TRAITS: TraitDef[] = [
 ]
 
 export class TraitEvolver {
-  computeEvolutionFromExperiences(agentType: string, agentId: string): PersonaEvent[] {
-    const events: PersonaEvent[] = []
-    const recent = experienceStore.listRecent(50)
+  constructor(
+    private experience: ExperienceStore = experienceStore,
+    private personas: PersonaStore = personaStore,
+  ) {}
 
-    if (recent.length < 3) return events
+  computeEvolutionFromExperiences(agentType: string, agentId: string): PersonaEvent[] {
+    const events: Omit<PersonaEvent, "id" | "createdAt">[] = []
+    const recent = this.experience.listRecent(50)
+
+    if (recent.length < 3) return []
 
     const agentExperiences = recent.filter((e) => e.agentType === agentType)
-    if (agentExperiences.length < 3) return events
+    if (agentExperiences.length < 3) return []
 
     const outcomes = agentExperiences.map((e) => e.outcome)
     const rewards = agentExperiences.map((e) => e.reward)
-    const existing = personaStore.getProfile(agentType, agentId)
+    const existing = this.personas.getProfile(agentType, agentId)
     const traitScores = existing?.traitScores || {}
 
     const successStreak = this.computeStreak(outcomes, "success")
@@ -89,12 +94,11 @@ export class TraitEvolver {
       }
     }
 
-    for (const evt of events) personaStore.recordEvent(evt)
-    return events
+    return events.map((evt) => this.personas.recordEvent(evt))
   }
 
   computeEvolutionFromDreams(agentType: string, agentId: string): PersonaEvent[] {
-    const events: PersonaEvent[] = []
+    const events: Omit<PersonaEvent, "id" | "createdAt">[] = []
     try {
       const insights = dreamEngine.getInsights(5, true)
       for (const insight of insights) {
@@ -102,7 +106,7 @@ export class TraitEvolver {
         const matchedTrait = TRAITS.find((t) => t.keywords.some((k) => desc.includes(k)))
         if (!matchedTrait) continue
 
-        const existing = personaStore.getProfile(agentType, agentId)
+        const existing = this.personas.getProfile(agentType, agentId)
         const currentVal = existing?.traitScores[matchedTrait.name] || 50
         const direction = insight.confidence > 0.6 ? "increase" as EvolutionDirection : "decrease" as EvolutionDirection
         const delta = direction === "increase" ? 3 : -2
@@ -111,15 +115,15 @@ export class TraitEvolver {
           Math.max(0, Math.min(100, currentVal + delta)), direction,
           `Dream insight "${insight.title}" suggested ${direction} in ${matchedTrait.name}`))
       }
-      for (const evt of events) personaStore.recordEvent(evt)
+      return events.map((evt) => this.personas.recordEvent(evt))
     } catch {
       log.debug("Could not fetch dream insights for persona evolution")
+      return []
     }
-    return events
   }
 
   aggregateProfile(agentType: string, agentId: string): void {
-    const events = personaStore.getEvents(agentType, agentId, 100)
+    const events = this.personas.getEvents(agentType, agentId, 100)
     const currentTraits: Record<string, number> = {}
 
     for (const t of TRAITS) {
@@ -127,7 +131,7 @@ export class TraitEvolver {
       if (traitEvents.length === 0) {
         currentTraits[t.name] = 50
       } else {
-        currentTraits[t.name] = (traitEvents[traitEvents.length - 1] as (typeof traitEvents)[0]).newValue
+        currentTraits[t.name] = (traitEvents[0] as (typeof traitEvents)[0]).newValue
       }
     }
 
@@ -154,20 +158,20 @@ export class TraitEvolver {
       stabilityScore,
     }
 
-    personaStore.saveProfile(profile)
+    this.personas.saveProfile(profile)
   }
 
   private makeEvent(
     agentType: string, agentId: string, trigger: EvolutionTrigger,
     traitName: string, oldValue: number, newValue: number,
     direction: EvolutionDirection, reason: string,
-  ): PersonaEvent {
-    return { id: "", agentType, agentId, trigger, traitName, oldValue, newValue, direction, reason, sourceExperienceId: "", sourceDreamId: "", createdAt: "" }
+  ): Omit<PersonaEvent, "id" | "createdAt"> {
+    return { agentType, agentId, trigger, traitName, oldValue, newValue, direction, reason, sourceExperienceId: "", sourceDreamId: "" }
   }
 
   private computeStreak(outcomes: string[], target: string): number {
     let streak = 0
-    for (let i = outcomes.length - 1; i >= 0; i--) {
+    for (let i = 0; i < outcomes.length; i++) {
       if (outcomes[i] === target) streak++
       else break
     }

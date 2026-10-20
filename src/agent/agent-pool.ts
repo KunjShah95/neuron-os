@@ -15,7 +15,7 @@
  */
 
 import { agentManager } from "./manager"
-import type { AgentDef } from "./types"
+import type { AgentDef, AgentEvent, AgentIpcMessage } from "./types"
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -52,6 +52,40 @@ export interface PoolStats {
   utilizationPercent: number
 }
 
+export function computePoolResult(opts: {
+  taskId: string
+  agentId: string
+  taskName: string
+  exitCode: number | null
+  startedAt: number
+  completedAt?: number
+}): PoolTaskResult {
+  const completedAt = opts.completedAt ?? Date.now()
+  const durationMs = completedAt - opts.startedAt
+  const success = opts.exitCode === 0
+
+  const result: PoolTaskResult = {
+    taskId: opts.taskId,
+    agentId: opts.agentId,
+    success,
+    summary: success
+      ? `Task "${opts.taskName}" completed in ${durationMs}ms`
+      : `Task "${opts.taskName}" failed after ${durationMs}ms`,
+    startedAt: opts.startedAt,
+    completedAt,
+    durationMs,
+  }
+
+  if (!success) {
+    result.error =
+      opts.exitCode === null
+        ? `Agent "${opts.agentId}" exited without a status code`
+        : `Agent "${opts.agentId}" exited with code ${opts.exitCode}`
+  }
+
+  return result
+}
+
 export interface PoolConfig {
   /** Max agents running simultaneously (default: 5) */
   maxConcurrency?: number
@@ -61,6 +95,14 @@ export interface PoolConfig {
   enableRecovery?: boolean
   /** Callback when a task completes */
   onComplete?: (result: PoolTaskResult) => void
+}
+
+export interface PoolAgentManager {
+  spawn(def: AgentDef): Promise<string>
+  sendIpc(id: string, msg: AgentIpcMessage): Promise<void>
+  kill(id: string, timeoutMs?: number): Promise<void>
+  onEvent(cb: (event: AgentEvent) => void): void
+  offEvent(cb: (event: AgentEvent) => void): void
 }
 
 // ── Priority queue ────────────────────────────────────────────────────
@@ -119,19 +161,24 @@ let nextTaskId = 1
 
 export class AgentPool {
   private config: Required<PoolConfig>
+  private manager: PoolAgentManager
   private queue = new PriorityQueue()
-  private running = new Map<string, { task: PoolTask; agentId: string; startedAt: number }>()
+  private running = new Map<
+    string,
+    { task: PoolTask; agentId: string; startedAt: number; cancelled: boolean }
+  >()
   private completed: PoolTaskResult[] = []
   private dispatcherTimer: ReturnType<typeof setInterval> | null = null
   private _draining = false
 
-  constructor(config?: PoolConfig) {
+  constructor(config?: PoolConfig, manager?: PoolAgentManager) {
     this.config = {
       maxConcurrency: config?.maxConcurrency ?? 5,
       defaultTimeoutMs: config?.defaultTimeoutMs ?? 300_000,
       enableRecovery: config?.enableRecovery ?? true,
       onComplete: config?.onComplete ?? (() => {}),
     }
+    this.manager = manager ?? agentManager
 
     // Start dispatcher — checks queue every 500ms
     this.dispatcherTimer = setInterval(() => this.dispatch(), 500)
@@ -183,9 +230,13 @@ export class AgentPool {
    */
   cancel(taskId: string): boolean {
     if (this.running.has(taskId)) {
-      // Kill the running agent
       const entry = this.running.get(taskId)
-      if (entry) agentManager.kill(entry.agentId).catch(() => {})
+      if (entry) {
+        entry.cancelled = true
+        if (entry.agentId) {
+          this.manager.kill(entry.agentId).catch(() => {})
+        }
+      }
       this.running.delete(taskId)
       return true
     }
@@ -238,10 +289,12 @@ export class AgentPool {
     this._draining = true
     if (this.dispatcherTimer) clearInterval(this.dispatcherTimer)
 
-    // Kill all running tasks
     const kills: Promise<void>[] = []
     for (const [, entry] of this.running) {
-      kills.push(agentManager.kill(entry.agentId).catch(() => {}))
+      entry.cancelled = true
+      if (entry.agentId) {
+        kills.push(this.manager.kill(entry.agentId).catch(() => {}))
+      }
     }
     await Promise.allSettled(kills)
 
@@ -259,66 +312,73 @@ export class AgentPool {
     if (!task) return
 
     const startedAt = Date.now()
-    const agentId = `pool-${task.name}-${Date.now().toString(36)}`
-
-    this.running.set(task.id, { task, agentId, startedAt })
+    const entry = { task, agentId: "", startedAt, cancelled: false }
+    this.running.set(task.id, entry)
 
     try {
-      const id = await agentManager.spawn({
+      const id = await this.manager.spawn({
         name: task.name,
         ...task.agentDef,
+        env: {
+          ...task.agentDef.env,
+          AEGIS_STDIN_MODE: "true",
+        },
       })
 
-      agentManager.sendIpc(id, {
+      entry.agentId = id
+
+      if (entry.cancelled) {
+        await this.manager.kill(id).catch(() => {})
+        return
+      }
+
+      await this.manager.sendIpc(id, {
         type: "run-task",
-        id: agentId,
+        id,
         payload: { goal: task.goal },
         timestamp: Date.now(),
       })
 
-      // Set up timeout
       const timeoutHandle = setTimeout(() => {
-        agentManager.kill(id).catch(() => {})
+        this.manager.kill(id).catch(() => {})
       }, task.timeoutMs ?? this.config.defaultTimeoutMs)
 
-      // Wait for completion
+      let exitCode: number | null = null
+
       await new Promise<void>((resolve) => {
-        const handler = (event: { type: string; agentId?: string }) => {
+        const handler = (event: { type: string; agentId?: string; data?: unknown }) => {
           if (event.type === "agent:exit" && event.agentId === id) {
-            agentManager.offEvent(handler)
+            const data = event.data as { code?: number } | undefined
+            exitCode = typeof data?.code === "number" ? data.code : null
+            this.manager.offEvent(handler)
             clearTimeout(timeoutHandle)
             resolve()
           }
         }
-        agentManager.onEvent(handler)
+        this.manager.onEvent(handler)
       })
 
-      const completedAt = Date.now()
-      const durationMs = completedAt - startedAt
-      const result: PoolTaskResult = {
+      const result = computePoolResult({
         taskId: task.id,
         agentId: id,
-        success: true,
-        summary: `Task "${task.name}" completed in ${durationMs}ms`,
+        taskName: task.name,
+        exitCode,
         startedAt,
-        completedAt,
-        durationMs,
-      }
+      })
 
       this.completed.push(result)
       this.config.onComplete(result)
     } catch (err: unknown) {
-      const completedAt = Date.now()
-      const result: PoolTaskResult = {
+      const result = computePoolResult({
         taskId: task.id,
-        agentId,
-        success: false,
-        summary: `Task "${task.name}" failed`,
+        agentId: entry.agentId,
+        taskName: task.name,
+        exitCode: -1,
         startedAt,
-        completedAt,
-        durationMs: completedAt - startedAt,
-        error: err instanceof Error ? err.message : String(err),
-      }
+      })
+      result.success = false
+      result.summary = `Task "${task.name}" failed`
+      result.error = err instanceof Error ? err.message : String(err)
 
       this.completed.push(result)
       this.config.onComplete(result)

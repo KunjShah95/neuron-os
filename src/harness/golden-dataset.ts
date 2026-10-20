@@ -8,7 +8,7 @@
  * human verification (Gold) to cross-model validation (Audit).
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, unlinkSync } from "node:fs"
 import { join } from "node:path"
 import { randomUUID } from "node:crypto"
 import { createLogger } from "../cli/logger"
@@ -20,6 +20,8 @@ const log = createLogger("harness:golden-dataset")
 
 export type GoldenTaskStatus = "silver" | "gold" | "audited" | "archived"
 export type GoldenDifficulty = "easy" | "medium" | "hard" | "expert"
+
+export const GOLDEN_STATUSES: GoldenTaskStatus[] = ["silver", "gold", "audited", "archived"]
 
 export interface TrajectoryStep {
   action: string
@@ -311,6 +313,7 @@ export class GoldenDatasetManager {
 
   private loadTaskFiles(): GoldenTask[] {
     const tasks: GoldenTask[] = []
+    const byId = new Map<string, GoldenTask>()
 
     const walkDir = (dir: string): void => {
       if (!existsSync(dir)) return
@@ -325,7 +328,7 @@ export class GoldenDatasetManager {
           try {
             const raw = readFileSync(fullPath, "utf-8")
             const task = JSON.parse(raw) as GoldenTask
-            if (task.id && task.name) tasks.push(task)
+            if (task.id && task.name) byId.set(task.id, task)
           } catch {
             log.warn(`Skipping invalid task file: ${fullPath}`)
           }
@@ -334,6 +337,7 @@ export class GoldenDatasetManager {
     }
 
     walkDir(this.config.storageDir)
+    tasks.push(...byId.values())
     return tasks
   }
 
@@ -350,6 +354,7 @@ export class GoldenDatasetManager {
       }
       const filePath = join(statusDir, `${task.id}.json`)
       writeFileSync(filePath, JSON.stringify(task, null, 2), "utf-8")
+      this.removeStaleCopies(task.id, task.goldenStatus)
     }
 
     // Write combined index
@@ -378,6 +383,19 @@ export class GoldenDatasetManager {
     )
 
     log.debug(`Saved ${this.tasks.length} golden tasks to ${this.config.storageDir}`)
+  }
+
+  private removeStaleCopies(taskId: string, currentStatus: GoldenTaskStatus): void {
+    for (const status of GOLDEN_STATUSES) {
+      if (status === currentStatus) continue
+      const stalePath = join(this.config.storageDir, status, `${taskId}.json`)
+      if (!existsSync(stalePath)) continue
+      try {
+        unlinkSync(stalePath)
+      } catch {
+        log.warn(`Failed to remove stale task file: ${stalePath}`)
+      }
+    }
   }
 }
 

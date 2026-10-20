@@ -17,7 +17,6 @@
  *  startGeneration() before the AI call and endGeneration() after.
  */
 
-import { randomBytes } from "node:crypto"
 import { TraceCollector } from "./integrations"
 import { postGenAIEvent, postSpanEvent, isLangfuseConfigured } from "./langfuse"
 import { createLogger } from "../cli/logger"
@@ -89,7 +88,6 @@ export class GenAITracer {
     parentSpanId?: string
   }): GenAIGenerationStart {
     const traceId = opts.sessionId
-    const spanId = "gen-" + Date.now().toString(36) + "-" + randomBytes(4).toString("hex")
 
     const metadata: Record<string, unknown> = {
       gen_ai_system: opts.provider,
@@ -100,15 +98,10 @@ export class GenAITracer {
       session_id: opts.sessionId,
     }
 
-    this.collector.startSpan(
-      `llm:${opts.model}`,
-      "llm",
-      opts.parentSpanId,
-      metadata,
-    )
+    const span = this.collector.startSpan(`llm:${opts.model}`, "llm", opts.parentSpanId, metadata)
 
     const start: GenAIGenerationStart = {
-      spanId,
+      spanId: span.id,
       traceId,
       sessionId: opts.sessionId,
       agentId: opts.agentId,
@@ -155,10 +148,7 @@ export class GenAITracer {
       duration_ms: end.durationMs,
     }
 
-    this.collector.endSpan(
-      `llm:${start.model}`,
-      end.status === "success" ? "ok" : "error",
-    )
+    this.collector.endSpan(start.spanId, end.status === "success" ? "ok" : "error")
 
     if (this.langfuseEnabled) {
       postGenAIEvent({
@@ -195,22 +185,14 @@ export class GenAITracer {
    * Record a tool call as a span.
    */
   recordToolCall(call: GenAIToolCall): void {
-    this.collector.startSpan(
-      `tool:${call.toolName}`,
-      "tool",
-      undefined,
-      {
-        tool_name: call.toolName,
-        session_id: call.sessionId,
-        agent_id: call.agentId,
-        duration_ms: call.durationMs,
-      },
-    )
+    const span = this.collector.startSpan(`tool:${call.toolName}`, "tool", undefined, {
+      tool_name: call.toolName,
+      session_id: call.sessionId,
+      agent_id: call.agentId,
+      duration_ms: call.durationMs,
+    })
 
-    this.collector.endSpan(
-      `tool:${call.toolName}`,
-      call.status === "success" ? "ok" : "error",
-    )
+    this.collector.endSpan(span.id, call.status === "success" ? "ok" : "error")
 
     if (this.langfuseEnabled) {
       postSpanEvent({

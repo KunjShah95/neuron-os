@@ -262,6 +262,12 @@ export class AgentManager {
 
   async destroy(): Promise<void> {
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer)
+    if (this.dreamTickTimer) clearInterval(this.dreamTickTimer)
+    if (this.prewarmTimer) clearInterval(this.prewarmTimer)
+    for (const [, timer] of this.prewarmShutdownTimers) {
+      clearTimeout(timer)
+    }
+    this.prewarmShutdownTimers.clear()
 
     for (const [id] of this.recoveryStates) {
       this.cancelRecovery(id)

@@ -3,11 +3,11 @@ import { join, relative } from "node:path"
 import { createLogger } from "../cli/logger"
 import type { DreamInsight } from "../dream/types"
 import type { CodeMutation, MutationStrategy } from "./types"
-import { evolutionStore } from "./evolution-store"
+import { evolutionStore, type EvolutionStore } from "./evolution-store"
 
 const log = createLogger("mutation-generator")
 
-interface FileAnalysis {
+export interface FileAnalysis {
   path: string
   content: string
   lines: number
@@ -21,6 +21,25 @@ interface FileAnalysis {
   longFunctions: Array<{ name: string; startLine: number; lineCount: number }>
 }
 
+const NON_NULL_ASSERTION_PATTERN = /[A-Za-z0-9_$)\]]!(?![=])/
+
+function stripCommentsAndStrings(code: string): string {
+  return code
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/\/\/[^\n]*/g, " ")
+    .replace(/`(?:\\[\s\S]|[^`\\])*`/g, " ")
+    .replace(/"(?:\\[\s\S]|[^"\\\n])*"/g, " ")
+    .replace(/'(?:\\[\s\S]|[^'\\\n])*'/g, " ")
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+function mentions(text: string, term: string): boolean {
+  return new RegExp(`\\b${escapeRegExp(term)}\\b`).test(text)
+}
+
 /** A single line-level change to apply to a file. */
 interface LineChange {
   type: "replace" | "insert-before" | "insert-after" | "delete"
@@ -29,6 +48,13 @@ interface LineChange {
 }
 
 export class MutationGenerator {
+  private store: EvolutionStore
+  private contentCache = new Map<string, { mtimeMs: number; lower: string }>()
+
+  constructor(store: EvolutionStore = evolutionStore) {
+    this.store = store
+  }
+
   analyzeFile(filePath: string): FileAnalysis | null {
     if (!existsSync(filePath)) return null
     const content = readFileSync(filePath, "utf-8")
@@ -40,7 +66,7 @@ export class MutationGenerator {
       lines: lines.length,
       hasTryCatch: content.includes("try ") && content.includes("catch"),
       hasAnyType: /:\s*any\b/.test(content),
-      hasNonNullAssertion: content.includes("!"),
+      hasNonNullAssertion: NON_NULL_ASSERTION_PATTERN.test(stripCommentsAndStrings(content)),
       hasConsoleLog: /console\.(log|warn|error)\(/.test(content),
       hasTodo: /\/\/\s*(TODO|FIX|HACK|XXX)/.test(content),
       hasFIXME: /\/\/\s*FIXME/.test(content),
@@ -49,7 +75,10 @@ export class MutationGenerator {
     }
   }
 
-  private findLongFunctions(content: string, _lines: string[]): Array<{ name: string; startLine: number; lineCount: number }> {
+  private findLongFunctions(
+    content: string,
+    _lines: string[],
+  ): Array<{ name: string; startLine: number; lineCount: number }> {
     const result: Array<{ name: string; startLine: number; lineCount: number }> = []
     const funcRegex = /(?:async\s+)?(?:function\s+(\w+)|(\w+)\s*=\s*(?:async\s*)?\(|(\w+)\s*\([^)]*\)\s*\{)/g
     let match: RegExpExecArray | null
@@ -63,8 +92,12 @@ export class MutationGenerator {
       let pos = startPos
       let found = false
       while (pos < content.length) {
-        if (content[pos] === "{") { braceDepth++; found = true }
-        else if (content[pos] === "}") { braceDepth-- }
+        if (content[pos] === "{") {
+          braceDepth++
+          found = true
+        } else if (content[pos] === "}") {
+          braceDepth--
+        }
         if (found && braceDepth === 0) break
         pos++
       }
@@ -90,6 +123,9 @@ export class MutationGenerator {
       const strategy = this.strategyForInsight(insight, analysis)
       if (!strategy) continue
 
+      const relativePath = relative(process.cwd(), filePath)
+      if (this.findExistingMutation(relativePath, strategy, insight.title)) continue
+
       const changes = this.synthesizeChanges(analysis, strategy, insight)
       if (!changes || changes.length === 0) continue
 
@@ -97,8 +133,8 @@ export class MutationGenerator {
       if (newContent === analysis.content) continue
 
       mutations.push(
-        evolutionStore.createMutation({
-          filePath: relative(process.cwd(), filePath),
+        this.store.createMutation({
+          filePath: relativePath,
           strategy,
           description: insight.title,
           diff: JSON.stringify(changes),
@@ -148,18 +184,25 @@ export class MutationGenerator {
     if (!existsSync(srcDir)) return []
 
     const candidates: string[] = []
-    const keywords = insight.description.toLowerCase().split(/\s+/).filter((w) => w.length > 4)
+    const keywords = insight.description
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 4)
+
+    if (keywords.length === 0) return []
+
+    const requiredMatches = keywords.length === 1 ? 1 : 2
 
     const walk = (dir: string) => {
-      for (const entry of readdirSync(dir)) {
-        const fullPath = join(dir, entry)
-        if (statSync(fullPath).isDirectory()) {
-          if (!entry.startsWith(".") && entry !== "node_modules") walk(fullPath)
-        } else if (entry.endsWith(".ts") && !entry.endsWith(".test.ts") && !entry.endsWith(".d.ts")) {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const fullPath = join(dir, entry.name)
+        if (entry.isDirectory()) {
+          if (!entry.name.startsWith(".") && entry.name !== "node_modules") walk(fullPath)
+        } else if (entry.name.endsWith(".ts") && !entry.name.endsWith(".test.ts") && !entry.name.endsWith(".d.ts")) {
           try {
-            const content = readFileSync(fullPath, "utf-8").toLowerCase()
+            const content = this.readLowerCached(fullPath)
             const matchCount = keywords.filter((k) => content.includes(k)).length
-            if (matchCount >= Math.min(2, keywords.length)) {
+            if (matchCount >= requiredMatches) {
               candidates.push(fullPath)
             }
           } catch {
@@ -173,39 +216,46 @@ export class MutationGenerator {
     return candidates.slice(0, 5)
   }
 
-  private strategyForInsight(insight: DreamInsight, analysis: FileAnalysis): MutationStrategy | null {
+  strategyForInsight(insight: DreamInsight, analysis: FileAnalysis): MutationStrategy | null {
     const type = insight.type
     const desc = insight.description.toLowerCase()
 
-    if (analysis.hasNonNullAssertion || desc.includes("non-null") || desc.includes("assertion")) {
+    if (analysis.hasNonNullAssertion || mentions(desc, "non-null") || mentions(desc, "assertion")) {
       return "type-improvement"
     }
-    if (analysis.hasAnyType || desc.includes("any type") || desc.includes("loose type")) {
+    if (analysis.hasAnyType || mentions(desc, "any type") || mentions(desc, "loose type")) {
       return "type-improvement"
     }
-    if (analysis.hasTodo || analysis.hasFIXME || type === "pattern") {
-      return "refactor"
+    if (mentions(desc, "security") || mentions(desc, "injection") || mentions(desc, "sanitize")) {
+      return "security"
     }
-    if (!analysis.hasTryCatch || desc.includes("error") || desc.includes("catch") || desc.includes("exception")) {
+    if (mentions(desc, "performance") || mentions(desc, "slow") || mentions(desc, "bottleneck")) {
+      return "performance"
+    }
+    if (mentions(desc, "readability") || mentions(desc, "clarity") || mentions(desc, "confusing")) {
+      return "readability"
+    }
+    if (mentions(desc, "bug") || mentions(desc, "fix") || mentions(desc, "incorrect") || mentions(desc, "wrong")) {
+      return "bugfix"
+    }
+    if (mentions(desc, "error") || mentions(desc, "catch") || mentions(desc, "exception")) {
       return "error-handling"
-    }
-    if (analysis.longFunctions.length > 0 || desc.includes("complex") || desc.includes("long function")) {
-      return "refactor"
     }
     if (type === "counterfactual") {
       return "optimize"
     }
-    if (desc.includes("performance") || desc.includes("slow") || desc.includes("bottleneck")) {
-      return "performance"
+    if (
+      analysis.hasTodo ||
+      analysis.hasFIXME ||
+      type === "pattern" ||
+      analysis.longFunctions.length > 0 ||
+      mentions(desc, "complex") ||
+      mentions(desc, "long function")
+    ) {
+      return "refactor"
     }
-    if (desc.includes("security") || desc.includes("injection") || desc.includes("sanitize")) {
-      return "security"
-    }
-    if (desc.includes("readability") || desc.includes("clarity") || desc.includes("confusing")) {
-      return "readability"
-    }
-    if (desc.includes("bug") || desc.includes("fix") || desc.includes("incorrect") || desc.includes("wrong")) {
-      return "bugfix"
+    if (!analysis.hasTryCatch) {
+      return "error-handling"
     }
 
     return null
@@ -215,7 +265,11 @@ export class MutationGenerator {
    * Analyze the file and produce a list of concrete line-level changes.
    * All 8 mutation strategies are now implemented.
    */
-  private synthesizeChanges(analysis: FileAnalysis, strategy: MutationStrategy, insight: DreamInsight): LineChange[] | null {
+  private synthesizeChanges(
+    analysis: FileAnalysis,
+    strategy: MutationStrategy,
+    insight: DreamInsight,
+  ): LineChange[] | null {
     switch (strategy) {
       case "type-improvement":
         return this.buildTypeImprovements(analysis)
@@ -238,42 +292,65 @@ export class MutationGenerator {
     }
   }
 
-  /** Type improvement: add explicit types to catch parameters, replace `any` with `unknown` */
+  /** Type improvement: replace a local `: any` annotation with `: unknown` */
   private buildTypeImprovements(analysis: FileAnalysis): LineChange[] | null {
     const changes: LineChange[] = []
     const lines = analysis.content.split("\n")
 
     for (let i = 0; i < lines.length; i++) {
-      let line = lines[i]
+      const line = lines[i]
       if (!line) continue
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith("*")) continue
+      if (trimmed.includes("export") || trimmed.includes("import")) continue
 
-      let modified = false
-
-      // Add `unknown` type to catch(err) without type
-      if (line.includes("catch (err)") || line.includes("catch(e)")) {
-        const replacement = line.replace(/catch\s*\((err|e)\)/g, "catch ($1: unknown)")
-        if (replacement !== line) {
-          line = replacement
-          modified = true
-        }
-      }
-
-      // Replace `: any` with `: unknown` in function parameters
-      const anyMatch = line.match(/:\s*any\b/)
-      if (anyMatch && !line.trim().startsWith("//") && !line.includes("as any")) {
-        const replacement = line.replace(/:\s*any\b/g, ": unknown")
-        if (replacement !== line) {
-          line = replacement
-          modified = true
-        }
-      }
-
-      if (modified) {
-        changes.push({ type: "replace", line: i + 1, text: line })
+      const rewritten = this.rewriteAnyAnnotations(line, analysis.content)
+      if (rewritten !== line) {
+        changes.push({ type: "replace", line: i + 1, text: rewritten })
       }
     }
 
     return changes.length > 0 ? changes : null
+  }
+
+  private rewriteAnyAnnotations(line: string, content: string): string {
+    const pattern = /([A-Za-z_$][A-Za-z0-9_$]*)(\s*:\s*any\b)/g
+    let result = ""
+    let lastIndex = 0
+    let match: RegExpExecArray | null
+
+    while ((match = pattern.exec(line)) !== null) {
+      const name = match[1]
+      const annotation = match[2]
+      if (!name || !annotation) continue
+      if (!this.isLocalBinding(line, match.index)) continue
+      if (this.countOccurrences(content, name) > 1) continue
+
+      const start = match.index + match[0].length - annotation.length
+      result += line.slice(lastIndex, start) + ": unknown"
+      lastIndex = match.index + match[0].length
+    }
+
+    result += line.slice(lastIndex)
+    return result
+  }
+
+  private isLocalBinding(line: string, nameIndex: number): boolean {
+    const before = line.slice(0, nameIndex)
+    if (/catch\s*\($/.test(before)) return false
+    if (/\b(?:const|let|var)\s+$/.test(before)) return true
+    if (/[(,]\s*$/.test(before)) return true
+    return false
+  }
+
+  private countOccurrences(content: string, name: string): number {
+    const pattern = new RegExp(`\\b${escapeRegExp(name)}\\b`, "g")
+    let count = 0
+    while (pattern.exec(content) !== null) {
+      count++
+      if (count > 1) return count
+    }
+    return count
   }
 
   /** Error handling: add try/catch wrappers to functions missing them, enhance bare catches */
@@ -286,7 +363,7 @@ export class MutationGenerator {
       const line = lines[i]
       if (!line) continue
 
-      const m = line.match(/catch\s*\((\w+)(?:\s*:\s*\w+)?\)\s*\{/)
+      const m = line.match(/catch\s*\((\w+)\)\s*\{/)
       if (!m) continue
       const varName = m[1] ?? ""
 
@@ -313,7 +390,7 @@ export class MutationGenerator {
         changes.push({
           type: "insert-before",
           line: j,
-          text: `  console.error("Operation failed:", ${varName}?.message ?? ${varName});`,
+          text: `  console.error("Operation failed:", ${varName} instanceof Error ? ${varName}.message : String(${varName}));`,
         })
       }
     }
@@ -382,7 +459,12 @@ export class MutationGenerator {
       if (!line || line.trim().startsWith("//")) continue
 
       // Fix `.length` used in a truthy check (empty array is truthy)
-      if (/if\s*\(\s*\w+\.length\s*\)/.test(line) && !line.includes(">") && !line.includes("!==") && !line.includes("===")) {
+      if (
+        /if\s*\(\s*\w+\.length\s*\)/.test(line) &&
+        !line.includes(">") &&
+        !line.includes("!==") &&
+        !line.includes("===")
+      ) {
         // Already correct for arrays with elements, but could be buggy if checking for 0
         // Add explicit > 0 for clarity
         const replacement = line.replace(/(\w+)\.length\s*\)/, "$1.length > 0)")
@@ -549,7 +631,7 @@ export class MutationGenerator {
 
     if (params.changes && params.changes.length > 0) {
       const newContent = this.applyChanges(content, params.changes)
-      return evolutionStore.createMutation({
+      return this.store.createMutation({
         filePath: params.filePath,
         strategy: params.strategy,
         description: params.description,
@@ -582,7 +664,7 @@ export class MutationGenerator {
     const newContent = this.applyChanges(content, changes)
     if (newContent === content) return null
 
-    return evolutionStore.createMutation({
+    return this.store.createMutation({
       filePath: params.filePath,
       strategy: params.strategy,
       description: params.description,
@@ -626,13 +708,21 @@ export class MutationGenerator {
     const results: string[] = []
     for (const entry of readdirSync(dir)) {
       const fullPath = join(dir, entry)
-      if (statSync(fullPath).isDirectory()) {
+      if (this.isDirectory(fullPath)) {
         results.push(...this.findJsonFiles(fullPath))
       } else if (entry.endsWith(".json")) {
         results.push(fullPath)
       }
     }
     return results
+  }
+
+  private isDirectory(filePath: string): boolean {
+    try {
+      return statSync(filePath).isDirectory()
+    } catch {
+      return false
+    }
   }
 
   private mutationsFromFailure(cluster: Record<string, unknown>): CodeMutation[] {
@@ -645,7 +735,7 @@ export class MutationGenerator {
     const walk = (dir: string) => {
       for (const entry of readdirSync(dir)) {
         const fullPath = join(dir, entry)
-        if (statSync(fullPath).isDirectory()) {
+        if (this.isDirectory(fullPath)) {
           if (!entry.startsWith(".") && entry !== "node_modules") walk(fullPath)
         } else if (entry.endsWith(".ts") && !entry.endsWith(".test.ts")) {
           const content = readFileSync(fullPath, "utf-8").toLowerCase()
@@ -660,6 +750,10 @@ export class MutationGenerator {
     for (const filePath of foundFiles.slice(0, 3)) {
       const content = readFileSync(filePath, "utf-8")
       const strategy: MutationStrategy = pattern.includes("type") || pattern.includes("error") ? "bugfix" : "refactor"
+      const description = `Fix: ${cluster.name || cluster.id || "failure pattern"}`
+      const relativePath = relative(process.cwd(), filePath)
+
+      if (this.findExistingMutation(relativePath, strategy, description)) continue
 
       const analysis = this.analyzeFile(filePath)
       let changes: LineChange[] | null = null
@@ -668,7 +762,7 @@ export class MutationGenerator {
           id: "",
           dreamId: "",
           type: "pattern",
-          title: `Fix: ${cluster.name || cluster.id || "failure pattern"}`,
+          title: description,
           description: pattern,
           confidence: 0.4,
           sourceCount: 1,
@@ -678,11 +772,13 @@ export class MutationGenerator {
       }
 
       mutations.push(
-        evolutionStore.createMutation({
-          filePath: relative(process.cwd(), filePath),
+        this.store.createMutation({
+          filePath: relativePath,
           strategy,
-          description: `Fix: ${cluster.name || cluster.id || "failure pattern"}`,
-          diff: changes ? JSON.stringify(changes) : `Auto-fix for: ${cluster.suggestedFix || cluster.commonPattern || ""}`,
+          description,
+          diff: changes
+            ? JSON.stringify(changes)
+            : `Auto-fix for: ${cluster.suggestedFix || cluster.commonPattern || ""}`,
           oldContent: content,
           newContent: changes ? this.applyChanges(content, changes) : content,
           confidence: 0.4,
@@ -694,6 +790,35 @@ export class MutationGenerator {
     }
 
     return mutations
+  }
+
+  private readLowerCached(filePath: string): string {
+    let mtimeMs: number
+    try {
+      mtimeMs = statSync(filePath).mtimeMs
+    } catch {
+      return ""
+    }
+    const cached = this.contentCache.get(filePath)
+    if (cached && cached.mtimeMs === mtimeMs) return cached.lower
+
+    let lower: string
+    try {
+      lower = readFileSync(filePath, "utf-8").toLowerCase()
+    } catch {
+      return ""
+    }
+    this.contentCache.set(filePath, { mtimeMs, lower })
+    return lower
+  }
+
+  private findExistingMutation(
+    filePath: string,
+    strategy: MutationStrategy,
+    description: string,
+  ): CodeMutation | undefined {
+    const existing = this.store.listMutations(500)
+    return existing.find((m) => m.filePath === filePath && m.strategy === strategy && m.description === description)
   }
 }
 

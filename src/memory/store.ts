@@ -7,8 +7,8 @@ const log = createLogger("episodic-memory")
 export class EpisodicMemory {
   private store: SessionStore
 
-  constructor(project?: string) {
-    this.store = project ? getProjectSessionStore(project) : sessionStore
+  constructor(project?: string, store?: SessionStore) {
+    this.store = store ?? (project ? getProjectSessionStore(project) : sessionStore)
   }
 
   /**
@@ -57,21 +57,20 @@ export class EpisodicMemory {
 
   /**
    * Prune old messages from a session's context, keeping only the
-   * most recent N messages. Since SessionStore is append-only,
-   * this logs the pruning decision for observability.
-   * A future implementation could archive pruned messages to a separate table.
+   * most recent N messages. Older messages are deleted from the
+   * session store so the persisted context does not grow unbounded.
    */
   public pruneContext(sessionId: string, keepLast = 20): void {
-    const messages = this.store.getMessages(sessionId, keepLast + 1)
-    if (messages.length <= keepLast) return
+    const total = this.store.getMessageCount(sessionId)
+    if (total <= keepLast) return
 
-    const pruneCount = messages.length - keepLast
-    log.warn(`Pruning ${pruneCount} old messages from session ${sessionId} (${messages.length} → ${keepLast})`)
+    const pruneCount = total - keepLast
+    const oldestIds = this.store.getOldestMessageIds(sessionId, pruneCount)
+    log.warn(`Pruning ${pruneCount} old messages from session ${sessionId} (${total} → ${keepLast})`)
 
-    // SessionStore doesn't support row deletion, so we mark the boundary
-    // by recording a system note. A future iteration could archive
-    // pruned messages to a separate table.
-    log.warn(`Context pruned: kept last ${keepLast} of ${messages.length} messages for session ${sessionId}`)
+    this.store.deleteMessages(oldestIds)
+
+    log.warn(`Context pruned: kept last ${keepLast} of ${total} messages for session ${sessionId}`)
   }
 }
 

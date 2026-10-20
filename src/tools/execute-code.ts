@@ -20,15 +20,12 @@ export interface ExecuteCodeOutput {
   reason?: "timeout" | "tool_cap" | "stdout_cap" | "ipc_disconnected" | "syntax_error"
 }
 
-function generateStubTools(stagingDir: string, allowedTools: string[]): string {
+function generateStubTools(allowedTools: string[], ipcPath: string): string {
   const toolNames = allowedTools.filter((t) => !BLOCKED_TOOLS.has(t))
   const toolFns = toolNames.map((name) => {
     const safe = name.replace(/[^a-zA-Z0-9_$]/g, "_")
     return `export const ${safe} = async (...args: unknown[]) => ipcCall(${JSON.stringify(name)}, ...args)`
   })
-
-  const isWin = platform() === "win32"
-  const ipcPath = isWin ? `\\\\?\\pipe\\aegis-exec-${stagingDir.split("-").pop()}` : join(stagingDir, "ipc")
 
   return `// auto-generated — do not edit
 const IPC_PATH = ${JSON.stringify(ipcPath)}
@@ -37,20 +34,23 @@ let msgId = 0
 function ipcCall(tool: string, ...args: unknown[]): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const id = ++msgId
+    let buffer = ""
     const sock = Bun.connect({
       unix: IPC_PATH,
       socket: {
         data(sock, data) {
-          const text = data.toString().trim()
-          for (const line of text.split("\\n")) {
-            if (!line) continue
+          buffer += data.toString()
+          const lines = buffer.split("\\n")
+          buffer = lines.pop() ?? ""
+          for (const line of lines) {
+            if (!line.trim()) continue
             try {
               const msg = JSON.parse(line)
               if (msg.id === id) {
                 sock.end()
                 resolve(msg.result)
               }
-            } catch { /* skip partial lines */ }
+            } catch { /* skip malformed lines */ }
           }
         },
         close() { },
@@ -111,8 +111,8 @@ async function executeCodeScript(input: ExecuteCodeInput, ctx: ToolContext): Pro
     writeFileSync(scriptPath, fullCode, "utf-8")
 
     const stubCode = generateStubTools(
-      stagingDir,
       ctx.permissions.map((p) => p.name),
+      ipcPath,
     )
     writeFileSync(join(stagingDir, "aegis_tools.ts"), stubCode, "utf-8")
 
@@ -122,15 +122,20 @@ async function executeCodeScript(input: ExecuteCodeInput, ctx: ToolContext): Pro
     const toolCallCap = 50
     const stdoutCap = 1_048_576
 
+    let requestBuffer = ""
+
     const listener = Bun.listen({
       unix: ipcPath,
       socket: {
         data(socket, data) {
           if (toolCalls.length >= toolCallCap) return
 
-          const text = data.toString().trim()
-          for (const line of text.split("\n")) {
-            if (!line) continue
+          requestBuffer += data.toString()
+          const lines = requestBuffer.split("\n")
+          requestBuffer = lines.pop() ?? ""
+
+          for (const line of lines) {
+            if (!line.trim()) continue
             try {
               const req = JSON.parse(line)
               const result = handleToolCall(req.tool, req.args)
@@ -146,7 +151,7 @@ async function executeCodeScript(input: ExecuteCodeInput, ctx: ToolContext): Pro
     })
 
     const proc = spawn({
-      cmd: ["bun", "run", scriptPath],
+      cmd: [process.execPath, "run", scriptPath],
       cwd: stagingDir,
       stdout: "pipe",
       stderr: "pipe",
@@ -156,13 +161,19 @@ async function executeCodeScript(input: ExecuteCodeInput, ctx: ToolContext): Pro
     const timeout = 30_000
     let stdout = ""
 
-    try {
-      const exitCode = await Promise.race([
-        proc.exited,
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), timeout)),
-      ])
+    const stdoutPromise = new Response(proc.stdout).text().catch(() => "")
+    const stderrPromise = new Response(proc.stderr).text().catch(() => "")
 
-      const outBuf = await new Response(proc.stdout).text()
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error("timeout")), timeout)
+      timer.unref()
+    })
+
+    try {
+      const exitCode = await Promise.race([proc.exited, timeoutPromise])
+
+      const outBuf = await stdoutPromise
       stdout = outBuf.slice(0, stdoutCap)
       if (outBuf.length > stdoutCap) {
         truncated = true
@@ -171,7 +182,7 @@ async function executeCodeScript(input: ExecuteCodeInput, ctx: ToolContext): Pro
 
       // Detect syntax errors
       if (exitCode !== 0 && toolCalls.length === 0 && stdout.length === 0) {
-        const stderrBuf = await new Response(proc.stderr).text()
+        const stderrBuf = await stderrPromise
         if (stderrBuf.includes("SyntaxError") || stderrBuf.includes("error:")) {
           return {
             output: `Syntax error:\n${stderrBuf.slice(0, 2000)}`,
@@ -183,16 +194,16 @@ async function executeCodeScript(input: ExecuteCodeInput, ctx: ToolContext): Pro
         }
       }
     } catch (err) {
-      proc.kill()
+      try {
+        proc.kill(9)
+      } catch {
+        /* best effort */
+      }
       truncated = true
       reason = (err as Error).message === "timeout" ? "timeout" : "ipc_disconnected"
-      try {
-        const partial = await new Response(proc.stdout).text()
-        stdout = partial.slice(0, stdoutCap)
-      } catch {
-        stdout = ""
-      }
+      stdout = (await stdoutPromise).slice(0, stdoutCap)
     } finally {
+      if (timer !== undefined) clearTimeout(timer)
       listener.stop()
     }
 

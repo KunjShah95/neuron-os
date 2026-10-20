@@ -4,6 +4,7 @@ import { resolve } from "node:path"
 import { agentManager } from "../agent/manager"
 import { createLogger } from "../cli/logger"
 import type { AgentTypeName } from "../agent/agent-types"
+import type { AgentIpcMessage } from "../agent/types"
 
 const log = createLogger("cron")
 
@@ -14,17 +15,25 @@ export interface CronJob {
   agentType?: string
 }
 
-const DATA_DIR = resolve(process.cwd(), "data")
-const HEARTBEAT_FILE = resolve(DATA_DIR, "HEARTBEAT.md")
-const CRON_FILE = resolve(DATA_DIR, "cron-jobs.json")
+function getDataDir(): string {
+  return process.env.AEGIS_DATA_DIR ?? resolve(process.cwd(), "data")
+}
+
+function getHeartbeatFile(): string {
+  return resolve(getDataDir(), "HEARTBEAT.md")
+}
+
+function getCronFile(): string {
+  return resolve(getDataDir(), "cron-jobs.json")
+}
 
 // ── HEARTBEAT.md management ────────────────────────────────────────────
 
 export async function ensureHeartbeatFile(): Promise<void> {
-  await mkdir(DATA_DIR, { recursive: true })
-  if (!existsSync(HEARTBEAT_FILE)) {
+  await mkdir(getDataDir(), { recursive: true })
+  if (!existsSync(getHeartbeatFile())) {
     await writeFile(
-      HEARTBEAT_FILE,
+      getHeartbeatFile(),
       [
         "# Heartbeat Checklist",
         "",
@@ -49,8 +58,9 @@ export async function ensureHeartbeatFile(): Promise<void> {
 
 export async function loadHeartbeatChecklist(): Promise<string> {
   try {
-    if (existsSync(HEARTBEAT_FILE)) {
-      return await readFile(HEARTBEAT_FILE, "utf-8")
+    const file = getHeartbeatFile()
+    if (existsSync(file)) {
+      return await readFile(file, "utf-8")
     }
   } catch (err) {
     log.warn("Failed to load heartbeat checklist", { error: String(err) })
@@ -62,8 +72,9 @@ export async function loadHeartbeatChecklist(): Promise<string> {
 
 export async function loadCronJobs(): Promise<CronJob[]> {
   try {
-    if (!existsSync(CRON_FILE)) return []
-    const raw = await readFile(CRON_FILE, "utf-8")
+    const file = getCronFile()
+    if (!existsSync(file)) return []
+    const raw = await readFile(file, "utf-8")
     return JSON.parse(raw) as CronJob[]
   } catch {
     return []
@@ -71,8 +82,8 @@ export async function loadCronJobs(): Promise<CronJob[]> {
 }
 
 export async function saveCronJobs(jobs: CronJob[]): Promise<void> {
-  await mkdir(DATA_DIR, { recursive: true })
-  await writeFile(CRON_FILE, JSON.stringify(jobs, null, 2), "utf-8")
+  await mkdir(getDataDir(), { recursive: true })
+  await writeFile(getCronFile(), JSON.stringify(jobs, null, 2), "utf-8")
 }
 
 export async function addCronJob(job: CronJob): Promise<void> {
@@ -120,81 +131,14 @@ export async function runHeartbeat(): Promise<HeartbeatResult> {
 
 // ── Cron scheduler ─────────────────────────────────────────────────────
 
-export function startCronEngine(): Array<{ name: string; stop: () => void }> {
-  const timers: Array<{ name: string; stop: () => void }> = []
-
-  const tick = async () => {
-    const jobs = await loadCronJobs()
-    for (const job of jobs) {
-      try {
-        const id = await agentManager.spawn({
-          name: `cron-${job.name}`,
-          agentType: (job.agentType ?? "build") as AgentTypeName,
-          script: "src/agent/agent-worker.ts",
-          tags: ["cron"],
-          recovery: { maxRetries: 2, backoffMs: 5_000 },
-        })
-
-        agentManager.sendIpc(id, {
-          type: "run-task",
-          id: `cron-${job.name}`,
-          payload: { goal: job.goal },
-          timestamp: Date.now(),
-        })
-      } catch (err) {
-        log.error(`Cron job "${job.name}" failed`, { error: String(err) })
-      }
-    }
-  }
-
-  const interval = setInterval(tick, 30 * 60 * 1000)
-  timers.push({ name: "heartbeat-30min", stop: () => clearInterval(interval) })
-
-  // Register Bun.cron for persistent cron jobs if Bun supports it
-  for (const job of loadCronJobsSync()) {
-    try {
-      const schedule = parseCronSchedule(job.schedule)
-      if (schedule) {
-        const timer = setInterval(async () => {
-          try {
-            const id = await agentManager.spawn({
-              name: `cron-${job.name}`,
-              agentType: (job.agentType ?? "build") as AgentTypeName,
-              script: "src/agent/agent-worker.ts",
-              tags: ["cron"],
-              recovery: { maxRetries: 2 },
-            })
-            agentManager.sendIpc(id, {
-              type: "run-task",
-              id: `cron-${job.name}`,
-              payload: { goal: job.goal },
-              timestamp: Date.now(),
-            })
-          } catch (err) {
-            console.error(`Cron job "${job.name}" execution failed:`, err)
-          }
-        }, schedule)
-        timers.push({ name: `cron-${job.name}`, stop: () => clearInterval(timer) })
-      }
-    } catch (err) {
-      log.warn("Failed to schedule cron job", { job: job.name, error: String(err) })
-    }
-  }
-
-  return timers
+export interface CronEngineOptions {
+  heartbeatMs?: number
+  now?: () => number
+  spawnAgent?: (job: CronJob) => Promise<string>
+  sendIpc?: (agentId: string, message: AgentIpcMessage) => Promise<void>
 }
 
-function loadCronJobsSync(): CronJob[] {
-  try {
-    if (!existsSync(CRON_FILE)) return []
-    const raw = readFileSync(CRON_FILE, "utf-8")
-    return JSON.parse(raw) as CronJob[]
-  } catch {
-    return []
-  }
-}
-
-function parseCronSchedule(schedule: string): number | null {
+export function parseCronSchedule(schedule: string): number | null {
   const units: Record<string, number> = {
     s: 1000,
     m: 60 * 1000,
@@ -202,18 +146,124 @@ function parseCronSchedule(schedule: string): number | null {
     d: 24 * 60 * 60 * 1000,
   }
 
-  const match = schedule.match(/^(\d+)\s*(s|m|h|d)$/)
+  const match = schedule.trim().match(/^(\d+)\s*(s|m|h|d)$/)
   if (match && match[1] && match[2]) {
-    return parseInt(match[1] ?? "0") * (units[match[2] ?? ""] ?? 1000)
+    const ms = parseInt(match[1] ?? "0", 10) * (units[match[2] ?? ""] ?? 1000)
+    return ms > 0 ? ms : null
   }
 
-  if (schedule === "30m") return 30 * 60 * 1000
-  if (schedule === "1h") return 60 * 60 * 1000
-  if (schedule === "6h") return 6 * 60 * 60 * 1000
-  if (schedule === "12h") return 12 * 60 * 60 * 1000
-  if (schedule === "1d") return 24 * 60 * 60 * 1000
-
   return null
+}
+
+export function isCronJobDue(job: CronJob, now: number, lastRunAt: number): boolean {
+  const interval = parseCronSchedule(job.schedule)
+  if (!interval) return false
+  return now - lastRunAt >= interval
+}
+
+async function defaultSpawnForJob(job: CronJob): Promise<string> {
+  return await agentManager.spawn({
+    name: `cron-${job.name}`,
+    agentType: (job.agentType ?? "build") as AgentTypeName,
+    script: "src/agent/agent-worker.ts",
+    tags: ["cron"],
+    recovery: { maxRetries: 2, backoffMs: 5_000 },
+  })
+}
+
+async function defaultSendIpc(agentId: string, message: AgentIpcMessage): Promise<void> {
+  await agentManager.sendIpc(agentId, message)
+}
+
+export function startCronEngine(options: CronEngineOptions = {}): Array<{ name: string; stop: () => void }> {
+  const timers: Array<{ name: string; stop: () => void }> = []
+  const now = options.now ?? (() => Date.now())
+  const heartbeatMs = options.heartbeatMs ?? 30 * 60 * 1000
+  const lastRun = new Map<string, number>()
+  const jobTimers = new Map<string, ReturnType<typeof setInterval>>()
+  const warnedSchedules = new Set<string>()
+
+  const spawnForJob = options.spawnAgent ?? defaultSpawnForJob
+  const sendToAgent = options.sendIpc ?? defaultSendIpc
+
+  const claimDue = (job: CronJob, at: number): boolean => {
+    const last = lastRun.get(job.name) ?? at
+    if (!isCronJobDue(job, at, last)) return false
+    lastRun.set(job.name, at)
+    return true
+  }
+
+  const runJob = async (job: CronJob): Promise<void> => {
+    try {
+      const id = await spawnForJob(job)
+      await sendToAgent(id, {
+        type: "run-task",
+        id: `cron-${job.name}`,
+        payload: { goal: job.goal },
+        timestamp: Date.now(),
+      })
+    } catch (err) {
+      log.error(`Cron job "${job.name}" failed`, { error: String(err) })
+    }
+  }
+
+  const fireIfDue = (job: CronJob): void => {
+    const at = now()
+    if (!claimDue(job, at)) return
+    void runJob(job)
+  }
+
+  const ensureJobTimer = (job: CronJob, at: number): void => {
+    if (jobTimers.has(job.name)) return
+    const schedule = parseCronSchedule(job.schedule)
+    if (!schedule) {
+      if (!warnedSchedules.has(job.name)) {
+        warnedSchedules.add(job.name)
+        log.warn(`Cron job "${job.name}" has an unsupported schedule, it will not run: ${job.schedule}`)
+      }
+      return
+    }
+    lastRun.set(job.name, at)
+    const timer = setInterval(() => fireIfDue(job), schedule)
+    timer.unref()
+    jobTimers.set(job.name, timer)
+    timers.push({ name: `cron-${job.name}`, stop: () => clearInterval(timer) })
+  }
+
+  // The periodic tick is a heartbeat only: it refreshes the job list and makes
+  // sure every job owns a schedule timer. Job execution belongs to the per-job
+  // timers so each job runs at its own cadence instead of on every heartbeat.
+  const tick = async (): Promise<void> => {
+    const jobs = await loadCronJobs()
+    const at = now()
+    for (const job of jobs) {
+      ensureJobTimer(job, at)
+    }
+  }
+
+  const interval = setInterval(() => {
+    void tick()
+  }, heartbeatMs)
+  interval.unref()
+  timers.push({ name: "heartbeat-30min", stop: () => clearInterval(interval) })
+
+  const startedAt = now()
+  for (const job of loadCronJobsSync()) {
+    ensureJobTimer(job, startedAt)
+  }
+
+  return timers
+}
+
+function loadCronJobsSync(): CronJob[] {
+  try {
+    const file = getCronFile()
+    if (!existsSync(file)) return []
+    const raw = readFileSync(file, "utf-8")
+    return JSON.parse(raw) as CronJob[]
+  } catch {
+    return []
+  }
 }
 
 export async function listActiveJobs(): Promise<CronJob[]> {

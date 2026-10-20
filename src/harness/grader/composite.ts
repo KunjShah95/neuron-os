@@ -50,6 +50,7 @@ export function computeCompositeScore(grades: GradeResult[], config?: Partial<Co
     deterministic: [],
     llm: [],
     code: [],
+    human: [],
   }
 
   for (const g of grades) {
@@ -101,13 +102,22 @@ export function computeCompositeScore(grades: GradeResult[], config?: Partial<Co
 
     case "weighted_average":
     default: {
-      // Weighted average across all grades
-      const totalWeight = grades.reduce((s, g) => s + g.weight, 0)
-      if (totalWeight === 0) {
-        composite = grades.reduce((s, g) => s + g.score, 0) / grades.length
-      } else {
-        composite = grades.reduce((s, g) => s + g.score * (g.weight / totalWeight), 0)
+      // Each grader TYPE carries the configured weight; that weight is distributed
+      // across the grades of that type, then the types are combined.
+      const typeWeights = computeTypeWeights(grades, cfg.defaultWeights)
+      let weightedSum = 0
+      let totalWeight = 0
+      for (const [type, typeGrades] of Object.entries(byType)) {
+        if (typeGrades.length === 0) continue
+        const typeWeight = typeWeights[type] ?? 0
+        if (typeWeight <= 0) continue
+        const share = typeWeight / typeGrades.length
+        for (const g of typeGrades) {
+          weightedSum += g.score * share
+          totalWeight += share
+        }
       }
+      composite = totalWeight > 0 ? weightedSum / totalWeight : grades.reduce((s, g) => s + g.score, 0) / grades.length
       break
     }
   }
@@ -126,6 +136,33 @@ export function computeCompositeScore(grades: GradeResult[], config?: Partial<Co
  */
 export function isPassing(compositeScore: number, threshold: number = 0.6): boolean {
   return compositeScore >= threshold
+}
+
+/**
+ * Weight per grader type taken from the configured default weights.
+ * Types without a configured weight fall back to the sum of their own grade weights.
+ */
+export function computeTypeWeights(
+  grades: GradeResult[],
+  defaultWeights: CompositeScoringConfig["defaultWeights"],
+): Record<string, number> {
+  const ownWeights: Record<string, number[]> = {}
+  for (const g of grades) {
+    const bucket = ownWeights[g.grader] ?? (ownWeights[g.grader] = [])
+    bucket.push(g.weight)
+  }
+
+  const weights: Record<string, number> = {}
+  for (const [type, own] of Object.entries(ownWeights)) {
+    const configured = defaultWeights[type as keyof CompositeScoringConfig["defaultWeights"]]
+    if (typeof configured === "number") {
+      weights[type] = configured
+      continue
+    }
+    const ownTotal = own.reduce((s, w) => s + w, 0)
+    weights[type] = ownTotal > 0 ? ownTotal : 1
+  }
+  return weights
 }
 
 /**

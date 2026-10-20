@@ -1,8 +1,8 @@
 import { billingTracker } from "../billing/tracker"
 import { agentManager } from "../agent/manager"
-import { SLOManager, type SLOResult } from "./slo"
-import { experienceStore } from "../experience/store"
+import { SLOManager, type SLOResult, type SLOManagerOptions } from "./slo"
 import { TraceCollector } from "./integrations"
+import { SessionStore } from "../session/store"
 
 export interface DashboardData {
   systemUptime: number
@@ -18,11 +18,18 @@ export interface DashboardData {
   topFailures: Array<{ pattern: string; count: number }>
 }
 
+export interface DashboardProviderOptions {
+  sessionStore?: SessionStore
+  sloOptions?: SLOManagerOptions
+}
+
 export class DashboardProvider {
   private slo: SLOManager
+  private sessionStore: SessionStore | null
 
-  constructor() {
-    this.slo = new SLOManager()
+  constructor(options: DashboardProviderOptions = {}) {
+    this.slo = new SLOManager(options.sloOptions)
+    this.sessionStore = options.sessionStore ?? null
   }
 
   async getDashboardData(): Promise<DashboardData> {
@@ -45,7 +52,7 @@ export class DashboardProvider {
       systemUptime: this.computeUptime(),
       totalAgents: allAgents.length,
       activeAgents: activeAgents.length,
-      totalSessions: this.estimateTotalSessions(),
+      totalSessions: this.countSessions(),
       recentErrors: recentFailures.length,
       avgLatency: this.estimateAvgLatency(),
       costToday: costTodayEntry?.totalCost ?? 0,
@@ -62,18 +69,31 @@ export class DashboardProvider {
   }
 
   private computeUptime(): number {
-    const total = agentManager.list()
-    if (total.length === 0) return 1
-    const errors = total.filter((a) => a.exitCode !== null && a.exitCode !== 0).length
-    return 1 - errors / total.length
+    const finished = agentManager.list().filter((a) => a.exitCode !== null)
+    if (finished.length === 0) return 1
+    const failures = finished.filter((a) => a.exitCode !== 0).length
+    return 1 - failures / finished.length
   }
 
-  private estimateTotalSessions(): number {
+  private countSessions(): number {
+    let store: SessionStore | null = this.sessionStore
+    let owned = false
     try {
-      const stats = experienceStore.getStats()
-      return stats.totalExperiences
+      if (!store) {
+        store = new SessionStore()
+        owned = true
+      }
+      return store.list().length
     } catch {
-      return agentManager.list().length
+      return 0
+    } finally {
+      if (owned) {
+        try {
+          store?.closeDb()
+        } catch {
+          // ignore close failures
+        }
+      }
     }
   }
 

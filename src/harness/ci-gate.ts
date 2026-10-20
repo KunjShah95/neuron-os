@@ -123,10 +123,11 @@ export class CIGate {
     }
 
     // Check regression threshold
-    if (comparison && Math.abs(comparison.overallScoreDelta) > this.config.regressionThreshold) {
+    const scoreDelta = comparison?.overallScoreDelta ?? 0
+    if (scoreDelta < -this.config.regressionThreshold) {
       passed = false
       failures.push(
-        `Score drop ${Math.abs(comparison.overallScoreDelta).toFixed(3)} exceeds threshold ${this.config.regressionThreshold}`,
+        `Score drop ${Math.abs(scoreDelta).toFixed(3)} exceeds threshold ${this.config.regressionThreshold}`,
       )
     }
 
@@ -139,7 +140,9 @@ export class CIGate {
     // 5. Generate summary
     let summary: string
     if (passed) {
-      summary = `✅ CI gate PASSED — ${(passRate * 100).toFixed(1)}% pass rate, ${regressionsFound} regression(s)`
+      const gainNote =
+        comparison && scoreDelta > this.config.regressionThreshold ? `, score up ${scoreDelta.toFixed(3)}` : ""
+      summary = `✅ CI gate PASSED — ${(passRate * 100).toFixed(1)}% pass rate, ${regressionsFound} regression(s)${gainNote}`
     } else {
       summary = `❌ CI gate FAILED — ${failures.join("; ")}`
     }

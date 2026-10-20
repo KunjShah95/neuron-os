@@ -16,12 +16,13 @@
  */
 
 import { SkillExtractor } from "./skill-extractor"
-import { EvalValidator } from "./eval-validator"
-import { skillMonitor } from "./skill-monitor"
+import { EvalValidator, type BatchValidationResult } from "./eval-validator"
+import { skillMonitor, type SkillPerformanceSummary } from "./skill-monitor"
 import { skillReviewStore } from "./skill-review"
-import { experienceStore } from "../experience/store"
+import { experienceStore, type ExperienceStore } from "../experience/store"
 import { triggerEngine } from "../triggers/registry"
 import { createLogger } from "../cli/logger"
+import type { SkillCandidate } from "./types"
 
 const log = createLogger("improve:pipeline")
 
@@ -87,13 +88,55 @@ const DEFAULT_CONFIG: PipelineConfig = {
   candidateMaxAgeDays: 14,
 }
 
+// ── Injectable dependencies ─────────────────────────────────────
+
+export interface PipelineExtractor {
+  extractCandidates(minReward?: number, autoApprove?: boolean): SkillCandidate[]
+  getCandidates(status?: SkillCandidate["status"]): SkillCandidate[]
+  validateCandidate(candidate: SkillCandidate): Promise<SkillCandidate>
+  approveFromStaging(candidateId: string): Promise<{ success: boolean; skillPath?: string; error?: string }>
+  rejectCandidate(candidateId: string): boolean
+}
+
+export interface PipelineValidator {
+  batchValidate(candidates: SkillCandidate[]): Promise<BatchValidationResult>
+}
+
+export interface PipelineReviewStore {
+  listStaged(): SkillCandidate[]
+  stage(candidate: SkillCandidate): void
+}
+
+export interface PipelineMonitor {
+  listAll(): SkillPerformanceSummary[]
+  getDegradingSkills(threshold?: number): SkillPerformanceSummary[]
+  recordUsage(
+    skillId: string,
+    skillName: string,
+    success: boolean,
+    reward: number,
+    tokenCount: number,
+    durationMs: number,
+  ): void
+}
+
+export interface PipelineDependencies {
+  store?: ExperienceStore
+  extractor?: PipelineExtractor
+  validator?: PipelineValidator
+  reviewStore?: PipelineReviewStore
+  monitor?: PipelineMonitor
+}
+
 // ── Pipeline ─────────────────────────────────────────────────────
 
 export class AutoImprovePipeline {
   private config: PipelineConfig
+  private deps: PipelineDependencies
 
-  constructor(config?: Partial<PipelineConfig>) {
+  constructor(config?: Partial<PipelineConfig>, deps?: PipelineDependencies) {
     this.config = { ...DEFAULT_CONFIG, ...config }
+    this.deps = deps ?? {}
   }
 
   /**
@@ -105,9 +148,14 @@ export class AutoImprovePipeline {
     const skipped = new Set(skipPhases ?? [])
 
     log.info("Auto-improve pipeline starting")
-    const store = experienceStore
+    const store = this.deps.store ?? experienceStore
+    const extractor = this.deps.extractor ?? new SkillExtractor(store)
+    const reviewStore = this.deps.reviewStore ?? skillReviewStore
+    const monitor = this.deps.monitor ?? skillMonitor
     const storeStats = store.getStats()
-    log.info(`Experience store: ${storeStats.totalExperiences} records (${storeStats.successCount} success, ${storeStats.failureCount} failure)`)
+    log.info(
+      `Experience store: ${storeStats.totalExperiences} records (${storeStats.successCount} success, ${storeStats.failureCount} failure)`,
+    )
 
     // ── Phase 1: Extract candidates ────────────────────────────────
     const extractPhase = await this.runPhase("Extract skill candidates", async () => {
@@ -115,7 +163,6 @@ export class AutoImprovePipeline {
         return { status: "skipped" as const, details: "Too few experiences (<3). Run more agent sessions first." }
       }
 
-      const extractor = new SkillExtractor(store)
       const candidates = extractor.extractCandidates(this.config.minReward)
 
       const autoApproved = candidates.filter((c) => c.status === "auto_approved").length
@@ -136,7 +183,6 @@ export class AutoImprovePipeline {
         return { status: "skipped" as const, details: "Validation disabled via config" }
       }
 
-      const extractor = new SkillExtractor(store)
       const candidates = extractor.getCandidates("candidate")
 
       if (candidates.length === 0) {
@@ -145,11 +191,13 @@ export class AutoImprovePipeline {
 
       // Validate only non-auto-approved candidates
       const toValidate = candidates.slice(0, 10) // cap at 10 for token budget
-      const validator = new EvalValidator({
-        minPassScore: 0.7,
-        useLLMJudge: false, // skip LLM judge for performance; use deterministic only
-        useCodeGraders: true,
-      })
+      const validator =
+        this.deps.validator ??
+        new EvalValidator({
+          minPassScore: 0.7,
+          useLLMJudge: false, // skip LLM judge for performance; use deterministic only
+          useCodeGraders: true,
+        })
 
       const result = await validator.batchValidate(toValidate)
       validationStats.validated = result.total
@@ -157,10 +205,20 @@ export class AutoImprovePipeline {
       validationStats.failed = result.failed
       validationStats.avgScore = result.summary.avgScore
 
+      for (const validation of result.results) {
+        if (!validation.passed) continue
+        await extractor.validateCandidate(validation.candidate)
+      }
+
       return {
-        status: result.failed === 0 ? "passed" as const : "passed" as const,
+        status: result.failed === 0 ? ("passed" as const) : ("failed" as const),
         details: `${result.passed}/${result.total} passed (avg score: ${(result.summary.avgScore * 100).toFixed(1)}%)`,
-        meta: { validated: result.total, passed: result.passed, failed: result.failed, avgScore: result.summary.avgScore },
+        meta: {
+          validated: result.total,
+          passed: result.passed,
+          failed: result.failed,
+          avgScore: result.summary.avgScore,
+        },
       }
     })
     phases.push(validatePhase)
@@ -171,11 +229,10 @@ export class AutoImprovePipeline {
         return { status: "skipped" as const, details: "Publishing disabled via config" }
       }
 
-      const extractor = new SkillExtractor(store)
-      const autoApproved = skillReviewStore.listAutoApproved()
+      const autoApproved = extractor.getCandidates("auto_approved")
 
       // Also check for any staged candidates that have been validated
-      const staged = skillReviewStore.listStaged()
+      const staged = reviewStore.listStaged()
       const validatedStaged = staged.filter((c) => c.status === "validated")
 
       if (autoApproved.length === 0 && validatedStaged.length === 0) {
@@ -185,28 +242,31 @@ export class AutoImprovePipeline {
       let published = 0
       let errors = 0
 
-      for (const candidate of autoApproved) {
+      const publishCandidate = async (candidate: SkillCandidate): Promise<void> => {
         const result = await extractor.approveFromStaging(candidate.id)
         if (result.success) {
           published++
           // Record the publication in the monitor
-          skillMonitor.recordUsage(
-            candidate.id,
-            candidate.name,
-            true,
-            candidate.avgReward,
-            0, 0,
-          )
-          log.info(`Published auto-approved skill: ${candidate.name}`)
+          monitor.recordUsage(candidate.id, candidate.name, true, candidate.avgReward, 0, 0)
+          log.info(`Published skill: ${candidate.name}`)
         } else {
           errors++
           log.warn(`Failed to publish ${candidate.name}: ${result.error}`)
         }
       }
 
+      for (const candidate of autoApproved) {
+        await publishCandidate(candidate)
+      }
+
+      for (const candidate of validatedStaged) {
+        await publishCandidate(candidate)
+      }
+
       return {
-        status: errors === 0 ? "passed" as const : "failed" as const,
+        status: errors === 0 ? ("passed" as const) : ("failed" as const),
         details: `Published ${published} skill(s)${errors > 0 ? ` (${errors} errors)` : ""}`,
+        meta: { published, errors, autoApproved: autoApproved.length, validatedStaged: validatedStaged.length },
       }
     })
     phases.push(publishPhase)
@@ -218,11 +278,9 @@ export class AutoImprovePipeline {
         return { status: "skipped" as const, details: "Monitor disabled via config" }
       }
 
-      const all = skillMonitor.listAll()
-      const degrading = skillMonitor.getDegradingSkills()
-      const avgRate = all.length > 0
-        ? all.reduce((s, sk) => s + sk.currentSuccessRate, 0) / all.length
-        : 0
+      const all = monitor.listAll()
+      const degrading = monitor.getDegradingSkills()
+      const avgRate = all.length > 0 ? all.reduce((s, sk) => s + sk.currentSuccessRate, 0) / all.length : 0
 
       monitoringStats.totalSkills = all.length
       monitoringStats.degradingSkills = degrading.length
@@ -248,7 +306,6 @@ export class AutoImprovePipeline {
         return { status: "skipped" as const, details: "Cleanup disabled via config" }
       }
 
-      const extractor = new SkillExtractor(store)
       const candidates = extractor.getCandidates()
       const now = Date.now()
       const maxAgeMs = this.config.candidateMaxAgeDays * 24 * 60 * 60 * 1000

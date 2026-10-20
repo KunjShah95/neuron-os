@@ -5,13 +5,18 @@ import { createLogger } from "../cli/logger"
 import { ExperienceStore, type ExperienceRecord } from "../experience/store"
 import { computeEmbedding, cosineSimilarity } from "../memory/embedding"
 import type { SkillCandidate } from "./types"
-import { skillReviewStore } from "./skill-review"
+import { skillReviewStore, type SkillReviewStore } from "./skill-review"
 
 const log = createLogger("improve:skill-extractor")
 
 const CANDIDATES_PATH = join(process.cwd(), ".aegis", "skill-candidates.json")
 
 const SIMILARITY_THRESHOLD = 0.65
+
+export interface SkillExtractorOptions {
+  candidatesPath?: string
+  reviewStore?: SkillReviewStore
+}
 
 /**
  * Default confidence threshold for auto-approving skills without manual staging.
@@ -49,9 +54,13 @@ function getAutoApproveMinInvocations(): number {
 export class SkillExtractor {
   private store: ExperienceStore
   private candidates: SkillCandidate[] = []
+  private candidatesPath: string
+  private reviewStore: SkillReviewStore
 
-  constructor(store?: ExperienceStore) {
+  constructor(store?: ExperienceStore, options: SkillExtractorOptions = {}) {
     this.store = store ?? new ExperienceStore()
+    this.candidatesPath = options.candidatesPath ?? CANDIDATES_PATH
+    this.reviewStore = options.reviewStore ?? skillReviewStore
     this.loadCandidates()
   }
 
@@ -127,7 +136,7 @@ export class SkillExtractor {
       if (candidate.status === "auto_approved") {
         this.publishAutoApproved(candidate)
       } else {
-        skillReviewStore.stage({ ...candidate, status: "validated" })
+        this.reviewStore.stage({ ...candidate, status: "candidate" })
       }
     }
 
@@ -163,6 +172,8 @@ export class SkillExtractor {
       this.saveCandidates()
     }
 
+    this.reviewStore.stage({ ...validated })
+
     return Promise.resolve(validated)
   }
 
@@ -176,7 +187,7 @@ export class SkillExtractor {
     if (!candidate) return { success: false, error: `Candidate ${candidateId} not found` }
 
     const staged: SkillCandidate = { ...candidate, status: "candidate" }
-    skillReviewStore.stage(staged)
+    this.reviewStore.stage(staged)
 
     const idx = this.candidates.findIndex((c) => c.id === candidateId)
     if (idx >= 0) {
@@ -189,7 +200,7 @@ export class SkillExtractor {
   }
 
   async approveFromStaging(candidateId: string): Promise<{ success: boolean; skillPath?: string; error?: string }> {
-    const candidate = skillReviewStore.getById(candidateId)
+    const candidate = this.reviewStore.getById(candidateId) ?? this.candidates.find((c) => c.id === candidateId)
     if (!candidate) return { success: false, error: `Staged candidate ${candidateId} not found` }
 
     const skillsDir = join(process.cwd(), "src", "skills")
@@ -217,7 +228,7 @@ export class SkillExtractor {
       return { success: false, error: msg }
     }
 
-    skillReviewStore.remove(candidateId)
+    this.reviewStore.remove(candidateId)
 
     const published: SkillCandidate = { ...candidate, status: "published" }
     const idx = this.candidates.findIndex((c) => c.id === candidateId)
@@ -297,7 +308,7 @@ export class SkillExtractor {
 
     try {
       writeFileSync(filePath, content, "utf-8")
-      skillReviewStore.recordAutoApproved(candidate)
+      this.reviewStore.recordAutoApproved(candidate)
       log.info(`Auto-approved skill → ${filePath} (confidence: ${(candidate.confidence * 100).toFixed(0)}%)`)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -396,12 +407,12 @@ export class SkillExtractor {
   }
 
   private loadCandidates(): void {
-    if (!existsSync(CANDIDATES_PATH)) {
+    if (!existsSync(this.candidatesPath)) {
       this.candidates = []
       return
     }
     try {
-      const raw = readFileSync(CANDIDATES_PATH, "utf-8")
+      const raw = readFileSync(this.candidatesPath, "utf-8")
       this.candidates = JSON.parse(raw)
     } catch {
       this.candidates = []
@@ -409,9 +420,9 @@ export class SkillExtractor {
   }
 
   private saveCandidates(): void {
-    const dir = join(process.cwd(), ".aegis")
+    const dir = join(this.candidatesPath, "..")
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-    writeFileSync(CANDIDATES_PATH, JSON.stringify(this.candidates, null, 2), "utf-8")
+    writeFileSync(this.candidatesPath, JSON.stringify(this.candidates, null, 2), "utf-8")
   }
 }
 

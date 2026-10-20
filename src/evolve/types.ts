@@ -42,6 +42,8 @@ export interface EvolutionConfig {
   requireTestPass: boolean
   allowedDirs: string[]
   strategies: MutationStrategy[]
+  typecheckTimeoutMs: number
+  testTimeoutMs: number
 }
 
 export const DEFAULT_EVOLUTION_CONFIG: EvolutionConfig = {
@@ -53,6 +55,8 @@ export const DEFAULT_EVOLUTION_CONFIG: EvolutionConfig = {
   requireTestPass: true,
   allowedDirs: ["src"],
   strategies: ["refactor", "error-handling", "type-improvement", "bugfix"],
+  typecheckTimeoutMs: 300000,
+  testTimeoutMs: 600000,
 }
 
 export interface EvolutionStats {

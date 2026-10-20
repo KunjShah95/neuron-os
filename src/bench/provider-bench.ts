@@ -1,6 +1,6 @@
 import { generateText } from "ai"
 import { getProviderFactory, listProviders } from "../ai/providers"
-import { resolveApiKey } from "../ai/provider"
+import { resolveApiKey, normalizeUsage } from "../ai/provider"
 import type { AIConfig } from "../ai/provider"
 import type { AIProviderType } from "../ai/models"
 import { getDefaultModel } from "../ai/models"
@@ -157,11 +157,10 @@ export class ProviderBenchmark {
       const durationMs = Date.now() - start
       const outputLength = result.text.length
 
-      const usage = result.usage as
-        | { promptTokens?: number; completionTokens?: number; totalTokens?: number }
-        | undefined
-      const inputTokens = usage?.promptTokens
-      const outputTokens = usage?.completionTokens
+      const usage = await result.usage
+      const normalized = normalizeUsage(usage)
+      const inputTokens = normalized.inputTokens
+      const outputTokens = normalized.outputTokens
 
       let costUsd: number | undefined
       if (inputTokens !== undefined && outputTokens !== undefined) {

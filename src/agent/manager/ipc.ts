@@ -2,6 +2,34 @@ import type { AgentEvent, AgentIpcMessage, AgentLogLevel } from "../types"
 import { billingTracker } from "../../billing/tracker"
 import { log, now, type ManagerContext } from "./state"
 
+export function isValidIpcMessage(value: unknown): value is AgentIpcMessage {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false
+  const type = (value as { type?: unknown }).type
+  if (typeof type !== "string") return false
+  return type.trim().length > 0
+}
+
+export function parseIpcLine(line: string): AgentIpcMessage | null {
+  const trimmed = line.trim()
+  if (!trimmed) return null
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(trimmed)
+  } catch {
+    return null
+  }
+
+  if (!isValidIpcMessage(parsed)) return null
+
+  const msg = parsed as AgentIpcMessage
+  return {
+    ...msg,
+    type: msg.type,
+    timestamp: typeof msg.timestamp === "number" ? msg.timestamp : now(),
+  }
+}
+
 export async function sendIpcMessage(ctx: ManagerContext, id: string, msg: AgentIpcMessage): Promise<void> {
   const instance = ctx.agents.get(id)
   if (!instance) throw new Error(`Agent "${id}" not found`)
@@ -51,6 +79,7 @@ export async function sendIpcMessage(ctx: ManagerContext, id: string, msg: Agent
       }
     }
     instance.log.push(ctx.makeLog("error", `Failed to send IPC message: ${String(err)}`))
+    throw err
   }
 }
 
@@ -82,30 +111,48 @@ export async function routeIpcMessage(
     ctx.makeLog("info", `Received routed IPC ${msg.type} from agent "${fromAgent.def.name}" (${fromId})`),
   )
 
-  await ctx.sendIpc(toId, routedMsg)
-
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      ctx.listeners.delete(handler)
-      reject(new Error(`Route IPC timed out (${msg.type} from ${fromId} to ${toId})`))
-    }, 60_000)
+    let settled = false
+    let timeout: ReturnType<typeof setTimeout> | undefined
 
-    const handler = (event: AgentEvent) => {
+    function cleanup(): void {
+      if (timeout !== undefined) clearTimeout(timeout)
+      ctx.listeners.delete(handler)
+    }
+
+    function finish(err: unknown, value?: unknown): void {
+      if (settled) return
+      settled = true
+      cleanup()
+      if (err) {
+        reject(err instanceof Error ? err : new Error(String(err)))
+      } else {
+        resolve(value)
+      }
+    }
+
+    function handler(event: AgentEvent): void {
       if (event.type === "agent:result" && event.agentId === toId && event.data) {
         const data = event.data as { id?: string }
         if (data.id === routedMsg.id) {
-          clearTimeout(timeout)
-          ctx.listeners.delete(handler)
-          resolve(event.data)
+          finish(null, event.data)
+          return
         }
       }
       if (event.type === "agent:error" && event.agentId === toId) {
-        clearTimeout(timeout)
-        ctx.listeners.delete(handler)
-        reject(event.data || new Error(`Agent "${toId}" error during route`))
+        finish(event.data || new Error(`Agent "${toId}" error during route`))
       }
     }
+
+    timeout = setTimeout(() => {
+      finish(new Error(`Route IPC timed out (${msg.type} from ${fromId} to ${toId})`))
+    }, 60_000)
+
     ctx.listeners.add(handler)
+
+    ctx.sendIpc(toId, routedMsg).catch((err: unknown) => {
+      finish(err instanceof Error ? err : new Error(String(err)))
+    })
   })
 }
 
@@ -136,12 +183,14 @@ export function readAgentStream(
           if (!line.trim()) continue
 
           if (label === "stdout") {
-            try {
-              const msg = JSON.parse(line) as AgentIpcMessage
-              handleIpcMessage(ctx, id, msg)
+            const msg = parseIpcLine(line)
+            if (msg) {
+              void handleIpcMessage(ctx, id, msg).catch((err: unknown) => {
+                const message = err instanceof Error ? err.message : String(err)
+                instance.log.push(ctx.makeLog("error", `IPC handler failed: ${message}`))
+                ctx.emit("agent:error", id, { message })
+              })
               continue
-            } catch {
-              /* Not JSON — treat as log text */
             }
           }
 
@@ -166,6 +215,11 @@ export async function handleIpcMessage(ctx: ManagerContext, id: string, msg: Age
   const instance = ctx.agents.get(id)
   if (!instance) return
 
+  if (!isValidIpcMessage(msg)) {
+    instance.log.push(ctx.makeLog("warn", "Ignoring IPC message without a valid type field"))
+    return
+  }
+
   instance.lastActivity = now()
 
   const isBusyTrigger = msg.type.includes("tool") || msg.type.includes("dispatch")
@@ -186,7 +240,11 @@ export async function handleIpcMessage(ctx: ManagerContext, id: string, msg: Age
         ctx.emit("agent:ready", id)
       }
       ctx.emit("agent:result", id, { ...msg, agentId: id })
-      await ctx.hooks.run("result", "post", id, instance, msg.payload)
+      try {
+        await ctx.hooks.run("result", "post", id, instance, msg.payload)
+      } catch (hookErr) {
+        instance.log.push(ctx.makeLog("warn", `Result hook failed for agent "${id}": ${String(hookErr)}`))
+      }
       break
     }
     case "log": {
@@ -225,7 +283,19 @@ export async function handleIpcMessage(ctx: ManagerContext, id: string, msg: Age
           if (status.recommendation === "skip_optional") {
             log.warn(`Agent "${id}" nearing budget: $${guard.spent.toFixed(4)} of $${guard.budget.toFixed(4)}`)
           } else if (status.recommendation === "abort") {
-            log.warn(`Agent "${id}" over budget: $${guard.spent.toFixed(4)} of $${guard.budget.toFixed(4)}`)
+            log.warn(`Agent "${id}" over budget: $${guard.spent.toFixed(4)} of $${guard.budget.toFixed(4)} — stopping agent`)
+            instance.metadata.budget_status = "abort"
+            const controller = ctx.abortControllers.get(id)
+            if (controller) {
+              try {
+                controller.abort()
+              } catch {
+                /* the controller may already be aborted */
+              }
+            }
+            void ctx.kill(id).catch((err: unknown) => {
+              log.warn(`Failed to stop over-budget agent "${id}": ${String(err)}`)
+            })
           }
         }
         billingTracker.recordToolUsage(id, "agent-spend", p3.costUsd, id)
@@ -237,35 +307,52 @@ export async function handleIpcMessage(ctx: ManagerContext, id: string, msg: Age
 
 export function waitForAgentReady(ctx: ManagerContext, id: string, timeoutMs: number): Promise<void> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error(`Agent "${id}" did not become ready within ${timeoutMs}ms`))
-    }, timeoutMs)
+    let settled = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let statusTimer: ReturnType<typeof setTimeout> | undefined
 
-    const handler = (event: AgentEvent) => {
+    function cleanup(): void {
+      if (timer !== undefined) clearTimeout(timer)
+      if (statusTimer !== undefined) clearTimeout(statusTimer)
+      ctx.listeners.delete(handler)
+    }
+
+    function succeed(): void {
+      if (settled) return
+      settled = true
+      cleanup()
+      resolve()
+    }
+
+    function fail(message: string): void {
+      if (settled) return
+      settled = true
+      cleanup()
+      reject(new Error(message))
+    }
+
+    function handler(event: AgentEvent): void {
       if (event.type === "agent:ready" && event.agentId === id) {
-        ctx.listeners.delete(handler)
-        clearTimeout(timer)
-        resolve()
+        succeed()
       }
       if (event.type === "agent:error" && event.agentId === id) {
-        ctx.listeners.delete(handler)
-        clearTimeout(timer)
         const data = event.data as { message?: string } | undefined
-        reject(new Error(data?.message ?? `Agent "${id}" entered error state during startup`))
+        fail(data?.message ?? `Agent "${id}" entered error state during startup`)
       }
     }
+
+    timer = setTimeout(() => {
+      fail(`Agent "${id}" did not become ready within ${timeoutMs}ms`)
+    }, timeoutMs)
+
     ctx.listeners.add(handler)
 
-    setTimeout(() => {
+    statusTimer = setTimeout(() => {
       const inst = ctx.agents.get(id)
       if (inst?.status === "running") {
-        ctx.listeners.delete(handler)
-        clearTimeout(timer)
-        resolve()
+        succeed()
       } else if (inst?.status === "error") {
-        ctx.listeners.delete(handler)
-        clearTimeout(timer)
-        reject(new Error(`Agent "${id}" entered error state during startup`))
+        fail(`Agent "${id}" entered error state during startup`)
       }
     }, 100)
   })

@@ -89,36 +89,32 @@ class MajorityArbitrator implements Arbitrator {
     log.info(`Arbitrating ${disagreement.id} via majority vote`)
 
     const positions = disagreement.positions
-    // Simulate majority: count which claim_id has more evidence/confidence
+    const minVoters =
+      disagreement.arbitrator.type === "majority" ? disagreement.arbitrator.min_voters : positions.length
+
     const votes = new Map<string, number>()
     for (const pos of positions) {
-      const count = votes.get(pos.claim_id) ?? 0
-      votes.set(pos.claim_id, count + 1)
+      votes.set(pos.position, (votes.get(pos.position) ?? 0) + 1)
     }
 
     let winner: PositionClaim | undefined
     let maxVotes = 0
-    let tiedClaims: string[] = []
+    let tiedPositions: string[] = []
 
-    for (const [claimId, count] of votes) {
-      const pos = positions.find((p) => p.claim_id === claimId)
-      if (!pos) continue
+    for (const [position, count] of votes) {
       if (count > maxVotes) {
         maxVotes = count
-        winner = pos
-        tiedClaims = [claimId]
+        tiedPositions = [position]
       } else if (count === maxVotes) {
-        tiedClaims.push(claimId)
+        tiedPositions.push(position)
       }
     }
 
-    // Tiebreak by confidence
-    if (tiedClaims.length > 1) {
-      const tied = positions.filter((p) => tiedClaims.includes(p.claim_id))
+    if (tiedPositions.length > 0) {
+      const tied = positions.filter((p) => tiedPositions.includes(p.position))
       tied.sort((a, b) => b.confidence - a.confidence)
       winner = tied[0] as (typeof tied)[0]
 
-      // If still tied, pick first
       const tiedConfidence = tied.filter((p) => p.confidence === winner?.confidence)
       if (tiedConfidence.length > 1) {
         log.warn("Majority vote tied after confidence tiebreak, using first position")
@@ -126,15 +122,21 @@ class MajorityArbitrator implements Arbitrator {
       }
     }
 
-    if (!winner) {
-      // fallback
-      winner = positions[0] as (typeof positions)[0]
+    const hasQuorum = positions.length >= minVoters
+    if (!hasQuorum) {
+      log.warn(`Majority vote abstained: ${positions.length} voter(s) present, ${minVoters} required`)
     }
 
-    const verdict: Verdict = {
-      winning_claim_id: winner.claim_id,
-      reasoning: `Majority vote: ${maxVotes}/${positions.length} for ${winner.claim_id}.`,
-    }
+    const verdict: Verdict =
+      hasQuorum && winner
+        ? {
+            winning_claim_id: winner.claim_id,
+            reasoning: `Majority vote: ${maxVotes}/${positions.length} for ${winner.claim_id}.`,
+          }
+        : {
+            winning_claim_id: "",
+            reasoning: `Abstained: ${positions.length} voter(s) present, ${minVoters} required for a majority decision.`,
+          }
 
     const record: DecisionRecord = {
       disagreement_id: disagreement.id,

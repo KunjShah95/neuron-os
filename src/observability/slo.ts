@@ -24,11 +24,20 @@ export interface SLOResult {
   history: Array<{ timestamp: string; value: number }>
 }
 
+export interface SLOManagerOptions {
+  dbPath?: string
+  retentionDays?: number
+}
+
+export const DEFAULT_SLO_RETENTION_DAYS = 90
+
 export class SLOManager {
   private db: Database
+  private retentionDays: number
 
-  constructor() {
-    const dbPath = join(process.cwd(), "data", "observability", "slo.db")
+  constructor(options: SLOManagerOptions = {}) {
+    const dbPath = options.dbPath ?? join(process.cwd(), "data", "observability", "slo.db")
+    this.retentionDays = Math.max(1, options.retentionDays ?? DEFAULT_SLO_RETENTION_DAYS)
     const dir = join(dbPath, "..")
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
 
@@ -59,6 +68,11 @@ export class SLOManager {
       CREATE INDEX IF NOT EXISTS idx_slo_metrics_name_ts
       ON slo_metrics(name, timestamp DESC)
     `)
+
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_slo_metrics_ts
+      ON slo_metrics(timestamp)
+    `)
   }
 
   register(config: SLOConfig): void {
@@ -75,6 +89,17 @@ export class SLOManager {
 
   recordMetric(name: string, value: number): void {
     this.db.prepare("INSERT INTO slo_metrics (name, timestamp, value) VALUES (?, ?, ?)").run(name, Date.now(), value)
+    this.pruneMetrics()
+  }
+
+  pruneMetrics(): number {
+    const cutoff = Date.now() - this.retentionDays * 86400000
+    const result = this.db.prepare("DELETE FROM slo_metrics WHERE timestamp < ?").run(cutoff)
+    return Number(result.changes ?? 0)
+  }
+
+  getRetentionDays(): number {
+    return this.retentionDays
   }
 
   check(name: string): SLOResult | null {
@@ -88,35 +113,52 @@ export class SLOManager {
 
   getBurnRate(name: string): { rate: number; timeRemaining: string } | null {
     const config = this.db.prepare("SELECT * FROM slo_configs WHERE name = ?").get(name) as
-      | Record<string, unknown>
-      | undefined
+      Record<string, unknown> | undefined
     if (!config) return null
 
     const target = config.target as number
     const windowDays = config.window_days as number
+    const metric = config.metric as string
     const result = this.computeSLO(name)
     if (!result || result.history.length < 2) return null
 
-    const budgetErrorRate = 1 - target
-    if (budgetErrorRate <= 0) return { rate: 0, timeRemaining: "infinite" }
-
-    const currentErrorRate = 1 - result.current
-    const rate = currentErrorRate / budgetErrorRate
     const totalWindowMs = windowDays * 86400000
+    if (totalWindowMs <= 0) return null
 
+    let rate: number
+    if (metric === "error_rate") {
+      if (target <= 0) return null
+      rate = result.current / target
+    } else if (metric === "uptime" || metric === "success_rate") {
+      const budgetErrorRate = 1 - target
+      if (budgetErrorRate <= 0) return { rate: 0, timeRemaining: "infinite" }
+      rate = (1 - result.current) / budgetErrorRate
+    } else {
+      return null
+    }
+
+    if (!Number.isFinite(rate)) return null
     if (rate <= 0) return { rate: 0, timeRemaining: "infinite" }
-    const consumedFraction = currentErrorRate / (currentErrorRate + target)
-    const estimatedWindowMs = totalWindowMs / rate
-    const estimatedRemainingMs = Math.max(0, totalWindowMs - estimatedWindowMs * consumedFraction)
-    const timeRemaining = this.formatDuration(estimatedRemainingMs)
 
-    return { rate, timeRemaining }
+    const elapsedFraction = this.elapsedFraction(result.history, totalWindowMs)
+    const remainingMs = elapsedFraction >= 1 ? 0 : ((1 - elapsedFraction) * totalWindowMs) / rate
+
+    return { rate, timeRemaining: this.formatDuration(Math.max(0, remainingMs)) }
+  }
+
+  private elapsedFraction(history: Array<{ timestamp: string; value: number }>, totalWindowMs: number): number {
+    if (history.length < 2 || totalWindowMs <= 0) return 0
+    const first = Date.parse(history[0]?.timestamp ?? "")
+    const last = Date.parse(history[history.length - 1]?.timestamp ?? "")
+    if (!Number.isFinite(first) || !Number.isFinite(last)) return 0
+    const elapsed = last - first
+    if (elapsed <= 0) return 0
+    return Math.min(1, elapsed / totalWindowMs)
   }
 
   private computeSLO(name: string): SLOResult | null {
     const config = this.db.prepare("SELECT * FROM slo_configs WHERE name = ?").get(name) as
-      | Record<string, unknown>
-      | undefined
+      Record<string, unknown> | undefined
     if (!config) return null
 
     const target = config.target as number

@@ -1,8 +1,14 @@
 import { createLogger } from "../../cli/logger"
 import type { DreamStore } from "../dream-store"
-import type { DreamInsight, DreamConfig } from "../types"
+import type { DreamInsight, DreamConfig, DreamType } from "../types"
 
 const log = createLogger("dream-engine")
+
+const ENGINE_OWN_DREAM_TYPES: ReadonlySet<DreamType> = new Set([
+  "shared-dream-consolidation",
+  "knowledge-compression",
+  "mood-consolidation",
+])
 
 export interface KnowledgeCompressionPhaseResult {
   insights: DreamInsight[]
@@ -17,7 +23,9 @@ export async function runKnowledgeCompressionPhase(
   if (!config.knowledgeCompression.enabled) return { insights: [], dreamCount: 0 }
 
   try {
-    const recentDreams = store.listDreams(config.knowledgeCompression.maxEntries)
+    const recentDreams = store
+      .listDreams(config.knowledgeCompression.maxEntries)
+      .filter((d) => !ENGINE_OWN_DREAM_TYPES.has(d.type))
     if (recentDreams.length < 5) return { insights: [], dreamCount: 0 }
 
     const dream = store.createDream({

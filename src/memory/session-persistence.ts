@@ -82,6 +82,7 @@ export interface ForkOptions {
 export class SessionStore {
   private db: Database
   private initialized = false
+  private closed = false
 
   /**
    * @param dbPath - Explicit path to the SQLite DB file (overrides all other options)
@@ -102,6 +103,7 @@ export class SessionStore {
     this.db = new Database(resolvedPath)
     this.db.exec("PRAGMA journal_mode = WAL")
     this.db.exec("PRAGMA synchronous = NORMAL")
+    this.db.exec("PRAGMA foreign_keys = ON")
     this.init()
   }
 
@@ -248,8 +250,11 @@ export class SessionStore {
   }
 
   deleteSession(id: string): void {
-    // CASCADE will delete messages and state
-    this.db.prepare("DELETE FROM sessions WHERE id = ?").run(id)
+    this.db.transaction(() => {
+      this.db.prepare("DELETE FROM session_messages WHERE session_id = ?").run(id)
+      this.db.prepare("DELETE FROM session_state WHERE session_id = ?").run(id)
+      this.db.prepare("DELETE FROM sessions WHERE id = ?").run(id)
+    })()
   }
 
   // ── Messages ───────────────────────────────────────────────────────
@@ -270,23 +275,70 @@ export class SessionStore {
     return result.id
   }
 
+  /**
+   * Get the most recent messages for a session, in chronological order.
+   * Returns the LAST `limit` messages (not the first), so resumed
+   * sessions and context restores see the most recent history.
+   */
   getMessages(sessionId: string, limit = 50): SessionMessage[] {
     const stmt = this.db.prepare(`
-      SELECT * FROM session_messages
-      WHERE session_id = ?
-      ORDER BY timestamp ASC
-      LIMIT ?
+      SELECT * FROM (
+        SELECT * FROM session_messages WHERE session_id = ? ORDER BY id DESC LIMIT ?
+      ) ORDER BY id ASC
     `)
     const rows = stmt.all(sessionId, limit) as Record<string, unknown>[]
 
-    return rows.map((r) => ({
-      id: r.id as number,
-      sessionId: r.session_id as string,
-      role: r.role as SessionMessage["role"],
-      content: r.content as string,
-      timestamp: r.timestamp as number,
-      toolCalls: r.tool_calls as string | undefined,
-    }))
+    return rows.map((r) => this.rowToMessage(r))
+  }
+
+  /**
+   * Get every message for a session in chronological order (no limit).
+   * Used by fork/merge which must copy the complete history.
+   */
+  getAllMessages(sessionId: string): SessionMessage[] {
+    const stmt = this.db.prepare(`
+      SELECT * FROM session_messages WHERE session_id = ? ORDER BY id ASC
+    `)
+    const rows = stmt.all(sessionId) as Record<string, unknown>[]
+
+    return rows.map((r) => this.rowToMessage(r))
+  }
+
+  /**
+   * Count the messages belonging to a session.
+   */
+  getMessageCount(sessionId: string): number {
+    const row = this.db.prepare("SELECT COUNT(*) as c FROM session_messages WHERE session_id = ?").get(sessionId) as {
+      c: number
+    }
+    return row.c
+  }
+
+  /**
+   * Get the ids of the oldest messages in a session, oldest first.
+   * @param count - How many ids to return
+   */
+  getOldestMessageIds(sessionId: string, count: number): number[] {
+    if (count <= 0) return []
+    const rows = this.db
+      .prepare("SELECT id FROM session_messages WHERE session_id = ? ORDER BY id ASC LIMIT ?")
+      .all(sessionId, count) as { id: number }[]
+    return rows.map((r) => r.id)
+  }
+
+  /**
+   * Delete messages by id. Returns the number of rows removed.
+   */
+  deleteMessages(ids: number[]): number {
+    if (ids.length === 0) return 0
+    const stmt = this.db.prepare("DELETE FROM session_messages WHERE id = ?")
+    let removed = 0
+    this.db.transaction(() => {
+      for (const id of ids) {
+        removed += stmt.run(id).changes
+      }
+    })()
+    return removed
   }
 
   // ── State ──────────────────────────────────────────────────────────
@@ -437,6 +489,9 @@ export class SessionStore {
    * @param parentId - The session to fork from
    * @param opts - Fork options (message ID at which to fork, name, goal)
    * @returns The newly created forked session record
+   *
+   * The number of copied messages is recorded in the fork's metadata as
+   * `copiedMessages` and can also be read back with `getMessageCount(fork.id)`.
    */
   forkSession(parentId: string, opts?: ForkOptions): SessionRecord {
     const parent = this.getSession(parentId)
@@ -444,7 +499,7 @@ export class SessionStore {
       throw new Error(`Cannot fork: session "${parentId}" not found`)
     }
 
-    const messages = this.getMessages(parentId, 10_000)
+    const messages = this.getAllMessages(parentId)
     if (messages.length === 0) {
       throw new Error(`Cannot fork: session "${parentId}" has no messages`)
     }
@@ -483,7 +538,12 @@ export class SessionStore {
           "active",
           now,
           now,
-          JSON.stringify({ ...parent.metadata, forkedFrom: parentId, forkMessageId: checkpointMsg.id }),
+          JSON.stringify({
+            ...parent.metadata,
+            forkedFrom: parentId,
+            forkMessageId: checkpointMsg.id,
+            copiedMessages: String(messagesToCopy.length),
+          }),
           parentId,
           checkpointMsg.id,
           opts?.name ?? null,
@@ -531,8 +591,9 @@ export class SessionStore {
       throw new Error(`Cannot create checkpoint: session "${sessionId}" not found`)
     }
 
-    const messages = this.getMessages(sessionId, 1)
-    const exists = messages.some((m) => m.id === messageId)
+    const exists = this.db
+      .prepare("SELECT 1 FROM session_messages WHERE session_id = ? AND id = ?")
+      .get(sessionId, messageId)
     if (!exists) {
       throw new Error(`Cannot create checkpoint: message ${messageId} not found in session "${sessionId}"`)
     }
@@ -605,7 +666,7 @@ export class SessionStore {
     if (!source) throw new Error(`Source session "${sourceId}" not found`)
     if (!target) throw new Error(`Target session "${targetId}" not found`)
 
-    const sourceMessages = this.getMessages(sourceId, 10_000)
+    const sourceMessages = this.getAllMessages(sourceId)
     if (sourceMessages.length === 0) {
       log.info(`Merge: source "${sourceId}" has no messages — nothing to merge`)
       return target
@@ -640,8 +701,17 @@ export class SessionStore {
    */
   pruneSessions(olderThanMs: number): number {
     const cutoff = Date.now() - olderThanMs
-    const result = this.db.prepare("DELETE FROM sessions WHERE updated_at < ?").run(cutoff)
-    return result.changes
+    return this.db.transaction(() => {
+      this.db
+        .prepare(
+          "DELETE FROM session_messages WHERE session_id IN (SELECT id FROM sessions WHERE updated_at < ?)",
+        )
+        .run(cutoff)
+      this.db
+        .prepare("DELETE FROM session_state WHERE session_id IN (SELECT id FROM sessions WHERE updated_at < ?)")
+        .run(cutoff)
+      return this.db.prepare("DELETE FROM sessions WHERE updated_at < ?").run(cutoff).changes
+    })()
   }
 
   // ── Stats ──────────────────────────────────────────────────────────
@@ -663,12 +733,18 @@ export class SessionStore {
   // ── Cleanup ────────────────────────────────────────────────────────
 
   close(): void {
+    if (this.closed) return
+    this.closed = true
     try {
       this.db.exec("PRAGMA wal_checkpoint(TRUNCATE)")
     } catch {
       // checkpoint is best-effort; proceed to close regardless
     }
-    this.db.close()
+    try {
+      this.db.close()
+    } catch {
+      // already closed — nothing to do
+    }
     log.info("Session store closed")
   }
 
@@ -687,6 +763,17 @@ export class SessionStore {
       parentSessionId: row.parent_session_id as string | undefined,
       checkpointId: row.checkpoint_id as number | undefined,
       checkpointName: row.checkpoint_name as string | undefined,
+    }
+  }
+
+  private rowToMessage(row: Record<string, unknown>): SessionMessage {
+    return {
+      id: row.id as number,
+      sessionId: row.session_id as string,
+      role: row.role as SessionMessage["role"],
+      content: row.content as string,
+      timestamp: row.timestamp as number,
+      toolCalls: row.tool_calls as string | undefined,
     }
   }
 }
@@ -725,18 +812,44 @@ export const sessionStore = new Proxy({} as SessionStore, {
 // Cache of project-scoped session stores to avoid duplicate init logs and DB connections
 const projectStores = new Map<string, SessionStore>()
 
+/** Maximum number of project-scoped stores kept open at once. */
+const MAX_PROJECT_STORES = 32
+
 /**
  * Get a project-scoped session store.
  * Sessions are isolated per project under ~/.aegis/projects/<name>/sessions.db.
  * Falls back to the default singleton when project is null.
  * Caches project-scoped stores to avoid duplicate DB connections / init logs.
+ *
+ * The cache is bounded: beyond MAX_PROJECT_STORES the least recently used
+ * store is evicted and its database handle closed.
  */
 export function getProjectSessionStore(project?: string | null): SessionStore {
   if (!project) return sessionStore
+
   const existing = projectStores.get(project)
-  if (existing) return existing
+  if (existing) {
+    // Refresh recency — Map iteration order is insertion order
+    projectStores.delete(project)
+    projectStores.set(project, existing)
+    return existing
+  }
+
   const store = new SessionStore(undefined, project)
   projectStores.set(project, store)
+
+  while (projectStores.size > MAX_PROJECT_STORES) {
+    const oldest = projectStores.keys().next()
+    if (oldest.done) break
+    const evicted = projectStores.get(oldest.value)
+    projectStores.delete(oldest.value)
+    try {
+      evicted?.close()
+    } catch {
+      /* best effort */
+    }
+  }
+
   return store
 }
 

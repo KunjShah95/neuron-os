@@ -1,7 +1,10 @@
-import { readFile, writeFile, mkdir } from "node:fs/promises"
+import { readFile, writeFile, mkdir, rename } from "node:fs/promises"
 import { resolve } from "node:path"
 import { existsSync } from "node:fs"
+import { createLogger } from "../cli/logger"
 import { computeEmbedding, cosineSimilarity } from "./embedding"
+
+const log = createLogger("memory:vector")
 
 export interface VectorEntry {
   id: string
@@ -17,15 +20,43 @@ const INDEX_FILE = resolve(VECTOR_DIR, "index.json")
 
 export class VectorMemory {
   private entries: VectorEntry[] = []
-  async initialize(): Promise<void> {
-    await mkdir(VECTOR_DIR, { recursive: true })
+  private dir: string
+  private indexFile: string
 
-    if (existsSync(INDEX_FILE)) {
+  constructor(options: { dbPath?: string } = {}) {
+    const target = options.dbPath ?? VECTOR_DIR
+    if (target.endsWith(".json")) {
+      this.indexFile = target
+      this.dir = resolve(target, "..")
+    } else {
+      this.dir = target
+      this.indexFile = resolve(target, "index.json")
+    }
+  }
+
+  async initialize(): Promise<void> {
+    await mkdir(this.dir, { recursive: true })
+
+    if (existsSync(this.indexFile)) {
       try {
-        const raw = await readFile(INDEX_FILE, "utf-8")
+        const raw = await readFile(this.indexFile, "utf-8")
         const data = JSON.parse(raw) as { entries: VectorEntry[] }
         this.entries = data.entries || []
-      } catch {
+      } catch (err) {
+        const quarantine = `${this.indexFile}.corrupt-${Date.now()}`
+        try {
+          await rename(this.indexFile, quarantine)
+          log.warn("Vector index was corrupt — quarantined instead of dropped", {
+            file: this.indexFile,
+            quarantine,
+            error: String(err),
+          })
+        } catch (renameErr) {
+          log.warn("Vector index was corrupt and could not be quarantined", {
+            file: this.indexFile,
+            error: String(renameErr),
+          })
+        }
         this.entries = []
       }
     }
@@ -94,7 +125,10 @@ export class VectorMemory {
   }
 
   private async persist(): Promise<void> {
-    await writeFile(INDEX_FILE, JSON.stringify({ entries: this.entries }, null, 2), "utf-8")
+    await mkdir(this.dir, { recursive: true })
+    const tmpFile = `${this.indexFile}.tmp`
+    await writeFile(tmpFile, JSON.stringify({ entries: this.entries }, null, 2), "utf-8")
+    await rename(tmpFile, this.indexFile)
   }
 }
 

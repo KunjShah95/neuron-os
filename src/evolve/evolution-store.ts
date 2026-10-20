@@ -7,7 +7,7 @@ import type { CodeMutation, MutationStatus, MutationStrategy } from "./types"
 const log = createLogger("evolution-store")
 
 function generateId(): string {
-  return `${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 8)}`
+  return `mut-${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 8)}`
 }
 
 export class EvolutionStore {
@@ -33,6 +33,7 @@ export class EvolutionStore {
           })()
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
       this._db = new Database(join(dir, "evolution.db"))
+      this._db.exec("PRAGMA foreign_keys = ON")
       this._db.exec("PRAGMA journal_mode = WAL")
       this._db.exec("PRAGMA synchronous = NORMAL")
       this.init()
@@ -238,12 +239,16 @@ export class EvolutionStore {
     }
   }
 
+  isForeignKeysEnabled(): boolean {
+    const row = this.db.prepare("PRAGMA foreign_keys").get() as { foreign_keys: number } | null
+    return row?.foreign_keys === 1
+  }
+
   close(): void {
-    if (this._db) {
-      this._db.close()
-      this._db = null
-      this.initialized = false
-    }
+    if (!this._db) return
+    this._db.close()
+    this._db = null
+    this.initialized = false
     log.info("Evolution store closed")
   }
 }

@@ -1,5 +1,5 @@
-import { generateText, streamText } from "ai"
-import type { LanguageModel } from "ai"
+import { generateText, streamText, wrapLanguageModel } from "ai"
+import type { LanguageModel, LanguageModelMiddleware } from "ai"
 import type { AIProviderType } from "./models"
 import { getProviderFactory } from "./providers"
 
@@ -106,6 +106,7 @@ export interface AIConfig {
   baseUrl?: string
   temperature?: number
   maxOutputTokens?: number
+  sessionId?: string
   fallbacks?: Array<{
     provider: string
     model: string
@@ -123,6 +124,8 @@ export interface AIResponse {
   text: string
   usage?: {
     totalTokens: number
+    inputTokens: number
+    outputTokens: number
   }
 }
 
@@ -163,6 +166,72 @@ export function parseFallbacksFromEnv(): AIConfig["fallbacks"] {
   })
 }
 
+// ── Usage accounting ──────────────────────────────────────────────────
+
+export interface ModelTokenUsage {
+  inputTokens: number
+  outputTokens: number
+  totalTokens: number
+}
+
+export function normalizeUsage(usage: unknown): ModelTokenUsage {
+  if (!usage || typeof usage !== "object") {
+    return { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
+  }
+  const raw = usage as Record<string, unknown>
+  const pick = (...keys: string[]): number => {
+    for (const key of keys) {
+      const value = raw[key]
+      if (typeof value === "number" && Number.isFinite(value)) return value
+      if (value && typeof value === "object") {
+        const nested = (value as Record<string, unknown>).total
+        if (typeof nested === "number" && Number.isFinite(nested)) return nested
+      }
+    }
+    return 0
+  }
+  const inputTokens = pick("inputTokens", "promptTokens")
+  const outputTokens = pick("outputTokens", "completionTokens")
+  const totalTokens = pick("totalTokens") || inputTokens + outputTokens
+  return { inputTokens, outputTokens, totalTokens }
+}
+
+type BillingModule = typeof import("../billing/tracker")
+let billingModule: BillingModule | null = null
+let billingLoadFailed = false
+
+export async function recordModelUsage(
+  model: string,
+  sessionId: string,
+  usage: unknown,
+): Promise<void> {
+  const normalized = normalizeUsage(usage)
+  if (normalized.inputTokens === 0 && normalized.outputTokens === 0) return
+
+  if (!billingModule) {
+    if (billingLoadFailed) return
+    try {
+      billingModule = await import("../billing/tracker")
+    } catch {
+      billingLoadFailed = true
+      return
+    }
+  }
+
+  try {
+    billingModule.billingTracker.recordUsage(
+      sessionId,
+      model,
+      normalized.inputTokens,
+      normalized.outputTokens,
+    )
+  } catch {
+    /* billing must never break an LLM call */
+  }
+}
+
+type WrappableModel = Parameters<typeof wrapLanguageModel>[0]["model"]
+
 export class AIProviderManager {
   private config: AIConfig
 
@@ -181,7 +250,44 @@ export class AIProviderManager {
     const cfg = config ?? this.config
     const factory = getProviderFactory(cfg.provider)
     if (!factory) throw new Error(`Unsupported provider: ${cfg.provider}`)
-    return factory(cfg)
+    return this.withUsageTracking(factory(cfg), cfg)
+  }
+
+  private withUsageTracking(model: LanguageModel, cfg: AIConfig): LanguageModel {
+    const spec = (model as { specificationVersion?: string }).specificationVersion
+    if (spec !== "v3") return model
+
+    const sessionId = cfg.sessionId ?? process.env.AEGIS_SESSION_ID ?? "default"
+    const modelName = cfg.model
+
+    const middleware: LanguageModelMiddleware = {
+      specificationVersion: "v3",
+      wrapGenerate: async ({ doGenerate }) => {
+        const result = await doGenerate()
+        await recordModelUsage(modelName, sessionId, result.usage)
+        return result
+      },
+      wrapStream: async ({ doStream }) => {
+        const result = await doStream()
+        const stream = result.stream.pipeThrough(
+          new TransformStream({
+            transform(chunk, controller) {
+              if (chunk.type === "finish") {
+                void recordModelUsage(modelName, sessionId, chunk.usage)
+              }
+              controller.enqueue(chunk)
+            },
+          }),
+        )
+        return { ...result, stream }
+      },
+    }
+
+    try {
+      return wrapLanguageModel({ model: model as unknown as WrappableModel, middleware })
+    } catch {
+      return model
+    }
   }
 
   private *allConfigs(): Generator<AIConfig> {
@@ -210,9 +316,15 @@ export class AIProviderManager {
           temperature: cfg.temperature ?? 0.7,
           maxOutputTokens: cfg.maxOutputTokens,
         })
+        const usage = await result.usage
+        const normalized = normalizeUsage(usage)
         return {
           text: result.text,
-          usage: result.usage ? { totalTokens: result.usage.totalTokens ?? 0 } : undefined,
+          usage: {
+            totalTokens: normalized.totalTokens,
+            inputTokens: normalized.inputTokens,
+            outputTokens: normalized.outputTokens,
+          },
         }
       } catch (err) {
         lastErr = err

@@ -12,9 +12,21 @@ interface MCPToolDefinition {
   description: string
   inputSchema: {
     type: string
-    properties?: Record<string, { type: string; description?: string }>
+    properties?: Record<string, { type?: unknown; description?: string }>
     required?: string[]
   }
+}
+
+const MCP_SCHEMA_TYPES = new Set(["string", "number", "integer", "boolean", "array", "object"])
+
+export function mapMcpParamType(raw: unknown): "string" | "number" | "boolean" | "array" {
+  if (typeof raw !== "string") return "string"
+  const normalized = raw.trim().toLowerCase()
+  if (!MCP_SCHEMA_TYPES.has(normalized)) return "string"
+  if (normalized === "number" || normalized === "integer") return "number"
+  if (normalized === "boolean") return "boolean"
+  if (normalized === "array") return "array"
+  return "string"
 }
 
 let mcpServers: MCPServerConfig[] = []
@@ -69,7 +81,7 @@ export async function registerMCPTools(): Promise<number> {
           description: `[MCP:${server.name}] ${def.description || def.name}`,
           parameters: Object.entries(def.inputSchema?.properties || {}).map(([key, val]) => ({
             name: key,
-            type: (val as { type?: string }).type === "string" ? "string" : "string",
+            type: mapMcpParamType((val as { type?: unknown }).type),
             description: (val as { description?: string }).description || "",
             required: def.inputSchema?.required?.includes(key) || false,
           })),

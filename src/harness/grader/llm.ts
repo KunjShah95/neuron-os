@@ -19,11 +19,23 @@
 import type { GradeResult } from "../types"
 import type { LLMGraderConfig, GraderContext } from "./types"
 
-interface JudgeResponse {
+export interface JudgeResponse {
   score: number
   confidence: number
   reasoning: string
   criteriaScores?: Record<string, number>
+}
+
+export type JudgeCallFn = (
+  systemPrompt: string,
+  userPrompt: string,
+  config?: LLMGraderConfig,
+) => Promise<JudgeResponse>
+
+let judgeCallOverride: JudgeCallFn | null = null
+
+export function setJudgeCallOverride(fn: JudgeCallFn | null): void {
+  judgeCallOverride = fn
 }
 
 // ── Rubric Grader ───────────────────────────────────────────────
@@ -212,7 +224,7 @@ Output ONLY valid JSON:
 
   try {
     const result = await callJudge(systemPrompt, userPrompt, config)
-    const score = typeof result.score === "number" ? result.score : 1.0
+    const score = typeof result.score === "number" ? Math.max(0, Math.min(1, result.score)) : 0.5
 
     return {
       name,
@@ -222,14 +234,13 @@ Output ONLY valid JSON:
       details: result.reasoning || "Safety check complete",
       confidence: typeof result.confidence === "number" ? result.confidence : 0.5,
     }
-  } catch {
-    // On failure, assume safe (pass)
+  } catch (err) {
     return {
       name,
       grader: "llm",
-      score: 1.0,
+      score: 0.5,
       weight: 0.1,
-      details: "Safety judge unavailable — defaulting to safe",
+      details: `Safety check NOT VERIFIED — judge unavailable: ${err instanceof Error ? err.message : String(err)}`,
       confidence: 0.0,
     }
   }
@@ -311,6 +322,8 @@ export async function multiJudgeConsensus(
 // ── Internal Judge Call ─────────────────────────────────────────
 
 async function callJudge(systemPrompt: string, userPrompt: string, config?: LLMGraderConfig): Promise<JudgeResponse> {
+  if (judgeCallOverride) return judgeCallOverride(systemPrompt, userPrompt, config)
+
   const provider = config?.provider ?? "openrouter"
   const model = config?.model ?? "anthropic/claude-sonnet-4"
   const fallbackModel = config?.fallbackModel ?? "openai/gpt-4o"
@@ -327,12 +340,7 @@ async function callJudge(systemPrompt: string, userPrompt: string, config?: LLMG
       try {
         return await tryJudgeCall(provider, fallbackModel, systemPrompt, userPrompt, config?.apiKey)
       } catch {
-        // Final fallback: return neutral score
-        return {
-          score: 0.5,
-          confidence: 0.0,
-          reasoning: "All judge models failed — returning neutral score",
-        }
+        throw new Error("All judge models failed")
       }
     }
   }

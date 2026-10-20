@@ -218,6 +218,15 @@ export async function spawnAgent(ctx: ManagerContext, def: AgentDef): Promise<st
   const capturedDef = effectiveDef
 
   try {
+    const { soulManager } = await import("../soul")
+    soulManager.register(id, soulManager.generateSoul(effectiveDef.agentType ?? "default", effectiveDef.name))
+  } catch {
+    /* non-fatal */
+  }
+
+  let spawnedChild: { kill: (signal?: number) => void } | null = null
+
+  try {
     const child = spawn({
       cmd: [process.execPath, "run", scriptPath, ...(effectiveDef.args ?? [])],
       env: {
@@ -225,11 +234,13 @@ export async function spawnAgent(ctx: ManagerContext, def: AgentDef): Promise<st
         AEGIS_AGENT_ID: id,
         AEGIS_AGENT_NAME: effectiveDef.name,
         ...effectiveDef.env,
+        AEGIS_STDIN_MODE: "true",
       },
       stdout: "pipe",
       stderr: "pipe",
       stdin: "pipe",
     })
+    spawnedChild = child
 
     instance.process = child
     instance.pid = child.pid
@@ -242,61 +253,72 @@ export async function spawnAgent(ctx: ManagerContext, def: AgentDef): Promise<st
       ctx.readStream(id, child.stderr, "stderr")
     }
 
-    child.exited.then(async (code) => {
-      instance.exitCode = code
-      const prevStatus = instance.status
-      const exitedStatus: "stopped" | "error" = code === 0 ? "stopped" : "error"
-      instance.status = exitedStatus
+    child.exited
+      .then(async (code) => {
+        instance.exitCode = code
+        const prevStatus = instance.status
+        const intentionalStop = prevStatus === "stopping" || instance.metadata?._intentional_stop === "true"
+        const exitedStatus: "stopped" | "error" = code === 0 || intentionalStop ? "stopped" : "error"
+        instance.status = exitedStatus
 
-      instance.metadata = {
-        ...instance.metadata,
-        _candidateForSkillExtraction: String(code === 0),
-        _candidateForFailureCluster: String(code !== 0),
-        _reward: String(code === 0 ? 1.0 : 0.0),
-      }
+        instance.metadata = {
+          ...instance.metadata,
+          _candidateForSkillExtraction: String(code === 0),
+          _candidateForFailureCluster: String(code !== 0 && !intentionalStop),
+          _reward: String(code === 0 || intentionalStop ? 1.0 : 0.0),
+        }
 
-      const traceSpanId = instance.metadata?.traceSpanId
-      if (traceSpanId) {
+        const traceSpanId = instance.metadata?.traceSpanId
+        if (traceSpanId) {
+          try {
+            const { traceCollector } = await import("../../observability")
+            traceCollector.endSpan(traceSpanId, code === 0 ? "ok" : "error")
+          } catch {
+            /* non-fatal */
+          }
+        }
+
         try {
-          const { traceCollector } = await import("../../observability")
-          traceCollector.endSpan(traceSpanId, code === 0 ? "ok" : "error")
+          const { sloManager } = await import("../../observability")
+          sloManager.recordMetric("agent_success_rate", code === 0 ? 1 : 0)
         } catch {
           /* non-fatal */
         }
-      }
 
-      try {
-        const { sloManager } = await import("../../observability")
-        sloManager.recordMetric("agent_success_rate", code === 0 ? 1 : 0)
-      } catch {
-        /* non-fatal */
-      }
-
-      await ctx.hooks.run("exit", "post", id, instance, { code })
-
-      try {
-        const { soulManager } = await import("../soul")
-        const agentType = capturedDef.agentType
-        if (agentType) {
-          soulManager.recordOutcome(id, agentType, code === 0)
+        try {
+          await ctx.hooks.run("exit", "post", id, instance, { code })
+        } catch (hookErr) {
+          log.warn(`Exit hook failed for agent "${id}": ${String(hookErr)}`)
         }
-      } catch {
-        /* non-fatal */
-      }
 
-      if (code !== 0 && prevStatus !== "stopping") {
-        ctx.emit("agent:error", id, { code, message: `Process exited with code ${code}` })
-        const didRecover = ctx.triggerRecovery(id, code)
-        if (!didRecover) {
+        try {
+          const { soulManager } = await import("../soul")
+          const agentType = capturedDef.agentType
+          if (agentType) {
+            soulManager.recordOutcome(id, agentType, code === 0)
+          }
+          soulManager.unregister(id)
+        } catch {
+          /* non-fatal */
+        }
+
+        if (code !== 0 && !intentionalStop) {
+          ctx.emit("agent:error", id, { code, message: `Process exited with code ${code}` })
+          const didRecover = ctx.triggerRecovery(id, code)
+          if (!didRecover) {
+            ctx.emit("agent:exit", id, { code })
+          }
+        } else {
           ctx.emit("agent:exit", id, { code })
         }
-      } else {
-        ctx.emit("agent:exit", id, { code })
-      }
 
-      instance.log.push(ctx.makeLog("info", `Process exited with code ${code}`))
-      ctx.abortControllers.delete(id)
-    })
+        instance.log.push(ctx.makeLog("info", `Process exited with code ${code}`))
+        ctx.abortControllers.delete(id)
+      })
+      .catch((err: unknown) => {
+        log.warn(`Agent "${id}" exit handler failed: ${String(err)}`)
+        instance.log.push(ctx.makeLog("error", `Exit handler failed: ${String(err)}`))
+      })
 
     ctx.emit("agent:spawned", id, { pid: child.pid })
     instance.log.push(ctx.makeLog("info", `Spawned (pid ${child.pid})`))
@@ -316,6 +338,14 @@ export async function spawnAgent(ctx: ManagerContext, def: AgentDef): Promise<st
       /* Plugin hooks are optional */
     }
   } catch (err) {
+    if (spawnedChild) {
+      try {
+        spawnedChild.kill(9)
+        instance.log.push(ctx.makeLog("warn", "Killed orphaned child process after failed spawn"))
+      } catch {
+        /* best effort — the process may already be gone */
+      }
+    }
     instance.status = "error"
     const msg = err instanceof Error ? err.message : String(err)
     instance.log.push(ctx.makeLog("error", `Spawn failed: ${msg}`))
@@ -373,9 +403,14 @@ export async function killAgent(ctx: ManagerContext, id: string, timeoutMs?: num
   const terminalStates = new Set(["stopped", "stopping", "error"])
   if (terminalStates.has(instance.status)) return
 
-  await ctx.hooks.run("kill", "pre", id, instance)
+  try {
+    await ctx.hooks.run("kill", "pre", id, instance)
+  } catch (hookErr) {
+    log.warn(`Kill pre-hook failed for agent "${id}": ${String(hookErr)}`)
+  }
 
   instance.status = "stopping"
+  instance.metadata = { ...instance.metadata, _intentional_stop: "true" }
   ctx.emit("agent:stopped", id, { reason: "user-requested" })
 
   const timeout = timeoutMs ?? instance.def.stopTimeout ?? 5_000
@@ -386,17 +421,43 @@ export async function killAgent(ctx: ManagerContext, id: string, timeoutMs?: num
     /* Stdin might already be closed — fall through to SIGKILL path */
   }
 
-  const exitPromise = instance.process.exited
-  const timer = new Promise<number>((resolve) => setTimeout(() => resolve(-1), timeout))
-  const code = await Promise.race([exitPromise, timer])
-
-  if (code === -1) {
-    instance.process.kill(9)
-    instance.log.push(ctx.makeLog("warn", "Force killed (SIGKILL)"))
+  const child = instance.process
+  if (!child) {
+    instance.exitCode = null
+    instance.status = "stopped"
+    instance.log.push(ctx.makeLog("warn", "Agent has no running process"))
+    return
   }
 
-  instance.exitCode = code as number | null
+  let timerHandle: ReturnType<typeof setTimeout> | undefined
+  const timer = new Promise<number>((resolve) => {
+    timerHandle = setTimeout(() => resolve(-1), timeout)
+  })
+
+  let code: number
+  try {
+    code = await Promise.race([child.exited, timer])
+  } finally {
+    if (timerHandle !== undefined) clearTimeout(timerHandle)
+  }
+
+  if (code === -1) {
+    try {
+      child.kill(9)
+    } catch {
+      /* best effort — the process may already be gone */
+    }
+    instance.exitCode = null
+    instance.log.push(ctx.makeLog("warn", "Force killed (SIGKILL)"))
+  } else {
+    instance.exitCode = code
+  }
+
   instance.status = "stopped"
 
-  await ctx.hooks.run("kill", "post", id, instance)
+  try {
+    await ctx.hooks.run("kill", "post", id, instance)
+  } catch (hookErr) {
+    log.warn(`Kill post-hook failed for agent "${id}": ${String(hookErr)}`)
+  }
 }

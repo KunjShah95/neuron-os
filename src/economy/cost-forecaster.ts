@@ -51,6 +51,12 @@ export interface ForecastResult {
 
 // ── CostForecaster ─────────────────────────────────────────────────────
 
+export function averageDailySpend(history: Array<{ totalCost: number }>, windowDays: number): number {
+  const days = Math.max(1, windowDays)
+  const total = history.reduce((sum, h) => sum + h.totalCost, 0)
+  return total / days
+}
+
 export class CostForecaster {
   /**
    * Generate a cost forecast based on historical data.
@@ -78,23 +84,19 @@ export class CostForecaster {
 
     // ── Compute averages and trends ───────────────────────────────────
     const daysWithData = history.length
+    const windowDayCount = Math.max(1, windowDays)
     const recentDays = history.slice(-7)
     const olderDays = history.slice(0, Math.max(0, history.length - 7))
 
-    const avgDailySpend =
-      daysWithData > 0
-        ? history.reduce((sum, h) => sum + h.totalCost, 0) / daysWithData
-        : 0
+    const avgDailySpend = averageDailySpend(history, windowDayCount)
 
     // Trend: compare recent 7-day avg to older period
-    const recentAvg =
-      recentDays.length > 0
-        ? recentDays.reduce((sum, h) => sum + h.totalCost, 0) / recentDays.length
-        : 0
-    const olderAvg =
-      olderDays.length > 0
-        ? olderDays.reduce((sum, h) => sum + h.totalCost, 0) / olderDays.length
-        : recentAvg // If no older data, assume stable
+    const recentWindowDays = Math.min(7, windowDayCount)
+    const olderWindowDays = Math.max(1, windowDayCount - recentWindowDays)
+    const recentSpend = recentDays.reduce((sum, h) => sum + h.totalCost, 0)
+    const olderSpend = olderDays.reduce((sum, h) => sum + h.totalCost, 0)
+    const recentAvg = recentSpend / recentWindowDays
+    const olderAvg = olderDays.length > 0 ? olderSpend / olderWindowDays : recentAvg
 
     let trend: "increasing" | "stable" | "decreasing"
     if (recentAvg > olderAvg * 1.15) {
