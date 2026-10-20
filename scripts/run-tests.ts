@@ -93,7 +93,7 @@ function getBatches(): TestBatch[] {
 
 function resolveCmd(cmd: string[]): string[] {
   if (process.platform !== "win32") return cmd
-  return cmd.map((part) => (part === "bun" ? "bun.cmd" : part))
+  return cmd.map((part) => (part === "bun" ? "bun.cmd" : part === "bunx" ? "bunx.cmd" : part))
 }
 
 async function runBatch(batch: TestBatch): Promise<boolean> {
@@ -176,7 +176,7 @@ async function main() {
   // ── TypeScript Typecheck (always runs last, sequentially) ──────
   console.log(`\n  ── Typecheck ──`)
   const tcStart = performance.now()
-  const tcProc = Bun.spawn(resolveCmd(["bun", "run", "--bun", "tsc", "--noEmit"]), {
+  const tcProc = Bun.spawn(resolveCmd(["bunx", "tsc", "--noEmit"]), {
     stdio: ["inherit", "inherit", "inherit"],
     env: { ...process.env },
   })
