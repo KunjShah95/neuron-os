@@ -24,12 +24,12 @@ import { EMPTY_USER_MODEL } from "./user-model/types"
 import { issueGrant } from "./policy/grant-manager"
 import { canRead, createDefaultPolicy, loadPolicy } from "./policy/enforcer"
 
-const TMP_ROOT = resolve(process.cwd(), "tmp-recall-persona-fixes-" + Date.now())
+const RUN_ID = Date.now()
+const TMP_ROOT = resolve(tmpdir(), "opencode", "aegis-recall-persona-" + RUN_ID)
 const STORE_BASE = join(homedir(), ".aegis", "projects")
-const STORE_TARGET = join(tmpdir(), "opencode", "aegis-recall-persona-test")
+const STORE_TARGET = join(tmpdir(), "opencode", "aegis-recall-persona-store-" + RUN_ID)
 const PROJECT_ROOT = relative(STORE_BASE, STORE_TARGET)
 const openStores: Array<{ close?: () => void }> = []
-const RUN_ID = Date.now()
 
 try {
   rmSync(STORE_TARGET, { recursive: true, force: true })

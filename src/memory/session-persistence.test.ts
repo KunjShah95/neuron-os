@@ -11,11 +11,12 @@ import { describe, it, expect, afterAll } from "bun:test"
 
 import { mkdirSync, rmSync } from "node:fs"
 import { resolve } from "node:path"
+import { tmpdir } from "node:os"
 import { SessionStore } from "./session-persistence"
 import { createTestEngine, closeTestStores } from "../test-utils/mock-ai"
 
 describe("Session Persistence Tests", () => {
-  const TMP_ROOT = resolve(process.cwd(), "tmp-test-sess-persist-" + Date.now())
+  const TMP_ROOT = resolve(tmpdir(), "opencode", "aegis-sess-persist-" + Date.now())
 
   afterAll(() => {
     closeTestStores()
