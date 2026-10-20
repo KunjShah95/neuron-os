@@ -1,4 +1,5 @@
 import { jsonResponse } from "../security"
+import { parseProjectName } from "../../project/context"
 import type { ApiRequest, ApiServerConfig } from "../types"
 
 export async function handleSessionRoutes(req: ApiRequest, config: ApiServerConfig): Promise<Response | null> {
@@ -8,7 +9,8 @@ export async function handleSessionRoutes(req: ApiRequest, config: ApiServerConf
 
   if (pathname === "/api/v1/sessions" && method === "GET") {
     const { sessionStore, getProjectSessionStore } = await import("../../memory/session-persistence")
-    const project = req.searchParams?.get("project") || undefined
+    const { project, error } = parseProjectName(req.searchParams?.get("project"))
+    if (error) return jsonResponse(400, { error }, config, req)
     const store = project ? getProjectSessionStore(project) : sessionStore
     const sessions = store.restoreRecentSessions(50)
     return jsonResponse(200, { sessions }, config, req)
@@ -16,7 +18,8 @@ export async function handleSessionRoutes(req: ApiRequest, config: ApiServerConf
 
   if (pathname === "/api/v1/sessions/stats" && method === "GET") {
     const { sessionStore, getProjectSessionStore } = await import("../../memory/session-persistence")
-    const project = req.searchParams?.get("project") || undefined
+    const { project, error } = parseProjectName(req.searchParams?.get("project"))
+    if (error) return jsonResponse(400, { error }, config, req)
     const store = project ? getProjectSessionStore(project) : sessionStore
     const stats = store.getStats()
     return jsonResponse(200, stats, config, req)
@@ -25,7 +28,8 @@ export async function handleSessionRoutes(req: ApiRequest, config: ApiServerConf
   const sessionMatch = pathname.match(/^\/api\/v1\/sessions\/([^/]+)$/)
   if (sessionMatch && sessionMatch[1] && method === "GET") {
     const { sessionStore, getProjectSessionStore } = await import("../../memory/session-persistence")
-    const project = req.searchParams?.get("project") || undefined
+    const { project, error } = parseProjectName(req.searchParams?.get("project"))
+    if (error) return jsonResponse(400, { error }, config, req)
     const store = project ? getProjectSessionStore(project) : sessionStore
     const sessionId = sessionMatch[1]
     const session = store.getSession(sessionId)
@@ -37,7 +41,8 @@ export async function handleSessionRoutes(req: ApiRequest, config: ApiServerConf
 
   if (sessionMatch && sessionMatch[1] && method === "DELETE") {
     const { sessionStore, getProjectSessionStore } = await import("../../memory/session-persistence")
-    const project = req.searchParams?.get("project") || undefined
+    const { project, error } = parseProjectName(req.searchParams?.get("project"))
+    if (error) return jsonResponse(400, { error }, config, req)
     const store = project ? getProjectSessionStore(project) : sessionStore
     store.deleteSession(sessionMatch[1])
     return jsonResponse(200, { status: "deleted" }, config, req)

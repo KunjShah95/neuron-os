@@ -32,7 +32,9 @@ const SIGNAL_MAX = 2000
 const TRUNCATION_SUFFIX = "\n…[truncated]"
 
 export function createSignalAdapter(config: SignalConfig): PlatformAdapter {
-  let pollTimer: ReturnType<typeof setInterval> | null = null
+  let pollTimer: ReturnType<typeof setTimeout> | null = null
+  let pollStopped = false
+  let polling = false
   let lastReceiveTimestamp = 0
 
   async function sendMessage(to: string, text: string): Promise<void> {
@@ -93,6 +95,26 @@ export function createSignalAdapter(config: SignalConfig): PlatformAdapter {
     }
   }
 
+  function scheduleNextPoll(interval: number): void {
+    if (pollStopped) return
+    pollTimer = setTimeout(async () => {
+      if (pollStopped) return
+      if (polling) {
+        // Re-entrancy guard: a slow poll is still running, retry shortly
+        scheduleNextPoll(interval)
+        return
+      }
+      polling = true
+      try {
+        await pollMessages()
+      } finally {
+        polling = false
+        scheduleNextPoll(interval)
+      }
+    }, interval)
+    pollTimer.unref?.()
+  }
+
   return {
     name: "signal",
 
@@ -111,15 +133,17 @@ export function createSignalAdapter(config: SignalConfig): PlatformAdapter {
         throw err
       }
 
-      // Start polling for incoming messages
+      // Start polling for incoming messages (self-scheduling, never overlapping)
       const interval = config.pollIntervalMs ?? 5000
-      pollTimer = setInterval(pollMessages, interval)
+      pollStopped = false
+      scheduleNextPoll(interval)
       log.info(`Signal adapter started (polling every ${interval}ms)`)
     },
 
     async stop() {
+      pollStopped = true
       if (pollTimer) {
-        clearInterval(pollTimer)
+        clearTimeout(pollTimer)
         pollTimer = null
       }
       log.info("Signal adapter stopped")

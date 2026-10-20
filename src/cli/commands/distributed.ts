@@ -34,6 +34,11 @@ let currentPool: import("../../distributed").WorkerPool | null = null
 async function handleStart(opts: { port?: string; role?: string; leader?: string; secret?: string; tags?: string[] }) {
   const { WorkerPool } = await import("../../distributed")
 
+  const role = (opts.role ?? "worker").toLowerCase()
+  if (role !== "leader" && role !== "worker") {
+    throw new Error(`Invalid --role "${opts.role}". Must be "leader" or "worker".`)
+  }
+
   const secret = opts.secret ?? process.env.AEGIS_CLUSTER_SECRET
   if (!secret) throw new Error("AEGIS_CLUSTER_SECRET is required. Set it via --secret flag or AEGIS_CLUSTER_SECRET environment variable.")
   const nodeId = `node-${hostname()}-${opts.port}`
@@ -49,18 +54,21 @@ async function handleStart(opts: { port?: string; role?: string; leader?: string
 
   const pool = new WorkerPool({
     nodeId,
-    role: (opts.role as "leader" | "worker") ?? "worker",
+    role: role as "leader" | "worker",
     leaderHost,
     leaderPort,
     listenPort: parseInt(opts.port ?? "4578", 10),
     secret,
   })
 
+  if (opts.tags && opts.tags.length > 0) {
+    pool.addLocalTags(opts.tags)
+  }
+
   await pool.start()
   currentPool = pool
 
   const local = pool.getLocalInfo()
-  if (opts.tags) local.tags.push(...opts.tags)
 
   console.log(theme.success(`\n  ✓ Distributed node started`))
   console.log(`    ${theme.bold("Node ID:")}  ${theme.dim(local.id)}`)

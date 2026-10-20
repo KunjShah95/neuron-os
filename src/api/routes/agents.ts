@@ -7,6 +7,8 @@ import { SpawnAgentSchema, TaskGoalSchema } from "./schemas"
 
 const log = createLogger("api")
 
+const AGENT_WORKER_SCRIPT = "src/agent/agent-worker.ts"
+
 export interface AgentSummary {
   id: string
   name: string
@@ -41,11 +43,19 @@ export async function handleAgentRoutes(req: ApiRequest, config: ApiServerConfig
     }
 
     const payload = spawnResult.data
+    if (payload.script && payload.script !== AGENT_WORKER_SCRIPT) {
+      return jsonResponse(
+        400,
+        { error: "Only the default agent worker script may be spawned via the API" },
+        config,
+        req,
+      )
+    }
     try {
       const id = await agentManager.spawn({
         name: payload.name,
         agentType: payload.type as AgentTypeName | undefined,
-        script: payload.script ?? "src/agent/agent-worker.ts",
+        script: AGENT_WORKER_SCRIPT,
       })
       log.info("Agent spawned via API", { agentId: id, name: payload.name })
       return jsonResponse(201, { id, name: payload.name, status: "spawning" }, config, req)

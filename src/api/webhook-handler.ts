@@ -19,6 +19,11 @@ import { verifyHmac } from "./hmac"
 
 const log = createLogger("webhook")
 
+function normalizeSignature(signature: string | null | undefined): string | null {
+  if (!signature) return null
+  return /^sha256=/i.test(signature) ? signature : `sha256=${signature}`
+}
+
 // ── Types ─────────────────────────────────────────────────────────────
 
 export interface WebhookConfig {
@@ -42,6 +47,8 @@ export interface WebhookEvent {
   path?: string
   /** Exact raw request body the signature was computed over */
   rawBody?: string
+  /** HTTP method of the webhook request */
+  method?: string
 }
 
 // ── Event Parsing ─────────────────────────────────────────────────────
@@ -124,7 +131,7 @@ export async function handleWebhookEvent(
       return { status: 401, body: { error: "Missing signature" } }
     }
     const rawPayload = webhookEvent.rawBody ?? JSON.stringify(payload)
-    const valid = await verifyHmac(rawPayload, config.secret, signature)
+    const valid = await verifyHmac(rawPayload, config.secret, normalizeSignature(signature) ?? "")
     if (!valid) {
       log.warn("Webhook signature verification failed", { source, event })
       return { status: 401, body: { error: "Invalid signature" } }
@@ -136,8 +143,15 @@ export async function handleWebhookEvent(
 
   // Check for registered webhook triggers that match this event
   const webhookPath = webhookEvent.path ?? `/api/v1/webhook/${source}`
-  const matchedTrigger = triggerEngine.matchWebhook(webhookPath)
+  const webhookMethod = webhookEvent.method ?? "POST"
+  const matchedTrigger = triggerEngine.matchWebhook(webhookPath, webhookMethod)
   if (matchedTrigger) {
+    const rawPayload = webhookEvent.rawBody ?? JSON.stringify(payload)
+    if (!triggerEngine.verifyWebhookSecret(matchedTrigger, rawPayload, signature)) {
+      log.warn(`Webhook signature rejected for trigger "${matchedTrigger.name}"`)
+      return { status: 401, body: { error: "Invalid signature" } }
+    }
+
     log.info(`Webhook event "${event}" matched trigger "${matchedTrigger.name}"`)
     // Fire the trigger asynchronously — don't block the webhook response
     triggerEngine.fire(matchedTrigger).catch((err) => {
@@ -212,18 +226,58 @@ export async function handleWebhookEvent(
  */
 export function createWebhookHandler(config: WebhookConfig): (request: Request) => Promise<Response> {
   return async (request: Request): Promise<Response> => {
+    const url = new URL(request.url)
+
     if (request.method !== "POST") {
-      return new Response(JSON.stringify({ error: "Method not allowed" }), {
-        status: 405,
+      // Non-POST webhooks are only accepted when a trigger explicitly declares that method
+      const matched = triggerEngine.matchWebhook(url.pathname, request.method)
+      if (!matched) {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405,
+          headers: { "Content-Type": "application/json" },
+        })
+      }
+
+      const rawBody = await request.text()
+      const signature = request.headers.get("x-hub-signature-256") || request.headers.get("x-aegis-signature") || null
+
+      if (config.secret) {
+        if (!signature) {
+          return new Response(JSON.stringify({ error: "Missing signature" }), {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          })
+        }
+        const valid = await verifyHmac(rawBody, config.secret, normalizeSignature(signature) ?? "")
+        if (!valid) {
+          return new Response(JSON.stringify({ error: "Invalid signature" }), {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          })
+        }
+      }
+
+      if (!triggerEngine.verifyWebhookSecret(matched, rawBody, signature)) {
+        return new Response(JSON.stringify({ error: "Invalid signature" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        })
+      }
+
+      triggerEngine.fire(matched).catch((err) => {
+        log.error(`Webhook trigger "${matched.name}" fire failed`, { error: String(err) })
+      })
+
+      return new Response(JSON.stringify({ status: "accepted", trigger: matched.name }), {
+        status: 202,
         headers: { "Content-Type": "application/json" },
       })
     }
 
-    const url = new URL(request.url)
     const source = url.pathname.includes("gitlab") ? "gitlab" : "github"
     const event = request.headers.get("x-github-event") || request.headers.get("x-gitlab-event") || "push"
     const deliveryId = request.headers.get("x-github-delivery") || undefined
-    const signature = request.headers.get("x-hub-signature-256") || undefined
+    const signature = request.headers.get("x-hub-signature-256") || request.headers.get("x-aegis-signature") || undefined
 
     const rawBody = await request.text()
 
@@ -244,7 +298,16 @@ export function createWebhookHandler(config: WebhookConfig): (request: Request) 
       })
     }
 
-    const webhookEvent: WebhookEvent = { source, event, payload, deliveryId, signature, path: url.pathname, rawBody }
+    const webhookEvent: WebhookEvent = {
+      source,
+      event,
+      payload,
+      deliveryId,
+      signature,
+      path: url.pathname,
+      rawBody,
+      method: request.method,
+    }
     const result = await handleWebhookEvent(webhookEvent, config)
 
     return new Response(JSON.stringify(result.body), {

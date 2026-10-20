@@ -60,6 +60,9 @@ export function createSMSAdapter(config: SMSConfig): PlatformAdapter {
                 allowedUserIds: config.allowedUserIds,
                 project: config.project,
                 fromNumber: config.fromNumber,
+                authToken: config.authToken,
+                requireSignature: true,
+                requireAllowedUser: true,
               },
               sendReply,
             )

@@ -1,7 +1,15 @@
 import type { Command } from "commander"
-import { loadPricing, savePricing, DEFAULT_PRICING } from "../../economy/pricing-registry"
+import { loadPricing, savePricing, DEFAULT_PRICING, getPricingLoadError } from "../../economy/pricing-registry"
 import { estimateCost } from "../../economy/cost-router"
 import { submitToLeaderboard, fetchLeaderboard } from "../../economy/leaderboard-client"
+
+function reportPricingLoadError(): void {
+  const loadError = getPricingLoadError()
+  if (loadError) {
+    console.log(`\n  ⚠️  ${loadError}`)
+    console.log("  Default pricing is in effect; your custom prices are NOT active.\n")
+  }
+}
 
 export function registerPricing(program: Command): void {
   const pricing = program.command("pricing").description("Tool-level economy and cost routing")
@@ -11,6 +19,7 @@ export function registerPricing(program: Command): void {
     .description("Show all tool and model pricing")
     .action(() => {
       const data = loadPricing()
+      reportPricingLoadError()
 
       console.log("Tool pricing:")
       console.log(
@@ -56,7 +65,18 @@ export function registerPricing(program: Command): void {
         return
       }
 
+      if (!Number.isFinite(numValue)) {
+        console.log(`Invalid value: ${value}. Pricing values must be finite numbers.`)
+        return
+      }
+
+      if (numValue < 0) {
+        console.log(`Invalid value: ${numValue}. Pricing values must be zero or greater.`)
+        return
+      }
+
       const data = loadPricing()
+      reportPricingLoadError()
       const [name, field] = parts as [string, string]
 
       // Try tools first, then models
@@ -106,6 +126,8 @@ export function registerPricing(program: Command): void {
           },
           { budget },
         )
+
+        reportPricingLoadError()
 
         console.log(`Cost estimate (${opts.complexity ?? "moderate"} complexity):`)
         console.log(`  Cheap:    $${result.cheap.toFixed(4)}`)

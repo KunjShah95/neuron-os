@@ -2,11 +2,22 @@ import { taskQueue } from "../agent/queue"
 import { triggerEngine, type GatewayCommandConfig } from "../triggers/registry"
 import type { PlatformAdapter, PlatformMessage } from "./types"
 import { createLogger } from "../cli/logger"
+import { safeEqual } from "./token"
 
 const log = createLogger("gateway")
 
+const SOCKET_PATH = "/ws"
+const MAX_SOCKET_PAYLOAD_LENGTH = 64 * 1024
+const MAX_GOAL_LENGTH = 4000
+
 export class MultiPlatformGateway {
   private adapters: Map<string, PlatformAdapter> = new Map()
+  private socketServer: ReturnType<typeof Bun.serve> | null = null
+  private socketToken: string | null
+
+  constructor(options?: { socketToken?: string }) {
+    this.socketToken = options?.socketToken ?? process.env.AEGIS_GATEWAY_TOKEN ?? null
+  }
 
   public register(adapter: PlatformAdapter) {
     this.adapters.set(adapter.name, adapter)
@@ -30,6 +41,15 @@ export class MultiPlatformGateway {
   }
 
   public async stopAll() {
+    if (this.socketServer) {
+      try {
+        this.socketServer.stop(true)
+      } catch (err: unknown) {
+        log.error(`Failed to stop socket server: ${err instanceof Error ? err.message : String(err)}`)
+      }
+      this.socketServer = null
+    }
+
     for (const adapter of this.adapters.values()) {
       try {
         await adapter.stop()
@@ -93,18 +113,47 @@ export class MultiPlatformGateway {
   }
 
   /**
-   * Starts a local Bun HTTP & WebSocket server to accept GUI connections and Webhooks
+   * Starts a local Bun HTTP & WebSocket server to accept GUI connections and Webhooks.
+   * The WebSocket endpoint requires a bearer token (AEGIS_GATEWAY_TOKEN by default).
    */
   public startSocketServer(port = 8080) {
+    if (this.socketServer) {
+      log.warn("Socket server already running")
+      return this.socketServer
+    }
+
+    if (!this.socketToken) {
+      log.error(
+        "Gateway socket server has no auth token configured. Set AEGIS_GATEWAY_TOKEN — WebSocket connections will be rejected.",
+      )
+    }
+
     log.info(`Starting Lean Gateway Protocol socket on port ${port}...`)
-    Bun.serve({
+
+    this.socketServer = Bun.serve<undefined>({
       port,
       fetch: (req, server) => {
-        // Upgrade WebSocket connections
-        if (server.upgrade(req)) return
+        const url = new URL(req.url)
+
+        // Upgrade WebSocket connections (only on the dedicated path, and only with a valid token)
+        if (url.pathname === SOCKET_PATH) {
+          if (!this.socketToken) {
+            return new Response("Unauthorized: server has no token configured", { status: 503 })
+          }
+
+          const authHeader = req.headers.get("authorization") || ""
+          const bearer = authHeader.match(/^Bearer\s+(.+)$/i)
+          const token = bearer?.[1] ?? url.searchParams.get("token") ?? ""
+
+          if (!safeEqual(token, this.socketToken)) {
+            return new Response("Unauthorized: invalid token", { status: 401 })
+          }
+
+          if (server.upgrade(req)) return undefined
+          return new Response("WebSocket upgrade failed", { status: 400 })
+        }
 
         // Handle Webhooks (e.g. GitHub events, external API triggers)
-        const url = new URL(req.url)
         if (req.method === "POST" && url.pathname === "/webhook") {
           taskQueue.submit("Process external webhook trigger", "high")
           return new Response("Webhook accepted", { status: 202 })
@@ -115,6 +164,7 @@ export class MultiPlatformGateway {
         })
       },
       websocket: {
+        maxPayloadLength: MAX_SOCKET_PAYLOAD_LENGTH,
         open(_ws) {
           log.info("GUI socket connected.")
         },
@@ -123,7 +173,16 @@ export class MultiPlatformGateway {
           try {
             const parsed = JSON.parse(String(message))
             if (parsed.type === "agent_command") {
-              const taskId = taskQueue.submit(parsed.goal, "normal")
+              const goal = typeof parsed.goal === "string" ? parsed.goal.trim() : ""
+              if (!goal) {
+                ws.send(JSON.stringify({ type: "error", error: "Missing goal" }))
+                return
+              }
+              if (goal.length > MAX_GOAL_LENGTH) {
+                ws.send(JSON.stringify({ type: "error", error: `Goal too long (max ${MAX_GOAL_LENGTH} characters)` }))
+                return
+              }
+              const taskId = taskQueue.submit(goal, "normal")
               ws.send(JSON.stringify({ type: "ack", taskId }))
             }
           } catch {
@@ -135,6 +194,8 @@ export class MultiPlatformGateway {
         },
       },
     })
+
+    return this.socketServer
   }
 }
 

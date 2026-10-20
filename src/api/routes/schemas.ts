@@ -7,7 +7,12 @@ export const SpawnAgentSchema = z.object({
     .max(64, "Name too long")
     .regex(/^[a-zA-Z0-9_-]+$/, "Name must be alphanumeric with -_"),
   type: z.string().max(32, "Type too long").optional(),
-  script: z.string().max(256, "Script path too long").optional(),
+  script: z
+    .string()
+    .max(256, "Script path too long")
+    .regex(/^[\w.\-/]+$/, "Invalid script path")
+    .refine((s) => !s.startsWith("/") && !s.includes(".."), "Invalid script path")
+    .optional(),
 })
 
 export const TaskGoalSchema = z.object({

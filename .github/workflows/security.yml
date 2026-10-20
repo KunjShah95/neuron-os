@@ -33,13 +33,31 @@ jobs:
 
       - name: Run audit (bun)
         run: |
-          bun audit 2>&1 || true
-          # Fail on critical/high vulnerabilities
-          bun audit --level critical 2>&1 | tee audit-results.txt
-          if grep -q "critical" audit-results.txt 2>/dev/null; then
+          # Report every advisory. This is informational and does not fail the
+          # build on its own.
+          bun audit 2>&1 | tee audit-results.txt || true
+
+          # Gate on critical advisories. The correct flag is `--audit-level`
+          # (`--level` is not a valid bun audit option and made this step fail
+          # with "unknown subcommand" on every run).
+          set +e
+          bun audit --audit-level=critical 2>&1 | tee audit-critical.txt
+          status=${PIPESTATUS[0]}
+          set -e
+
+          if grep -qE '^[[:space:]]*critical: ' audit-critical.txt; then
             echo "::error::Critical vulnerabilities found"
+            cat audit-critical.txt
             exit 1
           fi
+
+          if [ "$status" -ne 0 ]; then
+            echo "::error::bun audit --audit-level=critical failed (exit $status)"
+            cat audit-critical.txt
+            exit 1
+          fi
+
+          echo "No critical vulnerabilities found."
 
   secret-scan:
     name: Secret Scanning
@@ -51,7 +69,7 @@ jobs:
           fetch-depth: 0
 
       - name: Scan for secrets
-        uses: trufflesecurity/trufflehog@3f021dc0fef0ed4a5cf0a0ccbb761a3b458d91b8  # v3.88.16
+        uses: trufflesecurity/trufflehog@c1f2e912239240108482d79ea01ab25d90b27ac7  # v3.88.16
         with:
           extra_args: --only-verified
         continue-on-error: false

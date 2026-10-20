@@ -8,6 +8,10 @@
 
 import type { SearchScope } from "../modes/search"
 import type { AIProviderType } from "../ai/models"
+import { createLogger } from "../cli/logger"
+import { validateTwilioSignature } from "./twilio-signature"
+
+const log = createLogger("adapter:bot-commands")
 
 // ── Text Constants ───────────────────────────────────────────────────────
 
@@ -776,6 +780,9 @@ export interface TwilioWebhookConfig {
   allowedUserIds?: string[]
   project?: string
   fromNumber: string
+  authToken?: string
+  requireSignature?: boolean
+  requireAllowedUser?: boolean
 }
 
 /**
@@ -828,6 +835,19 @@ export async function handleTwilioWebhook(
   const rawFrom = body.From || ""
   const text = body.Body || ""
 
+  if (config.requireSignature && !config.authToken) {
+    log.error("Twilio webhook requires a signature but no authToken is configured")
+    return new Response("OK", { status: 200 })
+  }
+
+  if (config.authToken) {
+    const signature = req.headers.get("x-twilio-signature")
+    if (!validateTwilioSignature(config.authToken, signature, req.url, body)) {
+      log.warn("Rejected Twilio webhook with invalid signature")
+      return new Response("OK", { status: 200 })
+    }
+  }
+
   // Validate To field if required (e.g., WhatsApp multi-number setup)
   if (opts.validateTo) {
     const to = body.To || ""
@@ -840,6 +860,10 @@ export async function handleTwilioWebhook(
   const userId = opts.stripPrefix ? rawFrom.replace(opts.stripPrefix, "") : rawFrom
 
   // Auth check
+  if (config.requireAllowedUser && (!config.allowedUserIds || config.allowedUserIds.length === 0)) {
+    log.error("Twilio webhook has no allowed user list configured — refusing requests")
+    return new Response("OK", { status: 200 })
+  }
   if (config.allowedUserIds && config.allowedUserIds.length > 0 && !config.allowedUserIds.includes(userId)) {
     return new Response("OK", { status: 200 })
   }

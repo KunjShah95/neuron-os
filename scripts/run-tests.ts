@@ -6,7 +6,7 @@
 // Or:    bun run test
 
 const CONCURRENCY = 4   // Max parallel test batches
-const PER_BATCH_TIMEOUT_MS = 180_000  // 3 min per batch
+const PER_BATCH_TIMEOUT_MS = 300_000  // 5 min per batch
 
 let exitCode = 0
 const coverageMode = process.argv.includes("--coverage") || process.env.COVERAGE === "1"

@@ -68,6 +68,7 @@ const ROUTE_PERMISSIONS: Array<{ pattern: RegExp; method: string; permission: Pe
   { pattern: /^\/api\/v1\/agents\/([^/]+)\/tasks$/, method: "POST", permission: "agent:modify" },
   { pattern: /^\/api\/v1\/chat$/, method: "POST", permission: "agent:spawn" },
   { pattern: /^\/api\/v1\/chat\/providers$/, method: "GET", permission: "config:read" },
+  { pattern: /^\/api\/v1\/cost$/, method: "GET", permission: "cost:view" },
   { pattern: /^\/api\/v1\/events$/, method: "GET", permission: "agent:view" },
   { pattern: /^\/api\/v1\/ws$/, method: "GET", permission: "agent:view" },
   { pattern: /^\/api\/v1\/memory$/, method: "GET", permission: "memory:read" },

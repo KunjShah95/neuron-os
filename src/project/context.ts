@@ -11,7 +11,7 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, rmSync } from "node:fs"
-import { join } from "node:path"
+import { join, resolve, sep } from "node:path"
 import { homedir } from "node:os"
 
 // ── Types ─────────────────────────────────────────────────────────────
@@ -35,9 +35,43 @@ function ensureDirs(): void {
   mkdirSync(PROJECTS_DIR, { recursive: true })
 }
 
-/** Get the data directory for a given project name. */
+const PROJECT_NAME_PATTERN = /^[A-Za-z0-9_-][A-Za-z0-9._-]{0,63}$/
+
+/** Whether a project name is safe to use as a directory name. */
+export function isValidProjectName(name: string): boolean {
+  if (typeof name !== "string") return false
+  if (!PROJECT_NAME_PATTERN.test(name)) return false
+  if (name.includes("..")) return false
+  return true
+}
+
+/**
+ * Parse a raw project name coming from an untrusted source (query string, CLI arg).
+ * Returns either the validated project name or an error message.
+ */
+export function parseProjectName(raw: string | null | undefined): { project?: string; error?: string } {
+  if (!raw) return {}
+  if (!isValidProjectName(raw)) {
+    return { error: `Invalid project name: ${raw}` }
+  }
+  return { project: raw }
+}
+
+/**
+ * Get the data directory for a given project name.
+ * The name must match PROJECT_NAME_PATTERN and the resolved path must stay
+ * inside PROJECTS_DIR — otherwise it throws.
+ */
 export function getProjectDataDir(name: string): string {
-  return join(PROJECTS_DIR, name)
+  if (!isValidProjectName(name)) {
+    throw new Error(`Invalid project name: ${JSON.stringify(name)}`)
+  }
+  const base = resolve(PROJECTS_DIR)
+  const target = resolve(base, name)
+  if (target !== base && !target.startsWith(base + sep)) {
+    throw new Error(`Project name resolves outside the projects directory: ${JSON.stringify(name)}`)
+  }
+  return target
 }
 
 /** Get the sessions DB path for a project. */
@@ -122,6 +156,7 @@ export function initProject(name: string, root: string): ProjectConfig {
 
 /** Remove a project and all its data. */
 export function removeProject(name: string): boolean {
+  if (!isValidProjectName(name)) return false
   const dir = getProjectDataDir(name)
   if (!existsSync(dir)) return false
 

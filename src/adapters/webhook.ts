@@ -108,6 +108,9 @@ export function createWebhookAdapter(config: WebhookAdapterConfig): PlatformAdap
                 allowedUserIds: config.twilioSms.allowedUserIds,
                 project: config.twilioSms.project,
                 fromNumber: config.twilioSms.fromNumber,
+                authToken: config.twilioSms.authToken,
+                requireSignature: true,
+                requireAllowedUser: true,
               },
               sendSmsReply,
             )
@@ -131,6 +134,9 @@ export function createWebhookAdapter(config: WebhookAdapterConfig): PlatformAdap
                 allowedUserIds: config.twilioWhatsApp.allowedUserIds,
                 project: config.twilioWhatsApp.project,
                 fromNumber: config.twilioWhatsApp.fromNumber,
+                authToken: config.twilioWhatsApp.authToken,
+                requireSignature: true,
+                requireAllowedUser: true,
               },
               sendWhatsAppReply,
               {
@@ -142,19 +148,32 @@ export function createWebhookAdapter(config: WebhookAdapterConfig): PlatformAdap
 
           // ── Generic JSON webhook ─────────────────────────────────
           if (url.pathname === "/webhook/generic" && req.method === "POST" && config.enableGeneric) {
+            if (!config.genericSecret) {
+              log.error("Generic webhook enabled without a secret — refusing requests")
+              return new Response(JSON.stringify({ error: "Generic webhook is not configured" }), {
+                status: 503,
+                headers: { "Content-Type": "application/json" },
+              })
+            }
             try {
-              const body = (await req.json()) as Record<string, unknown>
+              const rawBody = await req.text()
+              const signature = req.headers.get("x-webhook-signature") || ""
+              const valid = await verifyHmac(rawBody, config.genericSecret, signature)
+              if (!valid) {
+                return new Response(JSON.stringify({ error: "Invalid signature" }), {
+                  status: 401,
+                  headers: { "Content-Type": "application/json" },
+                })
+              }
 
-              // Optional HMAC verification
-              if (config.genericSecret) {
-                const signature = req.headers.get("x-webhook-signature") || ""
-                const valid = await verifyHmac(JSON.stringify(body), config.genericSecret, signature)
-                if (!valid) {
-                  return new Response(JSON.stringify({ error: "Invalid signature" }), {
-                    status: 401,
-                    headers: { "Content-Type": "application/json" },
-                  })
-                }
+              let body: Record<string, unknown>
+              try {
+                body = JSON.parse(rawBody) as Record<string, unknown>
+              } catch {
+                return new Response(JSON.stringify({ error: "Invalid payload" }), {
+                  status: 400,
+                  headers: { "Content-Type": "application/json" },
+                })
               }
 
               // Extract goal from payload or use default

@@ -9,6 +9,7 @@ import {
 import type { ApiRequest, ApiServerConfig } from "../types"
 import { handleAgentRoutes } from "./agents"
 import { handleChatRoutes } from "./chat"
+import { handleCostRoutes } from "./cost"
 import { handleMemoryRoutes } from "./memory"
 import { handleSessionRoutes } from "./sessions"
 import { handleSkillRoutes } from "./skills"
@@ -20,9 +21,6 @@ export async function handleRequest(req: ApiRequest, config: ApiServerConfig): P
   const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || "unknown"
 
   log.debug("API request", { method: req.method, path: req.pathname, ip })
-
-  const denied = authorize(req, config, ip)
-  if (denied) return denied
 
   if (req.method === "OPTIONS") {
     const origin = req.headers["origin"] || null
@@ -38,7 +36,18 @@ export async function handleRequest(req: ApiRequest, config: ApiServerConfig): P
     })
   }
 
-  const handlers = [handleChatRoutes, handleAgentRoutes, handleMemoryRoutes, handleSystemRoutes, handleSessionRoutes, handleSkillRoutes]
+  const denied = authorize(req, config, ip)
+  if (denied) return denied
+
+  const handlers = [
+    handleChatRoutes,
+    handleAgentRoutes,
+    handleMemoryRoutes,
+    handleSystemRoutes,
+    handleSessionRoutes,
+    handleSkillRoutes,
+    handleCostRoutes,
+  ]
   for (const handler of handlers) {
     const response = await handler(req, config)
     if (response) return response

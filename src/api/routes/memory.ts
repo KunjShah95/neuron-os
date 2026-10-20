@@ -1,4 +1,5 @@
 import { jsonResponse } from "../security"
+import { parseProjectName } from "../../project/context"
 import type { ApiRequest, ApiServerConfig } from "../types"
 import { MemoryContentSchema, MemoryQuerySchema } from "./schemas"
 
@@ -7,7 +8,8 @@ export async function handleMemoryRoutes(req: ApiRequest, config: ApiServerConfi
 
   if (pathname === "/api/v1/memory" && method === "GET") {
     const { memorySystem, getProjectMemorySystem } = await import("../../memory/system")
-    const project = req.searchParams?.get("project") || undefined
+    const { project, error } = parseProjectName(req.searchParams?.get("project"))
+    if (error) return jsonResponse(400, { error }, config, req)
     const memory = project ? getProjectMemorySystem(project).loadMemory() : memorySystem.loadMemory()
     return jsonResponse(200, { memory: await memory }, config, req)
   }
@@ -19,7 +21,8 @@ export async function handleMemoryRoutes(req: ApiRequest, config: ApiServerConfi
     }
     const payload = memResult.data
     const { memorySystem, getProjectMemorySystem } = await import("../../memory/system")
-    const project = req.searchParams?.get("project") || undefined
+    const { project, error } = parseProjectName(req.searchParams?.get("project"))
+    if (error) return jsonResponse(400, { error }, config, req)
     const ms = project ? getProjectMemorySystem(project) : memorySystem
     await ms.appendToMemory(payload.content)
     return jsonResponse(201, { status: "saved" }, config, req)
@@ -32,7 +35,8 @@ export async function handleMemoryRoutes(req: ApiRequest, config: ApiServerConfi
     }
     const payload = queryResult.data
     const { memorySystem, getProjectMemorySystem } = await import("../../memory/system")
-    const project = req.searchParams?.get("project") || undefined
+    const { project, error } = parseProjectName(req.searchParams?.get("project"))
+    if (error) return jsonResponse(400, { error }, config, req)
     const ms = project ? getProjectMemorySystem(project) : memorySystem
     const results = await ms.search(payload.query)
     return jsonResponse(200, { results }, config, req)

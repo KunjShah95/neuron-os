@@ -66,7 +66,9 @@ export function registerTrigger(program: Command): void {
     .option("--pattern <glob>", "File watch glob pattern")
     .option("--events <events>", "File watch events: change,create,delete (comma-separated)")
     .option("--debounce <ms>", "File watch debounce in ms", "1000")
-    .option("--webhook-path <path>", "Webhook path (e.g. /webhook/custom)")
+    .option("--webhook-path <path>", "Webhook path, must start with /api/v1/webhook/ (e.g. /api/v1/webhook/custom)")
+    .option("--webhook-secret <secret>", "Webhook shared secret (HMAC-SHA256) for signature verification")
+    .option("--webhook-method <method>", "Webhook HTTP method: POST, GET, PUT", "POST")
     .option("--metric <metric>", "Condition metric: cpu, memory, disk, git-changes, custom")
     .option("--threshold <n>", "Condition threshold", parseFloat)
     .option("--operator <op>", "Condition operator: gt, lt, gte, lte, eq")
@@ -101,10 +103,21 @@ export function registerTrigger(program: Command): void {
             debounceMs: parseInt(opts.debounce),
           }
           break
-        case "webhook":
+        case "webhook": {
           if (!opts.webhookPath) throw new Error("--webhook-path is required for webhook triggers")
-          config = { path: opts.webhookPath }
+          const method = (opts.webhookMethod ?? "POST").toUpperCase()
+          if (method !== "POST" && method !== "GET" && method !== "PUT") {
+            throw new Error("--webhook-method must be one of POST, GET, PUT")
+          }
+          if (!opts.webhookPath.startsWith("/api/v1/webhook/")) {
+            console.log(
+              `  ⚠️  Webhook path "${opts.webhookPath}" is outside /api/v1/webhook/ —`,
+              "  the API server only routes webhooks under that prefix, so this trigger will never fire.",
+            )
+          }
+          config = { path: opts.webhookPath, method, secret: opts.webhookSecret }
           break
+        }
         case "condition":
           if (!opts.metric) throw new Error("--metric is required for condition triggers")
           config = {

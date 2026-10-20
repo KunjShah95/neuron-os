@@ -82,6 +82,7 @@ import { registerProviders } from "./providers"
 import { registerProfile } from "./profile"
 import { registerBrowser } from "./browser"
 import { registerImageGenerate } from "./image-generate"
+import { registerSpec } from "./spec"
 
 export function registerAllCommands(program: Command) {
   registerDoctor(program)
@@ -167,4 +168,5 @@ export function registerAllCommands(program: Command) {
   registerProfile(program)
   registerBrowser(program)
   registerImageGenerate(program)
+  registerSpec(program)
 }

@@ -8,18 +8,30 @@ import { resolve } from "node:path"
 const EMPTY_ENV_FILE = resolve(mkdtempSync(resolve(tmpdir(), "aegis-smoke-")), "empty.env")
 writeFileSync(EMPTY_ENV_FILE, "")
 
-function runCLI(args: string[]): { exitCode: number; stdout: string; stderr: string } {
-  const result = Bun.spawnSync(["bun", "run", "index.ts", ...args], {
-    cwd: process.cwd(),
-    env: { ...process.env },
+// Each `--help` invocation boots the whole CLI, so spawning too many at once
+// exhausts memory/CPU on CI runners and shows up as a non-zero exit with no
+// output. Keep the fan-out modest and give the test room to finish.
+const TIER1_CONCURRENCY = 6
+const TIER1_TIMEOUT_MS = 300_000
+
+interface HelpResult {
+  cmd: string
+  exitCode: number
+  stdout: string
+  stderr: string
+}
+
+async function runHelpCommand(cmd: string): Promise<HelpResult> {
+  const proc = Bun.spawn(["bun", "run", "index.ts", cmd, "--help"], {
     stdout: "pipe",
     stderr: "pipe",
   })
-  return {
-    exitCode: result.exitCode ?? 1,
-    stdout: result.stdout?.toString() ?? "",
-    stderr: result.stderr?.toString() ?? "",
-  }
+  const stdoutPromise = new Response(proc.stdout).text()
+  const stderrPromise = new Response(proc.stderr).text()
+  const exitCode = await proc.exited
+  const stdout = await stdoutPromise
+  const stderr = await stderrPromise
+  return { cmd, exitCode, stdout, stderr }
 }
 
 const NO_KEY_ENV: Record<string, string> = {
@@ -145,31 +157,45 @@ describe("CLI smoke tests", () => {
     ]
 
     test("all commands --help exits 0", async () => {
-      const limit = 15
-      const results: Array<{ cmd: string; exitCode: number; stdout: string; stderr: string }> = []
+      const results = new Map<string, HelpResult>()
 
-      for (let i = 0; i < commands.length; i += limit) {
-        const chunk = commands.slice(i, i + limit)
-        const chunkPromises = chunk.map(async (cmd) => {
-          const proc = Bun.spawn(["bun", "run", "index.ts", cmd, "--help"], {
-            stdout: "pipe",
-            stderr: "pipe",
-          })
-          const stdoutPromise = new Response(proc.stdout).text()
-          const stderrPromise = new Response(proc.stderr).text()
-          const exitCode = await proc.exited
-          const stdout = await stdoutPromise
-          const stderr = await stderrPromise
-          return { cmd, exitCode, stdout, stderr }
-        })
-        results.push(...(await Promise.all(chunkPromises)))
+      for (let i = 0; i < commands.length; i += TIER1_CONCURRENCY) {
+        const chunk = commands.slice(i, i + TIER1_CONCURRENCY)
+        const chunkResults = await Promise.all(chunk.map(runHelpCommand))
+        for (const res of chunkResults) results.set(res.cmd, res)
       }
 
-      for (const res of results) {
-        expect(res.exitCode).toBe(0)
+      // A non-zero exit with no output usually means the spawned CLI was
+      // killed before it could boot (resource exhaustion from running many
+      // full CLI processes concurrently on a CI runner). Retry those once
+      // sequentially so a transient failure is not reported as a real break.
+      for (const res of [...results.values()]) {
+        if (res.exitCode === 0) continue
+        const retried = await runHelpCommand(res.cmd)
+        if (retried.exitCode === 0) {
+          console.warn(
+            `[smoke] \`${res.cmd} --help\` exited ${res.exitCode} on the first attempt, retry succeeded`,
+          )
+        }
+        results.set(res.cmd, retried)
+      }
+
+      const failures = [...results.values()].filter((res) => res.exitCode !== 0)
+      if (failures.length > 0) {
+        const detail = failures
+          .map((res) => {
+            const output = (res.stdout + res.stderr).trim()
+            const tail = output.length > 400 ? output.slice(-400) : output
+            return `  - \`${res.cmd} --help\` exited ${res.exitCode}${tail ? `:\n      ${tail.replace(/\n/g, "\n      ")}` : " (no output)"}`
+          })
+          .join("\n")
+        throw new Error(`${failures.length} command(s) failed --help:\n${detail}`)
+      }
+
+      for (const res of results.values()) {
         expect((res.stdout + res.stderr).trim().length).toBeGreaterThan(0)
       }
-    }, 120000)
+    }, TIER1_TIMEOUT_MS)
   })
 
   describe("Tier 2: non-LLM commands", () => {

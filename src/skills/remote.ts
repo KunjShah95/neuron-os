@@ -1,5 +1,7 @@
 const SKILLS_SH_API = "https://skills.sh/api"
 
+const FETCH_TIMEOUT_MS = 10_000
+
 export interface RemoteSkill {
   id: string
   name: string
@@ -18,9 +20,26 @@ interface SkillsResponse {
   pageSize: number
 }
 
+const SAFE_SKILL_NAME = /^[A-Za-z0-9_-][A-Za-z0-9._-]{0,63}$/
+
+/**
+ * Whether a remote-supplied skill name is safe to use as a directory name.
+ * Rejects path separators, traversal segments, and control characters.
+ */
+export function isSafeSkillName(name: unknown): name is string {
+  if (typeof name !== "string") return false
+  if (!SAFE_SKILL_NAME.test(name)) return false
+  if (name.includes("..")) return false
+  return true
+}
+
+async function fetchWithTimeout(url: string, init?: RequestInit): Promise<Response> {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
+}
+
 export async function fetchTopSkills(limit = 10): Promise<RemoteSkill[]> {
   try {
-    const res = await fetch(`${SKILLS_SH_API}/skills/top?pageSize=${limit}`)
+    const res = await fetchWithTimeout(`${SKILLS_SH_API}/skills/top?pageSize=${limit}`)
     if (!res.ok) {
       // Silently return empty array for API errors (404, 500, etc.)
       return []
@@ -35,7 +54,7 @@ export async function fetchTopSkills(limit = 10): Promise<RemoteSkill[]> {
 
 export async function searchSkills(query: string, limit = 10): Promise<RemoteSkill[]> {
   try {
-    const res = await fetch(`${SKILLS_SH_API}/skills?query=${encodeURIComponent(query)}&pageSize=${limit}`)
+    const res = await fetchWithTimeout(`${SKILLS_SH_API}/skills?query=${encodeURIComponent(query)}&pageSize=${limit}`)
     if (!res.ok) {
       // Silently return empty array for API errors
       return []
@@ -50,7 +69,7 @@ export async function searchSkills(query: string, limit = 10): Promise<RemoteSki
 
 export async function fetchSkillDetail(id: string): Promise<RemoteSkill | null> {
   try {
-    const res = await fetch(`${SKILLS_SH_API}/skills/${encodeURIComponent(id)}`)
+    const res = await fetchWithTimeout(`${SKILLS_SH_API}/skills/${encodeURIComponent(id)}`)
     if (!res.ok) return null
     const body = (await res.json()) as RemoteSkill
     return body || null
@@ -79,9 +98,9 @@ export function buildSkillMarkdown(skill: RemoteSkill): string {
 
 export async function fetchRegistryStats(): Promise<{ totalSkills: number; totalSources: number } | null> {
   try {
-    const res = await fetch(`${SKILLS_SH_API}/skills/stats`)
+    const res = await fetchWithTimeout(`${SKILLS_SH_API}/skills/stats`)
     if (!res.ok) return null
-    const body = await res.json() as { totalSkills?: number; total?: number; totalSources?: number; sources?: number }
+    const body = (await res.json()) as { totalSkills?: number; total?: number; totalSources?: number; sources?: number }
     return {
       totalSkills: body.totalSkills ?? body.total ?? 0,
       totalSources: body.totalSources ?? body.sources ?? 0,

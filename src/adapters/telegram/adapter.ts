@@ -33,6 +33,12 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
     const now = Date.now()
     for (const [msgId, entry] of approvalCallbacks) {
       if (now - entry.createdAt > TTL_MS) {
+        // Settle the pending approval so the awaiting agent run does not hang forever
+        try {
+          entry.resolve(false)
+        } catch {
+          /* resolver already settled */
+        }
         approvalCallbacks.delete(msgId)
       }
     }
@@ -56,6 +62,13 @@ export function createTelegramAdapter(config: TelegramConfig): PlatformAdapter {
 
     async stop() {
       clearInterval(cleanupInterval)
+      for (const [, entry] of approvalCallbacks) {
+        try {
+          entry.resolve(false)
+        } catch {
+          /* resolver already settled */
+        }
+      }
       approvalCallbacks.clear()
       bot.stop()
       console.log("[telegram] Telegraf bot stopped")

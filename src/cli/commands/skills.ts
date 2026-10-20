@@ -1,5 +1,11 @@
 import { Command } from "commander"
-import { fetchTopSkills, searchSkills, fetchSkillDetail, buildSkillMarkdown } from "../../skills/remote"
+import {
+  fetchTopSkills,
+  searchSkills,
+  fetchSkillDetail,
+  buildSkillMarkdown,
+  isSafeSkillName,
+} from "../../skills/remote"
 import { skillRegistry, startSkillHotReload, type Skill } from "../../skills/registry"
 import { theme } from "../theme"
 import { createLogger } from "../logger"
@@ -13,6 +19,7 @@ import {
   browseHub,
 } from "../../skills/evolution"
 import { detectSources, importSources } from "../../skills/import/index"
+import { resolveSkillDir } from "../../skills/evolution/hub-client"
 import { existsSync, readdirSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
 import { join, resolve, sep } from "node:path"
 import { homedir } from "node:os"
@@ -127,7 +134,14 @@ export function registerSkills(program: Command): void {
         return
       }
 
-      const installDir = join(homedir(), ".aegis", "skills", detail.name)
+      if (!isSafeSkillName(detail.name)) {
+        console.log(`  ${theme.muted(`Refusing to install: marketplace returned an unsafe skill name.`)}\n`)
+        log.warn("Rejected skill with unsafe remote name", { requested: name, received: detail.name })
+        return
+      }
+
+      const skillsBase = resolve(homedir(), ".aegis", "skills")
+      const installDir = resolveSkillDir(skillsBase, detail.name)
       const skillMdPath = join(installDir, "SKILL.md")
 
       mkdirSync(installDir, { recursive: true })

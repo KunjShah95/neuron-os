@@ -8,7 +8,11 @@
  * Usage: bun run scripts/e2e-smoke-test.ts
  */
 
-const BASE_URL = "http://localhost:8091"
+const BASE_URL = "http://127.0.0.1:8091"
+// The API server is default-deny: without an API key every request is
+// rejected with 401. The smoke test therefore starts the server with a
+// throwaway key and sends it as a bearer token on every request.
+const API_KEY = "e2e-smoke-local-key"
 const SERVER_START_TIMEOUT = 45_000 // Max wait for server to start (Bun transpilation)
 const SERVER_POLL_INTERVAL = 500   // Poll health endpoint every 500ms
 const REQUEST_TIMEOUT = 10_000
@@ -35,7 +39,11 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
   try {
-    const response = await fetch(url, { ...options, signal: controller.signal })
+    const headers = {
+      Authorization: `Bearer ${API_KEY}`,
+      ...(options.headers as Record<string, string> | undefined),
+    }
+    const response = await fetch(url, { ...options, headers, signal: controller.signal })
     return response
   } finally {
     clearTimeout(timer)
@@ -45,7 +53,17 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
 async function startServer(): Promise<void> {
   console.log("\n\x1b[1m═══ Starting Server ═══\x1b[0m\n")
 
-  const args = ["run", "index.ts", "serve", "--port", "8091", "--host", "127.0.0.1"]
+  const args = [
+    "run",
+    "index.ts",
+    "serve",
+    "--port",
+    "8091",
+    "--host",
+    "127.0.0.1",
+    "--key",
+    API_KEY,
+  ]
   log("CMD", `bun ${args.join(" ")}`)
 
   serverProc = Bun.spawn(["bun", ...args], {
@@ -68,19 +86,17 @@ async function startServer(): Promise<void> {
 
     if (exited) {
       const exitCode = await serverProc.exited
-      const stderr = serverProc.stderr instanceof ReadableStream ? await new Response(serverProc.stderr).text() : ""
       log("CRASHED", `Server exited with code ${exitCode} during startup`)
-      if (stderr.length > 0) {
-        const truncated = stderr.length > 2000 ? stderr.slice(-2000) : stderr
-        process.stderr.write(truncated + "\n")
-      }
+      await dumpServerOutput()
       serverProc = null
       return
     }
 
     // Try health endpoint
     try {
-      const res = await fetch(`${BASE_URL}/api/v1/health`)
+      const res = await fetch(`${BASE_URL}/api/v1/health`, {
+        headers: { Authorization: `Bearer ${API_KEY}` },
+      })
       if (res.ok) {
         serverReady = true
         break
@@ -93,7 +109,10 @@ async function startServer(): Promise<void> {
   if (!serverReady) {
     log("TIMEOUT", `Server did not start within ${SERVER_START_TIMEOUT / 1000}s`)
     if (serverProc) {
+      // Stop the server first so its output streams reach EOF and can be read.
       serverProc.kill(9)
+      await serverProc.exited
+      await dumpServerOutput()
       serverProc = null
     }
     return
@@ -101,6 +120,22 @@ async function startServer(): Promise<void> {
 
   const elapsed = ((Date.now() - pollStart) / 1000).toFixed(1)
   ok(`Server started (PID ${serverProc.pid}, ${elapsed}s)`)
+}
+
+/** Print the server's stdout/stderr so startup failures are diagnosable. */
+async function dumpServerOutput(): Promise<void> {
+  if (!serverProc) return
+  for (const [name, stream] of [["stdout", serverProc.stdout], ["stderr", serverProc.stderr]] as const) {
+    if (!(stream instanceof ReadableStream)) continue
+    try {
+      const text = await new Response(stream).text()
+      if (text.trim().length === 0) continue
+      const truncated = text.length > 3000 ? text.slice(-3000) : text
+      process.stderr.write(`\n--- server ${name} ---\n${truncated}\n`)
+    } catch {
+      // Stream already consumed or closed — nothing more to report.
+    }
+  }
 }
 
 async function testHealthEndpoint(): Promise<boolean> {

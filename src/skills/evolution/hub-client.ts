@@ -11,12 +11,14 @@
 import { createLogger } from "../../cli/logger"
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs"
 import { join, resolve, sep } from "node:path"
+import { homedir } from "node:os"
+import { isSafeSkillName } from "../remote"
 
 const log = createLogger("hub-client")
 
 const AGENTSKILLS_IO_API = "https://agentskills.io/api"
 
-const SKILL_NAME_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/
+const FETCH_TIMEOUT_MS = 10_000
 
 const PROMPT_INJECTION_MARKERS = [
   "ignore all previous instructions",
@@ -39,7 +41,7 @@ const PROMPT_INJECTION_MARKERS = [
 ]
 
 export function isValidSkillName(name: string): boolean {
-  return typeof name === "string" && SKILL_NAME_PATTERN.test(name)
+  return isSafeSkillName(name)
 }
 
 export function findPromptInjectionMarkers(content: string): string[] {
@@ -60,7 +62,7 @@ export function resolveSkillDir(root: string, name: string): string {
 }
 
 export function untrustedSkillsRoot(): string {
-  return resolve(process.cwd(), ".aegis", "skills-untrusted")
+  return resolve(homedir(), ".aegis", "skills-untrusted")
 }
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -85,9 +87,13 @@ export interface PublishResult {
 
 // ── Browse/search agentskills.io ───────────────────────────────────────
 
+async function fetchWithTimeout(url: string, init?: RequestInit): Promise<Response> {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
+}
+
 export async function browseHub(limit = 20): Promise<HubSkill[]> {
   try {
-    const res = await fetch(`${AGENTSKILLS_IO_API}/skills?pageSize=${limit}`)
+    const res = await fetchWithTimeout(`${AGENTSKILLS_IO_API}/skills?pageSize=${limit}`)
     if (!res.ok) return []
     const body = (await res.json()) as { skills: HubSkill[] }
     return (body.skills || []).slice(0, limit)
@@ -99,7 +105,7 @@ export async function browseHub(limit = 20): Promise<HubSkill[]> {
 
 export async function searchHub(query: string, limit = 10): Promise<HubSkill[]> {
   try {
-    const res = await fetch(`${AGENTSKILLS_IO_API}/skills/search?q=${encodeURIComponent(query)}&pageSize=${limit}`)
+    const res = await fetchWithTimeout(`${AGENTSKILLS_IO_API}/skills/search?q=${encodeURIComponent(query)}&pageSize=${limit}`)
     if (!res.ok) return []
     const body = (await res.json()) as { skills: HubSkill[] }
     return (body.skills || []).slice(0, limit)
@@ -113,7 +119,7 @@ export async function searchHub(query: string, limit = 10): Promise<HubSkill[]> 
 
 export async function getHubSkillDetail(id: string): Promise<HubSkill | null> {
   try {
-    const res = await fetch(`${AGENTSKILLS_IO_API}/skills/${encodeURIComponent(id)}`)
+    const res = await fetchWithTimeout(`${AGENTSKILLS_IO_API}/skills/${encodeURIComponent(id)}`)
     if (!res.ok) return null
     return (await res.json()) as HubSkill
   } catch {
@@ -169,7 +175,7 @@ export async function publishToHub(options: PublishOptions): Promise<PublishResu
       },
     }
 
-    const res = await fetch(`${AGENTSKILLS_IO_API}/skills`, {
+    const res = await fetchWithTimeout(`${AGENTSKILLS_IO_API}/skills`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -219,7 +225,7 @@ export async function installFromHub(id: string, options: HubInstallOptions = {}
       return { success: false, error: `Rejected skill: invalid name "${detail.name}"` }
     }
 
-    const res = await fetch(`${AGENTSKILLS_IO_API}/skills/${encodeURIComponent(id)}/download`)
+    const res = await fetchWithTimeout(`${AGENTSKILLS_IO_API}/skills/${encodeURIComponent(id)}/download`)
     if (!res.ok) {
       return { success: false, error: `Download failed: HTTP ${res.status}` }
     }

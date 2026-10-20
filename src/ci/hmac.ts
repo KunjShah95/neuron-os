@@ -1,13 +1,19 @@
-import { createHash, timingSafeEqual } from "crypto"
+import { createHmac, timingSafeEqual } from "node:crypto"
+
+const ALGORITHM = "sha256"
 
 export function signPayload(payload: string, key: string): string {
-  return createHash("sha256")
-    .update(payload + key)
-    .digest("hex")
+  return createHmac(ALGORITHM, key).update(payload, "utf-8").digest("hex")
+}
+
+export function verifyPayload(payload: string, signature: string, key: string): boolean {
+  if (!key || !signature) return false
+  const expected = Buffer.from(signPayload(payload, key), "utf-8")
+  const provided = Buffer.from(signature, "utf-8")
+  if (expected.length !== provided.length) return false
+  return timingSafeEqual(expected, provided)
 }
 
 export function verifySignature(payload: string, signature: string, key: string): boolean {
-  const expected = signPayload(payload, key)
-  if (expected.length !== signature.length) return false
-  return timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
+  return verifyPayload(payload, signature, key)
 }

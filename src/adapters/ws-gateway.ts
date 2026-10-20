@@ -1,6 +1,7 @@
 import type { Server, ServerWebSocket } from "bun"
 import type { PlatformAdapter, PlatformMessage, PlatformSendOptions } from "./types"
 import { createLogger } from "../cli/logger"
+import { matchesToken, validateRbacApiKey, type ApiKeyValidator } from "./token"
 
 const log = createLogger("ws-gateway")
 
@@ -24,33 +25,65 @@ interface WsServerMessage {
   id?: string
 }
 
+const MAX_CLIENTS = 100
+const MAX_PAYLOAD_LENGTH = 64 * 1024
+const MAX_GOAL_LENGTH = 4000
+
 export class WsGatewayAdapter implements PlatformAdapter {
   readonly name = "ws"
   private server: Server<{ userId: string; subscribedChannels: Set<string> }> | null = null
   private clients = new Map<ServerWebSocket<unknown>, WsClient>()
   private port: number
+  private token: string | null
+  private validateApiKey: ApiKeyValidator
 
   /** External callback for handling incoming messages */
   onMessage?: (msg: PlatformMessage) => Promise<void>
 
-  constructor(port = 8081) {
+  constructor(port = 8081, token?: string, validateApiKey?: ApiKeyValidator) {
     this.port = port
+    this.token = token ?? process.env.AEGIS_WS_TOKEN ?? null
+    this.validateApiKey = validateApiKey ?? validateRbacApiKey
+  }
+
+  private async isAuthorized(token: string | null): Promise<boolean> {
+    if (!token) return false
+    if (this.token) return matchesToken(token, this.token)
+    return this.validateApiKey(token)
   }
 
   async start(): Promise<void> {
     if (this.server) return
 
+    if (!this.token) {
+      log.warn(
+        "WS Gateway has no dedicated AEGIS_WS_TOKEN configured. Clients must present a valid Aegis API key.",
+      )
+    }
+
     this.server = Bun.serve<{ userId: string; subscribedChannels: Set<string> }>({
       port: this.port,
       hostname: "0.0.0.0",
-      fetch: (req, server) => {
+      fetch: async (req, server) => {
         const url = new URL(req.url)
 
         // WebSocket upgrade
         if (url.pathname === "/ws") {
           const token = url.searchParams.get("token")
-          if (!token || !token.startsWith("aegis_")) {
-            return new Response("Unauthorized: valid aegis_ token required", { status: 401 })
+          let authorized = false
+          try {
+            authorized = await this.isAuthorized(token)
+          } catch (err) {
+            log.error(`WS Gateway token validation failed: ${err instanceof Error ? err.message : String(err)}`)
+            return new Response("Unauthorized: token validation unavailable", { status: 503 })
+          }
+
+          if (!authorized) {
+            return new Response("Unauthorized: invalid token", { status: 401 })
+          }
+
+          if (this.clients.size >= MAX_CLIENTS) {
+            return new Response("Too many clients", { status: 503 })
           }
 
           const userId = url.searchParams.get("userId") || "anonymous"
@@ -71,6 +104,7 @@ export class WsGatewayAdapter implements PlatformAdapter {
         return new Response("WS Gateway — use /ws for WebSocket", { status: 200 })
       },
       websocket: {
+        maxPayloadLength: MAX_PAYLOAD_LENGTH,
         open: (ws: ServerWebSocket<{ userId: string; subscribedChannels: Set<string> }>) => {
           const userId = ws.data.userId
           this.clients.set(ws as unknown as ServerWebSocket<unknown>, {
@@ -106,7 +140,14 @@ export class WsGatewayAdapter implements PlatformAdapter {
                 break
 
               case "run_task":
-                if (this.onMessage && msg.goal) {
+                if (this.onMessage && typeof msg.goal === "string" && msg.goal.trim().length > 0) {
+                  if (msg.goal.length > MAX_GOAL_LENGTH) {
+                    ws.send(JSON.stringify({
+                      type: "error",
+                      payload: { message: `Goal too long (max ${MAX_GOAL_LENGTH} characters)` },
+                    } satisfies WsServerMessage))
+                    break
+                  }
                   const platformMsg: PlatformMessage = {
                     id: msg.id || `ws-${Date.now()}`,
                     platform: "ws",

@@ -1,5 +1,6 @@
 import { createLogger } from "../cli/logger"
 import { agentManager } from "../agent/manager"
+import type { AgentEvent } from "../agent/types"
 
 const log = createLogger("ci-investigator")
 
@@ -12,6 +13,40 @@ export interface InvestigationResult {
   error?: string
 }
 
+export interface ParsedFix {
+  fix_branch?: string
+  fix_description?: string
+  diff?: string
+}
+
+/**
+ * Parse the fix markers the CI agent is instructed to print.
+ */
+export function parseFixOutput(output: string): ParsedFix {
+  const fixMatch = output.match(/FIX_DESCRIPTION:\s*(.+)/)
+  const branchMatch = output.match(/FIX_BRANCH:\s*(.+)/)
+  const diffMatch = output.match(/```diff\n([\s\S]*?)```/)
+
+  return {
+    fix_branch: branchMatch?.[1],
+    fix_description: fixMatch?.[1],
+    diff: diffMatch?.[1],
+  }
+}
+
+/**
+ * Pull the task output out of an "agent:result" event payload.
+ * Returns null for handshake/keep-alive results (the agent readiness
+ * message carries no output and must not be treated as a finished task).
+ */
+export function extractAgentResultOutput(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null
+  const record = data as { output?: unknown; payload?: { status?: unknown; output?: unknown } }
+  if (record.payload?.status === "ready") return null
+  const output = record.payload?.output ?? record.output
+  return typeof output === "string" ? output : null
+}
+
 export async function investigate(params: {
   repo: string
   runId: string
@@ -20,50 +55,76 @@ export async function investigate(params: {
   budgetUsd: number
   model?: string
 }): Promise<InvestigationResult> {
-  const agentId = `ci-fix-${params.repo.replace("/", "-")}-${params.runId}`
+  const agentName = `ci-fix-${params.repo.replace("/", "-")}-${params.runId}`
   const startTime = Date.now()
 
   log.info(`Starting CI investigation for ${params.repo} #${params.runId}`)
 
   let resolved = false
+  let resolveResult!: (result: InvestigationResult) => void
+  const buffered: AgentEvent[] = []
+
   const resultPromise = new Promise<InvestigationResult>((resolve) => {
-    const handler = (event: { type: string; agentId: string; data?: unknown }) => {
-      if (event.agentId !== agentId) return
-      if (event.type === "agent:result" && event.data) {
-        resolved = true
-        agentManager.offEvent(handler)
-        const data = event.data as { output?: string }
-        const output = data.output || ""
-        const cost = ((Date.now() - startTime) / 60_000) * 0.003 // rough cost estimate
-
-        // Parse fix description from output
-        const fixMatch = output.match(/FIX_DESCRIPTION:\s*(.+)/)
-        const branchMatch = output.match(/FIX_BRANCH:\s*(.+)/)
-        const diffMatch = output.match(/```diff\n([\s\S]*?)```/)
-
-        resolve({
-          success: !!branchMatch,
-          fix_branch: branchMatch?.[1],
-          fix_description: fixMatch?.[1],
-          diff: diffMatch?.[1],
-          cost_usd: cost,
-        })
-      }
-      if (event.type === "agent:exit" && !resolved) {
-        agentManager.offEvent(handler)
-        resolve({
-          success: false,
-          cost_usd: ((Date.now() - startTime) / 60_000) * 0.003,
-          error: "Agent exited without result",
-        })
-      }
-    }
-    agentManager.onEvent(handler)
+    resolveResult = resolve
   })
 
+  const costSoFar = (): number => ((Date.now() - startTime) / 60_000) * 0.003
+
+  let spawnedId: string | null = null
+
+  const handler = (event: AgentEvent) => {
+    if (!spawnedId) {
+      buffered.push(event)
+      return
+    }
+    if (event.agentId !== spawnedId) return
+
+    if (event.type === "agent:result") {
+      const output = extractAgentResultOutput(event.data)
+      if (output === null) return
+
+      resolved = true
+      agentManager.offEvent(handler)
+      const parsed = parseFixOutput(output)
+
+      resolveResult({
+        success: !!parsed.fix_branch,
+        fix_branch: parsed.fix_branch,
+        fix_description: parsed.fix_description,
+        diff: parsed.diff,
+        cost_usd: costSoFar(),
+      })
+      return
+    }
+
+    if (event.type === "agent:error" && !resolved) {
+      resolved = true
+      agentManager.offEvent(handler)
+      const message = (event.data as { message?: string } | undefined)?.message
+      resolveResult({
+        success: false,
+        cost_usd: costSoFar(),
+        error: message || "Agent reported an error",
+      })
+      return
+    }
+
+    if (event.type === "agent:exit" && !resolved) {
+      resolved = true
+      agentManager.offEvent(handler)
+      resolveResult({
+        success: false,
+        cost_usd: costSoFar(),
+        error: "Agent exited without result",
+      })
+    }
+  }
+
   try {
-    const spawnedId = await agentManager.spawn({
-      name: agentId,
+    agentManager.onEvent(handler)
+
+    const agentId = await agentManager.spawn({
+      name: agentName,
       agentType: "debug",
       script: "src/agent/agent-worker.ts",
       env: {
@@ -75,8 +136,14 @@ export async function investigate(params: {
         AEGIS_MAX_TURNS: "30",
       },
     })
+    spawnedId = agentId
 
-    agentManager.sendIpc(spawnedId, {
+    const pending = buffered.splice(0, buffered.length)
+    for (const event of pending) {
+      handler(event)
+    }
+
+    await agentManager.sendIpc(agentId, {
       type: "run-task",
       id: `ci-fix-${params.runId}`,
       payload: {
@@ -104,8 +171,14 @@ Your job:
       () => {
         if (!resolved) {
           resolved = true
+          agentManager.offEvent(handler)
           agentManager.kill(agentId).catch(() => {})
           log.warn(`CI investigation timed out for ${params.runId}`)
+          resolveResult({
+            success: false,
+            cost_usd: costSoFar(),
+            error: "CI investigation timed out",
+          })
         }
       },
       Math.min(budgetMs, 300_000),
@@ -113,6 +186,14 @@ Your job:
 
     const result = await resultPromise
     clearTimeout(timeout)
+
+    if (spawnedId) {
+      try {
+        await agentManager.kill(spawnedId)
+      } catch {
+        /* agent already gone */
+      }
+    }
 
     if (!result.success) {
       log.warn(`CI investigation failed for ${params.runId}: ${result.error}`)
@@ -123,12 +204,14 @@ Your job:
     return result
   } catch (err) {
     log.warn(`CI investigation error: ${err}`)
+    agentManager.offEvent(handler)
     if (!resolved) {
       resolved = true
       try {
-        await agentManager.kill(agentId)
+        if (spawnedId) await agentManager.kill(spawnedId)
       } catch {}
+      resolveResult({ success: false, cost_usd: costSoFar(), error: String(err) })
     }
-    return { success: false, cost_usd: ((Date.now() - startTime) / 60_000) * 0.003, error: String(err) }
+    return { success: false, cost_usd: costSoFar(), error: String(err) }
   }
 }

@@ -12,11 +12,18 @@ interface WsClient {
   id: string
   subscribed: boolean
   connectedAt: number
+  lastSeen: number
 }
 
 const wsClients = new Map<string, WsClient>()
 let wsIdCounter = 0
 let unsubWsRef: (() => void) | null = null
+
+const WS_MAX_CLIENTS = 100
+const WS_MAX_PAYLOAD_LENGTH = 64 * 1024
+const WS_HEARTBEAT_INTERVAL_MS = 30_000
+const WS_CLIENT_TIMEOUT_MS = 90_000
+let wsHeartbeatTimer: ReturnType<typeof setInterval> | null = null
 
 interface WsHealthStats {
   totalConnections: number
@@ -121,6 +128,35 @@ export function stopWsEventBridge(): void {
 
 export function clearWsClients(): void {
   wsClients.clear()
+  if (wsHeartbeatTimer) {
+    clearInterval(wsHeartbeatTimer)
+    wsHeartbeatTimer = null
+  }
+}
+
+function startWsHeartbeat(): void {
+  if (wsHeartbeatTimer) return
+  wsHeartbeatTimer = setInterval(() => {
+    const now = Date.now()
+    for (const [id, client] of wsClients) {
+      if (now - client.lastSeen > WS_CLIENT_TIMEOUT_MS) {
+        log.warn("WebSocket client timed out, closing", { clientId: id })
+        try {
+          client.socket.close(1001, "client timeout")
+        } catch {
+          /* socket already gone */
+        }
+        wsClients.delete(id)
+        continue
+      }
+      try {
+        client.socket.ping()
+      } catch {
+        wsClients.delete(id)
+      }
+    }
+  }, WS_HEARTBEAT_INTERVAL_MS)
+  wsHeartbeatTimer.unref()
 }
 
 interface InboundWsMessage {
@@ -133,13 +169,27 @@ interface InboundWsMessage {
 
 export function createWebSocketHandlers() {
   return {
+    maxPayloadLength: WS_MAX_PAYLOAD_LENGTH,
+
     async open(ws: import("bun").ServerWebSocket<undefined>) {
+      if (wsClients.size >= WS_MAX_CLIENTS) {
+        log.warn("WebSocket client limit reached, closing connection", { limit: WS_MAX_CLIENTS })
+        try {
+          ws.close(1013, "too many clients")
+        } catch {
+          /* socket already gone */
+        }
+        return
+      }
+
       const id = `ws-${++wsIdCounter}`
-      wsClients.set(id, { socket: ws, id, subscribed: true, connectedAt: Date.now() })
+      wsClients.set(id, { socket: ws, id, subscribed: true, connectedAt: Date.now(), lastSeen: Date.now() })
 
       wsHealth.totalConnections++
       wsHealth.lastConnectionAt = Date.now()
       wsHealth.peakConcurrent = Math.max(wsHealth.peakConcurrent, wsClients.size)
+
+      startWsHeartbeat()
 
       log.info("WebSocket client connected", {
         clientId: id,
@@ -152,6 +202,13 @@ export function createWebSocketHandlers() {
     },
 
     message(ws: import("bun").ServerWebSocket<undefined>, message: string | Buffer) {
+      const now = Date.now()
+      for (const [, client] of wsClients) {
+        if (client.socket === ws) {
+          client.lastSeen = now
+          break
+        }
+      }
       try {
         const parsed = JSON.parse(message.toString()) as InboundWsMessage
         if (parsed.type === "ping") {
@@ -195,6 +252,16 @@ export function createWebSocketHandlers() {
         if (client.socket === ws) {
           wsClients.delete(id)
           log.info("WebSocket client disconnected", { clientId: id })
+          break
+        }
+      }
+    },
+
+    pong(ws: import("bun").ServerWebSocket<undefined>) {
+      const now = Date.now()
+      for (const [, client] of wsClients) {
+        if (client.socket === ws) {
+          client.lastSeen = now
           break
         }
       }

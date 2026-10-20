@@ -20,6 +20,7 @@ import { resolveApiKey } from "../ai/provider"
 import { getDefaultModel, type AIProviderType } from "../ai/models"
 import { AgentToolExecutor } from "../agent/agent-tools"
 import { ActionTracker } from "../agent/action-tracker"
+import { createStagedTools, toSdkTools } from "../agent/staged-tools"
 import { RatchetRuntime } from "../agent/ratchet"
 
 export interface ResearchConfig {
@@ -66,6 +67,13 @@ export async function runResearchLoop(
     allowShellExecution: true,
   })
   const cwd = config.workspacePath || process.cwd()
+
+  const stagedTools = createStagedTools(executor, cwd)
+  const sdkTools = toSdkTools(stagedTools, {
+    agentId: "research-mode",
+    cwd,
+    permissions: [],
+  })
 
   const ratchet = new RatchetRuntime()
 
@@ -130,6 +138,7 @@ export async function runResearchLoop(
         prompt: explorationPrompt,
         system: "You are a research scientist iterating on a codebase. Propose precise, testable changes.",
         temperature: 0.8,
+        tools: sdkTools,
       })
 
       const approach = exploration.text || "(no proposal)"
@@ -150,6 +159,7 @@ export async function runResearchLoop(
         stopWhen: stepCountIs(15),
         prompt: execPrompt,
         temperature: 0.3,
+        tools: sdkTools,
       })
 
       // Phase 3: Apply staged changes and measure

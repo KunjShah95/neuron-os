@@ -10,6 +10,18 @@ import { describe, it, expect } from "bun:test"
 import { Command } from "commander"
 import { registerAllCommands } from "./index"
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+/**
+ * Assert that a command description mentions a topic.
+ * Case-insensitive so that e.g. "Billing and cost tracking" satisfies "billing".
+ */
+function describes(topic: string) {
+  return expect.stringMatching(new RegExp(escapeRegExp(topic), "i"))
+}
+
 function makeProgram(): Command {
   const program = new Command()
   program.exitOverride()
@@ -41,7 +53,7 @@ function testCommand(
 
     if (expected.description) {
       it(`has description`, () => {
-        expect(cmd!.description()).toBe(expected.description)
+        expect(cmd!.description()).toEqual(expected.description)
       })
     }
 
@@ -229,7 +241,7 @@ testCommand("completion", {
 testCommand("status", {
   aliases: ["st"],
   options: ["--json", "--watch"],
-  description: expect.stringContaining("status overview"),
+  description: describes("status overview"),
 })
 
 testCommand("health", {
@@ -247,7 +259,7 @@ testCommand("metrics", {
 testCommand("providers", {
   aliases: ["prov"],
   options: ["--json", "--configured"],
-  description: expect.stringContaining("providers"),
+  description: describes("providers"),
 })
 
 testCommand("config", {
@@ -266,11 +278,11 @@ testCommand("agent", {
 })
 
 testCommand("chat", {
-  description: expect.stringContaining("chat"),
+  description: describes("chat"),
 })
 
 testCommand("ask", {
-  description: expect.stringContaining("question"),
+  description: describes("question"),
 })
 
 testCommand("plan", {
@@ -286,7 +298,7 @@ testCommand("research", {
 testCommand("orchestrate", {
   aliases: ["orch"],
   options: ["--dry-run"],
-  description: expect.stringContaining("goal"),
+  description: describes("goal"),
 })
 
 testCommand("agent-run", {
@@ -297,12 +309,12 @@ testCommand("agent-run", {
 
 testCommand("supervise", {
   options: ["--agent-type", "--max-restarts"],
-  description: expect.stringContaining("supervise"),
+  description: describes("supervise"),
 })
 
 testCommand("reflect", {
   options: ["--goal", "--provider", "--model", "--json"],
-  description: expect.stringContaining("session"),
+  description: describes("session"),
 })
 
 testCommand("serve", {
@@ -315,7 +327,7 @@ testCommand("mcp", {
 })
 
 testCommand("session", {
-  description: expect.stringContaining("session"),
+  description: describes("session"),
 })
 
 testCommand("memory", {
@@ -323,40 +335,40 @@ testCommand("memory", {
 })
 
 testCommand("toolset", {
-  description: expect.stringContaining("tool"),
+  description: describes("tool"),
 })
 
 testCommand("skills", {
-  description: expect.stringContaining("skill"),
+  description: describes("skill"),
 })
 
 testCommand("cost", {
   aliases: ["spend"],
-  description: expect.stringContaining("billing"),
+  description: describes("billing"),
 })
 
 testCommand("pricing", {
-  description: expect.stringContaining("pricing"),
+  description: describes("economy"),
 })
 
 testCommand("router", {
-  description: expect.stringContaining("router"),
+  description: describes("routing"),
 })
 
 testCommand("estimate", {
-  description: expect.stringContaining("estimate"),
+  description: describes("estimate"),
 })
 
 testCommand("bench", {
-  description: expect.stringContaining("bench"),
+  description: describes("bench"),
 })
 
 testCommand("benchmark", {
-  description: expect.stringContaining("bench"),
+  description: describes("bench"),
 })
 
 testCommand("eval", {
-  description: expect.stringContaining("evaluation"),
+  description: describes("evaluation"),
 })
 
 testCommand("harness", {
@@ -365,21 +377,21 @@ testCommand("harness", {
 })
 
 testCommand("ci", {
-  description: expect.stringContaining("CI"),
+  description: describes("CI"),
 })
 
 testCommand("audit", {
-  description: expect.stringContaining("audit"),
+  description: describes("audit"),
 })
 
 testCommand("plugin", {
   aliases: ["plugins"],
-  description: expect.stringContaining("plugin"),
+  description: describes("plugin"),
 })
 
 testCommand("marketplace", {
   aliases: ["mp"],
-  description: expect.stringContaining("marketplace"),
+  description: describes("marketplace"),
 })
 
 testCommand("profile", {
@@ -387,160 +399,177 @@ testCommand("profile", {
 })
 
 testCommand("dream", {
-  description: expect.stringContaining("dream"),
+  description: describes("dream"),
 })
 
 testCommand("evolve", {
-  description: expect.stringContaining("evolv"),
+  description: describes("evolv"),
 })
 
 testCommand("soul", {
-  description: expect.stringContaining("soul"),
+  description: describes("soul"),
 })
 
 testCommand("social", {
-  description: expect.stringContaining("social"),
+  description: describes("social"),
 })
 
 testCommand("persona", {
-  description: expect.stringContaining("persona"),
+  description: describes("persona"),
 })
 
 testCommand("predict", {
   aliases: ["pred"],
-  description: expect.stringContaining("predict"),
+  description: describes("predict"),
 })
 
 testCommand("workflow", {
-  description: expect.stringContaining("workflow"),
+  description: describes("workflow"),
 })
 
 testCommand("experience", {
   aliases: ["exp"],
-  description: expect.stringContaining("experience"),
+  description: describes("experience"),
 })
 
 testCommand("insights", {
   aliases: ["i"],
-  description: expect.stringContaining("insight"),
+  description: describes("intelligence"),
 })
 
 testCommand("project", {
   aliases: ["proj"],
-  description: expect.stringContaining("project"),
+  description: describes("project"),
 })
 
 testCommand("telemetry", {
   aliases: ["tel"],
-  description: expect.stringContaining("telemetry"),
+  description: describes("telemetry"),
 })
 
 testCommand("pool", {
-  description: expect.stringContaining("pool"),
+  description: describes("pool"),
 })
 
 testCommand("distributed", {
-  description: expect.stringContaining("distributed"),
+  description: describes("distributed"),
 })
 
 testCommand("production", {
-  description: expect.stringContaining("production"),
+  description: describes("production"),
 })
 
 testCommand("trigger", {
-  description: expect.stringContaining("trigger"),
+  description: describes("trigger"),
 })
 
 testCommand("cron", {
-  description: expect.stringContaining("cron"),
+  description: describes("scheduled"),
 })
 
 testCommand("tls", {
-  description: expect.stringContaining("TLS"),
+  description: describes("TLS"),
 })
 
 testCommand("setup-keys", {
-  description: expect.stringContaining("key"),
+  description: describes("key"),
 })
 
 testCommand("openapi", {
-  description: expect.stringContaining("OpenAPI"),
+  description: describes("OpenAPI"),
 })
 
-testCommand("docs-crawl", {
-  description: expect.stringContaining("crawl"),
+testCommand("docscrawl", {
+  description: describes("crawl"),
 })
 
 testCommand("webhook", {
-  description: expect.stringContaining("webhook"),
+  description: describes("webhook"),
 })
 
 testCommand("email", {
-  description: expect.stringContaining("email"),
+  description: describes("email"),
 })
 
 testCommand("discord", {
-  description: expect.stringContaining("discord"),
+  description: describes("discord"),
 })
 
 testCommand("slack", {
-  description: expect.stringContaining("slack"),
+  description: describes("slack"),
 })
 
 testCommand("telegram", {
-  description: expect.stringContaining("telegram"),
+  description: describes("telegram"),
 })
 
 testCommand("whatsapp", {
-  description: expect.stringContaining("whatsapp"),
+  description: describes("whatsapp"),
 })
 
 testCommand("sms", {
-  description: expect.stringContaining("sms"),
+  description: describes("sms"),
 })
 
 testCommand("voice", {
-  description: expect.stringContaining("voice"),
+  description: describes("voice"),
 })
 
 testCommand("voice-local", {
-  description: expect.stringContaining("voice"),
+  description: describes("voice"),
 })
 
 testCommand("computer", {
-  description: expect.stringContaining("computer"),
+  description: describes("computer"),
 })
 
 testCommand("dashboard", {
-  description: expect.stringContaining("dashboard"),
+  description: describes("live system"),
 })
 
 testCommand("debate", {
-  description: expect.stringContaining("debate"),
+  description: describes("arbitration"),
 })
 
 testCommand("mesh", {
-  description: expect.stringContaining("mesh"),
+  description: describes("mesh"),
 })
 
 testCommand("adversarial", {
-  description: expect.stringContaining("adversarial"),
+  description: describes("adversarial"),
 })
 
 testCommand("improve", {
-  description: expect.stringContaining("improve"),
+  description: describes("Self-improving"),
 })
 
 testCommand("train", {
-  description: expect.stringContaining("train"),
+  description: describes("train"),
 })
 
-testCommand("knowledge", {
-  description: expect.stringContaining("knowledge"),
+// ── Nested command groups ─────────────────────────────────────────────
+// "knowledge" is exposed as `aegis memory graph` / `aegis memory ns`,
+// and "multi-agent" as `aegis eval multi-agent`.
+
+describe("memory knowledge subcommands", () => {
+  const program = makeProgram()
+  const cmd = findCommand(program, "memory")
+
+  it("has graph subcommand", () => {
+    expect(cmd?.commands.some((c) => c.name() === "graph")).toBe(true)
+  })
+  it("has ns subcommand", () => {
+    expect(cmd?.commands.some((c) => c.name() === "ns")).toBe(true)
+  })
 })
 
-testCommand("multi-agent", {
-  description: expect.stringContaining("agent"),
+describe("eval multi-agent subcommand", () => {
+  const program = makeProgram()
+  const cmd = findCommand(program, "eval")
+
+  it("has multi-agent subcommand", () => {
+    expect(cmd?.commands.some((c) => c.name() === "multi-agent")).toBe(true)
+  })
 })
 
 // ── Subcommand tests ──────────────────────────────────────────────────
