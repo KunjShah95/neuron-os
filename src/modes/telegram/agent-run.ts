@@ -39,12 +39,12 @@ function readOnlyTools(executor: AgentToolExecutor) {
   return {
     read_file: {
       description: "Read a workspace file (relative path).",
-      parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: ["path"] }),
+      inputSchema: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: ["path"] }),
       execute: async (args: Record<string, unknown>) => executor.readFile(args.path as string),
     },
     list_files: {
       description: "List files/dirs at a path.",
-      parameters: jsonSchema({
+      inputSchema: jsonSchema({
         type: "object",
         properties: { path: { type: "string" }, recursive: { type: "boolean" } },
         required: ["path"],
@@ -53,7 +53,7 @@ function readOnlyTools(executor: AgentToolExecutor) {
     },
     search_files: {
       description: "Find files matching a glob pattern; optional content filter.",
-      parameters: jsonSchema({
+      inputSchema: jsonSchema({
         type: "object",
         properties: { root: { type: "string" }, pattern: { type: "string" }, content_contains: { type: "string" } },
         required: ["root", "pattern"],
@@ -62,7 +62,7 @@ function readOnlyTools(executor: AgentToolExecutor) {
     },
     analyze_codebase: {
       description: "Summarize the codebase structure.",
-      parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: [] }),
+      inputSchema: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: [] }),
       execute: async (args: Record<string, unknown>) => executor.analyzeCodebase((args.path as string) || "."),
     },
   }
@@ -72,12 +72,12 @@ function fileTools(executor: AgentToolExecutor) {
   return {
     read_file: {
       description: "Read a workspace file (relative path).",
-      parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: ["path"] }),
+      inputSchema: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: ["path"] }),
       execute: async (args: Record<string, unknown>) => executor.readFile(args.path as string),
     },
     create_file: {
       description: "Stage creation of a new file (not written until approval).",
-      parameters: jsonSchema({
+      inputSchema: jsonSchema({
         type: "object",
         properties: { path: { type: "string" }, content: { type: "string" } },
         required: ["path", "content"],
@@ -86,7 +86,7 @@ function fileTools(executor: AgentToolExecutor) {
     },
     modify_file: {
       description: "Stage a full-file replacement for an existing file (pending approval).",
-      parameters: jsonSchema({
+      inputSchema: jsonSchema({
         type: "object",
         properties: {
           path: { type: "string" },
@@ -98,12 +98,12 @@ function fileTools(executor: AgentToolExecutor) {
     },
     delete_file: {
       description: "Stage deletion of a file (pending approval).",
-      parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: ["path"] }),
+      inputSchema: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: ["path"] }),
       execute: async (args: Record<string, unknown>) => executor.deleteFile(args.path as string),
     },
     list_files: {
       description: "List files/dirs at a path.",
-      parameters: jsonSchema({
+      inputSchema: jsonSchema({
         type: "object",
         properties: { path: { type: "string" }, recursive: { type: "boolean" } },
         required: ["path"],
@@ -112,7 +112,7 @@ function fileTools(executor: AgentToolExecutor) {
     },
     search_files: {
       description: "Find files matching a glob pattern; optional content filter.",
-      parameters: jsonSchema({
+      inputSchema: jsonSchema({
         type: "object",
         properties: { root: { type: "string" }, pattern: { type: "string" }, content_contains: { type: "string" } },
         required: ["root", "pattern"],
@@ -121,7 +121,7 @@ function fileTools(executor: AgentToolExecutor) {
     },
     analyze_codebase: {
       description: "Summarize the codebase structure.",
-      parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: [] }),
+      inputSchema: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: [] }),
       execute: async (args: Record<string, unknown>) => executor.analyzeCodebase((args.path as string) || "."),
     },
   }

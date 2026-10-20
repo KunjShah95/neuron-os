@@ -25,7 +25,7 @@ export function createWebTools(tracker: ActionTracker) {
   return {
     web_search: {
       description: "Search the web. Returns title/url/snippet list.",
-      parameters: jsonSchema({
+      inputSchema: jsonSchema({
         type: "object",
         properties: {
           query: { type: "string", description: "Search query" },
@@ -55,7 +55,7 @@ export function createWebTools(tracker: ActionTracker) {
     },
     web_crawl: {
       description: "Scrape a URL into markdown text.",
-      parameters: jsonSchema({
+      inputSchema: jsonSchema({
         type: "object",
         properties: { url: { type: "string", description: "URL to scrape" } },
         required: ["url"],
@@ -73,7 +73,7 @@ export function createWebTools(tracker: ActionTracker) {
     },
     fetch_url: {
       description: "HTTP GET for a URL. Returns response body.",
-      parameters: jsonSchema({
+      inputSchema: jsonSchema({
         type: "object",
         properties: { url: { type: "string", description: "URL to fetch" } },
         required: ["url"],

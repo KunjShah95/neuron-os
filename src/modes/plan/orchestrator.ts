@@ -19,7 +19,7 @@ import { renderTerminalMarkdown } from "../../tui/terminal-md"
 
 type PlanTool = {
   description: string
-  parameters: ReturnType<typeof jsonSchema>
+  inputSchema: ReturnType<typeof jsonSchema>
   execute: (args: Record<string, unknown>) => Promise<string>
 }
 
@@ -65,12 +65,12 @@ export async function runPlanModeInteractive(): Promise<void> {
   const tools: Record<string, PlanTool> = {
     read_file: {
       description: "Read a workspace file (relative path).",
-      parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: ["path"] }),
+      inputSchema: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: ["path"] }),
       execute: async (args) => executor.readFile(args["path"] as string),
     },
     create_file: {
       description: "Stage creation of a new file (not written until approval).",
-      parameters: jsonSchema({
+      inputSchema: jsonSchema({
         type: "object",
         properties: { path: { type: "string" }, content: { type: "string" } },
         required: ["path", "content"],
@@ -79,7 +79,7 @@ export async function runPlanModeInteractive(): Promise<void> {
     },
     modify_file: {
       description: "Stage a full-file replacement (pending approval).",
-      parameters: jsonSchema({
+      inputSchema: jsonSchema({
         type: "object",
         properties: {
           path: { type: "string" },
@@ -91,12 +91,12 @@ export async function runPlanModeInteractive(): Promise<void> {
     },
     delete_file: {
       description: "Stage deletion of a file (pending approval).",
-      parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: ["path"] }),
+      inputSchema: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: ["path"] }),
       execute: async (args) => executor.deleteFile(args["path"] as string),
     },
     list_files: {
       description: "List files/dirs at a path.",
-      parameters: jsonSchema({
+      inputSchema: jsonSchema({
         type: "object",
         properties: { path: { type: "string" }, recursive: { type: "boolean" } },
         required: ["path"],
@@ -105,7 +105,7 @@ export async function runPlanModeInteractive(): Promise<void> {
     },
     search_files: {
       description: "Find files matching a glob pattern.",
-      parameters: jsonSchema({
+      inputSchema: jsonSchema({
         type: "object",
         properties: { root: { type: "string" }, pattern: { type: "string" }, content_contains: { type: "string" } },
         required: ["root", "pattern"],
@@ -114,7 +114,7 @@ export async function runPlanModeInteractive(): Promise<void> {
     },
     analyze_codebase: {
       description: "Summarize the codebase structure.",
-      parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: [] }),
+      inputSchema: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: [] }),
       execute: async (args) => executor.analyzeCodebase((args["path"] as string | undefined) ?? "."),
     },
     ...(process.env.FIRECRAWL_API_KEY ? createWebTools(tracker) : {}),

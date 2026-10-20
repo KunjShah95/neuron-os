@@ -670,7 +670,7 @@ export class AgentEngine {
 
       ;(tools as Record<string, unknown>)[toolName] = {
         description: t.description,
-        parameters: jsonSchema(schema),
+        inputSchema: jsonSchema(schema),
         execute: async (args: Record<string, unknown>) => {
           const toolCtx: ToolContext = {
             agentId: this.runtime.context.agentId,

@@ -17,7 +17,7 @@ import type { Plan, PlanStep } from "./types"
 
 type PlanTool = {
   description: string
-  parameters: ReturnType<typeof jsonSchema>
+  inputSchema: ReturnType<typeof jsonSchema>
   execute: (args: Record<string, unknown>) => Promise<string>
 }
 
@@ -81,7 +81,7 @@ export async function generatePlan(goal: string): Promise<Plan> {
   const tools: Record<string, PlanTool> = {
     read_file: {
       description: "Read a text file from the workspace. Use a path relative to the project root.",
-      parameters: jsonSchema({
+      inputSchema: jsonSchema({
         type: "object",
         properties: { path: { type: "string", description: "Relative file path" } },
         required: ["path"],
@@ -90,7 +90,7 @@ export async function generatePlan(goal: string): Promise<Plan> {
     },
     list_files: {
       description: "List files and directories under a path.",
-      parameters: jsonSchema({
+      inputSchema: jsonSchema({
         type: "object",
         properties: { path: { type: "string" }, recursive: { type: "boolean" } },
         required: ["path"],
@@ -99,7 +99,7 @@ export async function generatePlan(goal: string): Promise<Plan> {
     },
     search_files: {
       description: 'Find files matching a glob pattern (e.g. "*.ts", "**/*.md"). Optional content substring filter.',
-      parameters: jsonSchema({
+      inputSchema: jsonSchema({
         type: "object",
         properties: {
           root: { type: "string", description: "Directory to search" },
@@ -112,17 +112,17 @@ export async function generatePlan(goal: string): Promise<Plan> {
     },
     analyze_codebase: {
       description: "Summarize structure: file counts, size, extensions. Read-only.",
-      parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: [] }),
+      inputSchema: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: [] }),
       execute: async (args) => executor.analyzeCodebase((args["path"] as string | undefined) ?? "."),
     },
     list_skills: {
       description: "List absolute paths to SKILL.md files under configured skill directories.",
-      parameters: jsonSchema({ type: "object", properties: {} }),
+      inputSchema: jsonSchema({ type: "object", properties: {} }),
       execute: async () => executor.listSkills(),
     },
     read_skill: {
       description: "Read a SKILL.md file. Path must be absolute and under skill roots.",
-      parameters: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: ["path"] }),
+      inputSchema: jsonSchema({ type: "object", properties: { path: { type: "string" } }, required: ["path"] }),
       execute: async (args) => executor.readSkill(args["path"] as string),
     },
     ...(hasWeb ? createWebTools(tracker) : {}),
