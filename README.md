@@ -143,6 +143,10 @@ Run `aegis <command> --help` for detailed usage on any command.
 
 | Command | Description |
 |---------|-------------|
+| `aegis spec validate <file>` | Validate a declarative agent spec (YAML) against the schema |
+| `aegis spec run <file> --goal <goal>` | Run a declarative agent spec with its model, tools, budget and memory namespace |
+| `aegis spec replay <sessionId>` | Replay a recorded spec run and verify the spec hash still matches |
+| `aegis spec list` | List recorded spec runs |
 | `aegis dream run` | Trigger 6-phase dream cycle (replay → pattern → compress → counterfactual → social → mood) |
 | `aegis dream insights` | Show generated insights from last dream cycle |
 | `aegis evolve run` | Propose and apply code mutations verified by tests |
