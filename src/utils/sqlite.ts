@@ -73,15 +73,16 @@ function setFilePragma(db: Database, name: string, value: string): void {
 const BUSY_TIMEOUT_MS = 10_000
 
 export function applyPragmas(db: Database, options: OpenDatabaseOptions = {}): void {
-  // Start without waiting for locks so the journal-mode conversion fails
-  // fast when another process already holds the database.
+  // Start without waiting for locks so the pragmas that touch the database
+  // header fail fast when another process already holds the database.
   setFilePragma(db, "busy_timeout", "0")
   // Converting the journal mode needs an exclusive lock that another process
   // may already hold.
   setFilePragma(db, "journal_mode", "WAL")
-  // Wait for locks rather than failing immediately on the caller's statements.
-  setFilePragma(db, "busy_timeout", String(BUSY_TIMEOUT_MS))
   setFilePragma(db, "synchronous", "NORMAL")
+  // From here on, wait for locks rather than failing immediately on the
+  // caller's statements.
+  setFilePragma(db, "busy_timeout", String(BUSY_TIMEOUT_MS))
   if (options.foreignKeys !== false) {
     db.exec("PRAGMA foreign_keys = ON")
   }
