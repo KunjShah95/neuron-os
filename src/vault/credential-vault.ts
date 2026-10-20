@@ -1,8 +1,8 @@
 import { Database } from "bun:sqlite"
 import { randomBytes, scryptSync, createCipheriv, createDecipheriv, createHmac, timingSafeEqual } from "node:crypto"
 import { join, resolve } from "node:path"
-import { existsSync, mkdirSync } from "node:fs"
 import { createLogger } from "../cli/logger"
+import { openDatabase } from "../utils/sqlite"
 
 const log = createLogger("vault:credential")
 const ALGORITHM = "aes-256-gcm"
@@ -40,11 +40,7 @@ export class CredentialVault {
     const homeDir = process.env.HOME || process.env.USERPROFILE || "~"
     const defaultDbPath = join(resolve(homeDir, ".aegis"), "vault.db")
     const dbPath = dbPathOverride || defaultDbPath
-    const dir = join(dbPath, "..")
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-
-    this.db = new Database(dbPath)
-    this.db.exec("PRAGMA journal_mode = WAL")
+    this.db = openDatabase(dbPath)
 
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS vault_config (

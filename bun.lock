@@ -26,6 +26,7 @@
         "marked": "^18.0.4",
         "marked-terminal": "^7.3.0",
         "matrix-js-sdk": "^41.7.0-rc.3",
+        "minimatch": "^10.2.5",
         "nodemailer": "^8.0.10",
         "picocolors": "^1.1.1",
         "playwright": "^1.60.0",

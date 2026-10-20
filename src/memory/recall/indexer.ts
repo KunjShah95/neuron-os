@@ -60,15 +60,29 @@ export class FTS5Indexer {
     }
   }
 
-  /** Index a batch of turns (for backfill) */
-  indexBatch(turns: IndexTurn[]): void {
-    const tx = this.db?.transaction(() => {
-      for (const turn of turns) {
-        this.indexTurn(turn)
-      }
-    })
-    if (tx) tx()
-    log.info(`Indexed ${turns.length} turns in batch`)
+  /** Index a batch of turns (for backfill). Returns the number of turns accepted. */
+  indexBatch(turns: IndexTurn[]): number {
+    if (turns.length === 0) return 0
+
+    const db = this.db
+    if (!db) {
+      log.warn("No database set — skipping batch", { turns: turns.length })
+      return 0
+    }
+
+    try {
+      const tx = db.transaction(() => {
+        for (const turn of turns) {
+          this.indexTurn(turn)
+        }
+      })
+      tx()
+      log.info(`Indexed ${turns.length} turns in batch`)
+      return turns.length
+    } catch (err) {
+      log.error("Failed to index batch", { error: String(err), turns: turns.length })
+      return 0
+    }
   }
 
   /** Get total indexed turn count */

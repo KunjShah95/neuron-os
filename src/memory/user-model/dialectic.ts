@@ -10,19 +10,28 @@
  */
 
 import { createLogger } from "../../cli/logger"
-import { readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs"
-import { join, resolve } from "node:path"
+import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync, statSync } from "node:fs"
+import { join, resolve, dirname } from "node:path"
 import { EMPTY_USER_MODEL } from "./types"
 import type { UserModel, DialecticProposal, AuditEntry } from "./types"
 
 const log = createLogger("dialectic")
 
+function sleepSync(ms: number): void {
+  const shared = new Int32Array(new SharedArrayBuffer(4))
+  Atomics.wait(shared, 0, 0, ms)
+}
+
 export class DialecticEngine {
   private modelPath: string
   private lockPath: string
   private model: UserModel
+  private locked = false
 
-  constructor(baseDir = resolve(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "memory")) {
+  constructor(
+    baseDir = resolve(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "memory"),
+    private lockTimeoutMs = 5000,
+  ) {
     this.modelPath = join(baseDir, "user_model.json")
     this.lockPath = join(baseDir, ".user_model.lock")
     this.model = this.load()
@@ -43,7 +52,10 @@ export class DialecticEngine {
 
   save(): void {
     try {
-      this.acquireLock()
+      if (!this.acquireLock()) {
+        log.error("Could not acquire user model lock — skipping save")
+        return
+      }
       this.model.updated_at = Date.now()
       this.model.version++
       writeFileSync(this.modelPath, JSON.stringify(this.model, null, 2), "utf-8")
@@ -60,22 +72,42 @@ export class DialecticEngine {
 
   // ── Simple file-based mutex ──────────────────────────────────────────
 
-  private acquireLock(): void {
-    // Use a simple mutex approach: check if lock exists, wait if needed
-    const maxWait = 5000
+  private acquireLock(): boolean {
+    const maxWait = this.lockTimeoutMs
     const start = Date.now()
+    try {
+      mkdirSync(dirname(this.lockPath), { recursive: true })
+    } catch {
+      // Directory may already exist or be unwritable
+    }
     while (Date.now() - start < maxWait) {
       try {
         writeFileSync(this.lockPath, String(process.pid), { flag: "wx" })
-        return
+        this.locked = true
+        return true
       } catch {
-        // Lock exists, wait and retry
+        if (this.breakStaleLock()) continue
+        sleepSync(25)
       }
     }
     log.warn("Could not acquire user model lock — proceeding anyway")
+    return false
+  }
+
+  private breakStaleLock(): boolean {
+    try {
+      const stat = statSync(this.lockPath)
+      if (Date.now() - stat.mtimeMs <= this.lockTimeoutMs * 2) return false
+      unlinkSync(this.lockPath)
+      return true
+    } catch {
+      return false
+    }
   }
 
   private releaseLock(): void {
+    if (!this.locked) return
+    this.locked = false
     try {
       unlinkSync(this.lockPath)
     } catch {
@@ -200,7 +232,9 @@ export class DialecticEngine {
    * Reset the user model entirely.
    */
   reset(): void {
-    this.model = { ...EMPTY_USER_MODEL, version: this.model.version + 1 }
+    const version = this.model.version + 1
+    this.model = structuredClone(EMPTY_USER_MODEL)
+    this.model.version = version
     this.save()
     log.info("User model reset")
   }

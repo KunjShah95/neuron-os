@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite"
-import { resolve, dirname } from "node:path"
-import { mkdirSync, existsSync } from "node:fs"
+import { resolve } from "node:path"
+import { openDatabase } from "../utils/sqlite"
 import type {
   AgentConfig,
   AgentRow,
@@ -49,13 +49,7 @@ export class MarketplaceRegistry {
         "marketplace",
         "registry.db",
       )
-    const dir = dirname(path)
-    if (!existsSync(dir)) {
-      mkdirSync(dir, { recursive: true })
-    }
-    this.db = new Database(path, { create: true })
-    this.db.exec("PRAGMA journal_mode=WAL")
-    this.db.exec("PRAGMA synchronous=NORMAL")
+    this.db = openDatabase(path, { create: true })
     this.migrate()
   }
 

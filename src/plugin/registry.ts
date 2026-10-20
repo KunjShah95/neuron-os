@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite"
 import type { PluginManifest } from "./manifest"
-import { resolve, dirname } from "node:path"
-import { mkdirSync, existsSync } from "node:fs"
+import { resolve } from "node:path"
+import { openDatabase } from "../utils/sqlite"
 
 export interface PluginRow {
   name: string
@@ -21,12 +21,7 @@ export class PluginRegistry {
 
   constructor(dbPath?: string) {
     const path = dbPath ?? resolve(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "plugins.db")
-    const dir = dirname(path)
-    if (!existsSync(dir)) {
-      mkdirSync(dir, { recursive: true })
-    }
-    this.db = new Database(path, { create: true })
-    this.db.exec("PRAGMA journal_mode=WAL")
+    this.db = openDatabase(path, { create: true })
     this.migrate()
   }
 

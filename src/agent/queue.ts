@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite"
 import { join } from "node:path"
-import { existsSync, mkdirSync } from "node:fs"
 import { createLogger } from "../cli/logger"
+import { openDatabase } from "../utils/sqlite"
 import { getProjectSessionDb } from "../project/context"
 
 const log = createLogger("task-queue")
@@ -42,13 +42,7 @@ export class TaskQueue {
       ? join(getProjectSessionDb(project), "..", "queue.db")
       : join(process.cwd(), "data", "sessions", "queue.db")
 
-    const dir = join(dbPath, "..")
-    if (!existsSync(dir)) {
-      mkdirSync(dir, { recursive: true })
-    }
-
-    this.db = new Database(dbPath)
-    this.db.exec("PRAGMA journal_mode = WAL")
+    this.db = openDatabase(dbPath)
     this.init()
   }
 

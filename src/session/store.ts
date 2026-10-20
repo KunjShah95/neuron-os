@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite"
-import { resolve, dirname } from "node:path"
-import { mkdirSync, existsSync } from "node:fs"
+import { resolve } from "node:path"
+import { openDatabase } from "../utils/sqlite"
 
 export interface SharedSession {
   id: string
@@ -25,12 +25,7 @@ export class SessionStore {
 
   constructor(dbPath?: string) {
     const path = dbPath ?? resolve(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "sessions.db")
-    const dir = dirname(path)
-    if (!existsSync(dir)) {
-      mkdirSync(dir, { recursive: true })
-    }
-    this.db = new Database(path)
-    this.db.exec("PRAGMA journal_mode=WAL")
+    this.db = openDatabase(path)
     this.migrate()
     this.prepared = this.prepare()
   }

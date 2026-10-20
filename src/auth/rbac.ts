@@ -1,8 +1,8 @@
 import { Database } from "bun:sqlite"
 import { randomBytes, createHash } from "node:crypto"
 import { join } from "node:path"
-import { existsSync, mkdirSync } from "node:fs"
 import { createLogger } from "../cli/logger"
+import { openDatabase } from "../utils/sqlite"
 
 const log = createLogger("auth")
 
@@ -89,13 +89,8 @@ export class RBACManager {
 
   constructor(options: { dbPath?: string } = {}) {
     const dbPath = options.dbPath ?? join(process.cwd(), "data", "auth", "rbac.db")
-    if (dbPath !== ":memory:") {
-      const dir = join(dbPath, "..")
-      if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-    }
 
-    this.db = new Database(dbPath)
-    this.db.exec("PRAGMA journal_mode = WAL")
+    this.db = openDatabase(dbPath)
 
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS roles (

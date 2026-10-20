@@ -2,10 +2,9 @@ import { existsSync, readdirSync } from "fs"
 import { join } from "path"
 import { createLogger } from "../../cli/logger"
 import { loadPolicy, savePolicy } from "./enforcer"
+import { policiesDir } from "./paths"
 
 const log = createLogger("grant-manager")
-
-const POLICIES_DIR = join(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "memory", "namespaces")
 
 export interface Grant {
   id: string
@@ -34,7 +33,7 @@ export function issueGrant(params: {
 
   // Check if the grant already exists (avoid duplicates)
   const existing = policy.allow.findIndex(
-    (a) => a.principal === params.to && a.path_filter === (params.path ?? a.path_filter),
+    (a) => a.principal === params.to && (a.path_filter ?? null) === (params.path ?? null),
   )
 
   const newAllow = {
@@ -82,10 +81,12 @@ export function revokeGrant(namespace: string, principal: string): boolean {
 
 export function listGrants(namespace?: string): Grant[] {
   const dirs = namespace
-    ? [join(POLICIES_DIR, namespace)]
-    : readdirSync(POLICIES_DIR, { withFileTypes: true })
-        .filter((d: { isDirectory: () => unknown }) => d.isDirectory())
-        .map((d: { name: string }) => join(POLICIES_DIR, d.name))
+    ? [join(policiesDir(), namespace)]
+    : existsSync(policiesDir())
+      ? readdirSync(policiesDir(), { withFileTypes: true })
+          .filter((d: { isDirectory: () => unknown }) => d.isDirectory())
+          .map((d: { name: string }) => join(policiesDir(), d.name))
+      : []
 
   const grants: Grant[] = []
   for (const dir of dirs) {
@@ -113,7 +114,8 @@ export function listGrants(namespace?: string): Grant[] {
 
 export function checkExpiredGrants(): Array<{ namespace: string; principal: string; grant_id: string }> {
   const expired: Array<{ namespace: string; principal: string; grant_id: string }> = []
-  const dirs = readdirSync(POLICIES_DIR, { withFileTypes: true })
+  if (!existsSync(policiesDir())) return expired
+  const dirs = readdirSync(policiesDir(), { withFileTypes: true })
     .filter((d: { isDirectory: () => unknown }) => d.isDirectory())
     .map((d: { name: string }) => d.name)
 

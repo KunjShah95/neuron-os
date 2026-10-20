@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite"
 import { join } from "node:path"
-import { mkdirSync, existsSync } from "node:fs"
 import { createLogger } from "../cli/logger"
+import { openDatabase } from "../utils/sqlite"
 import type { PersonaEvent, EvolutionTrigger, EvolutionDirection, PersonaProfile, PersonaStats } from "./types"
 
 const log = createLogger("persona-store")
@@ -13,17 +13,21 @@ function generateId(): string {
 export class PersonaStore {
   private db: Database
   private initialized = false
+  private closed = false
 
   constructor(project?: string) {
     const dataDir = project
       ? join(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "projects", project)
       : join(process.cwd(), "data")
     const dir = join(dataDir, "persona")
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-    this.db = new Database(join(dir, "persona.db"))
-    this.db.exec("PRAGMA journal_mode = WAL")
-    this.db.exec("PRAGMA synchronous = NORMAL")
+    this.db = openDatabase(join(dir, "persona.db"))
     this.init()
+  }
+
+  close(): void {
+    if (this.closed) return
+    this.closed = true
+    this.db.close()
   }
 
   private init(): void {

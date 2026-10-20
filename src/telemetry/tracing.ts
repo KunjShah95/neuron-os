@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite"
 import { join } from "node:path"
-import { existsSync, mkdirSync } from "node:fs"
+import { openDatabase } from "../utils/sqlite"
 
 export interface TraceSpan {
   spanId: string
@@ -22,11 +22,7 @@ export class TracingStore {
 
   constructor() {
     const dbPath = join(process.cwd(), "data", "telemetry", "traces.db")
-    const dir = join(dbPath, "..")
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-
-    this.db = new Database(dbPath)
-    this.db.exec("PRAGMA journal_mode = WAL")
+    this.db = openDatabase(dbPath)
 
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS spans (

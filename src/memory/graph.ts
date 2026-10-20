@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite"
 import { join } from "node:path"
-import { mkdirSync, existsSync } from "node:fs"
 import { createLogger } from "../cli/logger"
+import { openDatabase } from "../utils/sqlite"
 
 const log = createLogger("knowledge-graph")
 
@@ -35,13 +35,11 @@ export interface GraphQuery {
 export class KnowledgeGraph {
   private db: Database
   private initialized = false
+  private closed = false
 
-  constructor() {
-    const dir = join(process.cwd(), "data", "memory")
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-    this.db = new Database(join(dir, "knowledge-graph.db"))
-    this.db.exec("PRAGMA journal_mode = WAL")
-    this.db.exec("PRAGMA synchronous = NORMAL")
+  constructor(dbPath?: string) {
+    const resolvedPath = dbPath ?? join(process.cwd(), "data", "memory", "knowledge-graph.db")
+    this.db = openDatabase(resolvedPath)
     this.init()
   }
 
@@ -97,15 +95,61 @@ export class KnowledgeGraph {
       ON relationships(type)
     `)
 
+    this.ensureUniqueRelationships()
+
     this.initialized = true
     log.debug("Knowledge graph initialized")
   }
 
+  /**
+   * Relationship identity is (source, target, type).
+   * Legacy databases may contain exact duplicates, so they are collapsed
+   * before the unique index is created.
+   */
+  private ensureUniqueRelationships(): void {
+    try {
+      const duplicateGroups = this.db
+        .prepare(
+          `SELECT COUNT(*) as c FROM (
+             SELECT source_id, target_id, type FROM relationships
+             GROUP BY source_id, target_id, type HAVING COUNT(*) > 1
+           )`,
+        )
+        .get() as { c: number }
+
+      if (duplicateGroups.c > 0) {
+        this.db.exec(
+          `DELETE FROM relationships
+           WHERE id NOT IN (SELECT MIN(id) FROM relationships GROUP BY source_id, target_id, type)`,
+        )
+        log.info(`Collapsed ${duplicateGroups.c} duplicate relationship groups`)
+      }
+
+      this.db.exec(
+        `CREATE UNIQUE INDEX IF NOT EXISTS idx_relationships_unique
+         ON relationships(source_id, target_id, type)`,
+      )
+    } catch (err) {
+      log.warn("Could not enforce unique relationships", { error: String(err) })
+    }
+  }
+
+  /**
+   * Register an entity.
+   *
+   * Confidence grows only when a mention carries new evidence: it must come
+   * from a source that has not corroborated the entity before and it must
+   * contribute a non-empty context. Re-extracting the same source therefore
+   * never inflates confidence, and the growth is diminishing so the score
+   * cannot saturate at 1.0 and stop discriminating.
+   */
   addEntity(name: string, type: string, context: string, source: string): GraphEntity {
     const existing = this.getEntityByName(name)
     if (existing) {
-      const confidence = Math.min(1, existing.confidence + 0.05)
       const now = new Date().toISOString()
+      const isNewSource = Boolean(source) && source !== existing.source
+      const hasNewContext = Boolean(context) && context !== existing.context
+      const confidence = isNewSource && hasNewContext ? this.nextConfidence(existing.confidence) : existing.confidence
       const stmt = this.db.prepare(`
         UPDATE entities SET type = ?, context = ?, source = ?, updated_at = ?, confidence = ?
         WHERE id = ?
@@ -125,15 +169,42 @@ export class KnowledgeGraph {
     return { id, name, type, context, source, createdAt: now, updatedAt: now, confidence: 0.5 }
   }
 
+  private nextConfidence(current: number): number {
+    return Math.min(0.95, current + 0.05 * (1 - current))
+  }
+
+  /**
+   * Add a relationship. The pair (source, target, type) is unique — repeated
+   * extraction passes update the existing row instead of inserting a duplicate.
+   */
   addRelationship(sourceId: string, targetId: string, type: string, weight = 0.5): GraphRelationship {
+    const existing = this.db
+      .prepare("SELECT * FROM relationships WHERE source_id = ? AND target_id = ? AND type = ?")
+      .get(sourceId, targetId, type) as Record<string, unknown> | null
+
+    if (existing) {
+      const mergedWeight = Math.max(existing.weight as number, weight)
+      if (mergedWeight !== (existing.weight as number)) {
+        this.db
+          .prepare("UPDATE relationships SET weight = ? WHERE id = ?")
+          .run(mergedWeight, existing.id as string)
+      }
+      return this.rowToRelationship(existing, mergedWeight)
+    }
+
     const id = `rel-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
     const now = new Date().toISOString()
     const stmt = this.db.prepare(`
-      INSERT INTO relationships (id, source_id, target_id, type, weight, created_at)
+      INSERT OR IGNORE INTO relationships (id, source_id, target_id, type, weight, created_at)
       VALUES (?, ?, ?, ?, ?, ?)
     `)
     stmt.run(id, sourceId, targetId, type, weight, now)
 
+    const inserted = this.db
+      .prepare("SELECT * FROM relationships WHERE source_id = ? AND target_id = ? AND type = ?")
+      .get(sourceId, targetId, type) as Record<string, unknown> | null
+
+    if (inserted) return this.rowToRelationship(inserted)
     return { id, sourceId, targetId, type, weight, createdAt: now }
   }
 
@@ -170,17 +241,24 @@ export class KnowledgeGraph {
     return rows.map((r) => this.rowToEntity(r))
   }
 
+  /**
+   * Get entities related to the given entity.
+   *
+   * `depth` is the number of hops from the root entity: depth 1 returns
+   * direct neighbours only, depth 2 returns neighbours plus their
+   * neighbours, and so on.
+   */
   getRelated(
     entityId: string,
     relationType?: string,
     depth = 1,
   ): Array<{ entity: GraphEntity; relationship: GraphRelationship }> {
-    const visited = new Set<string>()
+    const seen = new Set<string>([entityId])
     const results: Array<{ entity: GraphEntity; relationship: GraphRelationship }> = []
+    const maxHops = Math.max(1, depth)
 
-    const collect = (id: string, currentDepth: number) => {
-      if (currentDepth > depth || visited.has(id)) return
-      visited.add(id)
+    const collect = (id: string, hop: number) => {
+      if (hop >= maxHops) return
 
       let sql = `
         SELECT e.*, r.id as r_id, r.source_id, r.target_id, r.type as r_type, r.weight, r.created_at as r_created_at
@@ -198,7 +276,8 @@ export class KnowledgeGraph {
       const rows = this.db.prepare(sql).all(...params) as Record<string, unknown>[]
       for (const row of rows) {
         const entity = this.rowToEntity(row)
-        if (visited.has(entity.id)) continue
+        if (seen.has(entity.id)) continue
+        seen.add(entity.id)
         const rel: GraphRelationship = {
           id: row.r_id as string,
           sourceId: row.source_id as string,
@@ -208,7 +287,7 @@ export class KnowledgeGraph {
           createdAt: row.r_created_at as string,
         }
         results.push({ entity, relationship: rel })
-        collect(entity.id, currentDepth + 1)
+        collect(entity.id, hop + 1)
       }
     }
 
@@ -322,7 +401,13 @@ export class KnowledgeGraph {
   }
 
   close(): void {
-    this.db.close()
+    if (this.closed) return
+    this.closed = true
+    try {
+      this.db.close()
+    } catch {
+      // already closed — nothing to do
+    }
     log.info("Knowledge graph closed")
   }
 
@@ -336,6 +421,17 @@ export class KnowledgeGraph {
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
       confidence: row.confidence as number,
+    }
+  }
+
+  private rowToRelationship(row: Record<string, unknown>, weightOverride?: number): GraphRelationship {
+    return {
+      id: row.id as string,
+      sourceId: row.source_id as string,
+      targetId: row.target_id as string,
+      type: row.type as string,
+      weight: weightOverride ?? (row.weight as number),
+      createdAt: row.created_at as string,
     }
   }
 }

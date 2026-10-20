@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { mkdirSync, writeFileSync, existsSync } from "node:fs"
 import { join } from "node:path"
+import type { Database } from "bun:sqlite"
 import { createLogger } from "../cli/logger"
 import { experienceStore, type ExperienceStore } from "./store"
 import type { Outcome } from "./store"
@@ -97,7 +98,7 @@ export class ExperienceReplay {
           originalExperienceId: failure.id,
           goal: modifiedGoal,
           originalOutcome: "failed",
-          newOutcome: "failed",
+          newOutcome: "partial",
           strategy,
           durationMs: Date.now() - start,
           dryRun: true,
@@ -120,12 +121,12 @@ export class ExperienceReplay {
         sessionId: failure.sessionId,
         goal: modifiedGoal,
         agentType,
-        outcome: "failed",
+        outcome: "partial",
         reward: 0,
         actionCount: 0,
         startedAt: new Date().toISOString(),
         completedAt: new Date().toISOString(),
-        summary: `Retry #${retryCount + 1} of ${failure.id} [${strategy}]: ${failure.summary.slice(0, 100)}`,
+        summary: `Retry attempt #${retryCount + 1} recorded for analysis (of ${failure.id}) [${strategy}]: ${failure.summary.slice(0, 100)}`,
         tags,
         metrics,
       })
@@ -134,13 +135,13 @@ export class ExperienceReplay {
         originalExperienceId: failure.id,
         goal: modifiedGoal,
         originalOutcome: "failed",
-        newOutcome: "failed",
+        newOutcome: "partial",
         strategy,
         durationMs: Date.now() - start,
         newExperienceId: newId,
       })
 
-      log.info(`Created retry experience ${newId} for ${failure.id} (strategy: ${strategy})`)
+      log.info(`Recorded retry attempt ${newId} for ${failure.id} (strategy: ${strategy})`)
     }
 
     return results
@@ -181,6 +182,9 @@ export class ExperienceReplay {
         log.info(`Auto-extracted skill → ${skillPath}`)
       }
 
+      if (!dryRun) {
+        this.store.recordSkillExtraction(candidate.name, candidate.confidence, candidate.goal)
+      }
       extractions.push(extraction)
     }
 
@@ -225,8 +229,7 @@ export class ExperienceReplay {
   }
 
   async replayExperience(experienceId: string, strategy?: string): Promise<ReplayResult> {
-    const recent = this.store.listRecent(1000)
-    const experience = recent.find((e) => e.id === experienceId)
+    const experience = this.store.getById(experienceId)
     if (!experience) {
       return { experienceId, retried: false, error: "Experience not found" }
     }
@@ -250,22 +253,22 @@ export class ExperienceReplay {
       sessionId: experience.sessionId,
       goal: modifiedGoal,
       agentType: experience.agentType,
-      outcome: "failed",
+      outcome: "partial",
       reward: 0,
       actionCount: 0,
       startedAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),
-      summary: `Replay of ${experienceId} [${retryStrategy}]: ${experience.summary.slice(0, 100)}`,
+      summary: `Replay attempt recorded for analysis (of ${experienceId}) [${retryStrategy}]: ${experience.summary.slice(0, 100)}`,
       tags,
       metrics,
     })
 
-    log.info(`Replay experience ${newId} created for ${experienceId} (strategy: ${retryStrategy})`)
+    log.info(`Replay attempt ${newId} recorded for ${experienceId} (strategy: ${retryStrategy})`)
 
     return {
       experienceId,
       retried: true,
-      newOutcome: "failed",
+      newOutcome: "partial",
     }
   }
 
@@ -279,15 +282,25 @@ export class ExperienceReplay {
     return {
       totalRetriesRun: retriesRun,
       totalRetriesSuccessful: retriesSuccessful,
-      totalSkillsExtracted: 0,
+      totalSkillsExtracted: this.store.countSkillExtractions(),
       lastCycleRun: retries.length > 0 ? retries[0]?.startedAt : undefined,
       averageRetrySuccessRate: retriesRun > 0 ? Math.round((retriesSuccessful / retriesRun) * 100) : 0,
     }
   }
 
   private countRetries(experienceId: string): number {
-    const recent = this.store.listRecent(500)
-    return recent.filter((e) => e.tags.includes(`retry:${experienceId}`)).length
+    const db = (this.store as unknown as { db?: Database }).db
+    if (!db) return 0
+
+    const row = db
+      .prepare("SELECT COUNT(*) as c FROM experiences WHERE tags LIKE ? ESCAPE '\\'")
+      .get(`%"retry:${this.escapeLike(experienceId)}"%`) as { c: number } | null
+
+    return row?.c ?? 0
+  }
+
+  private escapeLike(value: string): string {
+    return value.replace(/[\\%_]/g, (m) => `\\${m}`)
   }
 
   private buildRetryGoal(originalGoal: string, strategy: RetryStrategy, retryNumber: number): string {
@@ -300,6 +313,7 @@ export class ExperienceReplay {
   private alternateAgentType(currentType: string): string {
     const types = ["build", "default", "read", "plan"]
     const idx = types.indexOf(currentType)
+    if (idx < 0) return "default"
     const next = types[(idx + 1) % types.length]
     return next ?? "default"
   }

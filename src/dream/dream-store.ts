@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite"
 import { join } from "node:path"
-import { mkdirSync, existsSync } from "node:fs"
 import { createLogger } from "../cli/logger"
+import { openDatabase } from "../utils/sqlite"
 import type { DreamEntry, DreamInsight, DreamType, DreamStatus, DreamVividness } from "./types"
 
 const log = createLogger("dream-store")
@@ -31,10 +31,7 @@ export class DreamStore {
               : join(process.cwd(), "data")
             return join(dataDir, "dream")
           })()
-      if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-      this._db = new Database(join(dir, "dream.db"))
-      this._db.exec("PRAGMA journal_mode = WAL")
-      this._db.exec("PRAGMA synchronous = NORMAL")
+      this._db = openDatabase(join(dir, "dream.db"))
       this.init()
     }
     return this._db

@@ -7,28 +7,32 @@
 
 import { Database } from "bun:sqlite"
 import { resolve } from "node:path"
-import { mkdir } from "node:fs/promises"
+import { createLogger } from "../../cli/logger"
+import { openDatabase } from "../../utils/sqlite"
 import type { Entity, Relationship, EntityType, RelationType, GraphQuery, GraphResult } from "./types"
 import { DEFAULT_TEMPORAL_CONFIG, type TemporalConfig } from "./types"
 
+const log = createLogger("memory:graph")
+
 const GRAPH_DB_PATH = resolve(process.cwd(), ".aegis/memory/graph")
+const DEFAULT_QUERY_LIMIT = 100
+const MAX_RELATIONSHIP_ENTITY_IDS = 500
 
 export class GraphStorage {
   private db: Database | null = null
   private cache: Map<string, Entity> = new Map()
   private relCache: Map<string, Relationship> = new Map()
   private temporalConfig: TemporalConfig
+  private dbDir: string
 
-  constructor(config: TemporalConfig = DEFAULT_TEMPORAL_CONFIG) {
+  constructor(config: TemporalConfig = DEFAULT_TEMPORAL_CONFIG, options: { dbPath?: string } = {}) {
     this.temporalConfig = config
+    this.dbDir = options.dbPath ?? GRAPH_DB_PATH
   }
 
   async initialize(): Promise<void> {
-    await mkdir(GRAPH_DB_PATH, { recursive: true })
-
-    const dbFile = resolve(GRAPH_DB_PATH, "graph.db")
-    this.db = new Database(dbFile)
-    this.db.exec("PRAGMA journal_mode = WAL")
+    const dbFile = resolve(this.dbDir, "graph.db")
+    this.db = openDatabase(dbFile)
 
     this.createSchema()
     this.loadCache()
@@ -86,6 +90,39 @@ export class GraphStorage {
         content_rowid='rowid'
       )
     `)
+
+    this.createFtsTriggers()
+  }
+
+  private createFtsTriggers(): void {
+    if (!this.db) return
+
+    const existing = this.db
+      .query("SELECT name FROM sqlite_master WHERE type = 'trigger' AND name = 'entities_fts_ai'")
+      .get()
+
+    this.db.exec(`
+      CREATE TRIGGER IF NOT EXISTS entities_fts_ai AFTER INSERT ON entities BEGIN
+        INSERT INTO entity_fts(rowid, name, aliases) VALUES (new.rowid, new.name, new.aliases);
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS entities_fts_au AFTER UPDATE ON entities BEGIN
+        INSERT INTO entity_fts(entity_fts, rowid, name, aliases) VALUES('delete', old.rowid, old.name, old.aliases);
+        INSERT INTO entity_fts(rowid, name, aliases) VALUES (new.rowid, new.name, new.aliases);
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS entities_fts_ad AFTER DELETE ON entities BEGIN
+        INSERT INTO entity_fts(entity_fts, rowid, name, aliases) VALUES('delete', old.rowid, old.name, old.aliases);
+      END;
+    `)
+
+    if (!existing) {
+      const row = this.db.query("SELECT COUNT(*) as c FROM entities").get() as { c: number }
+      if (row.c > 0) {
+        this.db.exec("INSERT INTO entity_fts(entity_fts) VALUES('rebuild')")
+        log.info("Rebuilt entity FTS index to match entities table")
+      }
+    }
   }
 
   private loadCache(): void {
@@ -202,13 +239,6 @@ export class GraphStorage {
       fullEntity.embedding ? JSON.stringify(fullEntity.embedding) : null,
     )
 
-    // Update FTS index
-    const ftsStmt = this.db.prepare(`
-      INSERT INTO entity_fts (rowid, name, aliases) 
-      VALUES ((SELECT rowid FROM entities WHERE id = ?), ?, ?)
-    `)
-    ftsStmt.run(fullEntity.id, fullEntity.name, fullEntity.aliases.join(" "))
-
     this.cache.set(fullEntity.id, fullEntity)
     return fullEntity
   }
@@ -294,12 +324,36 @@ export class GraphStorage {
     `)
     stmt.run(now, id)
 
-    const entity = await this.getEntity(id)
-    if (entity) {
-      entity.mentionCount++
-      entity.lastMentionedAt = now
+    const row = this.db.query("SELECT * FROM entities WHERE id = ?").get(id) as Parameters<
+      typeof this.rowToEntity
+    >[0] | null
+    if (!row) return
+
+    const entity = this.rowToEntity(row)
+    const cached = this.cache.get(id)
+    if (cached) {
+      cached.mentionCount = entity.mentionCount
+      cached.lastMentionedAt = entity.lastMentionedAt
+      this.cache.set(id, cached)
+    } else {
       this.cache.set(id, entity)
     }
+  }
+
+  async deleteEntity(id: string): Promise<boolean> {
+    if (!this.db) return false
+
+    const existing = await this.getEntity(id)
+    if (!existing) return false
+
+    this.db.prepare("DELETE FROM relationships WHERE source_id = ? OR target_id = ?").run(id, id)
+    this.db.prepare("DELETE FROM entities WHERE id = ?").run(id)
+
+    this.cache.delete(id)
+    for (const [relId, rel] of this.relCache) {
+      if (rel.sourceId === id || rel.targetId === id) this.relCache.delete(relId)
+    }
+    return true
   }
 
   // ── Relationship Operations ───────────────────────────────────────
@@ -430,11 +484,11 @@ export class GraphStorage {
     }
     sql += " ORDER BY mention_count DESC, last_mentioned_at DESC"
 
-    if (query.limit) {
-      sql += " LIMIT ?"
-      params.push(query.limit)
-    }
-    if (query.offset) {
+    const limit = query.limit === undefined ? DEFAULT_QUERY_LIMIT : query.limit
+    sql += " LIMIT ?"
+    params.push(limit < 0 ? -1 : limit)
+
+    if (query.offset !== undefined && query.offset > 0) {
       sql += " OFFSET ?"
       params.push(query.offset)
     }
@@ -447,13 +501,16 @@ export class GraphStorage {
   private async queryRelationships(query: GraphQuery, entityIds: string[]): Promise<Relationship[]> {
     if (!this.db || entityIds.length === 0) return []
 
+    const ids = entityIds.slice(0, MAX_RELATIONSHIP_ENTITY_IDS)
+    if (ids.length === 0) return []
+
     const conditions: string[] = []
     const params: (string | number)[] = []
 
     // Only get relationships between the queried entities
-    conditions.push(`source_id IN (${entityIds.map(() => "?").join(",")})`)
-    conditions.push(`target_id IN (${entityIds.map(() => "?").join(",")})`)
-    params.push(...entityIds, ...entityIds)
+    conditions.push(`source_id IN (${ids.map(() => "?").join(",")})`)
+    conditions.push(`target_id IN (${ids.map(() => "?").join(",")})`)
+    params.push(...ids, ...ids)
 
     if (query.relationTypes?.length) {
       conditions.push(`type IN (${query.relationTypes.map(() => "?").join(",")})`)
@@ -498,19 +555,56 @@ export class GraphStorage {
 
   // ── Search Operations ───────────────────────────────────────────────
 
+  private buildFtsQuery(text: string): string {
+    const terms = text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, " ")
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((t) => `"${t}"`)
+    return terms.join(" AND ")
+  }
+
   async searchEntities(query: string, limit = 10): Promise<Entity[]> {
     if (!this.db) return []
 
-    // Use FTS5 for text search
+    const ftsQuery = this.buildFtsQuery(query)
+
+    if (ftsQuery) {
+      try {
+        const stmt = this.db.query(`
+          SELECT e.* FROM entity_fts fts
+          JOIN entities e ON e.rowid = fts.rowid
+          WHERE entity_fts MATCH ?
+          ORDER BY rank
+          LIMIT ?
+        `)
+
+        const rows = stmt.all(ftsQuery, limit) as Parameters<typeof this.rowToEntity>[0][]
+        return rows.map((r) => this.rowToEntity(r))
+      } catch (err) {
+        log.warn("FTS5 entity search failed — falling back to LIKE scan", { error: String(err) })
+      }
+    }
+
+    return this.likeSearchEntities(query, limit)
+  }
+
+  private likeSearchEntities(query: string, limit: number): Entity[] {
+    if (!this.db) return []
+
+    const term = query.trim().replace(/[\\%_]/g, (m) => `\\${m}`)
+    if (!term) return []
+
     const stmt = this.db.query(`
-      SELECT e.* FROM entity_fts fts
-      JOIN entities e ON e.rowid = fts.rowid
-      WHERE entity_fts MATCH ?
-      ORDER BY rank
+      SELECT * FROM entities
+      WHERE name LIKE ? ESCAPE '\\' OR aliases LIKE ? ESCAPE '\\'
+      ORDER BY mention_count DESC, last_mentioned_at DESC
       LIMIT ?
     `)
 
-    const rows = stmt.all(query, limit) as Parameters<typeof this.rowToEntity>[0][]
+    const pattern = `%${term}%`
+    const rows = stmt.all(pattern, pattern, limit) as Parameters<typeof this.rowToEntity>[0][]
     return rows.map((r) => this.rowToEntity(r))
   }
 

@@ -7,12 +7,22 @@
  */
 
 import { createLogger } from "../../cli/logger"
+import type { AIMessage, AIResponse } from "../../ai/provider"
 import type { RecallHit, RecallConfig } from "./types"
 
 const log = createLogger("recall:summarizer")
 
+export interface SummarizerProvider {
+  generate(messages: AIMessage[], options?: { abortSignal?: AbortSignal }): Promise<AIResponse>
+}
+
+export type SummarizerProviderFactory = () => SummarizerProvider | Promise<SummarizerProvider>
+
 export class Summarizer {
-  constructor(private config: RecallConfig) {}
+  constructor(
+    private config: RecallConfig,
+    private providerFactory?: SummarizerProviderFactory,
+  ) {}
 
   /**
    * Summarize recall hits into a context block.
@@ -38,24 +48,31 @@ export class Summarizer {
    */
   private async callWithTimeout(context: string): Promise<string> {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), this.config.summarizerTimeoutMs)
+    let timer: ReturnType<typeof setTimeout> | undefined
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        controller.abort()
+        reject(new Error("timeout"))
+      }, this.config.summarizerTimeoutMs)
+    })
 
     try {
-      // Try using the AI provider
-      const { createAIProvider } = await import("../../ai/provider")
-      const provider = createAIProvider({
-        provider: "openrouter",
-        model: "claude-sonnet-4-6",
-        maxOutputTokens: this.config.summaryTokenBudget,
-      })
+      const provider = await this.resolveProvider()
 
-      const response = await provider.generate([
-        {
-          role: "system",
-          content:
-            "You are summarizing prior conversation context for an AI agent. Be terse. Preserve entities, decisions, and unresolved questions. Output ONLY the summary, no preamble.",
-        },
-        { role: "user", content: context },
+      const response = await Promise.race([
+        provider.generate(
+          [
+            {
+              role: "system",
+              content:
+                "You are summarizing prior conversation context for an AI agent. Be terse. Preserve entities, decisions, and unresolved questions. Output ONLY the summary, no preamble.",
+            },
+            { role: "user", content: context },
+          ],
+          { abortSignal: controller.signal },
+        ),
+        timeoutPromise,
       ])
 
       return response.text ?? ""
@@ -65,8 +82,21 @@ export class Summarizer {
       }
       throw err
     } finally {
-      clearTimeout(timeout)
+      if (timer) clearTimeout(timer)
     }
+  }
+
+  private async resolveProvider(): Promise<SummarizerProvider> {
+    if (this.providerFactory) {
+      return await this.providerFactory()
+    }
+
+    const { createAIProvider } = await import("../../ai/provider")
+    return createAIProvider({
+      provider: "openrouter",
+      model: "claude-sonnet-4-6",
+      maxOutputTokens: this.config.summaryTokenBudget,
+    })
   }
 
   /**

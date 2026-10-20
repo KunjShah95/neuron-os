@@ -3,15 +3,14 @@ import { join } from "path"
 import { parse, stringify } from "yaml"
 import { minimatch } from "minimatch"
 import { createLogger } from "../../cli/logger"
+import { policiesDir } from "./paths"
 import { MemoryPolicy } from "./schema"
 import type { MemoryPolicy as MemoryPolicyType, Decision, Principal } from "./schema"
 
 const log = createLogger("policy-enforcer")
 
-const POLICIES_DIR = join(process.env.HOME || process.env.USERPROFILE || "~", ".aegis", "memory", "namespaces")
-
 function policyPath(namespace: string): string {
-  return join(POLICIES_DIR, namespace, "policy.yaml")
+  return join(policiesDir(), namespace, "policy.yaml")
 }
 
 export function loadPolicy(namespace: string): MemoryPolicyType | null {
@@ -31,7 +30,7 @@ export function loadPolicy(namespace: string): MemoryPolicyType | null {
 }
 
 export function savePolicy(policy: MemoryPolicyType): void {
-  const dir = join(POLICIES_DIR, policy.namespace)
+  const dir = join(policiesDir(), policy.namespace)
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
   writeFileSync(policyPath(policy.namespace), stringify(policy), "utf-8")
 }
@@ -67,10 +66,13 @@ function matchesPrincipal(rulePrincipal: string, requester: Principal): boolean 
   return requester.team === rulePrincipal
 }
 
-function matchesPath(pattern: string | undefined, path: string): boolean {
+export function matchesPath(pattern: string | undefined, path: string): boolean {
   if (!pattern || pattern === "*" || pattern === "**") return true
-  if (path.startsWith(pattern)) return true
-  return minimatch(path, pattern)
+  if (pattern.includes("*") || pattern.includes("?") || pattern.includes("[") || pattern.startsWith("!")) {
+    return minimatch(path, pattern)
+  }
+  if (path === pattern) return true
+  return path.startsWith(pattern.endsWith("/") ? pattern : `${pattern}/`)
 }
 
 export function canRead(requester: Principal, namespace: string, path: string, tool: string): Decision {

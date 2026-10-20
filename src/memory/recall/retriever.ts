@@ -73,6 +73,8 @@ export class FTS5Retriever {
     const maxResults = query.maxResults ?? this.config.maxResults
     const maxAgeDays = query.maxAgeDays ?? this.config.maxAgeDays
     const ftsQuery = this.buildFtsQuery(query.text)
+    const minTs = Date.now() - maxAgeDays * 86_400_000
+    const limit = Math.max(maxResults, 50)
 
     try {
       const rows = this.db
@@ -80,11 +82,11 @@ export class FTS5Retriever {
           `SELECT session_id, turn_id, ts, role, content, entities,
                   bm25(recall_index) AS score
            FROM recall_index
-           WHERE recall_index MATCH ?
+           WHERE recall_index MATCH ? AND ts >= ?
            ORDER BY score
            LIMIT ?`,
         )
-        .all(ftsQuery, 50) as Array<{
+        .all(ftsQuery, minTs, limit) as Array<{
         session_id: string
         turn_id: string
         ts: number
@@ -104,9 +106,9 @@ export class FTS5Retriever {
           ts: row.ts,
           role: row.role as RecallHit["role"],
           content: row.content,
-          score: row.score,
+          score: -row.score,
           finalScore:
-            row.score * 0.6 + // BM25 weight
+            -row.score * 0.6 + // BM25 weight (bm25 is negative; higher means more relevant)
             this.recencyMultiplier(row.ts, maxAgeDays) * 0.3 + // recency weight
             this.entityBonus(queryEntities, hitEntities) * 0.1, // entity weight
         }
@@ -124,10 +126,11 @@ export class FTS5Retriever {
           .prepare(
             `SELECT session_id, turn_id, ts, role, content, 0.0 AS score
              FROM recall_index
+             WHERE ts >= ?
              ORDER BY ts DESC
-             LIMIT 50`,
+             LIMIT ?`,
           )
-          .all() as Array<{
+          .all(minTs, limit) as Array<{
           session_id: string
           turn_id: string
           ts: number
