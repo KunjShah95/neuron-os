@@ -3,6 +3,10 @@ import { mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { resolve } from "node:path"
 
+// The bun binary running this test, so the spawned CLI uses the same
+// interpreter instead of relying on "bun" being resolvable on PATH.
+const BUN_BIN = process.execPath
+
 // An empty env file passed via `bun --env-file` overrides Bun's automatic
 // loading of the project `.env`, so zero-key guard tests run hermetically.
 const EMPTY_ENV_FILE = resolve(mkdtempSync(resolve(tmpdir(), "aegis-smoke-")), "empty.env")
@@ -22,7 +26,7 @@ interface HelpResult {
 }
 
 async function runHelpCommand(cmd: string): Promise<HelpResult> {
-  const proc = Bun.spawn(["bun", "run", "index.ts", cmd, "--help"], {
+  const proc = Bun.spawn([BUN_BIN, "run", "index.ts", cmd, "--help"], {
     stdout: "pipe",
     stderr: "pipe",
   })
@@ -63,7 +67,7 @@ const NO_KEY_ENV: Record<string, string> = {
 }
 
 function runCLINoKeys(args: string[]): { exitCode: number; stdout: string; stderr: string } {
-  const result = Bun.spawnSync(["bun", `--env-file=${EMPTY_ENV_FILE}`, "run", "index.ts", ...args], {
+  const result = Bun.spawnSync([BUN_BIN, `--env-file=${EMPTY_ENV_FILE}`, "run", "index.ts", ...args], {
     cwd: process.cwd(),
     env: NO_KEY_ENV,
     stdout: "pipe",

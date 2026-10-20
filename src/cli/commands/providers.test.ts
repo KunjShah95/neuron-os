@@ -3,6 +3,10 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { resolve } from "node:path"
 
+// The bun binary running this test, so the spawned CLI uses the same
+// interpreter instead of relying on "bun" being resolvable on PATH.
+const BUN_BIN = process.execPath
+
 const PROVIDER_KEYS = [
   "ANTHROPIC_API_KEY",
   "OPENAI_API_KEY",
@@ -31,7 +35,7 @@ function runProviders(args: string[], extraEnv: Record<string, string> = {}): { 
   Object.assign(env, extraEnv)
   // --env-file with an empty file overrides Bun's automatic .env loading so
   // the test controls exactly which provider keys are visible.
-  const result = Bun.spawnSync(["bun", `--env-file=${EMPTY_ENV_FILE}`, "run", "index.ts", "providers", ...args], {
+  const result = Bun.spawnSync([BUN_BIN, `--env-file=${EMPTY_ENV_FILE}`, "run", "index.ts", "providers", ...args], {
     cwd: process.cwd(),
     env,
     stdout: "pipe",
