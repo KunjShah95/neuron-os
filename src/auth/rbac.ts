@@ -87,10 +87,12 @@ export class RBACManager {
     },
   }
 
-  constructor() {
-    const dbPath = join(process.cwd(), "data", "auth", "rbac.db")
-    const dir = join(dbPath, "..")
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+  constructor(options: { dbPath?: string } = {}) {
+    const dbPath = options.dbPath ?? join(process.cwd(), "data", "auth", "rbac.db")
+    if (dbPath !== ":memory:") {
+      const dir = join(dbPath, "..")
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+    }
 
     this.db = new Database(dbPath)
     this.db.exec("PRAGMA journal_mode = WAL")
@@ -211,8 +213,9 @@ export class RBACManager {
     this.db.prepare("UPDATE api_keys SET last_used = ? WHERE key_hash = ?").run(new Date().toISOString(), keyHash)
 
     const userId = row.user_id as string
-    const roles = JSON.parse(row.roles_json as string) as RoleName[]
     const user = this.getUser(userId)
+    const snapshotRoles = JSON.parse(row.roles_json as string) as RoleName[]
+    const roles = user ? user.roles : snapshotRoles
     const permissions = this.getEffectivePermissions(roles)
 
     return { valid: true, user, permissions }
@@ -286,6 +289,10 @@ export class RBACManager {
     const allKeys = this.db.prepare("SELECT COUNT(*) as c FROM api_keys").get() as { c: number }
     const activeKeys = this.db.prepare("SELECT COUNT(*) as c FROM api_keys WHERE enabled = 1").get() as { c: number }
     return { totalUsers: users.c, totalKeys: allKeys.c, activeKeys: activeKeys.c }
+  }
+
+  close(): void {
+    this.db.close()
   }
 
   private rowToCredential(row: Record<string, unknown>): APICredential {

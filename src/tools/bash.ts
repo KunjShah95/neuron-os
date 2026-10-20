@@ -6,6 +6,27 @@ function shellCmd(command: string): string[] {
   return platform() === "win32" ? ["cmd", "/c", command] : ["bash", "-c", command]
 }
 
+const SHELL_METACHARACTERS = ["&&", "||", ";", "|", "`", "$(", "<", ">", "&", "\n", "\r"]
+
+export function containsShellMetacharacters(command: string): boolean {
+  return SHELL_METACHARACTERS.some((m) => command.includes(m))
+}
+
+export function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+export function commandMatchesPattern(command: string, pattern: string): boolean {
+  const regex = new RegExp(`^${escapeRegExp(pattern)}(?:\\s|$)`)
+  return regex.test(command)
+}
+
+export function isCommandAllowed(command: string, patterns: string[]): boolean {
+  const trimmed = command.trim()
+  if (containsShellMetacharacters(trimmed)) return false
+  return patterns.some((pattern) => commandMatchesPattern(trimmed, pattern))
+}
+
 export const bashTool: Tool = {
   name: "bash",
   description: "Execute shell commands",
@@ -32,11 +53,17 @@ export const bashTool: Tool = {
     const cwd = (params.cwd as string) || ctx.cwd
     const timeout = (params.timeout as number) || 30000
 
-    // Check command patterns if specified
     const perm = ctx.permissions.find((p) => p.name === "bash")
-    if (perm?.patterns && perm.patterns.length > 0) {
-      const allowed = perm.patterns.some((pattern: string) => command.startsWith(pattern))
-      if (!allowed) {
+    if (!perm || !perm.allow) {
+      return {
+        success: false,
+        output: "",
+        error: `Tool 'bash' not permitted for this agent`,
+      }
+    }
+
+    if (perm.patterns && perm.patterns.length > 0) {
+      if (!isCommandAllowed(command, perm.patterns)) {
         return {
           success: false,
           output: "",

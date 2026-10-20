@@ -1,5 +1,5 @@
 import { Database } from "bun:sqlite"
-import { randomBytes, scryptSync, createCipheriv, createDecipheriv } from "node:crypto"
+import { randomBytes, scryptSync, createCipheriv, createDecipheriv, createHmac, timingSafeEqual } from "node:crypto"
 import { join, resolve } from "node:path"
 import { existsSync, mkdirSync } from "node:fs"
 import { createLogger } from "../cli/logger"
@@ -8,6 +8,8 @@ const log = createLogger("vault:credential")
 const ALGORITHM = "aes-256-gcm"
 const KEY_LENGTH = 32
 const IV_LENGTH = 16
+const VERIFIER_CONFIG_KEY = "key_verifier"
+const VERIFIER_DOMAIN = "aegis.vault.key-verifier.v1"
 
 export interface VaultEntry {
   id: string
@@ -32,6 +34,7 @@ export class CredentialVault {
   private masterKey: Buffer | null = null
   private salt: Buffer | null = null
   private _isUnlocked = false
+  private _verified = false
 
   constructor(dbPathOverride?: string) {
     const homeDir = process.env.HOME || process.env.USERPROFILE || "~"
@@ -65,8 +68,7 @@ export class CredentialVault {
     `)
 
     const saltRow = this.db.prepare("SELECT value FROM vault_config WHERE key = 'salt'").get() as
-      | { value: string }
-      | undefined
+      { value: string } | undefined
     if (saltRow) {
       this.salt = Buffer.from(saltRow.value, "hex")
     }
@@ -74,12 +76,20 @@ export class CredentialVault {
 
   initialize(masterPassword: string): void {
     if (this.salt) {
-      throw new Error("Vault is already initialized")
+      if (this.hasStoredEntries() || this.readVerifier()) {
+        throw new Error("Vault is already initialized")
+      }
+      this.db.prepare("DELETE FROM vault_config WHERE key = 'salt'").run()
+      this.salt = null
     }
     this.salt = randomBytes(32)
-    this.db.prepare("INSERT INTO vault_config (key, value) VALUES ('salt', ?)").run(this.salt.toString("hex"))
+    this.db
+      .prepare("INSERT OR REPLACE INTO vault_config (key, value) VALUES ('salt', ?)")
+      .run(this.salt.toString("hex"))
     this.masterKey = scryptSync(masterPassword, this.salt, KEY_LENGTH)
+    this.writeVerifier(this.masterKey)
     this._isUnlocked = true
+    this._verified = true
     log.info("Vault initialized")
   }
 
@@ -88,19 +98,95 @@ export class CredentialVault {
       log.warn("Vault not initialized")
       return false
     }
-    this.masterKey = scryptSync(masterPassword, this.salt, KEY_LENGTH)
+    const candidateKey = scryptSync(masterPassword, this.salt, KEY_LENGTH)
+    const verifier = this.readVerifier()
+
+    if (verifier) {
+      if (!this.verifierMatches(candidateKey, verifier)) {
+        this.lock()
+        log.warn("Vault unlock rejected: incorrect master password")
+        return false
+      }
+      this.masterKey = candidateKey
+      this._isUnlocked = true
+      this._verified = true
+      return true
+    }
+
+    const legacyEntry = this.firstEntryRow()
+    if (legacyEntry && this.decryptsWithKey(legacyEntry, candidateKey)) {
+      this.masterKey = candidateKey
+      this._isUnlocked = true
+      this._verified = true
+      this.writeVerifier(candidateKey)
+      log.info("Vault upgraded with key verification")
+      return true
+    }
+
+    this.masterKey = candidateKey
     this._isUnlocked = true
+    this._verified = false
+    log.warn("Vault unlocked without verification: this vault has no key verifier")
     return true
   }
 
   lock(): void {
     this.masterKey = null
     this._isUnlocked = false
+    this._verified = false
     log.info("Vault locked")
   }
 
   get isUnlocked(): boolean {
     return this._isUnlocked
+  }
+
+  get isVerified(): boolean {
+    return this._verified
+  }
+
+  private deriveVerifier(key: Buffer): string {
+    return createHmac("sha256", key).update(VERIFIER_DOMAIN).digest("hex")
+  }
+
+  private readVerifier(): string | null {
+    const row = this.db.prepare("SELECT value FROM vault_config WHERE key = ?").get(VERIFIER_CONFIG_KEY) as
+      { value: string } | undefined
+    return row?.value ?? null
+  }
+
+  private writeVerifier(key: Buffer): void {
+    this.db
+      .prepare("INSERT OR REPLACE INTO vault_config (key, value) VALUES (?, ?)")
+      .run(VERIFIER_CONFIG_KEY, this.deriveVerifier(key))
+  }
+
+  private verifierMatches(key: Buffer, verifier: string): boolean {
+    const expected = Buffer.from(verifier, "hex")
+    const actual = Buffer.from(this.deriveVerifier(key), "hex")
+    if (expected.length === 0 || expected.length !== actual.length) return false
+    return timingSafeEqual(expected, actual)
+  }
+
+  private firstEntryRow(): { encrypted_value: string; iv: string; auth_tag: string } | null {
+    const row = this.db
+      .prepare("SELECT encrypted_value, iv, auth_tag FROM entries ORDER BY rowid ASC LIMIT 1")
+      .get() as { encrypted_value: string; iv: string; auth_tag: string } | undefined
+    return row ?? null
+  }
+
+  private hasStoredEntries(): boolean {
+    const row = this.db.prepare("SELECT COUNT(*) as c FROM entries").get() as { c: number }
+    return row.c > 0
+  }
+
+  private decryptsWithKey(row: { encrypted_value: string; iv: string; auth_tag: string }, key: Buffer): boolean {
+    try {
+      this.decrypt(row.encrypted_value, row.iv, row.auth_tag, key)
+      return true
+    } catch {
+      return false
+    }
   }
 
   private encrypt(plaintext: string): { encryptedValue: string; iv: string; authTag: string } {
@@ -116,9 +202,14 @@ export class CredentialVault {
     }
   }
 
-  private decrypt(encryptedValue: string, ivHex: string, authTagHex: string): string {
-    if (!this.masterKey) throw new Error("Vault is locked")
-    const decipher = createDecipheriv(ALGORITHM, this.masterKey, Buffer.from(ivHex, "hex"))
+  private decrypt(
+    encryptedValue: string,
+    ivHex: string,
+    authTagHex: string,
+    key: Buffer | null = this.masterKey,
+  ): string {
+    if (!key) throw new Error("Vault is locked")
+    const decipher = createDecipheriv(ALGORITHM, key, Buffer.from(ivHex, "hex"))
     decipher.setAuthTag(Buffer.from(authTagHex, "hex"))
     const decrypted = Buffer.concat([decipher.update(Buffer.from(encryptedValue, "hex")), decipher.final()])
     return decrypted.toString("utf-8")
@@ -130,12 +221,27 @@ export class CredentialVault {
     }
   }
 
+  private ensureOverwriteAllowed(name: string): void {
+    if (this._verified) return
+    if (this.entryExists(name)) {
+      throw new Error(
+        "Vault unlock was not verified — refusing to overwrite an existing credential. Re-initialize an empty vault to set a master password.",
+      )
+    }
+  }
+
+  private entryExists(name: string): boolean {
+    const row = this.db.prepare("SELECT id FROM entries WHERE name = ?").get(name)
+    return row !== null && row !== undefined
+  }
+
   private nextId(): string {
     return "v-" + Date.now().toString(36) + "-" + randomBytes(4).toString("hex")
   }
 
   store(name: string, value: string, type: VaultEntry["type"], metadata?: Partial<VaultEntry["metadata"]>): VaultEntry {
     this.ensureUnlocked()
+    this.ensureOverwriteAllowed(name)
     const { encryptedValue, iv, authTag } = this.encrypt(value)
     const id = this.nextId()
     const now = new Date().toISOString()
@@ -215,13 +321,18 @@ export class CredentialVault {
     return rows.map((r) => {
       const entry = this.rowToEntry(r)
       const { encryptedValue, iv, authTag, ...rest } = entry
-      void encryptedValue; void iv; void authTag
+      void encryptedValue
+      void iv
+      void authTag
       return rest
     })
   }
 
   rotateKey(name: string, newValue: string): VaultEntry | null {
     this.ensureUnlocked()
+    if (!this._verified) {
+      throw new Error("Vault unlock was not verified — refusing to rotate an existing credential.")
+    }
     const existing = this.retrieveByName(name)
     if (!existing) return null
 

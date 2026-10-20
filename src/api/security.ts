@@ -1,42 +1,11 @@
+import { timingSafeEqual } from "node:crypto"
 import { createLogger } from "../cli/logger"
-import { rbacManager, type Permission } from "../auth"
+import { rbacManager, type Permission, type RBACManager } from "../auth"
 import type { ApiRequest, ApiServerConfig } from "./types"
 
+export { RateLimiter } from "./rate-limiter"
+
 const log = createLogger("api")
-
-export class RateLimiter {
-  private hits = new Map<string, { count: number; resetAt: number }>()
-
-  constructor(
-    private maxRequests: number,
-    private windowMs: number,
-  ) {}
-
-  check(ip: string): { allowed: boolean; remaining: number; resetAt: number } {
-    const now = Date.now()
-    let entry = this.hits.get(ip)
-
-    if (!entry || now > entry.resetAt) {
-      entry = { count: 0, resetAt: now + this.windowMs }
-      this.hits.set(ip, entry)
-    }
-
-    entry.count++
-    const remaining = Math.max(0, this.maxRequests - entry.count)
-
-    if (this.hits.size > 1000) {
-      for (const [key, val] of this.hits) {
-        if (now > val.resetAt) this.hits.delete(key)
-      }
-    }
-
-    return {
-      allowed: entry.count <= this.maxRequests,
-      remaining,
-      resetAt: entry.resetAt,
-    }
-  }
-}
 
 let rbacEnabled = false
 let rbacRequired = false
@@ -85,12 +54,22 @@ export function buildCorsHeaders(origin: string | null, allowedOrigins: string[]
   return {}
 }
 
+const API_PREFIX = "/api/v1"
+
+export const ADMIN_PERMISSION: Permission = "admin:all"
+
+export const UNMAPPED_ROUTE_PERMISSION: Permission = ADMIN_PERMISSION
+
 const ROUTE_PERMISSIONS: Array<{ pattern: RegExp; method: string; permission: Permission }> = [
   { pattern: /^\/api\/v1\/agents$/, method: "GET", permission: "agent:view" },
   { pattern: /^\/api\/v1\/agents$/, method: "POST", permission: "agent:spawn" },
   { pattern: /^\/api\/v1\/agents\/([^/]+)$/, method: "GET", permission: "agent:view" },
   { pattern: /^\/api\/v1\/agents\/([^/]+)$/, method: "DELETE", permission: "agent:stop" },
   { pattern: /^\/api\/v1\/agents\/([^/]+)\/tasks$/, method: "POST", permission: "agent:modify" },
+  { pattern: /^\/api\/v1\/chat$/, method: "POST", permission: "agent:spawn" },
+  { pattern: /^\/api\/v1\/chat\/providers$/, method: "GET", permission: "config:read" },
+  { pattern: /^\/api\/v1\/events$/, method: "GET", permission: "agent:view" },
+  { pattern: /^\/api\/v1\/ws$/, method: "GET", permission: "agent:view" },
   { pattern: /^\/api\/v1\/memory$/, method: "GET", permission: "memory:read" },
   { pattern: /^\/api\/v1\/memory$/, method: "POST", permission: "memory:write" },
   { pattern: /^\/api\/v1\/memory\/search$/, method: "POST", permission: "memory:read" },
@@ -105,15 +84,24 @@ const ROUTE_PERMISSIONS: Array<{ pattern: RegExp; method: string; permission: Pe
   { pattern: /^\/api\/v1\/souls\/([^/]+)$/, method: "GET", permission: "admin:all" },
   { pattern: /^\/api\/v1\/types$/, method: "GET", permission: "agent:view" },
   { pattern: /^\/api\/v1\/ws\/health$/, method: "GET", permission: "admin:all" },
+  { pattern: /^\/api\/v1\/webhook\//, method: "POST", permission: "trigger:fire" },
 ]
 
-function resolveRoutePermission(pathname: string, method: string): Permission | null {
+export function isProtectedApiPath(pathname: string): boolean {
+  return pathname === API_PREFIX || pathname.startsWith(`${API_PREFIX}/`)
+}
+
+export function resolveRoutePermission(pathname: string, method: string): Permission | null {
   for (const entry of ROUTE_PERMISSIONS) {
     if (entry.pattern.test(pathname) && entry.method === method) {
       return entry.permission
     }
   }
   return null
+}
+
+export function resolveRequiredPermission(pathname: string, method: string): Permission {
+  return resolveRoutePermission(pathname, method) ?? UNMAPPED_ROUTE_PERMISSION
 }
 
 function extractBearerKey(req: ApiRequest): string | null {
@@ -127,32 +115,71 @@ function extractBearerKey(req: ApiRequest): string | null {
   return null
 }
 
-function staticKeyAuth(req: ApiRequest, config: ApiServerConfig): boolean {
-  if (!config.apiKey) return true
-  const authHeader = req.headers["authorization"] || req.headers["x-api-key"] || ""
-  return authHeader === `Bearer ${config.apiKey}` || authHeader === config.apiKey
+function safeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a, "utf-8")
+  const bufB = Buffer.from(b, "utf-8")
+  if (bufA.length !== bufB.length) return false
+  return timingSafeEqual(bufA, bufB)
 }
 
-export function authorize(req: ApiRequest, config: ApiServerConfig, ip: string): Response | null {
-  if (rbacEnabled) {
-    const routePerm = resolveRoutePermission(req.pathname, req.method)
-    if (routePerm || rbacRequired) {
-      const required = routePerm ?? ("admin:all" as Permission)
-      const apiKey = extractBearerKey(req)
-      if (!apiKey) {
-        return jsonResponse(401, { error: "Unauthorized: no API key provided" }, config, req)
-      }
-      const result = rbacManager.validateApiKey(apiKey)
-      if (!result.valid) {
-        return jsonResponse(401, { error: "Unauthorized: invalid API key" }, config, req)
-      }
-      if (!result.permissions?.includes(required) && !result.permissions?.includes("admin:all" as Permission)) {
-        log.warn("RBAC denied", { ip, path: req.pathname, permission: required })
-        return jsonResponse(403, { error: "Forbidden: insufficient permissions" }, config, req)
-      }
-    }
-    return null
+function staticKeyAuth(req: ApiRequest, config: ApiServerConfig): boolean {
+  const configuredKey = config.apiKey
+  if (!configuredKey) return false
+  const authHeader = req.headers["authorization"] || req.headers["x-api-key"] || ""
+  if (!authHeader) return false
+  const bearer = authHeader.match(/^Bearer\s+(.+)$/i)
+  const presentedKey = bearer && bearer[1] ? bearer[1] : authHeader
+  return safeEqual(presentedKey, configuredKey)
+}
+
+function authorizeRbac(
+  req: ApiRequest,
+  config: ApiServerConfig,
+  ip: string,
+  manager: RBACManager,
+): Response | null {
+  const routePerm = resolveRoutePermission(req.pathname, req.method)
+  const protectedPath = routePerm !== null || rbacRequired || isProtectedApiPath(req.pathname)
+  if (!protectedPath) return null
+
+  const isPreflight = req.method === "OPTIONS"
+  if (isPreflight && !rbacRequired) return null
+
+  const required = routePerm ?? UNMAPPED_ROUTE_PERMISSION
+  const apiKey = extractBearerKey(req)
+  if (!apiKey) {
+    return jsonResponse(401, { error: "Unauthorized: no API key provided" }, config, req)
   }
+  const result = manager.validateApiKey(apiKey)
+  if (!result.valid) {
+    return jsonResponse(401, { error: "Unauthorized: invalid API key" }, config, req)
+  }
+  if (isPreflight) return null
+
+  const permissions = result.permissions ?? []
+  if (!permissions.includes(required) && !permissions.includes(ADMIN_PERMISSION)) {
+    log.warn("RBAC denied", { ip, path: req.pathname, permission: required })
+    return jsonResponse(403, { error: "Forbidden: insufficient permissions" }, config, req)
+  }
+  return null
+}
+
+export function authorize(
+  req: ApiRequest,
+  config: ApiServerConfig,
+  ip: string,
+  manager: RBACManager = rbacManager,
+): Response | null {
+  if (rbacEnabled) {
+    return authorizeRbac(req, config, ip, manager)
+  }
+
+  if (!config.apiKey) {
+    if (config.allowUnauthenticated) return null
+    log.warn("Unauthorized API request: server has no API key configured", { ip, path: req.pathname })
+    return jsonResponse(401, { error: "Unauthorized: server has no API key configured" }, config, req)
+  }
+
   if (!staticKeyAuth(req, config)) {
     log.warn("Unauthorized API request", { ip, path: req.pathname })
     return jsonResponse(401, { error: "Unauthorized" }, config, req)

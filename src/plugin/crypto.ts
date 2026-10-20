@@ -9,7 +9,9 @@
  * All keys and signatures are base64url-encoded for JSON-friendly storage.
  */
 
-import { createHash, sign, verify, generateKeyPairSync, createPrivateKey } from "node:crypto"
+import { createHash, sign, verify, generateKeyPairSync, createPrivateKey, createPublicKey } from "node:crypto"
+import { join } from "node:path"
+import { homedir } from "node:os"
 import type { SignedPluginManifest, PluginSignature, AuthorKeyPair } from "./types"
 
 // ── Key Generation ───────────────────────────────────────────────────
@@ -35,30 +37,93 @@ export function generateAuthorKey(comment?: string): AuthorKeyPair {
 // ── Canonical JSON ───────────────────────────────────────────────────
 
 /**
- * Produce a canonical JSON string of the manifest fields that are signed.
- * This excludes the signature itself (to avoid circularity) and normalizes
- * the key order so that the signature is deterministic.
- *
- * Canonical order:
- *   1. name, 2. version, 3. description, 4. author, 5. url,
- *   6. tags, 7. dependencies, 8. conflicts, 9. engine, 10. publishedAt
+ * The manifest fields that make up the signed payload.
+ * Both plugin/signer.ts and plugin/crypto.ts sign exactly these bytes.
  */
-function canonicalManifestJson(manifest: SignedPluginManifest): string {
+export interface CanonicalManifestFields {
+  name: string
+  version: string
+  description?: string
+  author?: string
+  license?: string
+  url?: string
+  entrypoint?: string
+  tags?: string[]
+  hooks?: object
+  dependencies?: Array<{ name: string; version?: string; optional?: boolean }>
+  conflicts?: string[]
+  permissions?: string[]
+  engine?: object
+  publishedAt?: string
+}
+
+export const CANONICAL_MANIFEST_FIELDS = [
+  "name",
+  "version",
+  "description",
+  "author",
+  "license",
+  "url",
+  "entrypoint",
+  "publishedAt",
+  "engine",
+  "tags",
+  "hooks",
+  "dependencies",
+  "conflicts",
+  "permissions",
+] as const
+
+const ED25519_SPKI_PREFIX = "302a300506032b6570032100"
+
+function sortedRecord(source: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const key of Object.keys(source).sort()) {
+    const value = source[key]
+    if (value === undefined) continue
+    out[key] = value
+  }
+  return out
+}
+
+/**
+ * Produce the canonical JSON string of a manifest.
+ *
+ * This is the single canonicalization used by every plugin signing and
+ * verification path in this repository. It covers every security relevant
+ * field of the manifest — including `entrypoint` (the code that runs),
+ * `permissions` (what the plugin asks for) and the nested `hooks` object —
+ * so any change to a signed manifest changes the signed bytes.
+ *
+ * Output is deterministic: fixed field order, sorted object keys, sorted
+ * arrays, and stable dependency ordering.
+ */
+export function canonicalManifestJson(manifest: CanonicalManifestFields): string {
   const obj: Record<string, unknown> = {
     name: manifest.name,
     version: manifest.version,
-    description: manifest.description,
   }
 
-  if (manifest.author) obj.author = manifest.author
-  if (manifest.url) obj.url = manifest.url
+  if (manifest.description !== undefined) obj.description = manifest.description
+  if (manifest.author !== undefined) obj.author = manifest.author
+  if (manifest.license !== undefined) obj.license = manifest.license
+  if (manifest.url !== undefined) obj.url = manifest.url
+  if (manifest.entrypoint !== undefined) obj.entrypoint = manifest.entrypoint
+  if (manifest.publishedAt !== undefined) obj.publishedAt = manifest.publishedAt
+  if (manifest.engine !== undefined) obj.engine = sortedRecord(manifest.engine as Record<string, unknown>)
   if (manifest.tags?.length) obj.tags = [...manifest.tags].sort()
+  if (manifest.hooks !== undefined) obj.hooks = sortedRecord(manifest.hooks as Record<string, unknown>)
   if (manifest.dependencies?.length) {
-    obj.dependencies = [...manifest.dependencies].sort((a, b) => a.name.localeCompare(b.name))
+    obj.dependencies = manifest.dependencies
+      .map((dep) => ({
+        name: dep.name,
+        version: dep.version ?? "",
+        ...(dep.optional === undefined ? {} : { optional: dep.optional }),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version))
   }
   if (manifest.conflicts?.length) obj.conflicts = [...manifest.conflicts].sort()
-  if (manifest.engine) obj.engine = manifest.engine
-  obj.publishedAt = manifest.publishedAt
+  if (manifest.permissions?.length) obj.permissions = [...manifest.permissions].sort()
 
   return JSON.stringify(obj)
 }
@@ -69,10 +134,7 @@ function canonicalManifestJson(manifest: SignedPluginManifest): string {
  * Sign a plugin manifest using the author's private key.
  * Adds the signature to the manifest in-place and returns it.
  */
-export function signManifest(
-  manifest: SignedPluginManifest,
-  privateKeyBase64url: string,
-): PluginSignature {
+export function signManifest(manifest: SignedPluginManifest, privateKeyBase64url: string): PluginSignature {
   const canonical = canonicalManifestJson(manifest)
   const hash = createHash("sha512").update(canonical).digest()
 
@@ -105,7 +167,7 @@ function derivePublicKeyFromPrivate(privateKeyBase64url: string): string {
   const der = Buffer.from(privateKeyBase64url, "base64url")
   try {
     const privKey = createPrivateKey({ key: der, format: "der", type: "pkcs8" })
-    const pubKeyDer = privKey.export({ type: "spki", format: "der" })
+    const pubKeyDer = createPublicKey(privKey).export({ type: "spki", format: "der" })
     return pubKeyDer.toString("base64url")
   } catch {
     throw new Error("Failed to derive public key from private key. The key may be malformed.")
@@ -116,10 +178,7 @@ function derivePublicKeyFromPrivate(privateKeyBase64url: string): string {
  * Sign a manifest when both public and private keys are available.
  * This is the preferred signing method since it avoids key derivation.
  */
-export function signManifestWithKeyPair(
-  manifest: SignedPluginManifest,
-  keyPair: AuthorKeyPair,
-): PluginSignature {
+export function signManifestWithKeyPair(manifest: SignedPluginManifest, keyPair: AuthorKeyPair): PluginSignature {
   const canonical = canonicalManifestJson(manifest)
   const hash = createHash("sha512").update(canonical).digest()
 
@@ -193,8 +252,6 @@ export function keyFingerprint(publicKeyBase64url: string): string {
 export async function loadAuthorKey(): Promise<AuthorKeyPair | null> {
   try {
     const { readFile } = await import("node:fs/promises")
-    const { join } = await import("node:path")
-    const { homedir } = await import("node:os")
     const keyPath = join(homedir(), ".aegis", "registry", "author-key.json")
     const raw = await readFile(keyPath, "utf-8")
     return JSON.parse(raw) as AuthorKeyPair
@@ -208,10 +265,109 @@ export async function loadAuthorKey(): Promise<AuthorKeyPair | null> {
  */
 export async function saveAuthorKey(keyPair: AuthorKeyPair): Promise<void> {
   const { writeFile, mkdir } = await import("node:fs/promises")
-  const { join } = await import("node:path")
-  const { homedir } = await import("node:os")
   const dir = join(homedir(), ".aegis", "registry")
   await mkdir(dir, { recursive: true })
   const keyPath = join(dir, "author-key.json")
   await writeFile(keyPath, JSON.stringify(keyPair, null, 2), "utf-8")
+}
+
+// ── Trusted Plugin Keys ──────────────────────────────────────────────
+
+export interface TrustedPluginKey {
+  keyId: string
+  publicKey: string
+  comment?: string
+  addedAt: string
+}
+
+export interface TrustedPluginKeyStore {
+  version: number
+  keys: TrustedPluginKey[]
+}
+
+export const TRUSTED_PLUGIN_KEYS_VERSION = 1
+
+export function trustedPluginKeysPath(): string {
+  return join(homedir(), ".aegis", "registry", "trusted-keys.json")
+}
+
+export async function loadTrustedPluginKeys(): Promise<TrustedPluginKey[]> {
+  try {
+    const { readFile } = await import("node:fs/promises")
+    const raw = await readFile(trustedPluginKeysPath(), "utf-8")
+    const parsed = JSON.parse(raw) as TrustedPluginKeyStore
+    if (!parsed || !Array.isArray(parsed.keys)) return []
+    return parsed.keys.filter((key) => typeof key?.keyId === "string" && typeof key?.publicKey === "string")
+  } catch {
+    return []
+  }
+}
+
+export async function saveTrustedPluginKeys(keys: TrustedPluginKey[]): Promise<void> {
+  const { writeFile, mkdir } = await import("node:fs/promises")
+  const dir = join(homedir(), ".aegis", "registry")
+  await mkdir(dir, { recursive: true })
+  const store: TrustedPluginKeyStore = { version: TRUSTED_PLUGIN_KEYS_VERSION, keys }
+  await writeFile(trustedPluginKeysPath(), JSON.stringify(store, null, 2), "utf-8")
+}
+
+export async function addTrustedPluginKey(publicKey: string, comment?: string): Promise<TrustedPluginKey> {
+  const keys = await loadTrustedPluginKeys()
+  const existing = keys.find((key) => key.publicKey === publicKey)
+  if (existing) return existing
+  const record: TrustedPluginKey = {
+    keyId: keyFingerprint(publicKey),
+    publicKey,
+    comment,
+    addedAt: new Date().toISOString(),
+  }
+  await saveTrustedPluginKeys([...keys, record])
+  return record
+}
+
+export async function removeTrustedPluginKey(keyId: string): Promise<boolean> {
+  const keys = await loadTrustedPluginKeys()
+  const remaining = keys.filter((key) => key.keyId !== keyId)
+  if (remaining.length === keys.length) return false
+  await saveTrustedPluginKeys(remaining)
+  return true
+}
+
+function rawEd25519PublicKey(material: Buffer): Buffer | null {
+  if (material.length === 32) return material
+  if (material.length === 44 && material.subarray(0, 12).equals(Buffer.from(ED25519_SPKI_PREFIX, "hex"))) {
+    return material.subarray(12)
+  }
+  return null
+}
+
+/**
+ * Normalize arbitrary public key material (raw 32 byte key, hex, base64,
+ * base64url, SPKI DER, or an author-key.json file) into a base64url encoded
+ * raw Ed25519 public key. Returns null when the material is not a usable
+ * Ed25519 public key.
+ */
+export function toRawEd25519PublicKey(material: Buffer | string): string | null {
+  const buffer = Buffer.isBuffer(material) ? material : Buffer.from(material)
+  const text = buffer.toString("utf-8").trim()
+
+  if (text.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(text) as { publicKey?: string }
+      if (typeof parsed.publicKey === "string") return toRawEd25519PublicKey(Buffer.from(parsed.publicKey, "base64url"))
+    } catch {
+      return null
+    }
+    return null
+  }
+
+  const candidates: Buffer[] = [buffer]
+  if (/^[0-9a-fA-F]+$/.test(text) && text.length % 2 === 0) candidates.push(Buffer.from(text, "hex"))
+  candidates.push(Buffer.from(text, "base64url"))
+
+  for (const candidate of candidates) {
+    const raw = rawEd25519PublicKey(candidate)
+    if (raw) return raw.toString("base64url")
+  }
+  return null
 }

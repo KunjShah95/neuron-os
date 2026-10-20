@@ -40,6 +40,8 @@ export interface WebhookEvent {
   signature?: string
   /** Actual URL pathname of the webhook request */
   path?: string
+  /** Exact raw request body the signature was computed over */
+  rawBody?: string
 }
 
 // ── Event Parsing ─────────────────────────────────────────────────────
@@ -116,8 +118,12 @@ export async function handleWebhookEvent(
   const { source, event, payload, signature } = webhookEvent
 
   // Verify signature if configured
-  if (config.secret && signature) {
-    const rawPayload = JSON.stringify(payload)
+  if (config.secret) {
+    if (!signature) {
+      log.warn("Webhook signature missing", { source, event })
+      return { status: 401, body: { error: "Missing signature" } }
+    }
+    const rawPayload = webhookEvent.rawBody ?? JSON.stringify(payload)
     const valid = await verifyHmac(rawPayload, config.secret, signature)
     if (!valid) {
       log.warn("Webhook signature verification failed", { source, event })
@@ -219,10 +225,18 @@ export function createWebhookHandler(config: WebhookConfig): (request: Request) 
     const deliveryId = request.headers.get("x-github-delivery") || undefined
     const signature = request.headers.get("x-hub-signature-256") || undefined
 
+    const rawBody = await request.text()
+
+    if (config.secret && !signature) {
+      return new Response(JSON.stringify({ error: "Missing signature" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      })
+    }
+
     let payload: Record<string, unknown>
     try {
-      const json = await request.json()
-      payload = json as Record<string, unknown>
+      payload = JSON.parse(rawBody) as Record<string, unknown>
     } catch {
       return new Response(JSON.stringify({ error: "Invalid JSON payload" }), {
         status: 400,
@@ -230,7 +244,7 @@ export function createWebhookHandler(config: WebhookConfig): (request: Request) 
       })
     }
 
-    const webhookEvent: WebhookEvent = { source, event, payload, deliveryId, signature, path: url.pathname }
+    const webhookEvent: WebhookEvent = { source, event, payload, deliveryId, signature, path: url.pathname, rawBody }
     const result = await handleWebhookEvent(webhookEvent, config)
 
     return new Response(JSON.stringify(result.body), {

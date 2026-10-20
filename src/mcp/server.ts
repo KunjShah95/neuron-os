@@ -1,14 +1,29 @@
+import { createHash, timingSafeEqual } from "node:crypto"
 import { toolRegistry } from "../tools"
 import { memorySystem } from "../memory"
 import { agentManager } from "../agent/manager"
 import { skillRegistry } from "../skills"
 import type { AgentTypeName } from "../agent/agent-types"
+import type { ToolPermission } from "../agent/agent-types"
 
 export interface MCPServerConfig {
   port?: number
   host?: string
   apiKey?: string
   allowTools?: string[]
+  allowAllTools?: boolean
+}
+
+export interface MCPServerHandle {
+  stop: () => void
+  url: string
+  host: string
+  port: number
+}
+
+interface ToolPolicy {
+  allows: (name: string) => boolean
+  permissions: ToolPermission[]
 }
 
 interface MCPRequest {
@@ -136,8 +151,68 @@ function jsonRpc(id: number | string, result?: unknown, error?: { code: number; 
   return { jsonrpc: "2.0", id, result, error }
 }
 
-async function handleRequest(req: MCPRequest): Promise<MCPResponse> {
+function safeEqual(a: string, b: string): boolean {
+  const digestA = createHash("sha256").update(a, "utf-8").digest()
+  const digestB = createHash("sha256").update(b, "utf-8").digest()
+  return timingSafeEqual(digestA, digestB)
+}
+
+function registeredToolNames(): string[] {
+  return toolRegistry.list().map((t) => t.name)
+}
+
+function resolveAllowList(config: MCPServerConfig): string[] {
+  if (config.allowTools) return config.allowTools
+  const fromEnv = process.env.AEGIS_MCP_ALLOW_TOOLS
+  if (!fromEnv) return []
+  return fromEnv
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+}
+
+function buildPolicy(config: MCPServerConfig): ToolPolicy {
+  const requested = resolveAllowList(config)
+  const wildcard = config.allowAllTools === true || requested.includes("*")
+  if (wildcard) {
+    const names = [...registeredToolNames(), ...MCP_TOOLS.map((t) => t.name)]
+    return {
+      allows: () => true,
+      permissions: names.map((name) => ({ name, allow: true })),
+    }
+  }
+  const names = new Set(requested)
+  return {
+    allows: (name: string) => names.has(name),
+    permissions: [...names].map((name) => ({ name, allow: true })),
+  }
+}
+
+function buildUnrestrictedPolicy(): ToolPolicy {
+  return {
+    allows: () => true,
+    permissions: registeredToolNames().map((name) => ({ name, allow: true })),
+  }
+}
+
+function forbiddenResponse(req: MCPRequest, policy: ToolPolicy): MCPResponse | null {
+  if (!policy.allows(req.method)) {
+    return jsonRpc(req.id, undefined, { code: -32003, message: `Method not allowed: ${req.method}` })
+  }
+  if (req.method === "call_tool") {
+    const toolName = String((req.params as Record<string, unknown> | undefined)?.tool ?? "")
+    if (toolName && !policy.allows(toolName)) {
+      return jsonRpc(req.id, undefined, { code: -32003, message: `Tool not allowed: ${toolName}` })
+    }
+  }
+  return null
+}
+
+async function handleRequest(req: MCPRequest, policy: ToolPolicy): Promise<MCPResponse> {
   const { id, method, params } = req
+
+  const forbidden = forbiddenResponse(req, policy)
+  if (forbidden) return forbidden
 
   try {
     switch (method) {
@@ -166,7 +241,7 @@ async function handleRequest(req: MCPRequest): Promise<MCPResponse> {
         const result = await toolRegistry.execute(toolName, toolArgs, {
           agentId: "mcp-server",
           cwd: process.cwd(),
-          permissions: [{ name: toolName, allow: true }],
+          permissions: policy.permissions,
         })
 
         return jsonRpc(id, { success: result.success, output: result.output || result.error })
@@ -271,6 +346,7 @@ async function handleRequest(req: MCPRequest): Promise<MCPResponse> {
 export async function startMCPServerStdio(): Promise<void> {
   const decoder = new TextDecoder()
   const encoder = new TextEncoder()
+  const policy = buildUnrestrictedPolicy()
   let buffer = ""
 
   const stdinStream = Bun.stdin.stream()
@@ -294,7 +370,7 @@ export async function startMCPServerStdio(): Promise<void> {
       if (!line.trim()) continue
       try {
         const req = JSON.parse(line) as MCPRequest
-        const res = await handleRequest(req)
+        const res = await handleRequest(req, policy)
         await writeResponse(res)
       } catch {
         await writeResponse(jsonRpc(0, undefined, { code: -32700, message: "Parse error" }))
@@ -305,9 +381,27 @@ export async function startMCPServerStdio(): Promise<void> {
 
 // ── Transport: HTTP ───────────────────────────────────────────────────
 
-export function startMCPServerHTTP(config: MCPServerConfig): { stop: () => void } {
+export function startMCPServerHTTP(config: MCPServerConfig): MCPServerHandle {
   const port = config.port ?? 3100
-  const host = config.host ?? "0.0.0.0"
+  const host = config.host ?? "127.0.0.1"
+  const apiKey = config.apiKey && config.apiKey.length > 0 ? config.apiKey : undefined
+  const policy = buildPolicy(config)
+
+  const jsonHeaders = { "Content-Type": "application/json" }
+
+  function authError(request: Request): Response | null {
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: server has no API key configured, privileged endpoints are disabled" }),
+        { status: 401, headers: jsonHeaders },
+      )
+    }
+    const header = request.headers.get("authorization") ?? ""
+    if (!safeEqual(header, `Bearer ${apiKey}`)) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: jsonHeaders })
+    }
+    return null
+  }
 
   const server = Bun.serve({
     port,
@@ -343,20 +437,25 @@ export function startMCPServerHTTP(config: MCPServerConfig): { stop: () => void 
 
       // POST /call — MCP tool call
       if (url.pathname === "/call" && request.method === "POST") {
-        const auth = request.headers.get("authorization")
-        if (config.apiKey && auth !== `Bearer ${config.apiKey}`) {
-          return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 })
-        }
+        const unauthorized = authError(request)
+        if (unauthorized) return unauthorized
 
         const body = (await request.json()) as { name?: string; arguments?: Record<string, unknown> }
         if (!body.name) {
-          return new Response(JSON.stringify({ error: "Missing tool name" }), { status: 400 })
+          return new Response(JSON.stringify({ error: "Missing tool name" }), { status: 400, headers: jsonHeaders })
+        }
+
+        if (!policy.allows(body.name)) {
+          return new Response(JSON.stringify({ error: `Tool not allowed: ${body.name}` }), {
+            status: 403,
+            headers: jsonHeaders,
+          })
         }
 
         const result = await toolRegistry.execute(body.name, body.arguments || {}, {
           agentId: "mcp-http",
           cwd: process.cwd(),
-          permissions: [{ name: body.name, allow: true }],
+          permissions: policy.permissions,
         })
 
         return new Response(JSON.stringify(result), {
@@ -366,16 +465,16 @@ export function startMCPServerHTTP(config: MCPServerConfig): { stop: () => void 
 
       // POST /mcp — JSON-RPC over HTTP
       if (url.pathname === "/mcp" && request.method === "POST") {
-        const auth = request.headers.get("authorization")
-        if (config.apiKey && auth !== `Bearer ${config.apiKey}`) {
-          return new Response(JSON.stringify(jsonRpc(0, undefined, { code: -32001, message: "Unauthorized" })), {
-            status: 401,
-            headers: { "Content-Type": "application/json" },
-          })
-        }
+        const unauthorized = authError(request)
+        if (unauthorized) return unauthorized
 
         const req = (await request.json()) as MCPRequest
-        const res = await handleRequest(req)
+        const forbidden = forbiddenResponse(req, policy)
+        if (forbidden) {
+          return new Response(JSON.stringify(forbidden), { status: 403, headers: jsonHeaders })
+        }
+
+        const res = await handleRequest(req, policy)
         return new Response(JSON.stringify(res), {
           headers: { "Content-Type": "application/json" },
         })
@@ -385,9 +484,22 @@ export function startMCPServerHTTP(config: MCPServerConfig): { stop: () => void 
     },
   })
 
-  console.log(`🔌 MCP server listening on http://${host}:${port}`)
-  console.log(`   Tools endpoint: http://${host}:${port}/tools`)
-  console.log(`   JSON-RPC:      POST http://${host}:${port}/mcp`)
+  const boundHost = server.hostname || host
+  const boundPort = typeof server.port === "number" ? server.port : port
 
-  return { stop: () => server.stop() }
+  console.log(`🔌 MCP server listening on http://${boundHost}:${boundPort}`)
+  console.log(`   Tools endpoint: http://${boundHost}:${boundPort}/tools`)
+  console.log(`   JSON-RPC:      POST http://${boundHost}:${boundPort}/mcp`)
+  if (!apiKey) {
+    console.log("   ⚠ No API key configured — /call and /mcp are disabled until one is set")
+  }
+  const effectiveAllowList = resolveAllowList(config)
+  const allowAll = config.allowAllTools === true || effectiveAllowList.includes("*")
+  console.log(`   Allowed: ${allowAll ? "all" : effectiveAllowList.join(", ") || "none"}`)
+  return {
+    stop: () => server.stop(),
+    url: `http://${boundHost}:${boundPort}`,
+    host: boundHost,
+    port: boundPort,
+  }
 }

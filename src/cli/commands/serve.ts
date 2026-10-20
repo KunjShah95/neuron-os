@@ -11,6 +11,11 @@ export function registerServe(program: Command) {
     .option("--key <key>", "API key for authentication")
     .option("--auth", "Enable RBAC authentication on all endpoints", false)
     .option("--auth-required", "Require valid API key for all requests (default: false)", false)
+    .option(
+      "--allow-unauthenticated",
+      "Allow unauthenticated API access when no API key is set (INSECURE - local development only)",
+      false,
+    )
     .option("--cron", "Also start the cron engine", false)
     .option("--auto-improve", "Start self-improvement scheduler (default)", true)
     .option("--no-auto-improve", "Skip self-improvement scheduler startup")
@@ -26,6 +31,7 @@ export function registerServe(program: Command) {
         key?: string
         auth?: boolean
         authRequired?: boolean
+        allowUnauthenticated?: boolean
         cron?: boolean
         autoImprove?: boolean
         webhookSecret?: string
@@ -99,12 +105,20 @@ export function registerServe(program: Command) {
 
         console.log()
 
+        if (opts.allowUnauthenticated) {
+          console.log(theme.warn("  WARNING: unauthenticated API access enabled - anyone can use this server."))
+        } else if (!opts.key && !opts.auth) {
+          console.log(theme.warn("  No API key configured - all API requests will be rejected."))
+          console.log(theme.dim("  Use --key <key>, --auth (RBAC), or --allow-unauthenticated to serve openly."))
+        }
+
         const server = startApiServer({
           port,
           host: opts.host ?? "0.0.0.0",
           apiKey: opts.key,
           auth: opts.auth,
           authRequired: opts.authRequired,
+          allowUnauthenticated: opts.allowUnauthenticated ?? false,
           webhookConfig: opts.webhookSecret
             ? { secret: opts.webhookSecret, autoReviewPRs: true, autoFixOnPush: true }
             : undefined,

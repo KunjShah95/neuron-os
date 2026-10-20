@@ -80,7 +80,7 @@ describe("Fullstack Integration Tests", () => {
     console.log("\n  Test: Full-stack API → agent spawn → WebSocket event flow")
 
     const port = await findFreePort()
-    const server = startApiServer({ port, host: "127.0.0.1" })
+    const server = startApiServer({ port, host: "127.0.0.1", allowUnauthenticated: true })
     const spawnedIds: string[] = []
 
     try {
@@ -155,7 +155,7 @@ describe("Fullstack Integration Tests", () => {
     console.log("\n  Test: API server health endpoint")
 
     const port = await findFreePort()
-    const server = startApiServer({ port, host: "127.0.0.1" })
+    const server = startApiServer({ port, host: "127.0.0.1", allowUnauthenticated: true })
 
     try {
       const res = await fetch(`http://127.0.0.1:${port}/api/v1/health`)
@@ -178,7 +178,7 @@ describe("Fullstack Integration Tests", () => {
     // (Bun: pass timeout as third arg to `it()`.)
 
     const port = await findFreePort()
-    const server = startApiServer({ port, host: "127.0.0.1" })
+    const server = startApiServer({ port, host: "127.0.0.1", allowUnauthenticated: true })
     const spawnedIds: string[] = []
 
     try {
@@ -233,7 +233,7 @@ describe("Fullstack Integration Tests", () => {
     console.log("\n  Test: SSE fallback endpoint")
 
     const port = await findFreePort()
-    const server = startApiServer({ port, host: "127.0.0.1" })
+    const server = startApiServer({ port, host: "127.0.0.1", allowUnauthenticated: true })
 
     try {
       const res = await fetch(`http://127.0.0.1:${port}/api/v1/events`)

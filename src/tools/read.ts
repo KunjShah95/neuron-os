@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises"
-import { resolve } from "node:path"
+import { resolveWorkspacePath } from "../sandbox/filesystem"
 import type { Tool, ToolResult } from "./registry"
 
 export const readTool: Tool = {
@@ -28,7 +28,14 @@ export const readTool: Tool = {
     const offset = (params.offset as number) || 1
     const limit = (params.limit as number) || 2000
 
-    const fullPath = resolve(ctx.cwd, path)
+    const fullPath = resolveWorkspacePath(ctx.cwd, path)
+    if (!fullPath) {
+      return {
+        success: false,
+        output: "",
+        error: `Path escapes workspace: ${path}`,
+      }
+    }
 
     try {
       const content = await readFile(fullPath, "utf-8")

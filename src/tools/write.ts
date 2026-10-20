@@ -1,5 +1,6 @@
 import { writeFile, mkdir } from "node:fs/promises"
-import { resolve, dirname } from "node:path"
+import { dirname } from "node:path"
+import { resolveWorkspacePath } from "../sandbox/filesystem"
 import type { Tool, ToolResult } from "./registry"
 
 export const writeTool: Tool = {
@@ -23,7 +24,14 @@ export const writeTool: Tool = {
     const path = params.path as string
     const content = params.content as string
 
-    const fullPath = resolve(ctx.cwd, path)
+    const fullPath = resolveWorkspacePath(ctx.cwd, path)
+    if (!fullPath) {
+      return {
+        success: false,
+        output: "",
+        error: `Path escapes workspace: ${path}`,
+      }
+    }
 
     try {
       // Ensure directory exists

@@ -1,5 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises"
-import { resolve } from "node:path"
+import { resolveWorkspacePath } from "../sandbox/filesystem"
 import type { Tool, ToolResult } from "./registry"
 
 export const editTool: Tool = {
@@ -30,7 +30,14 @@ export const editTool: Tool = {
     const oldString = params.oldString as string
     const newString = params.newString as string
 
-    const fullPath = resolve(ctx.cwd, path)
+    const fullPath = resolveWorkspacePath(ctx.cwd, path)
+    if (!fullPath) {
+      return {
+        success: false,
+        output: "",
+        error: `Path escapes workspace: ${path}`,
+      }
+    }
 
     try {
       const content = await readFile(fullPath, "utf-8")

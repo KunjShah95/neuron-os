@@ -4,6 +4,7 @@ export interface ApiServerConfig {
   apiKey?: string
   auth?: boolean
   authRequired?: boolean
+  allowUnauthenticated?: boolean
   corsOrigins?: string
   rateLimitMax?: number
   rateLimitWindowMs?: number

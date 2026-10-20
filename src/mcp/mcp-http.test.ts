@@ -11,11 +11,16 @@ import { startMCPServerHTTP } from "./server"
 let server: { stop: () => void }
 const PORT = 3124
 const BASE = `http://localhost:${PORT}`
+const API_KEY = "mcp-http-test-key"
+const AUTH = { Authorization: `Bearer ${API_KEY}` }
+const ALLOW_LIST = ["list_tools", "call_tool", "read"]
 
 beforeAll(() => {
   server = startMCPServerHTTP({
     port: PORT,
     host: "localhost",
+    apiKey: API_KEY,
+    allowTools: ALLOW_LIST,
   })
 })
 
@@ -51,7 +56,7 @@ describe("MCP HTTP Transport", () => {
   it("should handle JSON-RPC over HTTP", async () => {
     const res = await fetch(`${BASE}/mcp`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...AUTH },
       body: JSON.stringify({
         jsonrpc: "2.0",
         id: 1,
@@ -71,7 +76,7 @@ describe("MCP HTTP Transport", () => {
   it("should return error for unknown JSON-RPC method", async () => {
     const res = await fetch(`${BASE}/mcp`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...AUTH },
       body: JSON.stringify({
         jsonrpc: "2.0",
         id: 2,
@@ -79,14 +84,14 @@ describe("MCP HTTP Transport", () => {
         params: {},
       }),
     })
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(403)
     const body: any = await res.json()
     expect(body.error).toBeDefined()
-    expect(body.error.code).toBe(-32601)
-    expect(body.error.message).toContain("Method not found")
+    expect(body.error.code).toBe(-32003)
+    expect(body.error.message).toContain("Method not allowed")
   })
 
-  it("should handle auth when API key is configured", async () => {
+  it("should reject requests without an API key", async () => {
     const res = await fetch(`${BASE}/mcp`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -97,7 +102,7 @@ describe("MCP HTTP Transport", () => {
         params: {},
       }),
     })
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(401)
   })
 
   it("should return 404 for unknown paths", async () => {
@@ -108,7 +113,7 @@ describe("MCP HTTP Transport", () => {
   it("should call a registered tool via /call endpoint", async () => {
     const res = await fetch(`${BASE}/call`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...AUTH },
       body: JSON.stringify({
         name: "list_tools",
         arguments: {},
@@ -123,7 +128,7 @@ describe("MCP HTTP Transport", () => {
   it("should return 400 when tool name is missing", async () => {
     const res = await fetch(`${BASE}/call`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...AUTH },
       body: JSON.stringify({}),
     })
     expect(res.status).toBe(400)
@@ -134,7 +139,7 @@ describe("MCP HTTP Transport", () => {
   it("should validate JSON-RPC request structure", async () => {
     const res = await fetch(`${BASE}/mcp`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...AUTH },
       body: JSON.stringify({
         jsonrpc: "2.0",
         id: 4,
@@ -142,9 +147,9 @@ describe("MCP HTTP Transport", () => {
         params: {},
       }),
     })
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(403)
     const body: any = await res.json()
     expect(body.error).toBeDefined()
-    expect(body.error.code).toBe(-32601)
+    expect(body.error.code).toBe(-32003)
   })
 })

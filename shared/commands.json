@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-13T08:37:11.076Z",
+  "generatedAt": "2026-10-20T02:44:20.322Z",
   "commands": [
     {
       "name": "adversarial",
@@ -3177,6 +3177,13 @@
       "parent": "plugin"
     },
     {
+      "name": "plugin keys",
+      "options": [],
+      "sourceFile": "src/cli/commands/plugin.ts",
+      "description": "List trusted plugin publisher keys",
+      "parent": "plugin"
+    },
+    {
       "name": "plugin list",
       "options": [],
       "sourceFile": "src/cli/commands/plugin.ts",
@@ -3208,6 +3215,19 @@
       "options": [],
       "sourceFile": "src/cli/commands/plugin.ts",
       "description": "Search plugins by name or description",
+      "parent": "plugin"
+    },
+    {
+      "name": "plugin trust <keyFile>",
+      "options": [
+        {
+          "flag": "--comment <text>",
+          "description": "Note stored alongside the trusted key",
+          "required": false
+        }
+      ],
+      "sourceFile": "src/cli/commands/plugin.ts",
+      "description": "Trust a plugin publisher public key",
       "parent": "plugin"
     },
     {
@@ -4054,6 +4074,12 @@
         {
           "flag": "--auth-required",
           "description": "Require valid API key for all requests (default: false)",
+          "required": false,
+          "defaultValue": false
+        },
+        {
+          "flag": "--allow-unauthenticated",
+          "description": "Allow unauthenticated API access when no API key is set (INSECURE - local development only)",
           "required": false,
           "defaultValue": false
         },

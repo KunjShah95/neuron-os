@@ -1,9 +1,10 @@
 import { streamText, generateText, jsonSchema, stepCountIs } from "ai"
 import type { ModelMessage, ToolSet } from "ai"
 import { AgentRuntime } from "./runtime"
-import { toolRegistry, type ToolParameter, type ToolContext } from "../tools"
+import { agentManager } from "./manager"
+import { toolRegistry, type Tool, type ToolParameter, type ToolContext } from "../tools"
 import { AIProviderManager } from "../ai"
-import type { ToolPermission } from "./agent-types"
+import { getAgentType, type AgentTypeName, type ToolPermission } from "./agent-types"
 import { sessionStore, getProjectSessionStore, type SessionStore } from "../memory/session-persistence"
 import { AuditRecorder } from "../audit/recorder"
 import { experienceStore, type Outcome } from "../experience/store"
@@ -19,16 +20,57 @@ import { loadConfig } from "../config"
 
 const log = createLogger("agent-engine")
 
-const FULL_TOOL_PERMISSIONS: ToolPermission[] = [
-  { name: "read", allow: true },
-  { name: "read_skill", allow: true },
-  { name: "write", allow: true },
-  { name: "edit", allow: true },
-  { name: "bash", allow: true },
-  { name: "grep", allow: true },
-  { name: "glob", allow: true },
-  { name: "ask_agent", allow: true },
+const UNRESTRICTED_TOOL_NAMES = [
+  "read",
+  "read_skill",
+  "write",
+  "edit",
+  "bash",
+  "grep",
+  "glob",
+  "web_fetch",
+  "web_search",
+  "computer",
+  "browser",
+  "image_generate",
 ]
+
+const UTILITY_TOOL_NAMES = [
+  "ask_agent",
+  "plan_state",
+  "memory_read",
+  "memory_write",
+  "memory_search",
+  "tree_sitter",
+  "web_extract",
+]
+
+const FULL_TOOL_PERMISSIONS: ToolPermission[] = [
+  ...UNRESTRICTED_TOOL_NAMES.map((name) => ({ name, allow: true })),
+  ...UTILITY_TOOL_NAMES.map((name) => ({ name, allow: true })),
+]
+
+export function isUnrestrictedToolSet(tools: ToolPermission[]): boolean {
+  const allowed = new Set(tools.filter((t) => t.allow).map((t) => t.name))
+  return UNRESTRICTED_TOOL_NAMES.every((name) => allowed.has(name))
+}
+
+export function resolveAgentPermissions(agentType?: string, defTools?: ToolPermission[]): ToolPermission[] {
+  if (defTools && defTools.length > 0) {
+    return isUnrestrictedToolSet(defTools) ? FULL_TOOL_PERMISSIONS : defTools
+  }
+  if (agentType) {
+    const type = getAgentType(agentType as AgentTypeName)
+    if (type && type.tools.length > 0) {
+      return isUnrestrictedToolSet(type.tools) ? FULL_TOOL_PERMISSIONS : type.tools
+    }
+  }
+  return FULL_TOOL_PERMISSIONS
+}
+
+export function permittedToolNames(permissions: ToolPermission[]): string[] {
+  return permissions.filter((p) => p.allow).map((p) => p.name)
+}
 
 export interface PlanStateHints {
   /** If true, instructs the model to maintain a TodoWrite plan via plan_state tool */
@@ -462,8 +504,30 @@ export class AgentEngine {
     }
   }
 
+  private runtimeAllowedTools(): string[] | null {
+    const runtime = this.runtime as unknown as { allowedTools?: string[] | null }
+    return Array.isArray(runtime.allowedTools) ? runtime.allowedTools : null
+  }
+
+  private effectivePermissions(): ToolPermission[] {
+    const defTools = agentManager.get(this.runtime.context.agentId)?.def.tools
+    const base = resolveAgentPermissions(this.runtime.context.agentType, defTools)
+    const allowed = this.runtimeAllowedTools()
+    if (!allowed) return base
+    const allowSet = new Set(allowed)
+    const filtered = base.filter((p) => allowSet.has(p.name))
+    if (filtered.length === base.length) return base
+    return filtered
+  }
+
+  private visibleTools(permissions: ToolPermission[]): Tool[] {
+    const permitted = new Set(permittedToolNames(permissions))
+    return toolRegistry.list().filter((t) => permitted.has(t.name))
+  }
+
   private buildVercelTools(): ToolSet {
-    const allTools = toolRegistry.list()
+    const permissions = this.effectivePermissions()
+    const allTools = this.visibleTools(permissions)
     const tools: ToolSet = {}
 
     for (const t of allTools) {
@@ -495,7 +559,7 @@ export class AgentEngine {
             agentId: this.runtime.context.agentId,
             agentType: this.runtime.context.agentType,
             cwd: this.runtime.context.cwd,
-            permissions: FULL_TOOL_PERMISSIONS,
+            permissions,
           }
           const startTime = performance.now()
           const result = await toolRegistry.execute(toolName, args, toolCtx)
@@ -549,7 +613,8 @@ export class AgentEngine {
   }
 
   private buildToolDescription(): string {
-    const allTools = toolRegistry.list()
+    const permissions = this.effectivePermissions()
+    const allTools = this.visibleTools(permissions)
     const lines = ["You have access to the following tools:", ""]
     for (const t of allTools) {
       const params = t.parameters.map((p) => `${p.name}${p.required ? "" : "?"}: ${p.type}`).join(", ")

@@ -7,6 +7,10 @@ import { createLogger } from "../cli/logger"
 
 const log = createLogger("distributed:api")
 
+const SIGNATURE_HEADER = "x-aegis-signature"
+const TIMESTAMP_HEADER = "x-aegis-timestamp"
+const REPLAY_WINDOW_MS = 60_000
+
 type RouteHandler = (
   req: IncomingMessage,
   res: ServerResponse,
@@ -21,12 +25,48 @@ interface Route {
   handler: RouteHandler
 }
 
+export interface DistributedSignature {
+  signature: string
+  timestamp: string
+}
+
+function canonicalRequest(method: string, path: string, timestamp: string, body: string): string {
+  return `${method}\n${path}\n${timestamp}\n${body}`
+}
+
+function safeEqualHex(a: string, b: string): boolean {
+  const normalize = (value: string): string => {
+    const trimmed = value.trim()
+    const withoutPrefix = trimmed.startsWith("sha256=") ? trimmed.slice(7) : trimmed
+    return withoutPrefix.toLowerCase()
+  }
+  const left = Buffer.from(normalize(a), "utf-8")
+  const right = Buffer.from(normalize(b), "utf-8")
+  if (left.length !== right.length) return false
+  return timingSafeEqual(left, right)
+}
+
+function parseTimestamp(raw: string): number | null {
+  const trimmed = raw.trim()
+  if (!/^\d+$/.test(trimmed)) return null
+  const numeric = Number(trimmed)
+  if (!Number.isFinite(numeric)) return null
+  return trimmed.length <= 10 ? numeric * 1000 : numeric
+}
+
+function headerValue(req: IncomingMessage, name: string): string | undefined {
+  const value = req.headers[name]
+  if (Array.isArray(value)) return value[0]
+  return value
+}
+
 export class DistributedAPI {
   private pool: WorkerPool
   private placer: CapacityPlacer
   private server: ReturnType<typeof createServer> | null = null
   private routes: Route[] = []
   private key: Buffer
+  private boundPort = 0
 
   constructor(pool: WorkerPool) {
     this.pool = pool
@@ -35,6 +75,22 @@ export class DistributedAPI {
     if (!clusterSecret) throw new Error("AEGIS_CLUSTER_SECRET environment variable is required for distributed runtime encryption.")
     this.key = SecureTransport.deriveKey(clusterSecret)
     this.setupRoutes()
+  }
+
+  static signRequest(
+    method: string,
+    path: string,
+    body: string,
+    key: Buffer,
+    timestamp: number = Date.now(),
+  ): DistributedSignature {
+    const stamp = String(timestamp)
+    const signature = createHmac("sha256", key).update(canonicalRequest(method, path, stamp, body)).digest("hex")
+    return { signature, timestamp: stamp }
+  }
+
+  getPort(): number {
+    return this.boundPort
   }
 
   private setupRoutes(): void {
@@ -52,7 +108,9 @@ export class DistributedAPI {
     return new Promise((resolve) => {
       this.server = createServer((req, res) => this.handleRequest(req, res))
       this.server.listen(port, () => {
-        log.info(`Distributed API listening on port ${port}`)
+        const address = this.server?.address()
+        this.boundPort = typeof address === "object" && address !== null ? address.port : port
+        log.info(`Distributed API listening on port ${this.boundPort}`)
         resolve()
       })
     })
@@ -62,66 +120,96 @@ export class DistributedAPI {
     if (this.server) {
       await new Promise<void>((resolve) => this.server?.close(() => resolve()))
       this.server = null
+      this.boundPort = 0
     }
   }
 
   private async handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
     res.setHeader("Content-Type", "application/json")
-
-    // Verify HMAC signature if present
-    const signature = req.headers["x-aegis-signature"] as string | undefined
-    if (signature && !this.verifySignature(req, signature)) {
-      this.sendJson(res, 401, { error: "Invalid signature" })
-      return
-    }
-
     res.setHeader("Access-Control-Allow-Origin", "*")
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+
     if (req.method === "OPTIONS") {
       this.sendJson(res, 200, {})
       return
     }
 
-    let body = ""
-    req.on("data", (chunk: Buffer) => {
-      body += chunk.toString("utf-8")
-    })
+    const body = await this.readBody(req)
+    const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`)
+    const path = url.pathname
 
-    req.on("end", async () => {
-      const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`)
-      const path = url.pathname
+    const signature = headerValue(req, SIGNATURE_HEADER)
+    if (!signature) {
+      this.sendJson(res, 401, { error: "Missing signature" })
+      return
+    }
 
-      for (const route of this.routes) {
-        if (route.method !== req.method) continue
-        const match = path.match(route.pattern)
-        if (match) {
-          const params: Record<string, string> = {}
-          for (let i = 0; i < route.paramNames.length; i++) {
-            params[route.paramNames[i] ?? ""] = decodeURIComponent(match[i + 1] ?? "")
-          }
-          try {
-            await route.handler(req, res, body, params)
-          } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err)
-            log.error(`API handler error: ${msg}`)
-            this.sendJson(res, 500, { error: msg })
-          }
-          return
+    const timestampHeader = headerValue(req, TIMESTAMP_HEADER)
+    if (!timestampHeader) {
+      this.sendJson(res, 401, { error: "Missing timestamp" })
+      return
+    }
+
+    const timestamp = parseTimestamp(timestampHeader)
+    if (timestamp === null) {
+      this.sendJson(res, 401, { error: "Invalid timestamp" })
+      return
+    }
+
+    if (Math.abs(Date.now() - timestamp) > REPLAY_WINDOW_MS) {
+      this.sendJson(res, 401, { error: "Expired timestamp" })
+      return
+    }
+
+    if (!this.verifySignature(req.method ?? "GET", path, timestampHeader.trim(), body, signature)) {
+      this.sendJson(res, 401, { error: "Invalid signature" })
+      return
+    }
+
+    for (const route of this.routes) {
+      if (route.method !== req.method) continue
+      const match = path.match(route.pattern)
+      if (match) {
+        const params: Record<string, string> = {}
+        for (let i = 0; i < route.paramNames.length; i++) {
+          params[route.paramNames[i] ?? ""] = decodeURIComponent(match[i + 1] ?? "")
         }
+        try {
+          await route.handler(req, res, body, params)
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err)
+          log.error(`API handler error: ${msg}`)
+          this.sendJson(res, 500, { error: msg })
+        }
+        return
       }
+    }
 
-      this.sendJson(res, 404, { error: "Not found" })
+    this.sendJson(res, 404, { error: "Not found" })
+  }
+
+  private readBody(req: IncomingMessage): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const chunks: Buffer[] = []
+      req.on("data", (chunk: Buffer) => {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+      })
+      req.on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")))
+      req.on("error", (err) => reject(err))
     })
   }
 
-  private verifySignature(req: IncomingMessage, signature: string): boolean {
-    const body = JSON.stringify({ method: req.method, path: req.url })
-    const expected = createHmac("sha256", this.key).update(body).digest("hex")
-    try {
-      return timingSafeEqual(Buffer.from(signature), Buffer.from(expected))
-    } catch {
-      return false
-    }
+  private verifySignature(
+    method: string,
+    path: string,
+    timestamp: string,
+    body: string,
+    signature: string,
+  ): boolean {
+    const expected = createHmac("sha256", this.key)
+      .update(canonicalRequest(method, path, timestamp, body))
+      .digest("hex")
+    return safeEqualHex(signature, expected)
   }
 
   private sendJson(res: ServerResponse, status: number, data: unknown): void {

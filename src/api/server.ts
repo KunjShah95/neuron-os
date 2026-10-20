@@ -1,9 +1,10 @@
 import { createLogger } from "../cli/logger"
 import { createRedirectServer } from "./redirect"
+import { RateLimiter } from "./rate-limiter"
 import {
+  authorize,
   getAllowedOrigins,
   HSTS_HEADER,
-  RateLimiter,
   SECURITY_HEADERS,
   setRbacState,
 } from "./security"
@@ -23,6 +24,15 @@ export { getWsHealth, startWsEventBridge, startA2uiWsBridge, stopWsEventBridge }
 
 const log = createLogger("api")
 
+function toApiRequest(request: Request, url: URL): ApiRequest {
+  return {
+    method: request.method,
+    pathname: url.pathname,
+    headers: Object.fromEntries(request.headers.entries()),
+    searchParams: url.searchParams,
+  }
+}
+
 export function startApiServer(config: ApiServerConfig): { stop: () => void } {
   const rateLimiter = new RateLimiter(config.rateLimitMax ?? 100, config.rateLimitWindowMs ?? 60_000)
   const allowedOrigins = getAllowedOrigins(config)
@@ -39,12 +49,17 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
     SECURITY_HEADERS["Strict-Transport-Security"] = HSTS_HEADER
   }
 
+  if (config.allowUnauthenticated) {
+    log.warn("Running without API authentication - every API route is open to any client", { host: config.host })
+  }
+
   log.info("Starting API server", {
     port: config.port,
     host: config.host,
     authEnabled: !!config.apiKey,
     rbacEnabled: config.auth ?? false,
     rbacRequired: config.authRequired ?? false,
+    allowUnauthenticated: config.allowUnauthenticated ?? false,
     corsOrigins: allowedOrigins.join(", "),
     rateLimit: `${config.rateLimitMax ?? 100}/min`,
     tls: tlsActive,
@@ -66,16 +81,12 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
 
         async fetch(request: Request): Promise<Response> {
           const url = new URL(request.url)
-          const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
+          const socketAddress = (server as Bun.Server<undefined>).requestIP(request)
+          const ip = socketAddress?.address || "unknown"
 
           if (url.pathname === "/api/v1/ws" && request.headers.get("upgrade") === "websocket") {
-            if (config.apiKey) {
-              const authHeader = request.headers.get("authorization") || request.headers.get("x-api-key") || ""
-              const authed = authHeader === `Bearer ${config.apiKey}` || authHeader === config.apiKey
-              if (!authed) {
-                return new Response("Unauthorized", { status: 401 })
-              }
-            }
+            const denied = authorize(toApiRequest(request, url), config, ip)
+            if (denied) return denied
 
             const upgraded = (server as Bun.Server<undefined>).upgrade(request)
             if (upgraded) return new Response(null, { status: 101 })
@@ -102,14 +113,13 @@ export function startApiServer(config: ApiServerConfig): { stop: () => void } {
           }
 
           if (url.pathname === "/api/v1/events" && request.method === "GET") {
+            const denied = authorize(toApiRequest(request, url), config, ip)
+            if (denied) return denied
             return createSseResponse()
           }
 
           const req: ApiRequest = {
-            method: request.method,
-            pathname: url.pathname,
-            headers: Object.fromEntries(request.headers.entries()),
-            searchParams: url.searchParams,
+            ...toApiRequest(request, url),
             body:
               request.method === "POST" || request.method === "PUT" ? await request.json().catch(() => ({})) : undefined,
           }
