@@ -48,6 +48,9 @@ const ALL_TOOLS: ToolPermission[] = [
   { name: "computer", allow: true },
   { name: "browser", allow: true },
   { name: "image_generate", allow: true },
+  { name: "memory_read", allow: true },
+  { name: "memory_write", allow: true },
+  { name: "memory_search", allow: true },
 ]
 
 const READ_ONLY_TOOLS: ToolPermission[] = [
@@ -55,6 +58,8 @@ const READ_ONLY_TOOLS: ToolPermission[] = [
   { name: "read_skill", allow: true },
   { name: "grep", allow: true },
   { name: "glob", allow: true },
+  { name: "memory_read", allow: true },
+  { name: "memory_search", allow: true },
 ]
 
 const WRITE_TOOLS: ToolPermission[] = [
@@ -62,6 +67,9 @@ const WRITE_TOOLS: ToolPermission[] = [
   { name: "edit", allow: true },
   { name: "read", allow: true },
   { name: "read_skill", allow: true },
+  { name: "memory_read", allow: true },
+  { name: "memory_write", allow: true },
+  { name: "memory_search", allow: true },
 ]
 
 const TEST_TOOLS: ToolPermission[] = [
