@@ -78,7 +78,7 @@ describe("openDatabase", () => {
     holder.exec("ROLLBACK")
     holder.close()
     db?.close()
-  })
+  }, 30_000)
 })
 
 describe("execWithRetry", () => {

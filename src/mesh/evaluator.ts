@@ -182,8 +182,10 @@ export class Evaluator {
 
   private async evalTypecheck(startTime: number): Promise<EvaluationResult> {
     try {
-      const cmd = "bun run --bun tsc --noEmit 2>&1"
-      const output = execSync(cmd, { cwd: this.cwd, encoding: "utf8", timeout: 120_000 })
+      // `bunx tsc` runs the compiler on node; `bun run --bun tsc` runs it on
+      // the bun runtime and is roughly three times slower on this codebase.
+      const cmd = "bunx tsc --noEmit 2>&1"
+      const output = execSync(cmd, { cwd: this.cwd, encoding: "utf8", timeout: 300_000 })
       const passed = !output.includes("error TS")
       return {
         metric: "typecheck",

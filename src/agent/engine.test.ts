@@ -769,6 +769,11 @@ describe("Engine Tests", () => {
       audit: false,
       ratchet: { testCommand: "echo test" },
       evaluation: [{ metric: "typecheck" }],
+      // The real evaluator shells out to the project typecheck, which takes
+      // well over a minute - far too slow for a unit test.
+      evaluator: {
+        evaluate: async () => ({ overallScore: 1, overallPass: true }),
+      },
     })
 
     // Internal fields populated from config — verify the engine accepted them

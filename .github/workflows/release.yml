@@ -37,7 +37,7 @@ jobs:
 
       - run: bun install --frozen-lockfile
       - run: bun run lint
-      - run: bun run --bun tsc --noEmit
+      - run: bunx tsc --noEmit
       - run: bun run scripts/run-tests.ts
 
   dashboard-build:

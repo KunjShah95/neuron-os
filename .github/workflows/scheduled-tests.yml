@@ -32,7 +32,7 @@ jobs:
         run: bun run lint
 
       - name: Typecheck
-        run: bun run --bun tsc --noEmit
+        run: bunx tsc --noEmit
 
       - name: Run tests
         run: bun run test

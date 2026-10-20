@@ -55,7 +55,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Typecheck (tsc --noEmit)
-        run: bun run --bun tsc --noEmit
+        run: bunx tsc --noEmit
 
   pack-safety:
     name: Package Safety

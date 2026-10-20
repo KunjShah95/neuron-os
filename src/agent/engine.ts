@@ -98,6 +98,18 @@ export interface PreCompactConfig {
 export interface AgentEngineConfig {
   maxSteps?: number
   /**
+   * Override the evaluation runner used by completeSession().
+   * Defaults to the real Evaluator, which shells out to the project's
+   * typecheck / test suite - far too slow to run inside a unit test.
+   */
+  evaluator?: {
+    evaluate: (
+      taskId: string,
+      goal: string,
+      criteria: EvaluationCriteria[],
+    ) => Promise<{ overallScore: number; overallPass: boolean }>
+  }
+  /**
    * Replace the implementation of specific tools.
    *
    * The override keeps the registry tool's name, description and parameter
@@ -198,6 +210,7 @@ export class AgentEngine {
   private ratchetRuntime?: RatchetRuntime
   private ratchetConfig?: RatchetConfig
   private evaluationCriteria?: EvaluationCriteria[]
+  private evaluator?: AgentEngineConfig["evaluator"]
   private sessionStartFiles: string[] = []
   private projectName = ""
   private sessionCompleting = false
@@ -256,6 +269,9 @@ export class AgentEngine {
     // Stash evaluation criteria for completeSession()
     if (config?.evaluation) {
       this.evaluationCriteria = config.evaluation
+    }
+    if (config?.evaluator) {
+      this.evaluator = config.evaluator
     }
 
     // ── Plan state initialization ─────────────────────────
@@ -390,7 +406,7 @@ export class AgentEngine {
     // ── Evaluator path (amendment ΔG1 failure-safe) ──────────────────
     if (this.evaluationCriteria && this.evaluationCriteria.length > 0) {
       try {
-        const evaluator = new Evaluator(cwd)
+        const evaluator = this.evaluator ?? new Evaluator(cwd)
         const evalResult = await evaluator.evaluate(
           sessionId,
           this.sessionGoal ?? "untitled",
