@@ -66,11 +66,21 @@ function setFilePragma(db: Database, name: string, value: string): void {
   }
 }
 
+/**
+ * How long a statement waits for a lock held by another process before
+ * SQLite gives up with SQLITE_BUSY.
+ */
+const BUSY_TIMEOUT_MS = 10_000
+
 export function applyPragmas(db: Database, options: OpenDatabaseOptions = {}): void {
-  // Wait for a lock instead of failing immediately when another process holds
-  // the database.
-  setFilePragma(db, "busy_timeout", "10000")
+  // Start without waiting for locks so the journal-mode conversion fails
+  // fast when another process already holds the database.
+  setFilePragma(db, "busy_timeout", "0")
+  // Converting the journal mode needs an exclusive lock that another process
+  // may already hold.
   setFilePragma(db, "journal_mode", "WAL")
+  // Wait for locks rather than failing immediately on the caller's statements.
+  setFilePragma(db, "busy_timeout", String(BUSY_TIMEOUT_MS))
   setFilePragma(db, "synchronous", "NORMAL")
   if (options.foreignKeys !== false) {
     db.exec("PRAGMA foreign_keys = ON")
@@ -82,7 +92,21 @@ export function openDatabase(path: string, options: OpenDatabaseOptions = {}): D
   const db = new Database(path, { create: options.create ?? true })
   applyPragmas(db, options)
   // Touch the file so a concurrent journal-mode conversion cannot leave the
-  // handle broken for the caller's first statement.
-  execWithRetry(db, "PRAGMA user_version")
+  // handle broken for the caller's first statement. The busy timeout is
+  // cleared for this probe: a database that is legitimately locked by another
+  // process must still open, and the caller's statements wait for locks via
+  // the busy timeout instead.
+  try {
+    db.exec("PRAGMA busy_timeout = 0")
+    execWithRetry(db, "PRAGMA user_version")
+  } catch {
+    /* locked by another process — the caller's own statements retry */
+  } finally {
+    try {
+      db.exec(`PRAGMA busy_timeout = ${BUSY_TIMEOUT_MS}`)
+    } catch {
+      /* keep the SQLite default */
+    }
+  }
   return db
 }

@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite"
 import { join } from "node:path"
 import { estimateModelCost } from "../economy/cost-router"
-import { openDatabase } from "../utils/sqlite"
+import { openDatabase, execWithRetry } from "../utils/sqlite"
 
 export interface CostRecord {
   id: string
@@ -34,7 +34,7 @@ export class BillingTracker {
 
     this.db = openDatabase(dbPath)
 
-    this.db.exec(`
+    execWithRetry(this.db, `
       CREATE TABLE IF NOT EXISTS usage (
         id TEXT PRIMARY KEY,
         session_id TEXT NOT NULL,
@@ -46,7 +46,7 @@ export class BillingTracker {
       )
     `)
 
-    this.db.exec(`
+    execWithRetry(this.db, `
       CREATE TABLE IF NOT EXISTS tool_usage (
         id TEXT PRIMARY KEY,
         session_id TEXT NOT NULL,
@@ -57,7 +57,7 @@ export class BillingTracker {
       )
     `)
 
-    this.db.exec(`
+    execWithRetry(this.db, `
       CREATE TABLE IF NOT EXISTS budget (
         id TEXT PRIMARY KEY,
         limit_usd REAL NOT NULL

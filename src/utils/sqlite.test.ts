@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 
-import { openDatabase } from "./sqlite"
+import { openDatabase, execWithRetry } from "./sqlite"
 
 const tmp = mkdtempSync(join(tmpdir(), "sqlite-helper-"))
 
@@ -78,5 +78,44 @@ describe("openDatabase", () => {
     holder.exec("ROLLBACK")
     holder.close()
     db?.close()
+  })
+})
+
+describe("execWithRetry", () => {
+  it("runs the statement when the database is free", () => {
+    const db = openDatabase(join(tmp, "retry-ok.db"))
+    execWithRetry(db, "CREATE TABLE IF NOT EXISTS retry_ok (id TEXT PRIMARY KEY)")
+    const row = db.prepare("SELECT count(*) AS n FROM retry_ok").get() as { n: number }
+    expect(row.n).toBe(0)
+    db.close()
+  })
+
+  it("retries a transient locked-database error and succeeds", () => {
+    const db = openDatabase(join(tmp, "retry-busy.db"))
+    let attempts = 0
+    const original = db.exec.bind(db)
+
+    // Simulate another process holding the database for the first attempt.
+    ;(db as unknown as { exec: (sql: string) => void }).exec = (sql: string) => {
+      attempts++
+      if (attempts === 1) {
+        const err = new Error("database is locked") as Error & { code?: string }
+        err.code = "SQLITE_BUSY"
+        throw err
+      }
+      original(sql)
+    }
+
+    execWithRetry(db, "CREATE TABLE IF NOT EXISTS retry_busy (id TEXT PRIMARY KEY)")
+    expect(attempts).toBeGreaterThan(1)
+
+    ;(db as unknown as { exec: typeof original }).exec = original
+    db.close()
+  })
+
+  it("rethrows a non-transient error immediately", () => {
+    const db = openDatabase(join(tmp, "retry-fatal.db"))
+    expect(() => execWithRetry(db, "THIS IS NOT SQL")).toThrow()
+    db.close()
   })
 })
