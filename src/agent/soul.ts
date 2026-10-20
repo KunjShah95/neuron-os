@@ -494,29 +494,40 @@ export const ARCHETYPE_DEFINITIONS: Record<
 
 export class SoulManager {
   private souls = new Map<string, AgentSoul>()
-  private dir: string
+  private dirOverride?: string
+  private hydrated = false
 
   constructor(options: { dir?: string } = {}) {
-    this.dir = options.dir ?? resolve(homedir(), ".aegis", "souls")
-    this.hydrate()
+    this.dirOverride = options.dir
   }
 
   /**
-   * Load previously persisted souls from disk.
+   * Directory where souls are persisted.
+   * `AEGIS_SOUL_DIR` allows tests (and users) to redirect the location.
+   */
+  private resolveDir(): string {
+    return this.dirOverride ?? process.env.AEGIS_SOUL_DIR ?? resolve(homedir(), ".aegis", "souls")
+  }
+
+  /**
+   * Load previously persisted souls from disk (once per manager).
    * A corrupt or unreadable file is skipped rather than breaking the manager.
    */
   private hydrate(): void {
-    if (!existsSync(this.dir)) return
+    if (this.hydrated) return
+    this.hydrated = true
+    const dir = this.resolveDir()
+    if (!existsSync(dir)) return
     let entries: string[]
     try {
-      entries = readdirSync(this.dir)
+      entries = readdirSync(dir)
     } catch {
       return
     }
     for (const entry of entries) {
       if (!entry.endsWith(".json")) continue
       try {
-        const raw = readFileSync(join(this.dir, entry), "utf-8")
+        const raw = readFileSync(join(dir, entry), "utf-8")
         const parsed = JSON.parse(raw) as AgentSoul
         if (!parsed || typeof parsed !== "object" || !parsed.archetype) continue
         const agentId = entry.slice(0, -".json".length)
@@ -535,8 +546,9 @@ export class SoulManager {
     const soul = this.souls.get(agentId)
     if (!soul) return
     try {
-      mkdirSync(this.dir, { recursive: true })
-      writeFileSync(join(this.dir, `${agentId}.json`), JSON.stringify(soul, null, 2), "utf-8")
+      const dir = this.resolveDir()
+      mkdirSync(dir, { recursive: true })
+      writeFileSync(join(dir, `${agentId}.json`), JSON.stringify(soul, null, 2), "utf-8")
     } catch {
       // best-effort persistence
     }
@@ -585,6 +597,7 @@ export class SoulManager {
    * Register a soul for a given agent ID.
    */
   register(agentId: string, soul: AgentSoul): void {
+    this.hydrate()
     this.souls.set(agentId, soul)
     this.persist(agentId)
   }
@@ -593,6 +606,7 @@ export class SoulManager {
    * Get the soul for a given agent ID.
    */
   get(agentId: string): AgentSoul | undefined {
+    this.hydrate()
     return this.souls.get(agentId)
   }
 
@@ -600,6 +614,7 @@ export class SoulManager {
    * Get all registered souls.
    */
   list(): Array<{ agentId: string; soul: AgentSoul }> {
+    this.hydrate()
     return Array.from(this.souls.entries()).map(([agentId, soul]) => ({
       agentId,
       soul,
@@ -622,6 +637,7 @@ export class SoulManager {
    * Auto-registers a soul if none exists for this agent ID.
    */
   recordOutcome(agentId: string, agentType: string, success: boolean): void {
+    this.hydrate()
     let soul = this.souls.get(agentId)
     if (!soul) {
       soul = this.generateSoul(agentType)
@@ -656,6 +672,7 @@ export class SoulManager {
    * Adjusts trait score up or down and registers it as an adaptation.
    */
   evolveTrait(agentId: string, traitName: string, delta: number): boolean {
+    this.hydrate()
     const soul = this.souls.get(agentId)
     if (!soul) return false
 
@@ -689,6 +706,7 @@ export class SoulManager {
    * Uses computeNextMood() to determine the new mood state.
    */
   updateMood(agentId: string, outcome: "success" | "failure"): MoodConfig | null {
+    this.hydrate()
     const soul = this.souls.get(agentId)
     if (!soul) return null
 
@@ -769,10 +787,11 @@ export class SoulManager {
    * Save a soul to disk.
    */
   async saveSoul(agentId: string, dir?: string): Promise<string | null> {
+    this.hydrate()
     const soul = this.souls.get(agentId)
     if (!soul) return null
 
-    const baseDir = dir || this.dir
+    const baseDir = dir || this.resolveDir()
     await mkdir(baseDir, { recursive: true })
 
     const filePath = join(baseDir, `${agentId}.json`)
