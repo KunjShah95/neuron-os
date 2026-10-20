@@ -4,6 +4,9 @@ import { cpus, totalmem, freemem, hostname } from "node:os"
 
 import type { WorkerInfo, WorkerStatus, ClusterConfig, ElectionState } from "./types"
 import { SecureTransport } from "./transport"
+import { createLogger } from "../cli/logger"
+
+const log = createLogger("pool")
 
 export interface PoolEventMap {
   "worker:join": [WorkerInfo]
@@ -27,6 +30,10 @@ export class WorkerPool extends EventEmitter {
   private pendingTasks: Map<
     string,
     { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }
+  > = new Map()
+  private forwardedTasks: Map<
+    string,
+    { sourceWorkerId: string; requesterSocket: Socket; timer: ReturnType<typeof setTimeout> }
   > = new Map()
 
   constructor(config: ClusterConfig) {
@@ -76,6 +83,25 @@ export class WorkerPool extends EventEmitter {
       }
     }
     return { ...this._localInfo }
+  }
+
+  /**
+   * Add tags to this node's local info. Mutates the stored info (getLocalInfo returns a copy)
+   * and re-announces the node so the cluster sees the updated tags.
+   */
+  addLocalTags(tags: string[]): void {
+    const local = this.getLocalInfo()
+    const merged = Array.from(new Set([...local.tags, ...tags]))
+    this._localInfo = { ...local, tags: merged }
+
+    const registered = this.workers.get(this.config.nodeId)
+    if (registered) {
+      this.workers.set(this.config.nodeId, { ...registered, tags: merged })
+    }
+
+    if (this.leaderSocket) {
+      this.sendMessage(this.leaderSocket, "register", this._localInfo)
+    }
   }
 
   async start(): Promise<void> {
@@ -192,11 +218,11 @@ export class WorkerPool extends EventEmitter {
         if (id === this.config.nodeId) continue
         const hbTime = new Date(worker.lastHeartbeat).getTime()
         if (now - hbTime > timeout) {
-          worker.status = "offline"
-          this.workers.set(id, worker)
-          this.emit("worker:status", worker)
-          this.emit("worker:leave", id)
+          this.workers.delete(id)
+          const socket = this.connections.get(id)
           this.connections.delete(id)
+          socket?.destroy()
+          this.emit("worker:leave", id)
         }
       }
     }, timeout / 2)
@@ -269,13 +295,57 @@ export class WorkerPool extends EventEmitter {
         }
         break
       }
+      case "forward-task": {
+        const taskId = payload.taskId as string
+        const targetWorkerId = payload.targetWorkerId as string
+        const sourceWorkerId = payload.sourceWorkerId as string
+        const targetSocket = this.connections.get(targetWorkerId)
+        if (!targetSocket) {
+          this.trySend(socket, "task-error", {
+            taskId,
+            error: `Worker "${targetWorkerId}" not connected`,
+          })
+          break
+        }
+
+        const existing = this.forwardedTasks.get(taskId)
+        if (existing) {
+          clearTimeout(existing.timer)
+          this.forwardedTasks.delete(taskId)
+        }
+
+        const timer = setTimeout(() => {
+          this.forwardedTasks.delete(taskId)
+          this.trySend(socket, "task-error", { taskId, error: `Task "${taskId}" timed out` })
+        }, 60_000)
+
+        this.forwardedTasks.set(taskId, { sourceWorkerId, requesterSocket: socket, timer })
+
+        this.trySend(targetSocket, "task", {
+          taskId,
+          taskType: payload.taskType as string,
+          taskPayload: payload.taskPayload,
+          sourceWorkerId,
+        })
+        break
+      }
       case "task-result": {
         const taskId = payload.taskId as string
+        const forwarded = this.forwardedTasks.get(taskId)
+        if (forwarded) {
+          clearTimeout(forwarded.timer)
+          this.forwardedTasks.delete(taskId)
+          this.trySend(forwarded.requesterSocket, "task-result", {
+            taskId,
+            result: payload.result,
+          })
+          break
+        }
         const pending = this.pendingTasks.get(taskId)
         if (pending) {
-          pending.resolve(payload.result)
           clearTimeout(pending.timer)
           this.pendingTasks.delete(taskId)
+          pending.resolve(payload.result)
         }
         break
       }
@@ -347,6 +417,26 @@ export class WorkerPool extends EventEmitter {
         this.emit("task", { taskId, taskType, taskPayload, sourceWorkerId: payload.sourceWorkerId as string })
         break
       }
+      case "task-result": {
+        const taskId = payload.taskId as string
+        const pending = this.pendingTasks.get(taskId)
+        if (pending) {
+          clearTimeout(pending.timer)
+          this.pendingTasks.delete(taskId)
+          pending.resolve(payload.result)
+        }
+        break
+      }
+      case "task-error": {
+        const taskId = payload.taskId as string
+        const pending = this.pendingTasks.get(taskId)
+        if (pending) {
+          clearTimeout(pending.timer)
+          this.pendingTasks.delete(taskId)
+          pending.reject(new Error((payload.error as string) ?? `Task "${taskId}" failed`))
+        }
+        break
+      }
       case "broadcast": {
         this.emit("broadcast", payload)
         break
@@ -357,6 +447,14 @@ export class WorkerPool extends EventEmitter {
   private sendMessage(socket: Socket, type: string, payload: unknown): void {
     const msg = SecureTransport.createMessage(type, payload, this.key)
     socket.write(msg + "\n")
+  }
+
+  private trySend(socket: Socket, type: string, payload: unknown): void {
+    try {
+      this.sendMessage(socket, type, payload)
+    } catch (err) {
+      log.warn("Failed to send pool message", { type, error: String(err) })
+    }
   }
 
   private startElection(): void {
@@ -420,7 +518,14 @@ export class WorkerPool extends EventEmitter {
     }
 
     this.workers.clear()
+    for (const [, pending] of this.pendingTasks) {
+      clearTimeout(pending.timer)
+    }
     this.pendingTasks.clear()
+    for (const [, forwarded] of this.forwardedTasks) {
+      clearTimeout(forwarded.timer)
+    }
+    this.forwardedTasks.clear()
     this._localInfo = null
   }
 

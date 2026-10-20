@@ -166,9 +166,9 @@ export class BaselineManager {
     }
 
     // Sort by timestamp ascending
-    baselines.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-    this.cache.set(cacheKey, baselines)
-    return baselines
+    const sorted = [...baselines].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    this.cache.set(cacheKey, sorted)
+    return sorted
   }
 
   /**
@@ -356,12 +356,15 @@ export class BaselineManager {
     const baselines = this.list(model)
     if (baselines.length <= this.config.maxBaselines) return
 
-    const sorted = baselines.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    // Sort by timestamp descending
+    const sorted = [...baselines].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     const toRemove = sorted.slice(this.config.maxBaselines)
 
     for (const b of toRemove) {
       this.delete(b.id)
     }
+
+    this.cache.delete(model)
   }
 
   private captureGitSha(): string {

@@ -202,14 +202,17 @@ export class CostAlertEngine {
       )
       if (windowSamples.length < this.config.minSamples) continue
 
-      const windowCosts = windowSamples.map((s) => s.costUsd)
-      const median = medianValue(windowCosts)
-      const mad = madValue(windowCosts, median)
-      const threshold = median + this.config.spikeMultiplier * mad
-      const latest = windowSamples[windowSamples.length - 1]
-      if (!latest) continue
+      const latest = windowSamples.reduce((newest, s) => (s.timestamp > newest.timestamp ? s : newest))
+      const baselineSamples = windowSamples.filter((s) => s !== latest)
+      if (baselineSamples.length < 2) continue
 
-      if (latest.costUsd <= threshold || mad <= 0) continue
+      const baselineCosts = baselineSamples.map((s) => s.costUsd)
+      const median = medianValue(baselineCosts)
+      const rawMad = madValue(baselineCosts, median)
+      const mad = Math.max(rawMad, median * 0.1, 1e-9)
+      const threshold = median + this.config.spikeMultiplier * mad
+
+      if (latest.costUsd <= threshold) continue
 
       const recentDuplicate = this.alerts.some(
         (a) =>

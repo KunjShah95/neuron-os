@@ -11,9 +11,11 @@
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from "node:fs"
 import { resolve, join } from "node:path"
-import { execSync } from "node:child_process"
+import { execFile } from "node:child_process"
 import type { EvalReport, TestFilter, RunnerConfig } from "./types"
 import type { BudgetConfig } from "./types"
+
+const GIT_COMMAND_TIMEOUT_MS = 1500
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -238,18 +240,19 @@ export class ExperimentManager {
   }
 
   private async captureGitSnapshot(): Promise<GitSnapshot> {
-    try {
-      const sha = execSync("git rev-parse HEAD", { encoding: "utf-8", timeout: 5000 }).trim()
-      const branch = execSync("git rev-parse --abbrev-ref HEAD", { encoding: "utf-8", timeout: 5000 }).trim()
-      const message = execSync("git log -1 --pretty=%B", { encoding: "utf-8", timeout: 5000 }).trim()
-      const dirty = execSync("git status --porcelain", { encoding: "utf-8", timeout: 5000 }).trim().length > 0
-      let diff = ""
-      if (dirty) {
-        diff = execSync("git diff", { encoding: "utf-8", timeout: 5000 }).slice(0, 5000)
-      }
-      const committedAt = execSync("git log -1 --format=%cI", { encoding: "utf-8", timeout: 5000 }).trim()
-      return { commitSha: sha.slice(0, 12), branch, message, committedAt, dirty, diff: diff || undefined }
-    } catch {
+    const run = (args: string[]): Promise<string> =>
+      new Promise((resolvePromise) => {
+        execFile("git", args, { encoding: "utf-8", timeout: GIT_COMMAND_TIMEOUT_MS, maxBuffer: 1024 * 1024 }, (err, stdout) => {
+          resolvePromise(err ? "" : stdout.toString())
+        })
+      })
+
+    const [log, status] = await Promise.all([
+      run(["log", "-1", "--pretty=%H%n%cI%n%B"]),
+      run(["status", "--porcelain=v2", "--branch"]),
+    ])
+
+    if (!log.trim()) {
       return {
         commitSha: "unknown",
         branch: "unknown",
@@ -257,6 +260,26 @@ export class ExperimentManager {
         committedAt: new Date().toISOString(),
         dirty: false,
       }
+    }
+
+    const [sha = "", committedAt = "", ...messageLines] = log.split("\n")
+    const branchLine = status.split("\n").find((line) => line.startsWith("# branch.head "))
+    const branch = branchLine ? branchLine.slice("# branch.head ".length).trim() : "unknown"
+    const dirty = status.split("\n").some((line) => line.length > 0 && !line.startsWith("#"))
+
+    let diff: string | undefined
+    if (dirty) {
+      const raw = await run(["diff"])
+      diff = raw ? raw.slice(0, 5000) : undefined
+    }
+
+    return {
+      commitSha: sha.trim().slice(0, 12),
+      branch,
+      message: messageLines.join("\n").trim(),
+      committedAt: committedAt.trim(),
+      dirty,
+      diff,
     }
   }
 }

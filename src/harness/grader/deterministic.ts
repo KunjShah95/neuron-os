@@ -13,8 +13,43 @@
  *   - DiffGrader: Check diff size/patterns
  */
 
+import { execSync } from "node:child_process"
 import type { GradeResult } from "../types"
 import type { DeterministicGraderConfig, GraderContext } from "./types"
+
+export const RUN_OBSERVATION_TRACE = "harness:observation"
+
+export interface RunObservation {
+  exitCode?: number
+  totalTokens?: number
+}
+
+export function readRunObservation(context?: GraderContext): RunObservation {
+  const observation: RunObservation = {}
+  let tokenSum = 0
+  let sawTokens = false
+
+  for (const entry of context?.trace ?? []) {
+    const params = (entry.params ?? {}) as Record<string, unknown>
+    if (typeof params.exitCode === "number") observation.exitCode = params.exitCode
+    if (typeof params.totalTokens === "number") {
+      observation.totalTokens = params.totalTokens
+      sawTokens = true
+    }
+    const tokenCost = (entry as { tokenCost?: number }).tokenCost
+    if (typeof tokenCost === "number") {
+      tokenSum += tokenCost
+      sawTokens = true
+    }
+  }
+
+  if (sawTokens && observation.totalTokens === undefined) observation.totalTokens = tokenSum
+  return observation
+}
+
+export function countToolSteps(context?: GraderContext): number {
+  return (context?.trace ?? []).filter((t) => t.name !== RUN_OBSERVATION_TRACE).length
+}
 
 // ── Main Deterministic Grader ───────────────────────────────────
 
@@ -94,6 +129,7 @@ export function stringMatchGrader(
   // Also check traces if available
   if (!found && context?.trace) {
     for (const t of context.trace) {
+      if (t.name === RUN_OBSERVATION_TRACE) continue
       const traceText = caseSensitive ? t.result : t.result.toLowerCase()
       if (traceText.includes(searchPattern)) {
         found = true
@@ -167,20 +203,57 @@ export function fileCheckGrader(config: DeterministicGraderConfig["fileCheck"], 
 
 // ── Exit Code Grader ────────────────────────────────────────────
 
-export function exitCodeGrader(config: DeterministicGraderConfig["exitCode"], _context?: GraderContext): GradeResult {
+export function exitCodeGrader(config: DeterministicGraderConfig["exitCode"], context?: GraderContext): GradeResult {
   const name = "exit-code"
-  const score = 1.0 // Default: we assume success since we're grading output
   if (!config) {
-    return { name, grader: "deterministic", score, weight: 0.1, details: "Exit code check not configured" }
+    return { name, grader: "deterministic", score: 0.5, weight: 0.1, details: "Exit code check not configured" }
   }
+
+  const observed = observeExitCode(config, context)
+  if (observed === null) {
+    return {
+      name,
+      grader: "deterministic",
+      score: 0.5,
+      weight: 0.1,
+      details: `Exit code NOT VERIFIED — no observed exit code for expected ${config.expected}`,
+    }
+  }
+
+  const matched = observed === config.expected
   return {
     name,
     grader: "deterministic",
-    score,
+    score: matched ? 1.0 : 0.0,
     weight: 0.1,
-    details: config.command
-      ? `Exit code check: expected ${config.expected ?? 0} for "${config.command}"`
-      : "Exit code not verified (no command specified)",
+    details: matched
+      ? `Exit code ${observed} matched expected ${config.expected}`
+      : `Exit code ${observed} did not match expected ${config.expected}`,
+  }
+}
+
+function observeExitCode(
+  config: NonNullable<DeterministicGraderConfig["exitCode"]>,
+  context?: GraderContext,
+): number | null {
+  const fromContext = readRunObservation(context).exitCode
+  if (typeof fromContext === "number") return fromContext
+
+  if (config.command) {
+    const fromCommand = runCommandExitCode(config.command, context?.workDir)
+    if (fromCommand !== null) return fromCommand
+  }
+
+  return null
+}
+
+function runCommandExitCode(command: string, workDir?: string): number | null {
+  try {
+    execSync(command, { cwd: workDir, timeout: 10000, stdio: "pipe" })
+    return 0
+  } catch (err) {
+    const status = (err as { status?: number | null }).status
+    return typeof status === "number" ? status : null
   }
 }
 
@@ -188,21 +261,36 @@ export function exitCodeGrader(config: DeterministicGraderConfig["exitCode"], _c
 
 export function tokenBudgetGrader(
   config: DeterministicGraderConfig["tokenBudget"],
-  _context?: GraderContext,
+  context?: GraderContext,
 ): GradeResult {
   const name = "token-budget"
   if (!config?.maxTokens) {
-    return { name, grader: "deterministic", score: 1.0, weight: 0.15, details: "No token budget configured" }
+    return { name, grader: "deterministic", score: 0.5, weight: 0.15, details: "No token budget configured" }
   }
 
-  // Token counts come from context.trace tokenCost sums, but we don't have them here directly
-  // This grader is best used with context that includes token info
+  const observed = readRunObservation(context).totalTokens
+  if (typeof observed !== "number") {
+    return {
+      name,
+      grader: "deterministic",
+      score: 0.5,
+      weight: 0.15,
+      details: `Token budget NOT VERIFIED — no token count observed (limit: ${config.maxTokens})`,
+    }
+  }
+
+  const withinBudget = observed <= config.maxTokens
+  const ratio = config.maxTokens > 0 ? Math.min(observed / config.maxTokens, 1) : 1
+  const score = withinBudget ? 1.0 - ratio * 0.3 : 0.3
+
   return {
     name,
     grader: "deterministic",
-    score: 1.0,
+    score,
     weight: 0.15,
-    details: `Token budget: ${config.maxTokens} (deferred to context-aware evaluation)`,
+    details: withinBudget
+      ? `${observed} tokens (limit: ${config.maxTokens})`
+      : `${observed} tokens exceeded limit of ${config.maxTokens}`,
   }
 }
 
@@ -215,7 +303,7 @@ export function stepCountGrader(config: DeterministicGraderConfig["stepBudget"],
     return { name, grader: "deterministic", score: 1.0, weight: 0.15, details: "No step budget configured" }
   }
 
-  const actualSteps = context?.trace?.length ?? 0
+  const actualSteps = countToolSteps(context)
   const passed = actualSteps <= maxSteps
   const ratio = maxSteps > 0 ? Math.min(actualSteps / maxSteps, 1) : 1
   // Score decreases as step count approaches the limit

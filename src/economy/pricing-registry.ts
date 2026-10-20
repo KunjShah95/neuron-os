@@ -7,7 +7,10 @@ import { ToolPricing } from "./types"
 import type { ToolPricing as ToolPricingType } from "./types"
 
 const log = createLogger("pricing-registry")
-const CONFIG_PATH = join(homedir(), ".aegis", "tool_pricing.yaml")
+
+function configPath(): string {
+  return join(homedir(), ".aegis", "tool_pricing.yaml")
+}
 
 export const DEFAULT_PRICING: ToolPricingType = {
   tools: {
@@ -110,27 +113,41 @@ export const DEFAULT_PRICING: ToolPricingType = {
 }
 
 let cached: ToolPricingType | null = null
+let lastLoadError: string | null = null
+
+/** The reason the last loadPricing() call fell back to the defaults, if any. */
+export function getPricingLoadError(): string | null {
+  return lastLoadError
+}
 
 export function loadPricing(): ToolPricingType {
   if (cached) return cached
 
-  if (!existsSync(CONFIG_PATH)) {
+  lastLoadError = null
+
+  const path = configPath()
+
+  if (!existsSync(path)) {
     cached = DEFAULT_PRICING
     return cached
   }
 
   try {
-    const raw = readFileSync(CONFIG_PATH, "utf-8")
+    const raw = readFileSync(path, "utf-8")
     const parsed = parse(raw)
     const result = ToolPricing.safeParse(parsed)
     if (result.success) {
       cached = result.data
       return cached
     }
-    log.warn("Invalid pricing config, using defaults")
+    const issues = result.error.issues.map((i) => `${i.path.join(".") || "<root>"}: ${i.message}`).join("; ")
+    lastLoadError = `Invalid pricing config at ${path}: ${issues}`
+    log.error(`${lastLoadError} — falling back to default pricing. Custom prices are NOT active.`)
     cached = DEFAULT_PRICING
     return cached
-  } catch {
+  } catch (err) {
+    lastLoadError = `Failed to read pricing config at ${path}: ${err instanceof Error ? err.message : String(err)}`
+    log.error(`${lastLoadError} — falling back to default pricing. Custom prices are NOT active.`)
     cached = DEFAULT_PRICING
     return cached
   }
@@ -140,7 +157,7 @@ export function savePricing(pricing: ToolPricingType): void {
   cached = pricing
   const dir = join(homedir(), ".aegis")
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-  writeFileSync(CONFIG_PATH, stringify(pricing), "utf-8")
+  writeFileSync(configPath(), stringify(pricing), "utf-8")
 }
 
 export function refreshPricing(): ToolPricingType {

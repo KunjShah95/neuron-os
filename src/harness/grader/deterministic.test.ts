@@ -123,9 +123,10 @@ describe("fileCheckGrader", () => {
 })
 
 describe("exitCodeGrader", () => {
-  it("always returns 1.0 (pass-through)", () => {
+  it("returns a neutral score when no exit code was observed", () => {
     const result = exitCodeGrader({ expected: 0 })
-    expect(result.score).toBe(1.0)
+    expect(result.score).toBe(0.5)
+    expect(result.details).toContain("NOT VERIFIED")
   })
 })
 
@@ -157,14 +158,15 @@ describe("stepCountGrader", () => {
 })
 
 describe("tokenBudgetGrader", () => {
-  it("returns 1.0 when no token budget", () => {
+  it("returns a neutral score when no token budget", () => {
     const result = tokenBudgetGrader({})
-    expect(result.score).toBe(1.0)
+    expect(result.score).toBe(0.5)
   })
 
-  it("returns 1.0 when token budget specified (pass-through)", () => {
+  it("returns a neutral score when no token count was observed", () => {
     const result = tokenBudgetGrader({ maxTokens: 5000 })
-    expect(result.score).toBe(1.0)
+    expect(result.score).toBe(0.5)
+    expect(result.details).toContain("NOT VERIFIED")
   })
 })
 
