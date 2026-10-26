@@ -23,7 +23,7 @@ const PROVIDER_PRIORITY: Array<{ provider: string; model: string }> = [
   { provider: "togetherai", model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo" },
   { provider: "nvidia", model: "mistralai/mixtral-8x22b-instruct-v0.1" },
   { provider: "mistral", model: "mistral-large-latest" },
-  { provider: "anthropic", model: "claude-sonnet-4-20250514" },
+  { provider: "anthropic", model: "claude-sonnet-4-6" },
   { provider: "openai", model: "gpt-4o" },
   { provider: "xai", model: "grok-2" },
   { provider: "cohere", model: "command-r-plus" },

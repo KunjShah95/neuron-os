@@ -11,7 +11,7 @@ import { GraderSuite } from "./grader"
 import { RUN_OBSERVATION_TRACE } from "./grader/deterministic"
 import type { GraderSuiteConfig } from "./grader/types"
 
-const DEFAULT_MODEL = process.env.HARNESS_MODEL || "claude-sonnet-4-20250514"
+const DEFAULT_MODEL = process.env.HARNESS_MODEL || "claude-sonnet-4-6"
 const DEFAULT_TEST_TIMEOUT_MS = 120000
 
 const sandboxManager = new HarnessSandboxManager()
