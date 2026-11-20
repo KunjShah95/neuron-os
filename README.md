@@ -634,3 +634,5 @@ MIT — [KunjShah95](https://github.com/KunjShah95)
   <a href="https://github.com/KunjShah95/neuron-os/discussions">Discussions</a> ·
   <a href="https://github.com/KunjShah95/neuron-os/issues">Issues</a>
 </p>
+
+Built by [Kunj Shah](https://kunjshah.in). More projects and case studies: [kunjshah.in/projects](https://kunjshah.in/projects).
